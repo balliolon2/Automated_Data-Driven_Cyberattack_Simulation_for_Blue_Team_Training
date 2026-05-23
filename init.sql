@@ -53,16 +53,25 @@ CREATE TABLE questions (
   created_at TIMESTAMP DEFAULT now()
 );
 
-CREATE TABLE test_attempts (
-  attempt_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+CREATE TABLE exam_sessions (
+  session_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID REFERENCES users(user_id),
-  test_type test_type NOT NULL,
-  score FLOAT NOT NULL,
-  total_questions INT NOT NULL,
-  answers JSONB,
+  exam_type test_type NOT NULL,
+  status session_status DEFAULT 'in_progress',
+  score FLOAT,
+  total_questions INT NOT NULL DEFAULT 100,
   started_at TIMESTAMP DEFAULT now(),
   completed_at TIMESTAMP,
   time_spent_seconds INT
+);
+
+CREATE TABLE exam_session_questions (
+  session_id UUID REFERENCES exam_sessions(session_id),
+  question_id UUID REFERENCES questions(question_id),
+  order_index INT NOT NULL,
+  user_answer VARCHAR,
+  is_correct BOOLEAN,
+  PRIMARY KEY (session_id, question_id)
 );
 
 -- 1.5 Add simulation tables
