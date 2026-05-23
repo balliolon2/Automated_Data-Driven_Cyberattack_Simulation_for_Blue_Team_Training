@@ -4,51 +4,13 @@ import json
 import glob
 import sys
 
-try:
-    import google.generativeai as genai
-except ImportError:
-    print("Please install google-generativeai first: pip install google-generativeai")
-    sys.exit(1)
-
-# Retrieve the API key from environment variables
-api_key = os.environ.get("GOOGLE_API_KEY")
-
-if not api_key:
-    print("ERROR: GOOGLE_API_KEY environment variable not found.")
-    print("To get a FREE API key, visit: https://aistudio.google.com/app/apikey")
-    print("Then set it in your terminal:")
-    print('  $env:GOOGLE_API_KEY="your-api-key" (for PowerShell)')
-    sys.exit(1)
-
-genai.configure(api_key=api_key)
-
-# Use gemini-2.5-pro
-model = genai.GenerativeModel('gemini-2.5-pro')
-
-def evaluate_difficulty(question_text, options, explanation):
-    prompt = f"""
-    You are an expert cybersecurity examiner. Read the following question, options, and explanation.
-    Evaluate the difficulty of this question on a scale of 1 to 3:
-    1 = Easy (Basic definitions, common terms, straightforward recall)
-    2 = Medium (Scenario-based application, standard operational concepts)
-    3 = Hard (Complex multi-step analysis, niche technical knowledge, tricky distractors)
-    
-    Please provide a varied and realistic distribution across all your evaluations.
-    Only return a single integer representing the difficulty level. No other text.
-    
-    Question: {question_text}
-    Options: {json.dumps(options)}
-    Explanation: {explanation}
-    """
-    try:
-        response = model.generate_content(prompt)
-        difficulty = int(response.text.strip())
-        if difficulty not in [1, 2, 3]:
-            return 2 # default fallback
-        return difficulty
-    except Exception as e:
-        print(f"Error evaluating difficulty: {e}")
-        return 2 # default fallback
+def calculate_complexity(question_text, options, explanation):
+    # A simple heuristic: longer questions and explanations tend to be harder.
+    # We will use this to sort and distribute difficulties 1-5.
+    length = len(question_text) + len(explanation)
+    for k, v in options.items():
+        length += len(v)
+    return length
 
 def parse_markdown_file(filepath):
     with open(filepath, 'r', encoding='utf-8') as f:
@@ -95,8 +57,8 @@ def parse_markdown_file(filepath):
         if correct_match:
             correct_answer = correct_match.group(1).upper()
             
-        # Call Gemini API
-        difficulty = evaluate_difficulty(question_text, options_dict, explanation_block)
+        # Calculate heuristic complexity instead of calling API
+        score = calculate_complexity(question_text, options_dict, explanation_block)
         
         question_data = {
             "domain_id": f"domain{domain_id}",
@@ -105,7 +67,7 @@ def parse_markdown_file(filepath):
             "options": options_dict,
             "correct_answer": correct_answer,
             "explanation": explanation_block,
-            "difficulty": difficulty
+            "complexity_score": score
         }
         
         questions.append(question_data)
@@ -118,11 +80,31 @@ def main():
     output_file = "parsed_questions.json"
     all_questions = []
     
-    print("Starting parser using Google AI Studio API Key...")
+    print("Starting deterministic parser (1-5 difficulty distribution)...")
     for filepath in glob.glob(os.path.join(target_dir, "*.md")):
         print(f"Parsing {filepath}...")
         questions = parse_markdown_file(filepath)
         all_questions.extend(questions)
+        
+    # Sort all questions by complexity score
+    all_questions.sort(key=lambda x: x["complexity_score"])
+    
+    total = len(all_questions)
+    # Distribute 1 to 5 evenly
+    for i, q in enumerate(all_questions):
+        percentile = i / total
+        if percentile < 0.2:
+            q["difficulty"] = 1
+        elif percentile < 0.4:
+            q["difficulty"] = 2
+        elif percentile < 0.6:
+            q["difficulty"] = 3
+        elif percentile < 0.8:
+            q["difficulty"] = 4
+        else:
+            q["difficulty"] = 5
+        # Remove the temporary score key
+        del q["complexity_score"]
         
     with open(output_file, 'w', encoding='utf-8') as f:
         json.dump(all_questions, f, ensure_ascii=False, indent=2)
