@@ -41,7 +41,7 @@ func (ec *ExamController) getSessionQuestions(sessionID string) ([]QuestionRespo
 		Select("questions.*, exam_session_questions.order_index, exam_session_questions.user_answer").
 		Joins("join questions on questions.question_id = exam_session_questions.question_id").
 		Where("exam_session_questions.session_id = ?", sessionID).
-		Order("exam_session_questions.order_index ascii").
+		Order("exam_session_questions.order_index asc").
 		Scan(&results).Error
 
 	if err != nil {

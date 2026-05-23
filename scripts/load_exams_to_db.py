@@ -11,6 +11,22 @@ def load_json_to_db(json_file_path, db_connection_string):
     cursor = conn.cursor()
 
     try:
+        # Pre-populate security_domains to satisfy foreign key constraints
+        domains = [
+            ("domain1", "Security Concepts", "Core security concepts, principles, and control types", 1.0, "Security+ Domain 1"),
+            ("domain2", "Threats, Vulnerabilities, and Mitigations", "Analyzing threat actors, vectors, vulnerabilities, and applying mitigations", 1.0, "Security+ Domain 2"),
+            ("domain3", "Security Architecture", "Designing secure network, cloud, and host infrastructures", 1.0, "Security+ Domain 3"),
+            ("domain4", "Security Operations", "Security monitoring, incident response, and operational security controls", 1.0, "Security+ Domain 4"),
+            ("domain5", "Security Management", "Governance, risk management, compliance, and security policies", 1.0, "Security+ Domain 5")
+        ]
+        for domain_id, name, desc, weight, ref in domains:
+            cursor.execute("""
+                INSERT INTO security_domains (domain_id, name, description, weight_score, compTIA_reference)
+                VALUES (%s, %s, %s, %s, %s)
+                ON CONFLICT (domain_id) DO NOTHING
+            """, (domain_id, name, desc, weight, ref))
+        print("Successfully seeded security domains.")
+
         inserted_count = 0
         for q in questions:
             # Assuming your schema allows omitting question_id to auto-generate UUID
