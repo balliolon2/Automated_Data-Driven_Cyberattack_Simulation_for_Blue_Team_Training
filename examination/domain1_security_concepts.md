@@ -769,40 +769,7 @@ the network
 (D)** Enabling multi-factor authentication for users
 
 
-**Explanation 23. Correct Answer: C. Deploying infrared (IR)
-sensors.** Infrared (IR) sensors detect infrared radiation, such as
-the heat emitted by the human body. This makes them
-particularly effective in detecting human intruders, even in
-complete darkness, based on the body heat they emit.
-
-**Option A is incorrect.** While CCTV cameras with LED lights
-can provide visual surveillance, they rely on light to produce
-images and may not detect intruders in complete darkness as
-efficiently as infrared sensors.
-
-**Option B is incorrect.** Ultrasonic motion sensors detect
-movement through sound waves, not body heat, making them
-less efficient in differentiating between a human intruder and
-other moving objects.
-
-**Option D is incorrect.** RFID badge readers control access at
-entry points but do not detect human intruders based on their
-body heat inside a facility.
-
-**Question 24.** After a recent security breach, Sarah, a
-cybersecurity analyst, is implementing additional measures to
-detect unauthorized activities. She decides to embed specific
-values in the database that serve no real purpose but are
-monitored for any unauthorized access or usage. These values
-are designed to raise alerts if they are ever accessed or used.
-What are these specific values commonly referred to as?
-**(A)** Security flags
-**(B)** Honeypots
-**(C) Honeytokens
-(D)** Audit trails
-
-
-**Explanation 24. Correct Answer: C. Restoring systems from
+**Explanation 23. Correct Answer: C. Restoring systems from
 verified backups.** Restoring systems from verified backups is a
 corrective control, as it can restore compromised systems to
 their last known good state. This action corrects the adverse
@@ -823,6 +790,34 @@ impacts of an already occurred breach.
 preventive control, aiming to provide additional layers of
 verification. While it enhances security, it doesn’t correct the
 adverse impacts of an intrusion.
+
+**Question 24.** After a recent security breach, Sarah, a
+cybersecurity analyst, is implementing additional measures to
+detect unauthorized activities. She decides to embed specific
+values in the database that serve no real purpose but are
+monitored for any unauthorized access or usage. These values
+are designed to raise alerts if they are ever accessed or used.
+What are these specific values commonly referred to as?
+**(A)** Security flags
+**(B)** Honeypots
+**(C) Honeytokens
+(D)** Audit trails
+
+
+**Explanation 24. Correct Answer: C. Honeytokens.**
+Honeytokens are deceptive data pieces, such as a fake database record,
+that are designed to be monitored. When an attacker accesses or interacts
+with a honeytoken, an alert is triggered.
+
+**Option A is incorrect.** Security flags is a generic term and not
+specifically a deceptive data value.
+
+**Option B is incorrect.** Honeypots are entire systems or network
+components set up as decoys, whereas honeytokens are just specific
+pieces of data.
+
+**Option D is incorrect.** Audit trails are logs of system activities,
+not deceptive data values designed to trigger alerts.
 
 **Question 25.** Bob receives an email prompting him to verify his
 identity by clicking on a link. The link directs him to a webpage

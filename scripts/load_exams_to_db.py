@@ -41,8 +41,8 @@ def load_json_to_db(json_file_path, db_connection_string):
 
 if __name__ == "__main__":
     # Update with your actual database connection string
-    # e.g. "dbname=cyber_sim user=postgres password=secret host=localhost port=5432"
-    db_conn_str = os.environ.get("DATABASE_URL", "dbname=cyber_sim user=postgres password=secret host=localhost port=5432")
+    # e.g. "dbname=cyber_sim user=admin password=password host=localhost port=5432"
+    db_conn_str = os.environ.get("DATABASE_URL", "dbname=cyber_sim user=admin password=password host=localhost port=5432")
     json_path = "parsed_questions.json"
     
     if os.path.exists(json_path):
