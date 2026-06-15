@@ -22,6 +22,7 @@ export default function LoginPage() {
       });
       // Save token to localStorage
       localStorage.setItem("token", response.data.token);
+      localStorage.setItem("userEmail", response.data.email);
       // Navigate to the exam page or dashboard
       navigate("/exam");
     } catch (err: any) {

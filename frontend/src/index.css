@@ -1,3 +1,30 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-graphite-950 text-graphite-50 font-sans antialiased;
+    overflow-x: hidden;
+  }
+  
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    width: 8px;
+  }
+  ::-webkit-scrollbar-track {
+    @apply bg-graphite-950;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply bg-graphite-800 rounded-full;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-graphite-700;
+  }
+}
+
+@layer utilities {
+  .glass-panel {
+    @apply bg-graphite-900/60 backdrop-blur-md border border-graphite-800/50 shadow-xl;
+  }
+}
