@@ -85,7 +85,7 @@ func (ec *ExamController) StartPreTest(c *gin.Context) {
 		UserID:         userID.(string),
 		ExamType:       "pre",
 		Status:         "in_progress",
-		TotalQuestions: 100,
+		TotalQuestions: 30,
 		StartedAt:      time.Now(),
 	}
 
@@ -96,13 +96,13 @@ func (ec *ExamController) StartPreTest(c *gin.Context) {
 	}
 
 	// Query randomized questions per domain requirements
-	// Domain 1: 12, Domain 2: 22, Domain 3: 18, Domain 4: 28, Domain 5: 20
+	// Domain 1: 4, Domain 2: 7, Domain 3: 5, Domain 4: 8, Domain 5: 6
 	domains := map[string]int{
-		"domain1": 12,
-		"domain2": 22,
-		"domain3": 18,
-		"domain4": 28,
-		"domain5": 20,
+		"domain1": 4,
+		"domain2": 7,
+		"domain3": 5,
+		"domain4": 8,
+		"domain5": 6,
 	}
 
 	var allSelectedQuestions []models.Question
@@ -119,9 +119,9 @@ func (ec *ExamController) StartPreTest(c *gin.Context) {
 		allSelectedQuestions = append(allSelectedQuestions, qList...)
 	}
 
-	if len(allSelectedQuestions) < 100 {
+	if len(allSelectedQuestions) < 30 {
 		tx.Rollback()
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Insufficient questions in database pool to construct 100 questions exam"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Insufficient questions in database pool to construct 30 questions exam"})
 		return
 	}
 
@@ -176,7 +176,7 @@ func (ec *ExamController) StartPostTest(c *gin.Context) {
 		UserID:         userID.(string),
 		ExamType:       "post",
 		Status:         "in_progress",
-		TotalQuestions: 100,
+		TotalQuestions: 30,
 		StartedAt:      time.Now(),
 	}
 
@@ -193,11 +193,11 @@ func (ec *ExamController) StartPostTest(c *gin.Context) {
 		Where("exam_sessions.user_id = ? AND exam_sessions.exam_type = 'pre'", userID)
 
 	domains := map[string]int{
-		"domain1": 12,
-		"domain2": 22,
-		"domain3": 18,
-		"domain4": 28,
-		"domain5": 20,
+		"domain1": 4,
+		"domain2": 7,
+		"domain3": 5,
+		"domain4": 8,
+		"domain5": 6,
 	}
 
 	var allSelectedQuestions []models.Question
@@ -214,9 +214,9 @@ func (ec *ExamController) StartPostTest(c *gin.Context) {
 		allSelectedQuestions = append(allSelectedQuestions, qList...)
 	}
 
-	if len(allSelectedQuestions) < 100 {
+	if len(allSelectedQuestions) < 30 {
 		tx.Rollback()
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Insufficient unused questions in database pool to construct 100 questions post-test"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Insufficient unused questions in database pool to construct 30 questions post-test"})
 		return
 	}
 
@@ -350,7 +350,7 @@ func (ec *ExamController) SubmitAnswer(c *gin.Context) {
 	// Check if all questions are answered
 	var unansweredCount int64
 	if err := tx.Model(&models.ExamSessionQuestion{}).
-		Where("session_id = ? AND user_answer IS NULL", input.SessionID).
+		Where("session_id = ? AND (user_answer IS NULL OR user_answer = '')", input.SessionID).
 		Count(&unansweredCount).Error; err != nil {
 		tx.Rollback()
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to check progress"})

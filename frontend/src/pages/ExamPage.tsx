@@ -27,7 +27,7 @@ export default function ExamPage() {
   const [questions, setQuestions] = useState<Question[]>([]);
   const [session, setSession] = useState<ExamSession | null>(null);
   const [answers, setAnswers] = useState<Record<string, string>>({});
-  const [timeLeft, setTimeLeft] = useState(90 * 60);
+  const [timeLeft, setTimeLeft] = useState(30 * 60);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const navigate = useNavigate();
@@ -214,6 +214,14 @@ export default function ExamPage() {
           </div>
         </div>
 
+        {timeLeft === 0 && (
+          <div className="mb-6 bg-amber-900/40 border border-amber-600/50 rounded-lg p-4 text-amber-200">
+            <p className="font-medium flex items-center gap-2">
+              <span>⏰</span> Time's up! You can review your answers but cannot change them. Please submit.
+            </p>
+          </div>
+        )}
+
         <div className="flex-1 space-y-8">
           <div className="text-lg text-slate-200">
             {currentQ.question_text}
@@ -224,9 +232,14 @@ export default function ExamPage() {
                 <input 
                   type="radio" 
                   name={`q${currentQ.question_id}`} 
-                  className="w-5 h-5 accent-emerald-500 cursor-pointer" 
+                  className={`w-5 h-5 accent-emerald-500 ${timeLeft === 0 ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`} 
                   checked={answers[currentQ.question_id] === key}
-                  onChange={() => handleAnswerSelect(currentQ.question_id, key)}
+                  onChange={() => {
+                    if (timeLeft > 0) {
+                      handleAnswerSelect(currentQ.question_id, key);
+                    }
+                  }}
+                  disabled={timeLeft === 0}
                 />
                 <span className="text-slate-300 font-medium">{key})</span>
                 <span className="text-slate-200">{optText as string}</span>

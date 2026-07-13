@@ -46,8 +46,8 @@ def run_tests():
     questions = pre_data["questions"]
     
     print(f"Pre-Test started. Session ID: {session_id}. Questions count: {len(questions)}")
-    if len(questions) != 100:
-        print(f"Error: Expected 100 questions, got {len(questions)}")
+    if len(questions) != 30:
+        print(f"Error: Expected 30 questions, got {len(questions)}")
         sys.exit(1)
         
     # Track domains
@@ -55,6 +55,12 @@ def run_tests():
     domain_counts = {d: domains.count(d) for d in set(domains)}
     print("Domain distribution:", domain_counts)
     
+    expected_counts = {"domain1": 4, "domain2": 7, "domain3": 5, "domain4": 8, "domain5": 6}
+    for d, expected in expected_counts.items():
+        if domain_counts.get(d, 0) != expected:
+            print(f"Error: Expected {expected} questions for {d}, got {domain_counts.get(d, 0)}")
+            sys.exit(1)
+            
     # 4. Test Reconnect (fetch session)
     print("Testing Session Recovery...")
     session_res = requests.get(f"{BASE_URL}/exams/session", headers=headers)

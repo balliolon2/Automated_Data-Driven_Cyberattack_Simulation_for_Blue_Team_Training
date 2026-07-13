@@ -24,7 +24,7 @@ type ExamSession struct {
 	ExamType         string     `gorm:"type:test_type;not null" json:"exam_type"`
 	Status           string     `gorm:"type:session_status;default:'in_progress'" json:"status"`
 	Score            *float64   `json:"score"`
-	TotalQuestions   int        `gorm:"default:100" json:"total_questions"`
+	TotalQuestions   int        `gorm:"default:30" json:"total_questions"`
 	StartedAt        time.Time  `gorm:"default:now()" json:"started_at"`
 	CompletedAt      *time.Time `json:"completed_at"`
 	TimeSpentSeconds *int       `json:"time_spent_seconds"`

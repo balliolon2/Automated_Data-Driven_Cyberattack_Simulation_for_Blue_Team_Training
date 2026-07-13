@@ -43,11 +43,11 @@ Tracks learner profile information, tiers, and roles.
 
 #### 2. Security Domains (`security_domains`)
 Defines Kasetsart University's mapped CompTIA Security+ 701 categories:
-- `Domain 1` (Security Concepts): 12 questions
-- `Domain 2` (Threats, Vulnerabilities, and Mitigations): 22 questions
-- `Domain 3` (Security Architecture): 18 questions
-- `Domain 4` (Security Operations): 28 questions
-- `Domain 5` (Security Management): 20 questions
+- `Domain 1` (Security Concepts): 4 questions
+- `Domain 2` (Threats, Vulnerabilities, and Mitigations): 7 questions
+- `Domain 3` (Security Architecture): 5 questions
+- `Domain 4` (Security Operations): 8 questions
+- `Domain 5` (Security Management): 6 questions
 
 #### 3. Questions (`questions` / `models.Question`)
 Houses the ingested test questions mapping back to domains and MITRE techniques.
@@ -67,7 +67,7 @@ Coordinates the active status and scoring for test attempts.
 - `ExamType` (Enum `test_type`: 'pre', 'post')
 - `Status` (Enum `session_status`: 'in_progress', 'completed', 'abandoned')
 - `Score` (FLOAT)
-- `TotalQuestions` (INT, Default: 100)
+- `TotalQuestions` (INT, Default: 30)
 
 #### 5. Exam Session Questions (`exam_session_questions` / `models.ExamSessionQuestion`)
 Maintains the mapping of questions assigned to specific user sessions to verify progress.
@@ -91,7 +91,7 @@ Raw questions are parsed from markdown and loaded into the database:
 ### 2. Integration Verification Suite
 `scripts/test_integration.py` verifies the following end-to-end user flows:
 - **Registration & Auth**: Checks `/api/register` and `/api/login` endpoints.
-- **Pre-Test Initialization**: Requests `/api/exams/pre-test` and confirms it returns exactly 100 questions distributed across the 5 domains in the exact required counts (12/22/18/28/20).
+- **Pre-Test Initialization**: Requests `/api/exams/pre-test` and confirms it returns exactly 30 questions distributed across the 5 domains in the exact required counts (4/7/5/8/6).
 - **Session Recovery**: Calls `/api/exams/session` to ensure exam state is retrieved during drops/refreshes.
 - **Submission**: Commits answers to `/api/exams/submit-answer` and scores them.
 - **Zero Question Overlap**: Initializes a `/api/exams/post-test` session and verifies that none of the questions used in the Pre-Test appear in the Post-Test.

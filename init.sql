@@ -59,7 +59,7 @@ CREATE TABLE exam_sessions (
   exam_type test_type NOT NULL,
   status session_status DEFAULT 'in_progress',
   score FLOAT,
-  total_questions INT NOT NULL DEFAULT 100,
+  total_questions INT NOT NULL DEFAULT 30,
   started_at TIMESTAMP DEFAULT now(),
   completed_at TIMESTAMP,
   time_spent_seconds INT
