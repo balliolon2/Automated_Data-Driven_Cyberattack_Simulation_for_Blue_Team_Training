@@ -383,26 +383,109 @@ func (ec *ExamController) SubmitAnswer(c *gin.Context) {
 		}
 
 		// Also populate evaluation_metrics if needed, but we keep it simple here
-		tx.Commit()
 
-		// For completed exams, we can return the correct answer and explanations
-		var detailedResults []struct {
-			models.Question
-			UserAnswer string `json:"user_answer"`
-			IsCorrect  bool   `json:"is_correct"`
-		}
-		ec.DB.Table("exam_session_questions").
-			Select("questions.*, exam_session_questions.user_answer, exam_session_questions.is_correct").
-			Joins("join questions on questions.question_id = exam_session_questions.question_id").
-			Where("exam_session_questions.session_id = ?", session.SessionID).
-			Scan(&detailedResults)
+		// Calculate per-domain scores and seed user_skill_profiles (for pre-test)
+		if session.ExamType == "pre" {
+			type DomainScore struct {
+				DomainID     string `json:"domain_id"`
+				TotalCount   int64  `json:"total"`
+				CorrectCount int64  `json:"correct"`
+				Percentage   float64 `json:"percentage"`
+			}
 
-		responseData = gin.H{
-			"message":      "Exam completed successfully!",
-			"completed":    true,
-			"score":        scorePercent,
-			"results":      detailedResults,
-			"correct_count": correctCount,
+			var domainResults []struct {
+				DomainID     string
+				TotalCount   int64
+				CorrectCount int64
+			}
+
+			tx.Table("exam_session_questions").
+				Select("questions.domain_id, COUNT(*) as total_count, SUM(CASE WHEN exam_session_questions.is_correct = true THEN 1 ELSE 0 END) as correct_count").
+				Joins("JOIN questions ON questions.question_id = exam_session_questions.question_id").
+				Where("exam_session_questions.session_id = ?", session.SessionID).
+				Group("questions.domain_id").
+				Scan(&domainResults)
+
+			domainScores := make([]DomainScore, 0, len(domainResults))
+			for _, dr := range domainResults {
+				pct := 0.0
+				if dr.TotalCount > 0 {
+					pct = math.Round((float64(dr.CorrectCount)/float64(dr.TotalCount))*100*100) / 100
+				}
+
+				domainScores = append(domainScores, DomainScore{
+					DomainID:     dr.DomainID,
+					TotalCount:   dr.TotalCount,
+					CorrectCount: dr.CorrectCount,
+					Percentage:   pct,
+				})
+
+				// Upsert user_skill_profiles
+				var profile models.UserSkillProfile
+				err := tx.Where("user_id = ? AND domain_id = ?", userID, dr.DomainID).First(&profile).Error
+				if err != nil {
+					// Create new profile
+					now := time.Now()
+					profile = models.UserSkillProfile{
+						UserID:           userID.(string),
+						DomainID:         dr.DomainID,
+						ProficiencyScore: pct,
+						LastPracticed:    &now,
+					}
+					tx.Create(&profile)
+				} else {
+					// Update existing profile
+					profile.ProficiencyScore = pct
+					now := time.Now()
+					profile.LastPracticed = &now
+					tx.Save(&profile)
+				}
+			}
+
+			tx.Commit()
+
+			// For completed exams, we can return the correct answer and explanations
+			var detailedResults []struct {
+				models.Question
+				UserAnswer string `json:"user_answer"`
+				IsCorrect  bool   `json:"is_correct"`
+			}
+			ec.DB.Table("exam_session_questions").
+				Select("questions.*, exam_session_questions.user_answer, exam_session_questions.is_correct").
+				Joins("join questions on questions.question_id = exam_session_questions.question_id").
+				Where("exam_session_questions.session_id = ?", session.SessionID).
+				Scan(&detailedResults)
+
+			responseData = gin.H{
+				"message":        "Exam completed successfully!",
+				"completed":      true,
+				"score":          scorePercent,
+				"results":        detailedResults,
+				"correct_count":  correctCount,
+				"domain_scores":  domainScores,
+			}
+		} else {
+			tx.Commit()
+
+			// For completed exams, we can return the correct answer and explanations
+			var detailedResults []struct {
+				models.Question
+				UserAnswer string `json:"user_answer"`
+				IsCorrect  bool   `json:"is_correct"`
+			}
+			ec.DB.Table("exam_session_questions").
+				Select("questions.*, exam_session_questions.user_answer, exam_session_questions.is_correct").
+				Joins("join questions on questions.question_id = exam_session_questions.question_id").
+				Where("exam_session_questions.session_id = ?", session.SessionID).
+				Scan(&detailedResults)
+
+			responseData = gin.H{
+				"message":       "Exam completed successfully!",
+				"completed":     true,
+				"score":         scorePercent,
+				"results":       detailedResults,
+				"correct_count": correctCount,
+			}
 		}
 	} else {
 		tx.Commit()
@@ -413,3 +496,15 @@ func (ec *ExamController) SubmitAnswer(c *gin.Context) {
 
 	c.JSON(http.StatusOK, responseData)
 }
+
+// GET /api/exams/sample
+func (ec *ExamController) GetSampleQuestion(c *gin.Context) {
+	var question models.Question
+	err := ec.DB.Order("RANDOM()").First(&question).Error
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve sample question"})
+		return
+	}
+	c.JSON(http.StatusOK, question)
+}
+

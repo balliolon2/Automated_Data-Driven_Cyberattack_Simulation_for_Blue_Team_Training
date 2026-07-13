@@ -22,7 +22,7 @@ interface ExamSession {
   time_spent_seconds: number | null;
 }
 
-export default function ExamPage() {
+export default function ExamPage({ mode }: { mode: "pre" | "post" }) {
   const [currentQuestionIdx, setCurrentQuestionIdx] = useState(0);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [session, setSession] = useState<ExamSession | null>(null);
@@ -39,24 +39,41 @@ export default function ExamPage() {
         const res = await axios.get("/api/exams/session", {
           headers: { Authorization: `Bearer ${token}` }
         });
-        setSession(res.data.session);
-        setQuestions(res.data.questions);
-        
-        const initialAnswers: Record<string, string> = {};
-        res.data.questions.forEach((q: Question) => {
-          if (q.user_answer) {
-            initialAnswers[q.question_id] = q.user_answer;
+
+        if (res.data && res.data.session) {
+          const activeType = res.data.session.exam_type;
+          if (activeType !== mode) {
+            // Mismatch! Redirect to the correct page
+            if (activeType === "pre") {
+              navigate("/pre-test");
+            } else {
+              navigate("/post-test");
+            }
+            return;
           }
-        });
-        setAnswers(initialAnswers);
+          setSession(res.data.session);
+          setQuestions(res.data.questions);
+          
+          const initialAnswers: Record<string, string> = {};
+          res.data.questions.forEach((q: Question) => {
+            if (q.user_answer) {
+              initialAnswers[q.question_id] = q.user_answer;
+            }
+          });
+          setAnswers(initialAnswers);
+        }
       } catch (err) {
         console.error("Failed to load exam session:", err);
       } finally {
         setLoading(false);
       }
     };
+    setLoading(true);
+    setQuestions([]);
+    setSession(null);
+    setAnswers({});
     fetchSession();
-  }, []);
+  }, [mode, navigate]);
 
   useEffect(() => {
     if (loading) return;
@@ -138,29 +155,49 @@ export default function ExamPage() {
   }
 
   if (!questions.length) {
-    return <div className="p-8 text-white font-mono flex flex-col items-center justify-center min-h-[50vh]">
-      <div className="mb-8 text-xl">No active exam session found.</div>
-      <div className="flex gap-4">
+    return (
+      <div className="max-w-xl mx-auto mt-12 glass-panel p-8 rounded-2xl border border-graphite-800 text-center space-y-6 animate-slide-up">
+        {mode === "pre" ? (
+          <>
+            <h2 className="text-3xl font-extrabold text-white">Security+ Pre-Test Assessment</h2>
+            <p className="text-graphite-300 font-light leading-relaxed">
+              This assessment consists of <strong>30 questions</strong> spanning 5 core CompTIA Security+ domains. 
+              The test evaluates your current baseline proficiency and designs your targeted adaptive simulation roadmap.
+            </p>
+            <div className="pt-4">
+              <button 
+                onClick={() => startExam("pre")}
+                className="w-full py-4 bg-emerald-500 hover:bg-emerald-400 text-emerald-950 font-bold text-lg rounded-full shadow-[0_0_20px_rgba(52,211,153,0.25)] hover:shadow-[0_0_30px_rgba(52,211,153,0.4)] transition-all duration-300 hover:-translate-y-0.5"
+              >
+                Start Pre-Test Assessment
+              </button>
+            </div>
+          </>
+        ) : (
+          <>
+            <h2 className="text-3xl font-extrabold text-white">Security+ Post-Test Assessment</h2>
+            <p className="text-graphite-300 font-light leading-relaxed">
+              This final assessment consists of <strong>30 questions</strong>. It evaluates your overall proficiency after 
+              completing the required hands-on SOC simulation training scenarios.
+            </p>
+            <div className="pt-4">
+              <button 
+                onClick={() => startExam("post")}
+                className="w-full py-4 bg-emerald-500 hover:bg-emerald-400 text-emerald-950 font-bold text-lg rounded-full shadow-[0_0_20px_rgba(52,211,153,0.25)] hover:shadow-[0_0_30px_rgba(52,211,153,0.4)] transition-all duration-300 hover:-translate-y-0.5"
+              >
+                Start Post-Test Assessment
+              </button>
+            </div>
+          </>
+        )}
         <button 
-          onClick={() => startExam("pre")}
-          className="px-6 py-2 bg-emerald-600 hover:bg-emerald-500 rounded text-white font-bold transition-colors"
+          onClick={() => navigate("/")}
+          className="mt-4 text-sm text-graphite-400 hover:text-graphite-200 transition-colors underline decoration-dotted"
         >
-          Start Pre-Test
-        </button>
-        <button 
-          onClick={() => startExam("post")}
-          className="px-6 py-2 bg-blue-600 hover:bg-blue-500 rounded text-white font-bold transition-colors"
-        >
-          Start Post-Test
+          Go back to Dashboard
         </button>
       </div>
-      <button 
-        onClick={() => navigate("/")}
-        className="mt-6 px-6 py-2 border border-slate-700 hover:border-slate-500 rounded text-slate-300 font-medium transition-colors"
-      >
-        Go back to Dashboard
-      </button>
-    </div>;
+    );
   }
 
   const currentQ = questions[currentQuestionIdx];

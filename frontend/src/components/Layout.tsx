@@ -37,20 +37,26 @@ export default function Layout() {
           
           <nav className="flex items-center gap-6">
             <div className="flex gap-1 bg-graphite-900/50 p-1 rounded-full border border-graphite-800">
-              {navLinks.map((link) => (
-                <Link
-                  key={link.path}
-                  to={link.path}
-                  className={clsx(
-                    "px-4 py-1.5 rounded-full text-sm font-medium transition-all duration-300",
-                    location.pathname === link.path
-                      ? "bg-graphite-800 text-white shadow-sm"
-                      : "text-graphite-400 hover:text-graphite-100 hover:bg-graphite-800/50"
-                  )}
-                >
-                  {link.label}
-                </Link>
-              ))}
+              {navLinks.map((link) => {
+                const isActive = link.path === "/exam"
+                  ? ["/exam", "/pre-test", "/post-test"].includes(location.pathname)
+                  : location.pathname === link.path;
+
+                return (
+                  <Link
+                    key={link.path}
+                    to={link.path}
+                    className={clsx(
+                      "px-4 py-1.5 rounded-full text-sm font-medium transition-all duration-300",
+                      isActive
+                        ? "bg-graphite-800 text-white shadow-sm"
+                        : "text-graphite-400 hover:text-graphite-100 hover:bg-graphite-800/50"
+                    )}
+                  >
+                    {link.label}
+                  </Link>
+                );
+              })}
             </div>
             
             <div className="h-6 w-px bg-graphite-800 hidden sm:block" />

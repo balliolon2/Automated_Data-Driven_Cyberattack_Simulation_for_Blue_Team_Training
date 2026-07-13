@@ -41,12 +41,14 @@ func main() {
 	// Controllers
 	authController := controllers.NewAuthController(db)
 	examController := controllers.NewExamController(db)
+	simController := controllers.NewSimulationController(db)
 
 	// Routes
 	api := r.Group("/api")
 	{
 		api.POST("/register", authController.Register)
 		api.POST("/login", authController.Login)
+		api.GET("/exams/sample", examController.GetSampleQuestion)
 
 		// Protected exam routes
 		exams := api.Group("/exams", middlewares.AuthMiddleware())
@@ -55,6 +57,17 @@ func main() {
 			exams.POST("/post-test", examController.StartPostTest)
 			exams.GET("/session", examController.GetActiveSession)
 			exams.POST("/submit-answer", examController.SubmitAnswer)
+		}
+
+		// Protected simulation routes
+		simulation := api.Group("/simulation", middlewares.AuthMiddleware())
+		{
+			simulation.GET("/status", simController.GetStatus)
+			simulation.POST("/start", simController.StartScenario)
+			simulation.GET("/session", simController.GetActiveSession)
+			simulation.POST("/log-query", simController.LogQuery)
+			simulation.POST("/submit", simController.SubmitScenario)
+			simulation.GET("/result/:sessionId", simController.GetResult)
 		}
 	}
 

@@ -85,6 +85,8 @@ CREATE TABLE scenarios (
   initial_logs JSONB NOT NULL,
   playbook_steps JSONB,
   expected_outcomes JSONB,
+  is_true_positive BOOLEAN NOT NULL DEFAULT true,
+  tp_fp_explanation TEXT,
   status scenario_status DEFAULT 'active',
   created_at TIMESTAMP DEFAULT now(),
   updated_at TIMESTAMP
