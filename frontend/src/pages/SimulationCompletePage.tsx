@@ -16,6 +16,7 @@ export default function SimulationCompletePage() {
   const [loading, setLoading] = useState(true);
   const [domainProficiencies, setDomainProficiencies] = useState<DomainStatus[]>([]);
   const [completedScenarios, setCompletedScenarios] = useState(0);
+  const [allPassed, setAllPassed] = useState(false);
 
   const navigate = useNavigate();
 
@@ -34,6 +35,7 @@ export default function SimulationCompletePage() {
 
         setDomainProficiencies(res.data.domains || []);
         setCompletedScenarios(res.data.completed_scenarios || 0);
+        setAllPassed(res.data.all_domains_passed || false);
       } catch (err) {
         console.error("Failed to load simulation status:", err);
       } finally {
@@ -48,14 +50,12 @@ export default function SimulationCompletePage() {
     setLoading(true);
     try {
       const token = localStorage.getItem("token");
-      // Start Post Test
       await axios.post("/api/exams/post-test", {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
       navigate("/post-test");
     } catch (err) {
       console.error("Failed to start post-test:", err);
-      // If already active session exists, navigate to /post-test
       navigate("/post-test");
     } finally {
       setLoading(false);
@@ -75,11 +75,15 @@ export default function SimulationCompletePage() {
     <div className="max-w-3xl mx-auto space-y-8 animate-fade-in">
       <div className="text-center space-y-3 max-w-xl mx-auto">
         <div className="inline-flex items-center justify-center p-3 rounded-md bg-graphite-900 border border-graphite-800 text-white mb-2 relative">
-          <Award className="w-8 h-8" />
+          <Award className="w-8 h-8 text-emerald-400" />
         </div>
-        <h1 className="text-2xl font-bold tracking-tight text-white">Training Complete!</h1>
+        <h1 className="text-2xl font-bold tracking-tight text-white">
+          {allPassed ? "Training Complete!" : "Simulation Training Overview"}
+        </h1>
         <p className="text-xs text-graphite-400 leading-relaxed font-light">
-          Congratulations! You have completed the practical SOC Incident Simulation training loop. All security domains have reached the required proficiency threshold.
+          {allPassed
+            ? "Congratulations! You have completed the practical SOC Incident Simulation training loop. All security domains have reached the required 70% proficiency threshold."
+            : "You have reviewed your active training metrics. Work through additional targeted scenarios to raise all security domains above the 70% threshold."}
         </p>
       </div>
 
@@ -104,18 +108,30 @@ export default function SimulationCompletePage() {
               </div>
               <div className="flex justify-between py-1 border-b border-graphite-800/60">
                 <span className="text-graphite-400">Status:</span>
-                <span className="text-emerald-400 font-semibold">READY FOR EXAM</span>
+                <span className={allPassed ? "text-emerald-400 font-semibold" : "text-amber-400 font-semibold"}>
+                  {allPassed ? "READY FOR EXAM" : "TRAINING IN PROGRESS"}
+                </span>
               </div>
             </div>
           </div>
 
-          <button
-            onClick={handleStartPostTest}
-            className="w-full py-2 bg-white text-black font-semibold text-xs rounded-md hover:bg-white/90 transition-all duration-200 flex items-center justify-center gap-2"
-          >
-            Start Final Post-Test
-            <ChevronRight className="w-4 h-4" />
-          </button>
+          <div className="space-y-2">
+            {!allPassed && (
+              <button
+                onClick={() => navigate("/simulation")}
+                className="w-full py-2 bg-emerald-500 hover:bg-emerald-600 text-black font-semibold text-xs rounded-md transition-all duration-200"
+              >
+                Continue Incident Simulation
+              </button>
+            )}
+            <button
+              onClick={handleStartPostTest}
+              className="w-full py-2 bg-white text-black font-semibold text-xs rounded-md hover:bg-white/90 transition-all duration-200 flex items-center justify-center gap-2"
+            >
+              Start Final Post-Test
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
         </div>
 
         {/* Breakdown display */}

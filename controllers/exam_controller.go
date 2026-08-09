@@ -387,16 +387,16 @@ func (ec *ExamController) SubmitAnswer(c *gin.Context) {
 		// Calculate per-domain scores and seed user_skill_profiles (for pre-test)
 		if session.ExamType == "pre" {
 			type DomainScore struct {
-				DomainID     string `json:"domain_id"`
-				TotalCount   int64  `json:"total"`
-				CorrectCount int64  `json:"correct"`
+				DomainID     string  `json:"domain_id"`
+				TotalCount   int64   `json:"total"`
+				CorrectCount int64   `json:"correct"`
 				Percentage   float64 `json:"percentage"`
 			}
 
 			var domainResults []struct {
-				DomainID     string
-				TotalCount   int64
-				CorrectCount int64
+				DomainID     string `gorm:"column:domain_id"`
+				TotalCount   int64  `gorm:"column:total_count"`
+				CorrectCount int64  `gorm:"column:correct_count"`
 			}
 
 			tx.Table("exam_session_questions").

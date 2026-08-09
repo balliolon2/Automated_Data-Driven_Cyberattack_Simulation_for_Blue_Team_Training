@@ -36,6 +36,9 @@ services:
     environment:
       - DATABASE_URL=host=db user=${POSTGRES_USER:-admin} password=${POSTGRES_PASSWORD:-password} dbname=${POSTGRES_DB:-cyber_sim} port=5432 sslmode=disable TimeZone=Asia/Bangkok
       - GIN_MODE=${GIN_MODE:-release}
+      - LLM_API_KEY=${LLM_API_KEY:-}
+      - LLM_BASE_URL=${LLM_BASE_URL:-https://api.openai.com/v1}
+      - LLM_MODEL=${LLM_MODEL:-gpt-4o-mini}
     depends_on:
       - db
     restart: unless-stopped

@@ -6,13 +6,23 @@ interface KqlSearchBarProps {
   sessionId: string;
   onFilter: (filteredLogs: any[]) => void;
   logs: any[];
+  searchQuery?: string;
+  onSearchQueryChange?: (q: string) => void;
 }
 
-export default function KqlSearchBar({ sessionId, onFilter, logs }: KqlSearchBarProps) {
-  const [query, setQuery] = useState("");
+export default function KqlSearchBar({ sessionId, onFilter, logs, searchQuery, onSearchQueryChange }: KqlSearchBarProps) {
+  const [query, setQuery] = useState(searchQuery || "");
   const [error, setError] = useState<string | null>(null);
   const [history, setHistory] = useState<string[]>([]);
   const [showHistory, setShowHistory] = useState(false);
+
+  // Sync external searchQuery prop if provided
+  useEffect(() => {
+    if (searchQuery !== undefined) {
+      setQuery(searchQuery);
+      runFilter(searchQuery);
+    }
+  }, [searchQuery, logs]);
 
   // Helper to load history from local storage
   useEffect(() => {
@@ -30,9 +40,12 @@ export default function KqlSearchBar({ sessionId, onFilter, logs }: KqlSearchBar
   };
 
   // Client-side KQL implementation
-  const runFilter = (searchQuery: string) => {
+  const runFilter = (searchQueryStr: string) => {
     setError(null);
-    const q = searchQuery.trim();
+    const q = searchQueryStr.trim();
+    if (onSearchQueryChange) {
+      onSearchQueryChange(searchQueryStr);
+    }
     
     if (!q) {
       onFilter(logs);

@@ -97,6 +97,8 @@ CREATE TABLE simulation_sessions (
   user_id UUID REFERENCES users(user_id),
   scenario_id UUID REFERENCES scenarios(scenario_id),
   status session_status DEFAULT 'in_progress',
+  generation_type VARCHAR DEFAULT 'static_fallback',
+  fallback_reason TEXT,
   final_score FLOAT,
   skill_gap JSONB,
   started_at TIMESTAMP DEFAULT now(),

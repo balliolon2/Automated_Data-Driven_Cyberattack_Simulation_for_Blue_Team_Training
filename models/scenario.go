@@ -22,15 +22,17 @@ type Scenario struct {
 }
 
 type SimulationSession struct {
-	SessionID   string     `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"session_id"`
-	UserID      string     `gorm:"type:uuid;not null" json:"user_id"`
-	ScenarioID  string     `gorm:"type:uuid;not null" json:"scenario_id"`
-	Status      string     `gorm:"type:session_status;default:'in_progress'" json:"status"`
-	FinalScore  *float64   `json:"final_score"`
-	SkillGap    any        `gorm:"type:jsonb;serializer:json" json:"skill_gap"`
-	StartedAt   time.Time  `gorm:"default:now()" json:"started_at"`
-	CompletedAt *time.Time `json:"completed_at"`
-	TotalActions int       `gorm:"default:0" json:"total_actions"`
+	SessionID      string     `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"session_id"`
+	UserID         string     `gorm:"type:uuid;not null" json:"user_id"`
+	ScenarioID     string     `gorm:"type:uuid;not null" json:"scenario_id"`
+	Status         string     `gorm:"type:session_status;default:'in_progress'" json:"status"`
+	GenerationType string     `gorm:"type:varchar;default:'static_fallback'" json:"generation_type"`
+	FallbackReason string     `gorm:"type:text" json:"fallback_reason"`
+	FinalScore     *float64   `json:"final_score"`
+	SkillGap       any        `gorm:"type:jsonb;serializer:json" json:"skill_gap"`
+	StartedAt      time.Time  `gorm:"default:now()" json:"started_at"`
+	CompletedAt    *time.Time `json:"completed_at"`
+	TotalActions   int        `gorm:"default:0" json:"total_actions"`
 }
 
 type SessionAction struct {

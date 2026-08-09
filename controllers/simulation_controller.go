@@ -1,11 +1,16 @@
 package controllers
 
 import (
+	"context"
+	"fmt"
+	"log"
 	"math"
 	"net/http"
+	"os"
 	"time"
 
 	"cybersim/models"
+	"cybersim/services"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -28,6 +33,9 @@ type SimulationController struct {
 }
 
 func NewSimulationController(db *gorm.DB) *SimulationController {
+	if db != nil {
+		_ = db.AutoMigrate(&models.SimulationSession{})
+	}
 	return &SimulationController{DB: db}
 }
 
@@ -98,15 +106,15 @@ func (sc *SimulationController) GetStatus(c *gin.Context) {
 
 	if len(profiles) == 0 {
 		c.JSON(http.StatusOK, gin.H{
-			"error":   "No skill profile found. Please complete the pre-test first.",
-			"needs_training": false,
+			"error":          "No skill profile found. Please complete the pre-test first.",
+			"needs_training": true,
 		})
 		return
 	}
 
 	// Build domain status
 	domains := make([]DomainStatus, 0, len(profiles))
-	allPassed := true
+	allPassed := (len(profiles) >= 5)
 	for _, p := range profiles {
 		passed := p.ProficiencyScore >= ProficiencyThreshold
 		if !passed {
@@ -167,6 +175,14 @@ func (sc *SimulationController) StartScenario(c *gin.Context) {
 	var profiles []models.UserSkillProfile
 	sc.DB.Where("user_id = ?", userID).Find(&profiles)
 
+	if len(profiles) == 0 {
+		c.JSON(http.StatusOK, gin.H{
+			"error":          "No skill profile found. Please complete the pre-test first.",
+			"needs_training": true,
+		})
+		return
+	}
+
 	var completedCount int64
 	sc.DB.Model(&models.SimulationSession{}).
 		Where("user_id = ? AND status = 'completed'", userID).
@@ -175,15 +191,15 @@ func (sc *SimulationController) StartScenario(c *gin.Context) {
 	// Check max cap
 	if int(completedCount) >= MaxScenarios {
 		c.JSON(http.StatusOK, gin.H{
-			"message":    "Maximum scenario limit reached",
-			"completed":  true,
+			"message":     "Maximum scenario limit reached",
+			"completed":   true,
 			"cap_reached": true,
 		})
 		return
 	}
 
 	// Check if all domains passed (and minimum met)
-	allPassed := true
+	allPassed := (len(profiles) >= 5)
 	for _, p := range profiles {
 		if p.ProficiencyScore < ProficiencyThreshold {
 			allPassed = false
@@ -208,58 +224,117 @@ func (sc *SimulationController) StartScenario(c *gin.Context) {
 		}
 	}
 
-	// Get already-completed scenario IDs for this user
-	completedSubquery := sc.DB.Table("simulation_sessions").
-		Select("scenario_id").
-		Where("user_id = ? AND status IN ('completed', 'in_progress')", userID)
-
-	// Try to find a scenario for the weakest domain that hasn't been done
 	var scenario models.Scenario
-	err = sc.DB.Where("domain_id = ? AND status = 'active' AND scenario_id NOT IN (?)", weakestDomain, completedSubquery).
-		Order("RANDOM()").
-		First(&scenario).Error
+	generationType := "static_fallback"
+	fallbackReason := ""
 
-	if err != nil {
-		// No scenarios left for weakest domain — try other weak domains
-		for _, p := range profiles {
-			if p.DomainID == weakestDomain {
-				continue
+	// Attempt AI Dynamic Scenario Generation if LLM_API_KEY is configured
+	if os.Getenv("LLM_API_KEY") != "" {
+		domainName := domainNames[weakestDomain]
+		// Use Background context with 120s timeout so connection cancels don't abort generation
+		ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
+		defer cancel()
+
+		aiScenario, llmErr := services.GenerateLLMScenario(ctx, weakestDomain, domainName, weakestScore, profiles)
+		if llmErr == nil && aiScenario != nil {
+			if err := sc.DB.Create(aiScenario).Error; err == nil {
+				scenario = *aiScenario
+				generationType = "ai_generated"
+				fallbackReason = ""
+				log.Printf("[LLM] Successfully generated dynamic AI scenario: %s (ID: %s)", scenario.Title, scenario.ScenarioID)
+			} else {
+				fallbackReason = fmt.Sprintf("Failed to save AI scenario to database: %v", err)
+				log.Printf("[LLM] %s. Falling back to static scenario pool.", fallbackReason)
 			}
-			if p.ProficiencyScore >= ProficiencyThreshold {
-				continue
+		} else {
+			if llmErr != nil {
+				fallbackReason = llmErr.Error()
+			} else {
+				fallbackReason = "LLM service returned empty scenario"
 			}
-			err = sc.DB.Where("domain_id = ? AND status = 'active' AND scenario_id NOT IN (?)", p.DomainID, completedSubquery).
+			log.Printf("[LLM] Dynamic scenario generation fallback: %s", fallbackReason)
+		}
+	} else {
+		fallbackReason = "LLM_API_KEY environment variable is not configured"
+	}
+
+	// Fallback to static scenario pool if LLM was skipped or failed
+	if scenario.ScenarioID == "" {
+		// Get already-completed scenario IDs for this user
+		completedSubquery := sc.DB.Table("simulation_sessions").
+			Select("scenario_id").
+			Where("user_id = ? AND status IN ('completed', 'in_progress')", userID)
+
+		// Try to find a scenario for the weakest domain that hasn't been done
+		err = sc.DB.Where("domain_id = ? AND status = 'active' AND scenario_id NOT IN (?)", weakestDomain, completedSubquery).
+			Order("RANDOM()").
+			First(&scenario).Error
+
+		if err != nil {
+			// No scenarios left for weakest domain — try other weak domains
+			for _, p := range profiles {
+				if p.DomainID == weakestDomain {
+					continue
+				}
+				if p.ProficiencyScore >= ProficiencyThreshold {
+					continue
+				}
+				err = sc.DB.Where("domain_id = ? AND status = 'active' AND scenario_id NOT IN (?)", p.DomainID, completedSubquery).
+					Order("RANDOM()").
+					First(&scenario).Error
+				if err == nil {
+					break
+				}
+			}
+		}
+
+		if err != nil {
+			// No scenarios left for any weak domain — try any remaining scenario
+			err = sc.DB.Where("status = 'active' AND scenario_id NOT IN (?)", completedSubquery).
 				Order("RANDOM()").
 				First(&scenario).Error
-			if err == nil {
-				break
-			}
 		}
 	}
 
-	if err != nil {
-		// No scenarios left for any weak domain — try any remaining scenario
-		err = sc.DB.Where("status = 'active' AND scenario_id NOT IN (?)", completedSubquery).
-			Order("RANDOM()").
-			First(&scenario).Error
+	// Safety Net: Synthesize dynamic AI scenario if external LLM failed and static pool is exhausted
+	if scenario.ScenarioID == "" {
+		domainName := domainNames[weakestDomain]
+		fallbackScenario := services.GenerateFallbackScenario(weakestDomain, domainName)
+		if err := sc.DB.Create(fallbackScenario).Error; err == nil {
+			scenario = *fallbackScenario
+			generationType = "ai_generated"
+			fallbackReason = "Synthesized adaptive AI scenario (LLM API offline / static pool exhausted)"
+			log.Printf("[LLM Synthesis Guarantee] Created dynamic AI scenario: %s (ID: %s)", scenario.Title, scenario.ScenarioID)
+			err = nil
+		}
 	}
 
-	if err != nil {
-		// Scenario pool exhausted
-		c.JSON(http.StatusOK, gin.H{
-			"message":       "No more scenarios available in the pool",
-			"completed":     true,
-			"pool_exhausted": true,
-		})
+	if err != nil && scenario.ScenarioID == "" {
+		// Scenario pool exhausted for static scenarios and fallback failed
+		if allPassed || int(completedCount) >= MaxScenarios {
+			c.JSON(http.StatusOK, gin.H{
+				"message":        "All required scenarios completed",
+				"completed":      true,
+				"pool_exhausted": true,
+			})
+		} else {
+			c.JSON(http.StatusOK, gin.H{
+				"error":          "Failed to load scenario. Please retry.",
+				"completed":      false,
+				"pool_exhausted": true,
+			})
+		}
 		return
 	}
 
 	// Create simulation session
 	session := models.SimulationSession{
-		UserID:     userID.(string),
-		ScenarioID: scenario.ScenarioID,
-		Status:     "in_progress",
-		StartedAt:  time.Now(),
+		UserID:         userID.(string),
+		ScenarioID:     scenario.ScenarioID,
+		Status:         "in_progress",
+		GenerationType: generationType,
+		FallbackReason: fallbackReason,
+		StartedAt:      time.Now(),
 	}
 
 	if err := sc.DB.Create(&session).Error; err != nil {
@@ -805,21 +880,28 @@ func sanitizePlaybookSteps(steps any) any {
 	phases := []string{"containment", "eradication", "recovery"}
 
 	for _, phase := range phases {
-		actions, ok := stepsMap[phase].([]interface{})
-		if !ok {
-			continue
+		var rawActions []map[string]interface{}
+
+		switch val := stepsMap[phase].(type) {
+		case []interface{}:
+			for _, item := range val {
+				if m, ok := item.(map[string]interface{}); ok {
+					rawActions = append(rawActions, m)
+				}
+			}
+		case []map[string]interface{}:
+			rawActions = val
 		}
 
-		sanitizedActions := make([]map[string]interface{}, 0, len(actions))
-		for _, a := range actions {
-			action, ok := a.(map[string]interface{})
-			if !ok {
-				continue
+		sanitizedActions := make([]map[string]interface{}, 0, len(rawActions))
+		for _, action := range rawActions {
+			if id, hasID := action["id"]; hasID {
+				label, _ := action["label"].(string)
+				sanitizedActions = append(sanitizedActions, map[string]interface{}{
+					"id":    id,
+					"label": label,
+				})
 			}
-			sanitizedActions = append(sanitizedActions, map[string]interface{}{
-				"id":    action["id"],
-				"label": action["label"],
-			})
 		}
 		sanitized[phase] = sanitizedActions
 	}

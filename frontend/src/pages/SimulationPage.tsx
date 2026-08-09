@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
-import { Terminal, Shield, Eye, CheckCircle2, ChevronRight, Loader2, AlertCircle } from "lucide-react";
+import { Terminal, Shield, Eye, CheckCircle2, ChevronRight, Loader2, AlertCircle, Cpu, Sparkles, Search } from "lucide-react";
 import KqlSearchBar from "../components/KqlSearchBar";
 import LogTable from "../components/LogTable";
 import ResponsePanel from "../components/ResponsePanel";
@@ -39,6 +39,8 @@ interface SimulationSession {
   user_id: string;
   scenario_id: string;
   status: string;
+  generation_type?: string;
+  fallback_reason?: string;
 }
 
 export default function SimulationPage() {
@@ -53,11 +55,34 @@ export default function SimulationPage() {
 
   // Navigation and UI state
   const [activeTab, setActiveTab] = useState<"scenario" | "detect" | "response">("scenario");
+  const [siemQuery, setSiemQuery] = useState("");
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
+  const handleQuickSiemSearch = (queryStr: string) => {
+    setSiemQuery(queryStr);
+    setActiveTab("detect");
+  };
+  const [msgIndex, setMsgIndex] = useState(0);
+
+  const loadingMessages = [
+    "Analyzing user skill gap profile & proficiency matrix...",
+    "Querying RAG knowledge base for CompTIA Security+ TTPs...",
+    "Synthesizing realistic adversarial threat scenario via AI...",
+    "Injecting simulated Firewall, EDR & SIEM telemetry logs...",
+    "Initializing SOC virtual sandbox environment..."
+  ];
+
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!loading) return;
+    const interval = setInterval(() => {
+      setMsgIndex((prev) => (prev + 1) % loadingMessages.length);
+    }, 2400);
+    return () => clearInterval(interval);
+  }, [loading]);
 
   useEffect(() => {
     const initSimulation = async () => {
@@ -101,8 +126,7 @@ export default function SimulationPage() {
         });
 
         if (statusRes.data.error) {
-          setErrorMessage(statusRes.data.error);
-          setLoading(false);
+          navigate("/pre-test");
           return;
         }
 
@@ -115,6 +139,12 @@ export default function SimulationPage() {
         const startRes = await axios.post("/api/simulation/start", {}, {
           headers: { Authorization: `Bearer ${token}` }
         });
+
+        if (startRes.data.error) {
+          setErrorMessage(startRes.data.error);
+          setLoading(false);
+          return;
+        }
 
         if (startRes.data.completed) {
           navigate("/simulation/complete");
@@ -208,25 +238,50 @@ export default function SimulationPage() {
 
   if (loading) {
     return (
-      <div className="min-h-[60vh] flex flex-col items-center justify-center gap-3">
-        <Loader2 className="w-6 h-6 text-white animate-spin" />
-        <p className="text-xs font-mono text-graphite-500">Loading virtual environment...</p>
+      <div className="min-h-[70vh] flex flex-col items-center justify-center gap-6 animate-fade-in text-center px-4">
+        {/* Glowing Cyber Radar Spinner */}
+        <div className="relative flex items-center justify-center w-24 h-24">
+          <div className="absolute inset-0 rounded-full border-2 border-emerald-500/20 border-t-emerald-400 animate-spin" style={{ animationDuration: '1.5s' }} />
+          <div className="absolute inset-2 rounded-full border-2 border-cyan-500/20 border-b-cyan-400 animate-spin" style={{ animationDirection: 'reverse', animationDuration: '2.5s' }} />
+          <div className="w-12 h-12 rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center shadow-[0_0_20px_rgba(52,211,153,0.3)]">
+            <Cpu className="w-6 h-6 text-emerald-400 animate-pulse" />
+          </div>
+        </div>
+
+        <div className="space-y-2 max-w-md">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-mono">
+            <Sparkles className="w-3.5 h-3.5 animate-spin" />
+            <span>AI Dynamic Threat Engine Active</span>
+          </div>
+          <h3 className="text-xl font-bold text-white tracking-wide">Constructing Cyber Attack Simulation</h3>
+          <p className="text-sm font-mono text-emerald-400/90 h-6 transition-all duration-300">
+            {loadingMessages[msgIndex]}
+          </p>
+        </div>
       </div>
     );
   }
 
   if (errorMessage) {
     return (
-      <div className="max-w-md mx-auto mt-12 bg-graphite-900 p-8 rounded-lg border border-graphite-800 text-center space-y-6">
-        <AlertCircle className="w-10 h-10 text-red-500 mx-auto" />
-        <h3 className="text-base font-bold text-white tracking-tight">Setup Required</h3>
-        <p className="text-xs text-graphite-400 font-light leading-relaxed">{errorMessage}</p>
-        <button
-          onClick={() => navigate("/pre-test")}
-          className="w-full py-2 bg-white text-black font-semibold text-xs rounded-md hover:bg-white/90 transition-all duration-200"
-        >
-          Go to Pre-Test
-        </button>
+      <div className="max-w-md mx-auto mt-12 bg-graphite-900 p-8 rounded-lg border border-graphite-800 text-center space-y-6 animate-fade-in">
+        <AlertCircle className="w-10 h-10 text-amber-500 mx-auto" />
+        <h3 className="text-base font-bold text-white tracking-tight">Simulation Initialization</h3>
+        <p className="text-xs text-graphite-400 font-mono leading-relaxed">{errorMessage}</p>
+        <div className="flex flex-col gap-2">
+          <button
+            onClick={() => window.location.reload()}
+            className="w-full py-2.5 bg-emerald-500 hover:bg-emerald-600 text-black font-semibold text-xs rounded-md transition-all duration-200"
+          >
+            Retry Loading Simulation
+          </button>
+          <button
+            onClick={() => navigate("/pre-test")}
+            className="w-full py-2 bg-graphite-800 hover:bg-graphite-700 text-graphite-300 font-semibold text-xs rounded-md transition-all duration-200"
+          >
+            Go to Pre-Test Overview
+          </button>
+        </div>
       </div>
     );
   }
@@ -238,14 +293,38 @@ export default function SimulationPage() {
       {/* Simulation Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-graphite-800 pb-5">
         <div>
-          <div className="flex items-center gap-2 mb-1.5">
+          <div className="flex flex-wrap items-center gap-2 mb-1.5">
             <span className="px-2 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/20 text-[10px] font-mono font-bold text-emerald-400 uppercase tracking-wider">
               Active Incident
             </span>
+
+            {session.generation_type === "ai_generated" ? (
+              <span className="px-2 py-0.5 rounded bg-cyan-500/10 border border-cyan-500/30 text-[10px] font-mono font-bold text-cyan-400 uppercase tracking-wider flex items-center gap-1.5 shadow-sm shadow-cyan-500/10">
+                <Sparkles className="w-3 h-3 text-cyan-400 animate-pulse" />
+                AI Dynamic Scenario
+              </span>
+            ) : (
+              <span
+                title={session.fallback_reason ? `Fallback Reason: ${session.fallback_reason}` : "Static seed scenario pool loaded"}
+                className="px-2 py-0.5 rounded bg-amber-500/10 border border-amber-500/30 text-[10px] font-mono font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1.5 cursor-help hover:bg-amber-500/20 transition-all duration-200"
+              >
+                <AlertCircle className="w-3 h-3 text-amber-400" />
+                Static Scenario (Fallback)
+              </span>
+            )}
+
             <span className="text-xs font-mono text-graphite-500">
               ID: {session.session_id.substring(0, 8)}
             </span>
           </div>
+
+          {session.generation_type !== "ai_generated" && session.fallback_reason && (
+            <p className="text-[11px] font-mono text-amber-400/80 mb-1 flex items-center gap-1.5">
+              <span className="inline-block w-1.5 h-1.5 rounded-full bg-amber-400"></span>
+              <span className="font-semibold">LLM Fallback Reason:</span> {session.fallback_reason}
+            </p>
+          )}
+
           <h1 className="text-2xl font-bold tracking-tight text-graphite-50">
             {scenario.title}
           </h1>
@@ -303,6 +382,60 @@ export default function SimulationPage() {
                 <p className="text-xs text-graphite-300 leading-relaxed font-light whitespace-pre-wrap">
                   {scenario.description}
                 </p>
+              </div>
+
+              {/* Investigation Clues & SIEM Shortcuts */}
+              <div className="bg-graphite-900 border border-graphite-800/80 p-6 rounded-lg space-y-4">
+                <div className="flex items-center justify-between border-b border-graphite-800 pb-3">
+                  <h3 className="text-sm font-semibold text-white flex items-center gap-2">
+                    <Search className="w-4 h-4 text-emerald-400" />
+                    Investigation Clues & SIEM Shortcuts
+                  </h3>
+                  <span className="text-[10px] font-mono text-graphite-400">Click to query SIEM Terminal</span>
+                </div>
+                
+                <p className="text-xs text-graphite-400 font-light">
+                  Use these identified indicators to filter and audit the telemetry logs in the SIEM terminal:
+                </p>
+
+                <div className="flex flex-wrap gap-2 pt-1">
+                  {/* Extract clues dynamically from initial_logs if present */}
+                  {Array.isArray(scenario.initial_logs) && scenario.initial_logs.find((l: any) => l.host) && (
+                    <button
+                      onClick={() => handleQuickSiemSearch(scenario.initial_logs.find((l: any) => l.host)?.host)}
+                      className="px-3 py-1.5 rounded bg-graphite-950 border border-graphite-800 hover:border-emerald-500/40 font-mono text-xs text-emerald-400 flex items-center gap-1.5 transition-all"
+                    >
+                      <span className="text-graphite-500 text-[10px]">Host:</span>
+                      {scenario.initial_logs.find((l: any) => l.host)?.host}
+                    </button>
+                  )}
+
+                  {Array.isArray(scenario.initial_logs) && scenario.initial_logs.find((l: any) => l.dst_ip || l.src_ip) && (
+                    <button
+                      onClick={() => handleQuickSiemSearch(scenario.initial_logs.find((l: any) => l.dst_ip)?.dst_ip || scenario.initial_logs.find((l: any) => l.src_ip)?.src_ip)}
+                      className="px-3 py-1.5 rounded bg-graphite-950 border border-graphite-800 hover:border-emerald-500/40 font-mono text-xs text-emerald-400 flex items-center gap-1.5 transition-all"
+                    >
+                      <span className="text-graphite-500 text-[10px]">IP:</span>
+                      {scenario.initial_logs.find((l: any) => l.dst_ip)?.dst_ip || scenario.initial_logs.find((l: any) => l.src_ip)?.src_ip}
+                    </button>
+                  )}
+
+                  <button
+                    onClick={() => handleQuickSiemSearch('severity == "high"')}
+                    className="px-3 py-1.5 rounded bg-graphite-950 border border-graphite-800 hover:border-amber-500/40 font-mono text-xs text-amber-400 flex items-center gap-1.5 transition-all"
+                  >
+                    <span className="text-graphite-500 text-[10px]">Filter:</span>
+                    High Severity Alerts
+                  </button>
+
+                  <button
+                    onClick={() => handleQuickSiemSearch('source == "firewall"')}
+                    className="px-3 py-1.5 rounded bg-graphite-950 border border-graphite-800 hover:border-sky-500/40 font-mono text-xs text-sky-400 flex items-center gap-1.5 transition-all"
+                  >
+                    <span className="text-graphite-500 text-[10px]">Filter:</span>
+                    Firewall Logs
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -382,6 +515,8 @@ export default function SimulationPage() {
               sessionId={session.session_id}
               logs={scenario.initial_logs}
               onFilter={setFilteredLogs}
+              searchQuery={siemQuery}
+              onSearchQueryChange={setSiemQuery}
             />
 
             <LogTable logs={filteredLogs} />
@@ -396,6 +531,8 @@ export default function SimulationPage() {
                 playbookSteps={scenario.playbook_steps}
                 selectedActions={selectedActions}
                 onChange={setSelectedActions}
+                isTruePositive={isTruePositive}
+                onSelectTriage={setIsTruePositive}
               />
             </div>
 

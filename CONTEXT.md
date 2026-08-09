@@ -39,3 +39,12 @@ _Avoid_: Simulation run, training session
 **Domain Breakdown**:
 The per-domain score analysis shown after a pre-test or scenario completion, displaying each domain's percentage and whether it meets the proficiency threshold.
 _Avoid_: Score summary, domain analysis
+
+**Scenario Generation Source**:
+The origin classification of a scenario synthesized for a simulation session (`ai_generated` via real-time LLM synthesis or `static_fallback` from pre-seeded pool).
+_Avoid_: Scenario type, origin mode
+
+**Fallback Reason**:
+The diagnostic explanation stored when an LLM API call fails or is unconfigured, detailing why a static scenario was selected instead.
+_Avoid_: Error log, fallback status
+
