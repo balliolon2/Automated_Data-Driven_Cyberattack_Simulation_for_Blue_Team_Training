@@ -156,18 +156,18 @@ export default function ExamPage({ mode }: { mode: "pre" | "post" }) {
 
   if (!questions.length) {
     return (
-      <div className="max-w-xl mx-auto mt-12 glass-panel p-8 rounded-2xl border border-graphite-800 text-center space-y-6 animate-slide-up">
+      <div className="max-w-xl mx-auto mt-12 bg-graphite-900 p-8 rounded-lg border border-graphite-800 text-center space-y-6 animate-slide-up">
         {mode === "pre" ? (
           <>
-            <h2 className="text-3xl font-extrabold text-white">Security+ Pre-Test Assessment</h2>
-            <p className="text-graphite-300 font-light leading-relaxed">
-              This assessment consists of <strong>30 questions</strong> spanning 5 core CompTIA Security+ domains. 
+            <h2 className="text-2xl font-bold text-white tracking-tight">Security+ Pre-Test Assessment</h2>
+            <p className="text-graphite-400 font-light text-sm leading-relaxed">
+              This assessment consists of <strong className="text-white">30 questions</strong> spanning 5 core CompTIA Security+ domains. 
               The test evaluates your current baseline proficiency and designs your targeted adaptive simulation roadmap.
             </p>
             <div className="pt-4">
               <button 
                 onClick={() => startExam("pre")}
-                className="w-full py-4 bg-emerald-500 hover:bg-emerald-400 text-emerald-950 font-bold text-lg rounded-full shadow-[0_0_20px_rgba(52,211,153,0.25)] hover:shadow-[0_0_30px_rgba(52,211,153,0.4)] transition-all duration-300 hover:-translate-y-0.5"
+                className="w-full py-3 bg-white hover:bg-white/90 text-black font-semibold text-sm rounded-md transition-all duration-200"
               >
                 Start Pre-Test Assessment
               </button>
@@ -175,15 +175,15 @@ export default function ExamPage({ mode }: { mode: "pre" | "post" }) {
           </>
         ) : (
           <>
-            <h2 className="text-3xl font-extrabold text-white">Security+ Post-Test Assessment</h2>
-            <p className="text-graphite-300 font-light leading-relaxed">
-              This final assessment consists of <strong>30 questions</strong>. It evaluates your overall proficiency after 
+            <h2 className="text-2xl font-bold text-white tracking-tight">Security+ Post-Test Assessment</h2>
+            <p className="text-graphite-400 font-light text-sm leading-relaxed">
+              This final assessment consists of <strong className="text-white">30 questions</strong>. It evaluates your overall proficiency after 
               completing the required hands-on SOC simulation training scenarios.
             </p>
             <div className="pt-4">
               <button 
                 onClick={() => startExam("post")}
-                className="w-full py-4 bg-emerald-500 hover:bg-emerald-400 text-emerald-950 font-bold text-lg rounded-full shadow-[0_0_20px_rgba(52,211,153,0.25)] hover:shadow-[0_0_30px_rgba(52,211,153,0.4)] transition-all duration-300 hover:-translate-y-0.5"
+                className="w-full py-3 bg-white hover:bg-white/90 text-black font-semibold text-sm rounded-md transition-all duration-200"
               >
                 Start Post-Test Assessment
               </button>
@@ -192,7 +192,7 @@ export default function ExamPage({ mode }: { mode: "pre" | "post" }) {
         )}
         <button 
           onClick={() => navigate("/")}
-          className="mt-4 text-sm text-graphite-400 hover:text-graphite-200 transition-colors underline decoration-dotted"
+          className="mt-4 text-xs text-graphite-400 hover:text-white transition-colors underline decoration-dotted"
         >
           Go back to Dashboard
         </button>
@@ -206,103 +206,121 @@ export default function ExamPage({ mode }: { mode: "pre" | "post" }) {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 min-h-[75vh]">
       {/* Sidebar: Navigator */}
-      <div className="lg:col-span-1 bg-slate-900/50 border border-slate-800 rounded-xl p-4 flex flex-col">
-        <h3 className="font-bold text-lg mb-4 text-slate-100">Question Navigator</h3>
-        <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
-          <div className="grid grid-cols-5 gap-2">
-            {questions.map((q, i) => {
-              const isAnswered = !!answers[q.question_id];
-              return (
-                <button
-                  key={q.question_id}
-                  onClick={() => setCurrentQuestionIdx(i)}
-                  className={`w-10 h-10 rounded flex items-center justify-center text-sm font-medium border transition-colors
-                    ${currentQuestionIdx === i 
-                      ? 'bg-emerald-500/20 border-emerald-500 text-emerald-400' 
-                      : isAnswered
-                        ? 'bg-slate-800 border-emerald-500/50 text-slate-300 hover:border-emerald-400'
-                        : 'bg-slate-950 border-slate-700 text-slate-400 hover:border-slate-500'}`}
-                >
-                  {i + 1}
-                </button>
-              );
-            })}
+      <div className="lg:col-span-1 bg-graphite-900 border border-graphite-800 rounded-lg p-4 flex flex-col justify-between">
+        <div>
+          <h3 className="font-semibold text-sm mb-4 text-white">Question Navigator</h3>
+          <div className="max-h-[350px] overflow-y-auto pr-2 custom-scrollbar">
+            <div className="grid grid-cols-5 gap-2">
+              {questions.map((q, i) => {
+                const isAnswered = !!answers[q.question_id];
+                const isCurrent = currentQuestionIdx === i;
+                
+                let btnStyles = "bg-graphite-950 border-graphite-800 text-graphite-400 hover:border-graphite-700";
+                if (isCurrent) {
+                  btnStyles = "bg-white/10 border-white text-white";
+                } else if (isAnswered) {
+                  btnStyles = "bg-graphite-800 border-graphite-600 text-white";
+                }
+
+                return (
+                  <button
+                    key={q.question_id}
+                    onClick={() => setCurrentQuestionIdx(i)}
+                    className={`w-10 h-10 rounded text-xs font-mono border transition-colors flex items-center justify-center ${btnStyles}`}
+                  >
+                    {(i + 1).toString().padStart(2, '0')}
+                  </button>
+                );
+              })}
+            </div>
           </div>
         </div>
-        <div className="mt-4 pt-4 border-t border-slate-800">
+        <div className="mt-6 pt-4 border-t border-graphite-800">
           <button 
             onClick={handleSubmitExam}
             disabled={submitting}
-            className="w-full py-2 bg-emerald-600 hover:bg-emerald-500 disabled:bg-emerald-800 disabled:text-slate-400 text-white font-bold rounded-md transition-colors flex items-center justify-center gap-2"
+            className="w-full py-2 bg-white text-black hover:bg-white/90 disabled:bg-graphite-800 disabled:text-graphite-500 text-xs font-semibold rounded-md transition-all flex items-center justify-center gap-2"
           >
-            <CheckCircle2 className="w-5 h-5" />
+            <CheckCircle2 className="w-4 h-4" />
             {submitting ? "Submitting..." : "Submit Exam"}
           </button>
         </div>
       </div>
 
       {/* Main Content: Question */}
-      <div className="lg:col-span-3 bg-slate-900/50 border border-slate-800 rounded-xl p-6 flex flex-col">
-        <div className="flex justify-between items-center border-b border-slate-800 pb-4 mb-6">
-          <h2 className="text-xl font-bold text-slate-100">Question {currentQuestionIdx + 1} of {totalQuestions}</h2>
-          <div className="flex items-center gap-2 text-emerald-400 font-mono text-xl bg-slate-950 px-4 py-2 rounded-lg border border-slate-800">
-            <Clock className="w-5 h-5" />
-            {formatTime(timeLeft)}
+      <div className="lg:col-span-3 bg-graphite-900 border border-graphite-800 rounded-lg p-6 flex flex-col justify-between">
+        <div>
+          <div className="flex justify-between items-center border-b border-graphite-800 pb-4 mb-6">
+            <h2 className="text-base font-semibold text-white">Question {currentQuestionIdx + 1} of {totalQuestions}</h2>
+            <div className="flex items-center gap-2 text-white font-mono text-sm bg-graphite-950 px-3 py-1.5 rounded border border-graphite-800 select-none">
+              <Clock className="w-4 h-4 text-graphite-400" />
+              {formatTime(timeLeft)}
+            </div>
+          </div>
+
+          {timeLeft === 0 && (
+            <div className="mb-6 bg-red-500/10 border border-red-500/20 rounded p-4 text-red-400 text-xs">
+              <p className="font-medium flex items-center gap-2">
+                <span>⏰</span> Time's up! You can review your answers but cannot change them. Please submit.
+              </p>
+            </div>
+          )}
+
+          <div className="space-y-6">
+            <div className="text-base text-graphite-100 font-light leading-relaxed">
+              {currentQ.question_text}
+            </div>
+            <div className="space-y-3">
+              {Object.entries(currentQ.options || {}).map(([key, optText]) => {
+                const isChecked = answers[currentQ.question_id] === key;
+                return (
+                  <label 
+                    key={key} 
+                    className={`flex items-start gap-4 p-4 border rounded-md cursor-pointer transition-colors text-sm font-light ${
+                      isChecked 
+                        ? 'border-white bg-graphite-950 text-white' 
+                        : 'border-graphite-800 bg-graphite-950/40 hover:bg-graphite-950 text-graphite-300'
+                    }`}
+                  >
+                    <input 
+                      type="radio" 
+                      name={`q${currentQ.question_id}`} 
+                      className={`w-4 h-4 mt-0.5 accent-white ${timeLeft === 0 ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`} 
+                      checked={isChecked}
+                      onChange={() => {
+                        if (timeLeft > 0) {
+                          handleAnswerSelect(currentQ.question_id, key);
+                        }
+                      }}
+                      disabled={timeLeft === 0}
+                    />
+                    <span className="font-semibold font-mono text-white shrink-0">{key})</span>
+                    <span>{optText as string}</span>
+                  </label>
+                );
+              })}
+            </div>
           </div>
         </div>
 
-        {timeLeft === 0 && (
-          <div className="mb-6 bg-amber-900/40 border border-amber-600/50 rounded-lg p-4 text-amber-200">
-            <p className="font-medium flex items-center gap-2">
-              <span>⏰</span> Time's up! You can review your answers but cannot change them. Please submit.
-            </p>
-          </div>
-        )}
-
-        <div className="flex-1 space-y-8">
-          <div className="text-lg text-slate-200">
-            {currentQ.question_text}
-          </div>
-          <div className="space-y-3">
-            {Object.entries(currentQ.options || {}).map(([key, optText]) => (
-              <label key={key} className="flex items-center gap-3 p-4 border border-slate-700 rounded-lg cursor-pointer hover:bg-slate-800 transition-colors">
-                <input 
-                  type="radio" 
-                  name={`q${currentQ.question_id}`} 
-                  className={`w-5 h-5 accent-emerald-500 ${timeLeft === 0 ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`} 
-                  checked={answers[currentQ.question_id] === key}
-                  onChange={() => {
-                    if (timeLeft > 0) {
-                      handleAnswerSelect(currentQ.question_id, key);
-                    }
-                  }}
-                  disabled={timeLeft === 0}
-                />
-                <span className="text-slate-300 font-medium">{key})</span>
-                <span className="text-slate-200">{optText as string}</span>
-              </label>
-            ))}
-          </div>
-        </div>
-
-        <div className="flex justify-between items-center mt-8 pt-6 border-t border-slate-800">
-          <button className="px-4 py-2 flex items-center gap-2 text-slate-400 hover:text-white transition-colors">
-            <Flag className="w-4 h-4" /> Flag for review
+        <div className="flex justify-between items-center mt-12 pt-4 border-t border-graphite-800">
+          <button className="px-3 py-1.5 flex items-center gap-2 text-xs text-graphite-400 hover:text-white transition-colors">
+            <Flag className="w-3.5 h-3.5" /> Flag for review
           </button>
-          <div className="flex gap-4">
+          <div className="flex gap-3">
             <button 
               onClick={() => setCurrentQuestionIdx(p => Math.max(0, p - 1))}
-              className="px-6 py-2 rounded border border-slate-700 text-slate-300 hover:bg-slate-800 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-4 py-2 rounded-md border border-graphite-800 text-xs text-graphite-300 hover:bg-graphite-900 hover:text-white flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
               disabled={currentQuestionIdx === 0}
             >
-              <ChevronLeft className="w-4 h-4" /> Previous
+              <ChevronLeft className="w-3.5 h-3.5" /> Previous
             </button>
             <button 
               onClick={() => setCurrentQuestionIdx(p => Math.min(totalQuestions - 1, p + 1))}
-              className="px-6 py-2 rounded bg-slate-800 border border-slate-700 text-slate-100 hover:bg-slate-700 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-4 py-2 rounded-md bg-white text-black text-xs font-semibold hover:bg-white/90 flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
               disabled={currentQuestionIdx === totalQuestions - 1}
             >
-              Next <ChevronRight className="w-4 h-4" />
+              Next <ChevronRight className="w-3.5 h-3.5" />
             </button>
           </div>
         </div>

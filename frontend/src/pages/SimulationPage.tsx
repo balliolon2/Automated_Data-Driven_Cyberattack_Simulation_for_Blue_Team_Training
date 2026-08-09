@@ -208,22 +208,22 @@ export default function SimulationPage() {
 
   if (loading) {
     return (
-      <div className="min-h-[60vh] flex flex-col items-center justify-center gap-4">
-        <Loader2 className="w-8 h-8 text-emerald-400 animate-spin" />
-        <p className="text-sm font-mono text-graphite-400">Loading virtual environment...</p>
+      <div className="min-h-[60vh] flex flex-col items-center justify-center gap-3">
+        <Loader2 className="w-6 h-6 text-white animate-spin" />
+        <p className="text-xs font-mono text-graphite-500">Loading virtual environment...</p>
       </div>
     );
   }
 
   if (errorMessage) {
     return (
-      <div className="max-w-md mx-auto mt-12 glass-panel p-6 rounded-xl border-red-500/20 text-center space-y-4">
-        <AlertCircle className="w-12 h-12 text-red-400 mx-auto" />
-        <h3 className="text-lg font-bold text-graphite-100">Setup Required</h3>
-        <p className="text-sm text-graphite-300">{errorMessage}</p>
+      <div className="max-w-md mx-auto mt-12 bg-graphite-900 p-8 rounded-lg border border-graphite-800 text-center space-y-6">
+        <AlertCircle className="w-10 h-10 text-red-500 mx-auto" />
+        <h3 className="text-base font-bold text-white tracking-tight">Setup Required</h3>
+        <p className="text-xs text-graphite-400 font-light leading-relaxed">{errorMessage}</p>
         <button
           onClick={() => navigate("/pre-test")}
-          className="px-5 py-2.5 bg-emerald-500 text-emerald-950 font-bold rounded-lg hover:bg-emerald-400 transition-all text-sm"
+          className="w-full py-2 bg-white text-black font-semibold text-xs rounded-md hover:bg-white/90 transition-all duration-200"
         >
           Go to Pre-Test
         </button>
@@ -298,18 +298,18 @@ export default function SimulationPage() {
         {activeTab === "scenario" && (
           <div className="grid md:grid-cols-3 gap-6 animate-fade-in">
             <div className="md:col-span-2 space-y-6">
-              <div className="glass-panel p-6 rounded-xl space-y-4">
-                <h3 className="text-lg font-bold text-graphite-100">Incident Narrative</h3>
-                <p className="text-sm text-graphite-300 leading-relaxed whitespace-pre-wrap">
+              <div className="bg-graphite-900 border border-graphite-800/80 p-6 rounded-lg space-y-4">
+                <h3 className="text-sm font-semibold text-white">Incident Narrative</h3>
+                <p className="text-xs text-graphite-300 leading-relaxed font-light whitespace-pre-wrap">
                   {scenario.description}
                 </p>
               </div>
             </div>
 
             <div className="space-y-6">
-              <div className="glass-panel p-6 rounded-xl space-y-4">
-                <h3 className="text-base font-bold text-graphite-100">Triage Classification</h3>
-                <p className="text-xs text-graphite-400">
+              <div className="bg-graphite-900 border border-graphite-800/80 p-6 rounded-lg space-y-4">
+                <h3 className="text-sm font-semibold text-white">Triage Classification</h3>
+                <p className="text-[11px] text-graphite-400 font-light">
                   Assess the alert. Is this activity malicious (True Positive) or is there a legitimate business explanation (False Positive)?
                 </p>
                 
@@ -317,15 +317,15 @@ export default function SimulationPage() {
                   <button
                     onClick={() => setIsTruePositive(true)}
                     className={cn(
-                      "w-full text-left p-4 rounded-lg border font-mono text-sm transition-all duration-200 flex items-center justify-between",
+                      "w-full text-left p-4 rounded border font-mono text-xs transition-all duration-200 flex items-center justify-between",
                       isTruePositive === true
-                        ? "bg-red-950/20 border-red-500/30 text-red-200 shadow-[0_0_8px_rgba(239,68,68,0.05)]"
-                        : "bg-graphite-950/40 border-graphite-800/80 text-graphite-300 hover:bg-graphite-800/20"
+                        ? "bg-red-950/20 border-red-500/30 text-red-200 font-medium"
+                        : "bg-graphite-950/40 border-graphite-800/80 text-graphite-300 hover:bg-graphite-950 hover:text-white"
                     )}
                   >
                     <span>True Positive (Threat)</span>
                     <span className={cn(
-                      "w-3 h-3 rounded-full border border-graphite-600",
+                      "w-2.5 h-2.5 rounded-full border border-graphite-600",
                       isTruePositive === true && "bg-red-500 border-red-400"
                     )} />
                   </button>
@@ -333,29 +333,29 @@ export default function SimulationPage() {
                   <button
                     onClick={() => setIsTruePositive(false)}
                     className={cn(
-                      "w-full text-left p-4 rounded-lg border font-mono text-sm transition-all duration-200 flex items-center justify-between",
+                      "w-full text-left p-4 rounded border font-mono text-xs transition-all duration-200 flex items-center justify-between",
                       isTruePositive === false
-                        ? "bg-emerald-950/20 border-emerald-500/30 text-emerald-200 shadow-[0_0_8px_rgba(52,211,153,0.05)]"
-                        : "bg-graphite-950/40 border-graphite-800/80 text-graphite-300 hover:bg-graphite-800/20"
+                        ? "bg-emerald-950/20 border-emerald-500/30 text-emerald-200 font-medium"
+                        : "bg-graphite-950/40 border-graphite-800/80 text-graphite-300 hover:bg-graphite-950 hover:text-white"
                     )}
                   >
                     <span>False Positive (Benign)</span>
                     <span className={cn(
-                      "w-3 h-3 rounded-full border border-graphite-600",
+                      "w-2.5 h-2.5 rounded-full border border-graphite-600",
                       isTruePositive === false && "bg-emerald-500 border-emerald-400"
                     )} />
                   </button>
                 </div>
               </div>
 
-              <div className="glass-panel p-6 rounded-xl flex items-center justify-between bg-emerald-500/5 border-emerald-500/10">
+              <div className="bg-graphite-900 border border-graphite-800/80 p-4 rounded-lg flex items-center justify-between">
                 <div className="space-y-0.5">
-                  <h4 className="text-xs font-semibold text-emerald-400 font-mono">Next step:</h4>
-                  <p className="text-xs text-graphite-300">Run queries to audit the log files.</p>
+                  <h4 className="text-[10px] font-semibold text-white font-mono uppercase tracking-wider">Next step:</h4>
+                  <p className="text-[10px] text-graphite-400 font-light">Run queries to audit the log files.</p>
                 </div>
                 <button
                   onClick={() => setActiveTab("detect")}
-                  className="p-2 rounded bg-graphite-800 hover:bg-graphite-700 text-white transition-colors"
+                  className="p-1.5 rounded border border-graphite-800 bg-transparent text-graphite-300 hover:bg-graphite-950 hover:text-white transition-colors"
                 >
                   <ChevronRight className="w-4 h-4" />
                 </button>
@@ -369,10 +369,10 @@ export default function SimulationPage() {
           <div className="space-y-6 animate-fade-in">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div className="flex items-center gap-2">
-                <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse-slow" />
-                <h3 className="text-base font-bold text-graphite-100">SIEM Log Terminal</h3>
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                <h3 className="text-sm font-semibold text-white">SIEM Log Terminal</h3>
               </div>
-              <div className="text-xs font-mono text-graphite-400 bg-graphite-900 px-3 py-1 rounded border border-graphite-800">
+              <div className="text-[10px] font-mono text-graphite-400 bg-graphite-900 px-3 py-1 rounded border border-graphite-800/80 select-none">
                 Evidence Discovered: <span className="text-emerald-400 font-bold">{discoveredFindings.length}</span>
                 <span className="text-graphite-600"> / {scenario.sanitized_findings?.length ?? 0}</span>
               </div>
@@ -400,14 +400,14 @@ export default function SimulationPage() {
             </div>
 
             <div className="space-y-6">
-              <div className="glass-panel p-6 rounded-xl space-y-4">
-                <h3 className="text-base font-bold text-graphite-100">Final Submission</h3>
-                <p className="text-xs text-graphite-400">
+              <div className="bg-graphite-900 border border-graphite-800/80 p-6 rounded-lg space-y-4">
+                <h3 className="text-sm font-semibold text-white">Final Submission</h3>
+                <p className="text-[11px] text-graphite-400 font-light leading-relaxed">
                   Review your analysis. Ensure you have classified the triage correctly and selected response options for each phase before submitting.
                 </p>
 
                 <div className="space-y-3 pt-2">
-                  <div className="flex justify-between text-xs font-mono border-b border-graphite-800 pb-2">
+                  <div className="flex justify-between text-[10px] font-mono border-b border-graphite-850 pb-2">
                     <span className="text-graphite-400">Triage Classification:</span>
                     {isTruePositive === null ? (
                       <span className="text-amber-500 font-bold">MISSING</span>
@@ -417,15 +417,15 @@ export default function SimulationPage() {
                       </span>
                     )}
                   </div>
-                  <div className="flex justify-between text-xs font-mono border-b border-graphite-800 pb-2">
+                  <div className="flex justify-between text-[10px] font-mono border-b border-graphite-850 pb-2">
                     <span className="text-graphite-400">Response Plan:</span>
-                    <span className="text-graphite-200 font-bold">
-                      {selectedActions.length} actions selected
+                    <span className="text-white font-bold">
+                      {selectedActions.length} actions
                     </span>
                   </div>
-                  <div className="flex justify-between text-xs font-mono border-b border-graphite-800 pb-2">
+                  <div className="flex justify-between text-[10px] font-mono border-b border-graphite-850 pb-2">
                     <span className="text-graphite-400">Evidence Found:</span>
-                    <span className="text-graphite-200 font-bold">
+                    <span className="text-white font-bold">
                       {discoveredFindings.length} indicators
                     </span>
                   </div>
@@ -434,7 +434,7 @@ export default function SimulationPage() {
                 <button
                   onClick={handleSubmit}
                   disabled={submitting}
-                  className="w-full mt-4 py-3 bg-emerald-500 hover:bg-emerald-400 text-emerald-950 font-bold rounded-lg shadow-lg hover:shadow-emerald-500/20 hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-50 disabled:pointer-events-none transition-all flex items-center justify-center gap-2"
+                  className="w-full mt-4 py-2 bg-white text-black font-semibold text-xs rounded-md hover:bg-white/90 disabled:bg-graphite-800 disabled:text-graphite-500 transition-all duration-200 flex items-center justify-center gap-2"
                 >
                   {submitting ? (
                     <>

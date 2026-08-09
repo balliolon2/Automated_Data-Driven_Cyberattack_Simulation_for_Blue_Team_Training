@@ -30,26 +30,26 @@ export default function RegisterPage() {
 
   return (
     <div className="min-h-[80vh] flex items-center justify-center">
-      <div className="w-full max-w-md bg-slate-900/50 border border-slate-800 rounded-2xl p-8 shadow-xl">
+      <div className="w-full max-w-md bg-graphite-900 border border-graphite-800 rounded-lg p-8">
         <div className="flex flex-col items-center mb-8">
-          <div className="w-16 h-16 bg-blue-600/20 text-blue-500 rounded-full flex items-center justify-center mb-4">
-            <Shield size={32} />
+          <div className="w-12 h-12 bg-graphite-950 text-white rounded border border-graphite-800 flex items-center justify-center mb-4">
+            <Shield size={20} />
           </div>
-          <h2 className="text-2xl font-bold text-white">Create an Account</h2>
-          <p className="text-slate-400 text-sm mt-2 text-center">
+          <h2 className="text-xl font-bold text-white tracking-tight">Create an Account</h2>
+          <p className="text-graphite-400 text-xs mt-2 text-center font-light leading-relaxed">
             Join CyberSim to start your continuous Blue Team training.
           </p>
         </div>
 
         {error && (
-          <div className="mb-4 p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
+          <div className="mb-4 p-3 rounded bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-mono">
             {error}
           </div>
         )}
 
         <form onSubmit={handleRegister} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-slate-300 mb-1">
+            <label className="block text-xs font-medium text-graphite-300 mb-1">
               Email Address
             </label>
             <input
@@ -57,13 +57,13 @@ export default function RegisterPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="w-full px-4 py-2 bg-slate-950 border border-slate-800 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-white transition-all"
+              className="w-full px-3 py-2 bg-graphite-950 border border-graphite-800 rounded text-sm text-white placeholder-graphite-600 focus:outline-none focus:border-white transition-all font-light"
               placeholder="operator@soc.local"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-300 mb-1">
+            <label className="block text-xs font-medium text-graphite-300 mb-1">
               Password
             </label>
             <input
@@ -72,7 +72,7 @@ export default function RegisterPage() {
               onChange={(e) => setPassword(e.target.value)}
               required
               minLength={6}
-              className="w-full px-4 py-2 bg-slate-950 border border-slate-800 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-white transition-all"
+              className="w-full px-3 py-2 bg-graphite-950 border border-graphite-800 rounded text-sm text-white placeholder-graphite-600 focus:outline-none focus:border-white transition-all font-light"
               placeholder="••••••••"
             />
           </div>
@@ -80,16 +80,16 @@ export default function RegisterPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-blue-600 hover:bg-blue-500 text-white font-medium py-2.5 rounded-lg transition-colors flex justify-center items-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed mt-2"
+            className="w-full bg-white text-black font-semibold py-2 rounded text-xs hover:bg-white/90 transition-all flex justify-center items-center gap-2 mt-2 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {loading ? <Loader2 className="animate-spin w-5 h-5" /> : "Register"}
-            {!loading && <ArrowRight size={18} />}
+            {loading ? <Loader2 className="animate-spin w-4 h-4" /> : "Register"}
+            {!loading && <ArrowRight size={14} />}
           </button>
         </form>
 
-        <div className="mt-6 text-center text-sm text-slate-400">
+        <div className="mt-6 text-center text-xs text-graphite-400">
           Already have an account?{" "}
-          <Link to="/login" className="text-blue-400 hover:text-blue-300 hover:underline">
+          <Link to="/login" className="text-white hover:underline">
             Sign in
           </Link>
         </div>

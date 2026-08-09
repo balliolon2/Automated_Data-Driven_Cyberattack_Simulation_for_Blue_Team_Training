@@ -131,16 +131,16 @@ export default function ScenarioResultPage() {
 
   if (loading) {
     return (
-      <div className="min-h-[60vh] flex flex-col items-center justify-center gap-4">
-        <Loader2 className="w-8 h-8 text-emerald-400 animate-spin" />
-        <p className="text-sm font-mono text-graphite-400">Analyzing triage report...</p>
+      <div className="min-h-[60vh] flex flex-col items-center justify-center gap-3">
+        <Loader2 className="w-6 h-6 text-white animate-spin" />
+        <p className="text-xs font-mono text-graphite-500">Analyzing triage report...</p>
       </div>
     );
   }
 
   if (!session || !scenario || !result) {
     return (
-      <div className="text-center py-12 text-graphite-400 font-mono">
+      <div className="text-center py-12 text-graphite-500 font-mono text-xs">
         Failed to load incident results.
       </div>
     );
@@ -150,12 +150,12 @@ export default function ScenarioResultPage() {
     <div className="space-y-8 animate-fade-in">
       {/* Page Header */}
       <div className="text-center space-y-2 max-w-2xl mx-auto">
-        <div className="inline-flex items-center justify-center p-3 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 mb-2">
-          <Award className="w-8 h-8" />
+        <div className="inline-flex items-center justify-center p-3 rounded-md bg-graphite-900 border border-graphite-800 text-white mb-2">
+          <Award className="w-6 h-6" />
         </div>
-        <h1 className="text-3xl font-bold tracking-tight">Scenario Evaluation</h1>
-        <p className="text-sm text-graphite-400">
-          Incident Audit for: <span className="text-graphite-200 font-semibold">{scenario.title}</span>
+        <h1 className="text-2xl font-bold tracking-tight text-white">Scenario Evaluation</h1>
+        <p className="text-xs text-graphite-400 font-mono">
+          Incident Audit for: <span className="text-white font-semibold">{scenario.title}</span>
         </p>
       </div>
 
@@ -163,17 +163,16 @@ export default function ScenarioResultPage() {
         {/* Left Side: Score & Profiles */}
         <div className="space-y-6">
           {/* Main Score Panel */}
-          <div className="glass-panel p-6 rounded-xl flex flex-col items-center justify-center text-center space-y-3 relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-500/5 blur-2xl rounded-full" />
-            <div className="text-5xl font-black text-emerald-400 font-mono tracking-tight">
+          <div className="bg-graphite-900 border border-graphite-800/80 p-6 rounded-lg flex flex-col items-center justify-center text-center space-y-3">
+            <div className="text-4xl font-extrabold text-white font-mono tracking-tighter">
               {result.total_score.toFixed(0)}
-              <span className="text-sm text-graphite-500 font-medium ml-1">/ 100</span>
+              <span className="text-xs text-graphite-500 font-medium ml-1">/ 100</span>
             </div>
-            <div className="text-sm font-semibold text-graphite-200 uppercase tracking-wider">
+            <div className="text-[10px] font-semibold text-graphite-300 uppercase tracking-wider font-mono">
               Performance Score
             </div>
             <div className={cn(
-              "px-3 py-1 rounded-full text-xs font-mono font-medium border",
+              "px-2.5 py-0.5 rounded text-[10px] font-mono font-medium border",
               result.total_score >= 70 
                 ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" 
                 : "bg-amber-500/10 text-amber-400 border-amber-500/20"
@@ -188,7 +187,7 @@ export default function ScenarioResultPage() {
           {/* Action Button */}
           <button
             onClick={handleNext}
-            className="w-full py-3.5 bg-emerald-500 hover:bg-emerald-400 text-emerald-950 font-bold rounded-lg shadow-lg hover:shadow-emerald-500/20 hover:-translate-y-0.5 active:translate-y-0 transition-all flex items-center justify-center gap-2"
+            className="w-full py-2 bg-white text-black font-semibold text-xs rounded-md hover:bg-white/90 transition-all duration-200 flex items-center justify-center gap-2"
           >
             {needsTraining ? (
               <>
@@ -207,40 +206,40 @@ export default function ScenarioResultPage() {
         {/* Right Side: Analysis reviews */}
         <div className="md:col-span-2 space-y-6">
           {/* Triage Decision */}
-          <div className="glass-panel p-6 rounded-xl space-y-4">
+          <div className="bg-graphite-900 border border-graphite-800/80 p-6 rounded-lg space-y-4">
             <div className="flex items-center justify-between border-b border-graphite-800 pb-3">
-              <h3 className="font-bold text-graphite-100 flex items-center gap-2">
+              <h3 className="font-semibold text-sm text-white flex items-center gap-2">
                 Triage classification
               </h3>
               {result.tp_fp_correct ? (
-                <span className="flex items-center gap-1 text-xs font-bold text-emerald-400">
+                <span className="flex items-center gap-1 text-xs font-semibold text-emerald-400">
                   <ShieldCheck className="w-4 h-4" /> Correct
                 </span>
               ) : (
-                <span className="flex items-center gap-1 text-xs font-bold text-red-400">
+                <span className="flex items-center gap-1 text-xs font-semibold text-red-400">
                   <ShieldAlert className="w-4 h-4" /> Incorrect
                 </span>
               )}
             </div>
 
             <div className={cn(
-              "p-4 rounded-lg border",
+              "p-4 rounded border",
               result.tp_fp_correct 
-                ? "bg-emerald-950/10 border-emerald-500/10 text-emerald-200/90" 
-                : "bg-red-950/10 border-red-500/10 text-red-200/90"
+                ? "bg-emerald-950/10 border-emerald-500/10 text-emerald-300" 
+                : "bg-red-950/10 border-red-500/10 text-red-300"
             )}>
-              <div className="font-semibold text-xs mb-1 uppercase tracking-wider font-mono">
+              <div className="font-semibold text-[10px] mb-1.5 uppercase tracking-wider font-mono text-white">
                 Explanation:
               </div>
-              <p className="text-xs leading-relaxed">
+              <p className="text-xs leading-relaxed font-light">
                 {result.tp_fp_explanation}
               </p>
             </div>
           </div>
 
           {/* Key Findings */}
-          <div className="glass-panel p-6 rounded-xl space-y-4">
-            <h3 className="font-bold text-graphite-100 border-b border-graphite-800 pb-3">
+          <div className="bg-graphite-900 border border-graphite-800/80 p-6 rounded-lg space-y-4">
+            <h3 className="font-semibold text-sm text-white border-b border-graphite-800 pb-3">
               Detect & Analysis Findings
             </h3>
             
@@ -249,25 +248,25 @@ export default function ScenarioResultPage() {
                 <div 
                   key={finding.id}
                   className={cn(
-                    "p-4 rounded-lg border flex gap-3 items-start transition-all",
+                    "p-4 rounded border flex gap-3 items-start transition-all text-xs font-light",
                     finding.found 
                       ? "bg-emerald-950/5 border-emerald-500/10" 
                       : "bg-graphite-950/40 border-graphite-800/80"
                   )}
                 >
                   {finding.found ? (
-                    <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
                   ) : (
-                    <XCircle className="w-5 h-5 text-graphite-600 shrink-0 mt-0.5" />
+                    <XCircle className="w-4 h-4 text-graphite-600 shrink-0 mt-0.5" />
                   )}
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
-                      <span className="text-xs font-bold text-graphite-200">{finding.description}</span>
-                      <span className="px-1.5 py-0.5 rounded bg-graphite-900 border border-graphite-800 text-[9px] font-mono text-graphite-400 uppercase">
+                      <span className="font-semibold text-white">{finding.description}</span>
+                      <span className="px-1.5 py-0.5 rounded bg-graphite-950 border border-graphite-800 text-[8px] font-mono text-graphite-400 uppercase">
                         {finding.domain_id}
                       </span>
                     </div>
-                    <p className="text-xs text-graphite-400 leading-relaxed">
+                    <p className="text-graphite-400 leading-relaxed">
                       {finding.explanation}
                     </p>
                   </div>
@@ -277,8 +276,8 @@ export default function ScenarioResultPage() {
           </div>
 
           {/* Response Plan */}
-          <div className="glass-panel p-6 rounded-xl space-y-4">
-            <h3 className="font-bold text-graphite-100 border-b border-graphite-800 pb-3">
+          <div className="bg-graphite-900 border border-graphite-800/80 p-6 rounded-lg space-y-4">
+            <h3 className="font-semibold text-sm text-white border-b border-graphite-800 pb-3">
               Response Plan Execution
             </h3>
             
@@ -288,7 +287,7 @@ export default function ScenarioResultPage() {
                   <div 
                     key={action.id}
                     className={cn(
-                      "p-4 rounded-lg border flex gap-3 items-start transition-all",
+                      "p-4 rounded border flex gap-3 items-start transition-all text-xs font-light",
                       action.selected 
                         ? action.is_correct
                           ? "bg-emerald-950/5 border-emerald-500/10"
@@ -298,32 +297,32 @@ export default function ScenarioResultPage() {
                   >
                     {action.selected ? (
                       action.is_correct ? (
-                        <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
+                        <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
                       ) : (
-                        <XCircle className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
+                        <XCircle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
                       )
                     ) : (
-                      <div className="w-5 h-5 rounded-full border border-graphite-800 shrink-0 mt-0.5 flex items-center justify-center text-[10px] font-bold text-graphite-500 font-mono">
+                      <div className="w-4 h-4 rounded-full border border-graphite-800 shrink-0 mt-0.5 flex items-center justify-center text-[10px] font-bold text-graphite-500 font-mono">
                         -
                       </div>
                     )}
                     
                     <div className="space-y-1">
                       <div className="flex items-center gap-2">
-                        <span className="text-xs font-bold text-graphite-200">{action.label}</span>
-                        <span className="px-1.5 py-0.5 rounded bg-graphite-900 border border-graphite-800 text-[9px] font-mono text-graphite-400 uppercase">
+                        <span className="font-semibold text-white">{action.label}</span>
+                        <span className="px-1.5 py-0.5 rounded bg-graphite-950 border border-graphite-800 text-[8px] font-mono text-graphite-400 uppercase">
                           {action.phase} · {action.domain_id}
                         </span>
                         {action.selected && (
                           <span className={cn(
-                            "text-[10px] font-mono font-bold",
+                            "text-[9px] font-mono font-bold",
                             action.is_correct ? "text-emerald-400" : "text-red-400"
                           )}>
                             ({action.points > 0 ? `+${action.points}` : action.points} pts)
                           </span>
                         )}
                       </div>
-                      <p className="text-xs text-graphite-400 leading-relaxed">
+                      <p className="text-graphite-400 leading-relaxed">
                         {action.explanation}
                       </p>
                     </div>

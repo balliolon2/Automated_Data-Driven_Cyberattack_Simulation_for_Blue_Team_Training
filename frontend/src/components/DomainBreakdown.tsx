@@ -17,8 +17,8 @@ interface DomainBreakdownProps {
 
 export default function DomainBreakdown({ domains, title = "Domain Proficiency Breakdown", showThresholdLine = true }: DomainBreakdownProps) {
   return (
-    <div className="glass-panel p-6 rounded-xl space-y-6">
-      <h3 className="text-lg font-semibold tracking-wide text-graphite-100 border-b border-graphite-800 pb-3">
+    <div className="bg-graphite-900 border border-graphite-800 rounded-lg p-6 space-y-6">
+      <h3 className="text-sm font-semibold tracking-tight text-white border-b border-graphite-800 pb-3">
         {title}
       </h3>
       <div className="space-y-4">
@@ -28,12 +28,12 @@ export default function DomainBreakdown({ domains, title = "Domain Proficiency B
           
           return (
             <div key={domain.domain_id} className="space-y-2 group">
-              <div className="flex items-center justify-between text-sm">
+              <div className="flex items-center justify-between text-xs">
                 <div className="flex items-center gap-2 max-w-[75%]">
                   {domain.passed ? (
-                    <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0 filter drop-shadow-[0_0_4px_rgba(52,211,153,0.4)]" />
+                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
                   ) : (
-                    <ShieldAlert className="w-4 h-4 text-amber-500 shrink-0 filter drop-shadow-[0_0_4px_rgba(245,158,11,0.4)]" />
+                    <ShieldAlert className="w-3.5 h-3.5 text-amber-500 shrink-0" />
                   )}
                   <span className="font-medium text-graphite-200 truncate group-hover:text-white transition-colors duration-200">
                     {domain.domain_name}
@@ -41,32 +41,30 @@ export default function DomainBreakdown({ domains, title = "Domain Proficiency B
                 </div>
                 <div className="flex items-baseline gap-1.5 font-mono">
                   <span className={cn(
-                    "text-base font-bold",
+                    "text-sm font-bold",
                     domain.passed ? "text-emerald-400" : "text-amber-400"
                   )}>
                     {domain.proficiency_score.toFixed(1)}%
                   </span>
-                  <span className="text-xs text-graphite-500">/ {domain.threshold}%</span>
+                  <span className="text-[10px] text-graphite-500">/ {domain.threshold}%</span>
                 </div>
               </div>
               
-              <div className="relative h-3 w-full bg-graphite-950 rounded-full overflow-hidden border border-graphite-800/80">
+              <div className="relative h-2 w-full bg-graphite-950 rounded overflow-hidden border border-graphite-800/80">
                 {/* Threshold Marker Line */}
                 {showThresholdLine && (
                   <div 
-                    className="absolute top-0 bottom-0 w-0.5 bg-graphite-600/60 z-10"
+                    className="absolute top-0 bottom-0 w-0.5 bg-graphite-800 z-10"
                     style={{ left: `${thresholdPercent}%` }}
                     title={`Threshold: ${thresholdPercent}%`}
                   />
                 )}
                 
-                {/* Progress Bar with Glow */}
+                {/* Progress Bar (Flat) */}
                 <div 
                   className={cn(
-                    "h-full rounded-full transition-all duration-1000 ease-out relative",
-                    domain.passed 
-                      ? "bg-gradient-to-r from-emerald-600 to-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.3)]" 
-                      : "bg-gradient-to-r from-amber-600 to-amber-400 shadow-[0_0_8px_rgba(245,158,11,0.3)]"
+                    "h-full rounded-sm transition-all duration-1000 ease-out",
+                    domain.passed ? "bg-emerald-500" : "bg-amber-500"
                   )}
                   style={{ width: `${percentage}%` }}
                 />

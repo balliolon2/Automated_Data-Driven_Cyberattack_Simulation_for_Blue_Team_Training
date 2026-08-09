@@ -56,22 +56,22 @@ export default function EvaluationPage() {
 
   if (loading) {
     return (
-      <div className="min-h-[60vh] flex flex-col items-center justify-center gap-4">
-        <Loader2 className="w-8 h-8 text-emerald-400 animate-spin" />
-        <p className="text-sm font-mono text-graphite-400">Loading skill profiles...</p>
+      <div className="min-h-[60vh] flex flex-col items-center justify-center gap-3">
+        <Loader2 className="w-6 h-6 text-white animate-spin" />
+        <p className="text-xs font-mono text-graphite-500">Loading skill profiles...</p>
       </div>
     );
   }
 
   if (errorMessage) {
     return (
-      <div className="max-w-md mx-auto mt-12 glass-panel p-6 rounded-xl border-red-500/20 text-center space-y-4 animate-fade-in">
-        <ShieldAlert className="w-12 h-12 text-red-400 mx-auto" />
-        <h3 className="text-lg font-bold text-graphite-100">Assessment Required</h3>
-        <p className="text-sm text-graphite-300">{errorMessage}</p>
+      <div className="max-w-md mx-auto mt-12 bg-graphite-900 p-8 rounded-lg border border-graphite-800 text-center space-y-6 animate-fade-in">
+        <ShieldAlert className="w-10 h-10 text-red-500 mx-auto" />
+        <h3 className="text-base font-bold text-white tracking-tight">Assessment Required</h3>
+        <p className="text-xs text-graphite-400 font-light leading-relaxed">{errorMessage}</p>
         <button
           onClick={() => navigate("/pre-test")}
-          className="px-5 py-2.5 bg-emerald-500 text-emerald-950 font-bold rounded-lg hover:bg-emerald-400 transition-all text-sm"
+          className="w-full py-2 bg-white text-black font-semibold text-xs rounded-md hover:bg-white/90 transition-all duration-200"
         >
           Take Pre-Test
         </button>
@@ -85,21 +85,20 @@ export default function EvaluationPage() {
   return (
     <div className="max-w-4xl mx-auto space-y-8 animate-fade-in">
       <div className="text-center space-y-2">
-        <h1 className="text-3xl font-bold tracking-tight">Skill Evaluation</h1>
-        <p className="text-sm text-graphite-400">Practical Assessment and Training Plan</p>
+        <h1 className="text-2xl font-bold tracking-tight text-white">Skill Evaluation</h1>
+        <p className="text-xs text-graphite-400 font-mono">Practical Assessment and Training Plan</p>
       </div>
 
       <div className="grid md:grid-cols-3 gap-6">
         {/* Left Side: Summary Card */}
-        <div className="glass-panel p-6 rounded-xl flex flex-col items-center justify-center text-center space-y-3 relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-20 h-20 bg-emerald-500/5 blur-2xl rounded-full" />
-          <div className="text-5xl font-black text-emerald-400 font-mono tracking-tight">
+        <div className="bg-graphite-900 border border-graphite-800/80 p-6 rounded-lg flex flex-col items-center justify-center text-center space-y-3">
+          <div className="text-4xl font-extrabold text-white font-mono tracking-tighter">
             {averageScore.toFixed(0)}%
           </div>
-          <div className="text-sm font-semibold text-graphite-200 uppercase tracking-wider">
+          <div className="text-[10px] font-semibold text-graphite-300 uppercase tracking-wider font-mono">
             Average Proficiency
           </div>
-          <p className="text-xs text-graphite-400 font-mono">
+          <p className="text-[10px] text-graphite-500 font-mono">
             {failedDomains.length > 0
               ? `${failedDomains.length} domains below threshold`
               : "All domains passed"}
@@ -112,33 +111,33 @@ export default function EvaluationPage() {
         </div>
       </div>
 
-      <div className="glass-panel p-6 rounded-xl space-y-4">
-        <h3 className="text-lg font-bold flex items-center gap-2 text-graphite-100 border-b border-graphite-800 pb-3">
-          <AlertTriangle className="text-amber-500 w-5 h-5" />
+      <div className="bg-graphite-900 border border-graphite-800/80 p-6 rounded-lg space-y-4">
+        <h3 className="text-sm font-semibold flex items-center gap-2 text-white border-b border-graphite-800 pb-3">
+          <AlertTriangle className="text-amber-500 w-4 h-4" />
           Skill Gap Analysis
         </h3>
         
-        <ul className="space-y-4 text-xs text-graphite-300">
+        <ul className="space-y-4 text-xs text-graphite-400 font-light">
           {failedDomains.length > 0 ? (
             <>
               <li className="flex gap-3 items-start">
-                <ShieldAlert className="text-amber-500 shrink-0 w-5 h-5" />
+                <ShieldAlert className="text-amber-500 shrink-0 w-4 h-4 mt-0.5" />
                 <span>
-                  <strong>Identified Weakness:</strong> You have domains performing below the <strong>70%</strong> proficiency threshold. The adaptive simulation system will recommend custom scenarios focusing on your weakest domains first.
+                  <strong className="text-white">Identified Weakness:</strong> You have domains performing below the <strong className="text-white">70%</strong> proficiency threshold. The adaptive simulation system will recommend custom scenarios focusing on your weakest domains first.
                 </span>
               </li>
               <li className="flex gap-3 items-start">
-                <CheckCircle className="text-emerald-500 shrink-0 w-5 h-5" />
+                <CheckCircle className="text-emerald-500 shrink-0 w-4 h-4 mt-0.5" />
                 <span>
-                  <strong>Adaptive Roadmap:</strong> Recommended training includes hands-on investigations of alerts, log audits using KQL-like search, and playbook response steps.
+                  <strong className="text-white">Adaptive Roadmap:</strong> Recommended training includes hands-on investigations of alerts, log audits using KQL-like search, and playbook response steps.
                 </span>
               </li>
             </>
           ) : (
             <li className="flex gap-3 items-start">
-              <CheckCircle className="text-emerald-500 shrink-0 w-5 h-5" />
+              <CheckCircle className="text-emerald-500 shrink-0 w-4 h-4 mt-0.5" />
               <span>
-                <strong>Excellent Work!</strong> You have achieved the target proficiency of <strong>70%</strong> across all domains. You are fully prepared to proceed to the final Post-Test.
+                <strong className="text-white">Excellent Work!</strong> You have achieved the target proficiency of <strong className="text-white">70%</strong> across all domains. You are fully prepared to proceed to the final Post-Test.
               </span>
             </li>
           )}
@@ -148,7 +147,7 @@ export default function EvaluationPage() {
           {needsTraining ? (
             <button
               onClick={() => navigate("/simulation")}
-              className="px-6 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-emerald-950 font-bold rounded-lg shadow-lg hover:shadow-emerald-500/20 hover:-translate-y-0.5 active:translate-y-0 transition-all flex items-center gap-2 text-sm"
+              className="px-4 py-2 bg-white text-black font-semibold text-xs rounded-md hover:bg-white/90 transition-all duration-200 flex items-center gap-2"
             >
               <PlayCircle className="w-4 h-4" />
               Start Recommended Scenarios ({completedScenarios} completed)
@@ -156,7 +155,7 @@ export default function EvaluationPage() {
           ) : (
             <button
               onClick={() => navigate("/simulation/complete")}
-              className="px-6 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-emerald-950 font-bold rounded-lg shadow-lg hover:shadow-emerald-500/20 hover:-translate-y-0.5 active:translate-y-0 transition-all flex items-center gap-2 text-sm"
+              className="px-4 py-2 bg-white text-black font-semibold text-xs rounded-md hover:bg-white/90 transition-all duration-200 flex items-center gap-2"
             >
               <Award className="w-4 h-4" />
               View Completion Certificate
