@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
-import { Terminal, Shield, Eye, CheckCircle2, ChevronRight, Loader2, AlertCircle, Cpu, Sparkles, Search } from "lucide-react";
+import { Terminal, Shield, Eye, CheckCircle2, ChevronRight, Loader2, AlertCircle, Sparkles, Search } from "lucide-react";
 import KqlSearchBar from "../components/KqlSearchBar";
 import LogTable from "../components/LogTable";
 import ResponsePanel from "../components/ResponsePanel";
+import ScenarioLoadingState from "../components/ScenarioLoadingState";
 import { cn } from "../lib/utils";
 
 interface ActionOption {
@@ -64,25 +65,7 @@ export default function SimulationPage() {
     setSiemQuery(queryStr);
     setActiveTab("detect");
   };
-  const [msgIndex, setMsgIndex] = useState(0);
-
-  const loadingMessages = [
-    "Analyzing user skill gap profile & proficiency matrix...",
-    "Querying RAG knowledge base for CompTIA Security+ TTPs...",
-    "Synthesizing realistic adversarial threat scenario via AI...",
-    "Injecting simulated Firewall, EDR & SIEM telemetry logs...",
-    "Initializing SOC virtual sandbox environment..."
-  ];
-
   const navigate = useNavigate();
-
-  useEffect(() => {
-    if (!loading) return;
-    const interval = setInterval(() => {
-      setMsgIndex((prev) => (prev + 1) % loadingMessages.length);
-    }, 2400);
-    return () => clearInterval(interval);
-  }, [loading]);
 
   useEffect(() => {
     const initSimulation = async () => {
@@ -237,29 +220,7 @@ export default function SimulationPage() {
   };
 
   if (loading) {
-    return (
-      <div className="min-h-[70vh] flex flex-col items-center justify-center gap-6 animate-fade-in text-center px-4">
-        {/* Glowing Cyber Radar Spinner */}
-        <div className="relative flex items-center justify-center w-24 h-24">
-          <div className="absolute inset-0 rounded-full border-2 border-emerald-500/20 border-t-emerald-400 animate-spin" style={{ animationDuration: '1.5s' }} />
-          <div className="absolute inset-2 rounded-full border-2 border-cyan-500/20 border-b-cyan-400 animate-spin" style={{ animationDirection: 'reverse', animationDuration: '2.5s' }} />
-          <div className="w-12 h-12 rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center shadow-[0_0_20px_rgba(52,211,153,0.3)]">
-            <Cpu className="w-6 h-6 text-emerald-400 animate-pulse" />
-          </div>
-        </div>
-
-        <div className="space-y-2 max-w-md">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-mono">
-            <Sparkles className="w-3.5 h-3.5 animate-spin" />
-            <span>AI Dynamic Threat Engine Active</span>
-          </div>
-          <h3 className="text-xl font-bold text-white tracking-wide">Constructing Cyber Attack Simulation</h3>
-          <p className="text-sm font-mono text-emerald-400/90 h-6 transition-all duration-300">
-            {loadingMessages[msgIndex]}
-          </p>
-        </div>
-      </div>
-    );
+    return <ScenarioLoadingState />;
   }
 
   if (errorMessage) {
