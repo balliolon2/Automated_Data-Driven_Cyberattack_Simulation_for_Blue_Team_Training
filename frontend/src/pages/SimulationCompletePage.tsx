@@ -116,21 +116,33 @@ export default function SimulationCompletePage() {
           </div>
 
           <div className="space-y-2">
-            {!allPassed && (
+            {!allPassed ? (
+              <>
+                <button
+                  onClick={() => navigate("/simulation")}
+                  className="w-full py-2.5 bg-emerald-500 hover:bg-emerald-600 text-black font-semibold text-xs rounded-md transition-all duration-200 shadow-sm"
+                >
+                  Continue Incident Simulation
+                </button>
+                <div className="p-3 rounded border border-amber-900/50 bg-amber-950/20 text-amber-300/80 text-[11px] leading-relaxed">
+                  Post-Test is locked until all 5 CompTIA Security+ domains achieve the 70% proficiency threshold.
+                </div>
+                <button
+                  disabled
+                  className="w-full py-2 bg-graphite-800 text-graphite-500 font-medium text-xs rounded-md cursor-not-allowed flex items-center justify-center gap-2 border border-graphite-700/50"
+                >
+                  Start Final Post-Test (Locked)
+                </button>
+              </>
+            ) : (
               <button
-                onClick={() => navigate("/simulation")}
-                className="w-full py-2 bg-emerald-500 hover:bg-emerald-600 text-black font-semibold text-xs rounded-md transition-all duration-200"
+                onClick={handleStartPostTest}
+                className="w-full py-2.5 bg-white text-black font-semibold text-xs rounded-md hover:bg-white/90 transition-all duration-200 flex items-center justify-center gap-2 shadow"
               >
-                Continue Incident Simulation
+                Start Final Post-Test
+                <ChevronRight className="w-4 h-4" />
               </button>
             )}
-            <button
-              onClick={handleStartPostTest}
-              className="w-full py-2 bg-white text-black font-semibold text-xs rounded-md hover:bg-white/90 transition-all duration-200 flex items-center justify-center gap-2"
-            >
-              Start Final Post-Test
-              <ChevronRight className="w-4 h-4" />
-            </button>
           </div>
         </div>
 

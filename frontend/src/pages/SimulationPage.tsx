@@ -123,8 +123,8 @@ export default function SimulationPage() {
           headers: { Authorization: `Bearer ${token}` }
         });
 
-        if (startRes.data.error) {
-          setErrorMessage(startRes.data.error);
+        if (startRes.data.status === "scenario_unavailable" || startRes.data.error) {
+          setErrorMessage(startRes.data.error || "The simulation scenario is temporarily unavailable. Your progress has been preserved, and this will not impact your score. Please retry in a few moments.");
           setLoading(false);
           return;
         }

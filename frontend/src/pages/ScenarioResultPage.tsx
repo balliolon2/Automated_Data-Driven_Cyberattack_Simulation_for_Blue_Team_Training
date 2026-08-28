@@ -79,7 +79,7 @@ export default function ScenarioResultPage() {
           return;
         }
 
-        // 1. Fetch result payload from result endpoint
+        // 1. Fetch result payload directly from backend evaluation endpoint
         const res = await axios.get(`/api/simulation/result/${id}`, {
           headers: { Authorization: `Bearer ${token}` }
         });
@@ -87,20 +87,7 @@ export default function ScenarioResultPage() {
         setSession(res.data.session);
         setScenario(res.data.scenario);
         setDomainProficiencies(res.data.domain_proficiencies);
-
-        // Standardize the result model
-        // If coming directly from submission, the structure might be nested
-        if (res.data.actions) {
-          // Re-evaluate matching or use the stored session data
-          // We can reconstruct or fetch the result mapping
-          // Let's check how result is stored in the database
-        }
-        
-        // Wait, the backend endpoint returns:
-        // { session: models.SimulationSession, scenario: models.Scenario, actions: [], domain_proficiencies: [] }
-        // Let's reconstruct the score results client-side for review
-        const reconResult = reconstructResult(res.data.scenario, res.data.actions);
-        setResult(reconResult);
+        setResult(res.data.result);
 
         // 2. Fetch the simulation status to see if training is still needed
         const statusRes = await axios.get("/api/simulation/status", {
@@ -335,111 +322,4 @@ export default function ScenarioResultPage() {
       </div>
     </div>
   );
-}
-
-// Reconstructs the detailed score result client-side from the scenario data and actions logged
-function reconstructResult(scenario: any, actions: any[]): ResultData {
-  const result: ResultData = {
-    total_score: 0,
-    tp_fp_correct: false,
-    tp_fp_points: 0,
-    findings_points: 0,
-    response_points: 0,
-    domain_scores: {},
-    findings_detail: [],
-    response_detail: [],
-    tp_fp_explanation: scenario.tp_fp_explanation
-  };
-
-  const domainEarned: Record<string, number> = {};
-  const domainMaxPoints: Record<string, number> = {};
-
-  // Find user actions in history
-  const triageAction = actions.find(a => a.action_type === "triage_alert");
-  const respondAction = actions.find(a => a.action_type === "respond");
-  const findingsAction = actions.find(a => a.action_type === "submit_decision");
-
-  // 1. Score TP/FP
-  const userChoice = triageAction?.payload?.user_choice;
-  result.tp_fp_correct = userChoice === scenario.is_true_positive;
-  const tpfpMaxPoints = 20.0;
-  if (result.tp_fp_correct) {
-    result.tp_fp_points = tpfpMaxPoints;
-    domainEarned[scenario.domain_id] = (domainEarned[scenario.domain_id] || 0) + tpfpMaxPoints;
-  }
-  domainMaxPoints[scenario.domain_id] = (domainMaxPoints[scenario.domain_id] || 0) + tpfpMaxPoints;
-
-  // 2. Score Findings
-  const discoveredSet = new Set<string>(findingsAction?.payload?.discovered_findings || []);
-  const keyFindings = scenario.expected_outcomes?.key_findings || [];
-  
-  keyFindings.forEach((kf: any) => {
-    const found = discoveredSet.has(kf.id);
-    const pts = parseFloat(kf.points || "0");
-    
-    result.findings_detail.push({
-      id: kf.id,
-      description: kf.description,
-      domain_id: kf.domain_id,
-      found,
-      points: pts,
-      explanation: kf.explanation
-    });
-
-    if (found) {
-      result.findings_points += pts;
-      domainEarned[kf.domain_id] = (domainEarned[kf.domain_id] || 0) + pts;
-    }
-    domainMaxPoints[kf.domain_id] = (domainMaxPoints[kf.domain_id] || 0) + pts;
-  });
-
-  // 3. Score Playbooks
-  const selectedSet = new Set<string>(respondAction?.payload?.selected_actions || []);
-  const phases = ["containment", "eradication", "recovery"];
-  
-  phases.forEach(phase => {
-    const phaseActions = scenario.playbook_steps?.[phase] || [];
-    phaseActions.forEach((act: any) => {
-      const selected = selectedSet.has(act.id);
-      const pts = parseFloat(act.points || "0");
-      
-      let earned = 0;
-      if (selected) {
-        earned = pts;
-        result.response_points += pts;
-        domainEarned[act.domain_id] = (domainEarned[act.domain_id] || 0) + pts;
-      }
-
-      if (pts > 0) {
-        domainMaxPoints[act.domain_id] = (domainMaxPoints[act.domain_id] || 0) + pts;
-      }
-
-      result.response_detail.push({
-        id: act.id,
-        label: act.label,
-        phase,
-        domain_id: act.domain_id,
-        selected,
-        is_correct: act.is_correct,
-        points: pts,
-        earned,
-        explanation: act.explanation
-      });
-    });
-  });
-
-  // Calculate total score
-  let totalMax = 0;
-  let totalEarned = 0;
-  
-  Object.keys(domainMaxPoints).forEach(d => {
-    totalMax += domainMaxPoints[d];
-    totalEarned += Math.max(0, domainEarned[d] || 0);
-  });
-
-  if (totalMax > 0) {
-    result.total_score = Math.round((totalEarned / totalMax) * 100 * 100) / 100;
-  }
-
-  return result;
 }

@@ -177,12 +177,78 @@ Output ONLY valid JSON matching this exact structure:
 
 	var micro aiMicroScenario
 	if err := json.Unmarshal([]byte(rawJSON), &micro); err != nil {
-		return nil, fmt.Errorf("failed to parse AI micro scenario JSON: %w", err)
+		return nil, fmt.Errorf("invalid_json: failed to parse AI micro scenario JSON: %w", err)
 	}
 
-	// Synthesize full 25-log SIEM environment and scenario object around the AI-generated incident core
+	// Synthesize full 45-log SIEM environment and scenario object around the AI-generated incident core
 	scenario := synthesizeFullScenario(micro, weakestDomain, domainName)
+
+	// Validate candidate scenario against schema & referential contracts
+	if valErr := ValidateScenarioCandidate(scenario); valErr != nil {
+		return nil, fmt.Errorf("scenario_validation_failed: %w", valErr)
+	}
+
 	return scenario, nil
+}
+
+// ValidateScenarioCandidate validates scenario structure, bounds, and referential integrity
+func ValidateScenarioCandidate(s *models.Scenario) error {
+	if s == nil {
+		return fmt.Errorf("scenario is nil")
+	}
+	if strings.TrimSpace(s.Title) == "" {
+		return fmt.Errorf("schema_validation_failed: title is required")
+	}
+	if s.DomainID == "" {
+		return fmt.Errorf("schema_validation_failed: domain_id is required")
+	}
+	validDomains := map[string]bool{"domain1": true, "domain2": true, "domain3": true, "domain4": true, "domain5": true}
+	if !validDomains[s.DomainID] {
+		return fmt.Errorf("referential_validation_failed: unknown domain_id '%s'", s.DomainID)
+	}
+
+	// Validate Logs length
+	logCount := 0
+	if logsList, ok := s.InitialLogs.([]map[string]interface{}); ok {
+		logCount = len(logsList)
+	} else if rawSlice, ok := s.InitialLogs.([]interface{}); ok {
+		logCount = len(rawSlice)
+	}
+	if logCount < 10 {
+		return fmt.Errorf("content_validation_failed: insufficient logs count (%d)", logCount)
+	}
+
+	// Validate Expected Outcomes
+	outcomes, ok := s.ExpectedOutcomes.(map[string]interface{})
+	if !ok {
+		return fmt.Errorf("schema_validation_failed: expected_outcomes must be an object")
+	}
+	rawFindings, exists := outcomes["key_findings"]
+	if !exists {
+		return fmt.Errorf("schema_validation_failed: key_findings missing from expected_outcomes")
+	}
+	findingsCount := 0
+	if fList, ok := rawFindings.([]map[string]interface{}); ok {
+		findingsCount = len(fList)
+	} else if fSlice, ok := rawFindings.([]interface{}); ok {
+		findingsCount = len(fSlice)
+	}
+	if findingsCount == 0 {
+		return fmt.Errorf("content_validation_failed: at least 1 key finding is required")
+	}
+
+	// Validate Playbook Phases
+	playbook, ok := s.PlaybookSteps.(map[string]interface{})
+	if !ok {
+		return fmt.Errorf("schema_validation_failed: playbook_steps must be an object")
+	}
+	for _, phase := range []string{"containment", "eradication", "recovery"} {
+		if _, hasPhase := playbook[phase]; !hasPhase {
+			return fmt.Errorf("schema_validation_failed: missing playbook phase '%s'", phase)
+		}
+	}
+
+	return nil
 }
 
 // synthesizeFullScenario constructs a rich SIEM environment around the AI-generated attack core

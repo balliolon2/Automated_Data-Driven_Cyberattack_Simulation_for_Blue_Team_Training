@@ -12,6 +12,11 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-admin} -d ${POSTGRES_DB:-cyber_sim}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
     restart: unless-stopped
 
   pgadmin:
@@ -23,7 +28,8 @@ services:
     ports:
       - "5050:80"
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     restart: unless-stopped
 
   backend:
@@ -36,11 +42,13 @@ services:
     environment:
       - DATABASE_URL=host=db user=${POSTGRES_USER:-admin} password=${POSTGRES_PASSWORD:-password} dbname=${POSTGRES_DB:-cyber_sim} port=5432 sslmode=disable TimeZone=Asia/Bangkok
       - GIN_MODE=${GIN_MODE:-release}
+      - JWT_SECRET=${JWT_SECRET:-secret_jwt_key_default}
       - LLM_API_KEY=${LLM_API_KEY:-}
       - LLM_BASE_URL=${LLM_BASE_URL:-https://api.openai.com/v1}
       - LLM_MODEL=${LLM_MODEL:-gpt-4o-mini}
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     restart: unless-stopped
 
   frontend:

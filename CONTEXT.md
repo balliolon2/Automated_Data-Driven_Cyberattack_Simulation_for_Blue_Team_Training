@@ -48,3 +48,7 @@ _Avoid_: Scenario type, origin mode
 The diagnostic explanation stored when an LLM API call fails or is unconfigured, detailing why a static scenario was selected instead.
 _Avoid_: Error log, fallback status
 
+**Evaluation Result**:
+The canonical structured performance summary generated upon simulation session submission. Contains the overall score, TP/FP outcome, key findings found, response actions executed, and updated per-domain proficiency metrics.
+_Avoid_: Score sheet, grading output
+

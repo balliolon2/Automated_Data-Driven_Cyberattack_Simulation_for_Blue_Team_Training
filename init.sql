@@ -97,14 +97,42 @@ CREATE TABLE simulation_sessions (
   user_id UUID REFERENCES users(user_id),
   scenario_id UUID REFERENCES scenarios(scenario_id),
   status session_status DEFAULT 'in_progress',
+  completion_reason VARCHAR,
+  failure_class VARCHAR,
   generation_type VARCHAR DEFAULT 'static_fallback',
   fallback_reason TEXT,
+  selection_reason TEXT,
   final_score FLOAT,
   skill_gap JSONB,
+  threshold_value FLOAT DEFAULT 70.0,
+  max_scenarios INT DEFAULT 10,
+  time_limit_seconds INT DEFAULT 7200,
+  elapsed_seconds INT DEFAULT 0,
+  calculation_version VARCHAR DEFAULT 'proficiency-v1',
+  rubric_version VARCHAR DEFAULT 'rubric-v1',
+  blueprint_version VARCHAR DEFAULT 'blueprint-v1',
   started_at TIMESTAMP DEFAULT now(),
   completed_at TIMESTAMP,
   total_actions INT DEFAULT 0
 );
+
+CREATE TABLE scenario_snapshots (
+  snapshot_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  session_id UUID REFERENCES simulation_sessions(session_id),
+  scenario_id UUID REFERENCES scenarios(scenario_id),
+  scenario_data JSONB NOT NULL,
+  source_type VARCHAR NOT NULL DEFAULT 'static_fallback',
+  provider VARCHAR,
+  model VARCHAR,
+  prompt_version VARCHAR DEFAULT 'prompt-v1',
+  blueprint_version VARCHAR DEFAULT 'blueprint-v1',
+  rubric_version VARCHAR DEFAULT 'rubric-v1',
+  validation_status VARCHAR DEFAULT 'valid',
+  fallback_reason TEXT,
+  selection_reason TEXT,
+  rendered_at TIMESTAMP DEFAULT now()
+);
+CREATE INDEX idx_scenario_snapshots_session ON scenario_snapshots(session_id);
 
 CREATE TABLE session_actions (
   action_id BIGSERIAL PRIMARY KEY,

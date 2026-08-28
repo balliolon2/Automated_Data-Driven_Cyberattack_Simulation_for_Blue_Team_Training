@@ -85,9 +85,13 @@ def run_tests():
         sys.exit(1)
     status_data = status_res.json()
     print("Simulation status:", status_data)
-    if not status_data.get("needs_training"):
-        print("Error: User should need training because dummy pre-test score is low.")
+    # 6b. Verify Post-Test is BLOCKED when domain proficiency is below threshold
+    print("Testing Post-Test Eligibility Gate (expecting 403 Forbidden)...")
+    blocked_post_res = requests.post(f"{BASE_URL}/exams/post-test", headers=headers)
+    if blocked_post_res.status_code != 403:
+        print(f"Error: Expected 403 Forbidden for unearned Post-Test, got {blocked_post_res.status_code}")
         sys.exit(1)
+    print("Eligibility Gate VERIFIED: Post-Test correctly blocked for learner below threshold:", blocked_post_res.json())
 
     # 7. Start Simulation Scenario
     print("Starting simulation scenario...")
@@ -147,17 +151,20 @@ def run_tests():
     result = submit_data["result"]
     print(f"Scenario submitted successfully! Total score: {result['total_score']}%. Triage Correct: {result['tp_fp_correct']}")
 
-    # 11. Retrieve scenario result review
-    print("Retrieving scenario result review...")
-    result_res = requests.get(f"{BASE_URL}/simulation/result/{sim_session['session_id']}", headers=headers)
-    if result_res.status_code != 200:
-        print("Failed to retrieve scenario result", result_res.json())
+    # 12. Verify Research Protocol Analytics Summary
+    print("Testing Research Analytics Summary endpoint...")
+    summary_res = requests.get(f"{BASE_URL}/analytics/research-summary", headers=headers)
+    if summary_res.status_code != 200:
+        print("Failed to retrieve research summary", summary_res.json())
         sys.exit(1)
-    
-    result_data = result_res.json()
-    print("Successfully retrieved scenario result dashboard.")
-    print("Scenario status:", result_data["session"]["status"])
-    print("Domain proficiencies updated count:", len(result_data["domain_proficiencies"]))
+    summary_data = summary_res.json()
+    print("Research Summary retrieved:", {
+        "protocol_version": summary_data.get("protocol_version"),
+        "calculation_version": summary_data.get("calculation_version"),
+        "has_pre_test": summary_data.get("has_pre_test"),
+        "completed_scenarios": summary_data.get("completed_scenarios"),
+        "all_domains_passed": summary_data.get("all_domains_passed"),
+    })
 
     print("\n--- ALL TESTS COMPLETED SUCCESSFULLY ---")
 

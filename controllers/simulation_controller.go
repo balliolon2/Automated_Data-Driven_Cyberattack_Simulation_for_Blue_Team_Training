@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"math"
@@ -34,7 +35,7 @@ type SimulationController struct {
 
 func NewSimulationController(db *gorm.DB) *SimulationController {
 	if db != nil {
-		_ = db.AutoMigrate(&models.SimulationSession{})
+		_ = db.AutoMigrate(&models.SimulationSession{}, &models.ScenarioSnapshot{})
 	}
 	return &SimulationController{DB: db}
 }
@@ -74,13 +75,7 @@ type LogQueryInput struct {
 	Query     string `json:"query" binding:"required"`
 }
 
-type SubmitScenarioInput struct {
-	SessionID        string   `json:"session_id" binding:"required"`
-	IsTruePositive   bool     `json:"is_true_positive"`
-	TPFPSelected     bool     `json:"tp_fp_selected" binding:"required"`
-	SelectedActions  []string `json:"selected_actions" binding:"required"`
-	DiscoveredFindings []string `json:"discovered_findings"`
-}
+type SubmitScenarioInput = models.SubmitScenarioInput
 
 // --- Domain name helper ---
 
@@ -194,6 +189,7 @@ func (sc *SimulationController) StartScenario(c *gin.Context) {
 			"message":     "Maximum scenario limit reached",
 			"completed":   true,
 			"cap_reached": true,
+			"status":      "max_scenarios_reached",
 		})
 		return
 	}
@@ -210,6 +206,7 @@ func (sc *SimulationController) StartScenario(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
 			"message":   "All domains meet the proficiency threshold",
 			"completed": true,
+			"status":    "eligible_for_post_test",
 		})
 		return
 	}
@@ -227,11 +224,11 @@ func (sc *SimulationController) StartScenario(c *gin.Context) {
 	var scenario models.Scenario
 	generationType := "static_fallback"
 	fallbackReason := ""
+	selectionReason := fmt.Sprintf("lowest_proficiency: %s (score: %.1f%%, threshold: %.1f%%)", weakestDomain, weakestScore, ProficiencyThreshold)
 
 	// Attempt AI Dynamic Scenario Generation if LLM_API_KEY is configured
 	if os.Getenv("LLM_API_KEY") != "" {
 		domainName := domainNames[weakestDomain]
-		// Use Background context with 120s timeout so connection cancels don't abort generation
 		ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
 		defer cancel()
 
@@ -283,6 +280,7 @@ func (sc *SimulationController) StartScenario(c *gin.Context) {
 					Order("RANDOM()").
 					First(&scenario).Error
 				if err == nil {
+					selectionReason = fmt.Sprintf("fallback_weak_domain: %s (score: %.1f%%)", p.DomainID, p.ProficiencyScore)
 					break
 				}
 			}
@@ -293,6 +291,9 @@ func (sc *SimulationController) StartScenario(c *gin.Context) {
 			err = sc.DB.Where("status = 'active' AND scenario_id NOT IN (?)", completedSubquery).
 				Order("RANDOM()").
 				First(&scenario).Error
+			if err == nil {
+				selectionReason = "fallback_any_active_scenario"
+			}
 		}
 	}
 
@@ -304,6 +305,7 @@ func (sc *SimulationController) StartScenario(c *gin.Context) {
 			scenario = *fallbackScenario
 			generationType = "ai_generated"
 			fallbackReason = "Synthesized adaptive AI scenario (LLM API offline / static pool exhausted)"
+			selectionReason = fmt.Sprintf("synthesized_fallback: %s", weakestDomain)
 			log.Printf("[LLM Synthesis Guarantee] Created dynamic AI scenario: %s (ID: %s)", scenario.Title, scenario.ScenarioID)
 			err = nil
 		}
@@ -316,31 +318,69 @@ func (sc *SimulationController) StartScenario(c *gin.Context) {
 				"message":        "All required scenarios completed",
 				"completed":      true,
 				"pool_exhausted": true,
+				"status":         "eligible_for_post_test",
 			})
 		} else {
 			c.JSON(http.StatusOK, gin.H{
 				"error":          "Failed to load scenario. Please retry.",
 				"completed":      false,
 				"pool_exhausted": true,
+				"status":         "scenario_unavailable",
+				"failure_class":  "system_failure",
 			})
 		}
 		return
 	}
 
-	// Create simulation session
+	// Create simulation session with full audit fields
 	session := models.SimulationSession{
-		UserID:         userID.(string),
-		ScenarioID:     scenario.ScenarioID,
-		Status:         "in_progress",
-		GenerationType: generationType,
-		FallbackReason: fallbackReason,
-		StartedAt:      time.Now(),
+		UserID:             userID.(string),
+		ScenarioID:         scenario.ScenarioID,
+		Status:             "in_progress",
+		GenerationType:     generationType,
+		FallbackReason:     fallbackReason,
+		SelectionReason:    selectionReason,
+		ThresholdValue:     ProficiencyThreshold,
+		MaxScenarios:       MaxScenarios,
+		TimeLimitSeconds:   7200,
+		CalculationVersion: services.CalculationVersion,
+		RubricVersion:      services.RubricVersion,
+		BlueprintVersion:   "blueprint-v1",
+		StartedAt:          time.Now(),
 	}
 
 	if err := sc.DB.Create(&session).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create simulation session"})
 		return
 	}
+
+	// Create Immutable Scenario Snapshot
+	provider := "internal"
+	modelName := "static"
+	if generationType == "ai_generated" {
+		provider = "openai-compatible"
+		modelName = os.Getenv("LLM_MODEL")
+		if modelName == "" {
+			modelName = "gpt-4o-mini"
+		}
+	}
+
+	snapshot := models.ScenarioSnapshot{
+		SessionID:        session.SessionID,
+		ScenarioID:       scenario.ScenarioID,
+		ScenarioData:     scenario,
+		SourceType:       generationType,
+		Provider:         provider,
+		Model:            modelName,
+		PromptVersion:    "prompt-v1",
+		BlueprintVersion: "blueprint-v1",
+		RubricVersion:    services.RubricVersion,
+		ValidationStatus: "valid",
+		FallbackReason:   fallbackReason,
+		SelectionReason:  selectionReason,
+		RenderedAt:       time.Now(),
+	}
+	_ = sc.DB.Create(&snapshot)
 
 	c.JSON(http.StatusCreated, gin.H{
 		"session":  session,
@@ -468,8 +508,8 @@ func (sc *SimulationController) SubmitScenario(c *gin.Context) {
 		return
 	}
 
-	// Score the submission
-	result := scoreSubmission(scenario, input)
+	// Score the submission using the deep evaluator module
+	result := services.ScoreSubmission(scenario, input)
 
 	tx := sc.DB.Begin()
 
@@ -520,21 +560,20 @@ func (sc *SimulationController) SubmitScenario(c *gin.Context) {
 	}
 	tx.Create(&findingsAction)
 
-	// Update simulation session
+	// Update simulation session with complete evaluation result snapshot
 	now := time.Now()
 	session.Status = "completed"
+	session.FailureClass = "learner_progress"
+	session.CalculationVersion = services.CalculationVersion
+	session.RubricVersion = services.RubricVersion
 	session.FinalScore = &result.TotalScore
 	session.CompletedAt = &now
-	session.SkillGap = result.DomainScores
+	session.SkillGap = result
 	session.TotalActions = maxStep + 3
-
-	if err := tx.Save(&session).Error; err != nil {
-		tx.Rollback()
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update session"})
-		return
-	}
+	session.ElapsedSeconds = int(time.Since(session.StartedAt).Seconds())
 
 	// Update user_skill_profiles with weighted average
+	allDomainsAboveThreshold := true
 	for domainID, newScore := range result.DomainScoreMap {
 		var profile models.UserSkillProfile
 		err := tx.Where("user_id = ? AND domain_id = ?", userID, domainID).First(&profile).Error
@@ -549,21 +588,57 @@ func (sc *SimulationController) SubmitScenario(c *gin.Context) {
 			now := time.Now()
 			profile.LastPracticed = &now
 			tx.Create(&profile)
+			if newScore < ProficiencyThreshold {
+				allDomainsAboveThreshold = false
+			}
 		} else {
-			// Weighted average update
-			profile.ProficiencyScore = WeightOld*profile.ProficiencyScore + WeightNew*newScore
-			profile.ProficiencyScore = math.Round(profile.ProficiencyScore*100) / 100
+			// Weighted average update using Evaluator calculation
+			profile.ProficiencyScore = services.CalculateUpdatedProficiency(profile.ProficiencyScore, newScore)
 			profile.ScenariosCompleted++
 			now := time.Now()
 			profile.LastPracticed = &now
 			tx.Save(&profile)
+			if profile.ProficiencyScore < ProficiencyThreshold {
+				allDomainsAboveThreshold = false
+			}
 		}
+	}
+
+	// Check total profiles count across all 5 domains
+	var totalProfilesCount int64
+	tx.Model(&models.UserSkillProfile{}).Where("user_id = ?", userID).Count(&totalProfilesCount)
+	if totalProfilesCount < 5 {
+		allDomainsAboveThreshold = false
+	}
+
+	// Determine completion reason based on stopping rules
+	var totalCompletedCount int64
+	tx.Model(&models.SimulationSession{}).Where("user_id = ? AND status = 'completed'", userID).Count(&totalCompletedCount)
+	// Add current session (which is about to be saved as completed)
+	totalCompletedCount++
+
+	if allDomainsAboveThreshold {
+		session.CompletionReason = "all_domains_passed"
+	} else if int(totalCompletedCount) >= MaxScenarios {
+		session.CompletionReason = "max_scenarios_reached"
+	} else if session.ElapsedSeconds >= session.TimeLimitSeconds {
+		session.CompletionReason = "time_limit_reached"
+	} else {
+		session.CompletionReason = "learner_completed"
+	}
+
+	if err := tx.Save(&session).Error; err != nil {
+		tx.Rollback()
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update session"})
+		return
 	}
 
 	tx.Commit()
 
 	c.JSON(http.StatusOK, gin.H{
-		"result": result,
+		"result":            result,
+		"completion_reason": session.CompletionReason,
+		"eligible":          allDomainsAboveThreshold,
 	})
 }
 
@@ -596,6 +671,20 @@ func (sc *SimulationController) GetResult(c *gin.Context) {
 	var actions []models.SessionAction
 	sc.DB.Where("session_id = ?", sessionID).Order("step_order asc").Find(&actions)
 
+	// Retrieve or reconstruct evaluation result
+	var evalResult models.ScenarioResult
+	if session.SkillGap != nil {
+		gapBytes, err := json.Marshal(session.SkillGap)
+		if err == nil {
+			_ = json.Unmarshal(gapBytes, &evalResult)
+		}
+	}
+
+	// Fallback for legacy sessions if evalResult was not populated
+	if evalResult.TotalScore == 0 && len(evalResult.FindingsDetail) == 0 && len(evalResult.ResponseDetail) == 0 {
+		evalResult = services.ReconstructFromActions(scenario, actions)
+	}
+
 	// Get current proficiency scores
 	var profiles []models.UserSkillProfile
 	sc.DB.Where("user_id = ?", userID).Find(&profiles)
@@ -615,218 +704,9 @@ func (sc *SimulationController) GetResult(c *gin.Context) {
 		"session":              session,
 		"scenario":             scenario,
 		"actions":              actions,
+		"result":               evalResult,
 		"domain_proficiencies": domainProficiencies,
 	})
-}
-
-// --- Scoring logic ---
-
-type ScenarioResult struct {
-	TotalScore      float64                `json:"total_score"`
-	TPFPCorrect     bool                   `json:"tp_fp_correct"`
-	TPFPPoints      float64                `json:"tp_fp_points"`
-	FindingsPoints  float64                `json:"findings_points"`
-	ResponsePoints  float64                `json:"response_points"`
-	DomainScores    map[string]interface{} `json:"domain_scores"`
-	DomainScoreMap  map[string]float64     `json:"-"` // internal use for proficiency update
-	FindingsDetail  []FindingResult        `json:"findings_detail"`
-	ResponseDetail  []ResponseActionResult `json:"response_detail"`
-	TPFPExplanation string                 `json:"tp_fp_explanation"`
-}
-
-type FindingResult struct {
-	ID          string `json:"id"`
-	Description string `json:"description"`
-	DomainID    string `json:"domain_id"`
-	Found       bool   `json:"found"`
-	Points      int    `json:"points"`
-	Explanation string `json:"explanation"`
-}
-
-type ResponseActionResult struct {
-	ID          string `json:"id"`
-	Label       string `json:"label"`
-	Phase       string `json:"phase"`
-	DomainID    string `json:"domain_id"`
-	Selected    bool   `json:"selected"`
-	IsCorrect   bool   `json:"is_correct"`
-	Points      int    `json:"points"`
-	Earned      int    `json:"earned"`
-	Explanation string `json:"explanation"`
-}
-
-func scoreSubmission(scenario models.Scenario, input SubmitScenarioInput) ScenarioResult {
-	result := ScenarioResult{
-		DomainScores:   make(map[string]interface{}),
-		DomainScoreMap: make(map[string]float64),
-	}
-
-	// Track raw points per domain
-	domainEarned := make(map[string]float64)
-	domainMaxPoints := make(map[string]float64)
-
-	// --- 1. Score TP/FP Decision ---
-	result.TPFPCorrect = input.IsTruePositive == scenario.IsTruePositive
-	result.TPFPExplanation = scenario.TpFpExplanation
-	tpfpMaxPoints := 20.0
-	if result.TPFPCorrect {
-		result.TPFPPoints = tpfpMaxPoints
-		domainEarned[scenario.DomainID] += tpfpMaxPoints
-	}
-	domainMaxPoints[scenario.DomainID] += tpfpMaxPoints
-
-	// --- 2. Score Key Findings ---
-	expectedOutcomes, ok := scenario.ExpectedOutcomes.(map[string]interface{})
-	if ok {
-		keyFindings, ok := expectedOutcomes["key_findings"].([]interface{})
-		if ok {
-			discoveredSet := make(map[string]bool)
-			for _, fID := range input.DiscoveredFindings {
-				discoveredSet[fID] = true
-			}
-
-			for _, kf := range keyFindings {
-				finding, ok := kf.(map[string]interface{})
-				if !ok {
-					continue
-				}
-
-				fID, _ := finding["id"].(string)
-				fDesc, _ := finding["description"].(string)
-				fDomain, _ := finding["domain_id"].(string)
-				fPoints := toFloat64(finding["points"])
-				fExplanation, _ := finding["explanation"].(string)
-
-				found := discoveredSet[fID]
-
-				fr := FindingResult{
-					ID:          fID,
-					Description: fDesc,
-					DomainID:    fDomain,
-					Found:       found,
-					Points:      int(fPoints),
-					Explanation: fExplanation,
-				}
-
-				if found {
-					result.FindingsPoints += fPoints
-					domainEarned[fDomain] += fPoints
-				}
-				domainMaxPoints[fDomain] += fPoints
-				result.FindingsDetail = append(result.FindingsDetail, fr)
-			}
-		}
-	}
-
-	// --- 3. Score Response Actions ---
-	playbookSteps, ok := scenario.PlaybookSteps.(map[string]interface{})
-	if ok {
-		selectedSet := make(map[string]bool)
-		for _, aID := range input.SelectedActions {
-			selectedSet[aID] = true
-		}
-
-		phases := []string{"containment", "eradication", "recovery"}
-		for _, phase := range phases {
-			actions, ok := playbookSteps[phase].([]interface{})
-			if !ok {
-				continue
-			}
-
-			for _, a := range actions {
-				action, ok := a.(map[string]interface{})
-				if !ok {
-					continue
-				}
-
-				aID, _ := action["id"].(string)
-				aLabel, _ := action["label"].(string)
-				aCorrect, _ := action["is_correct"].(bool)
-				aDomain, _ := action["domain_id"].(string)
-				aPoints := toFloat64(action["points"])
-				aExplanation, _ := action["explanation"].(string)
-
-				selected := selectedSet[aID]
-
-				earned := 0
-				if selected {
-					earned = int(aPoints) // positive if correct, negative if incorrect
-					result.ResponsePoints += aPoints
-					domainEarned[aDomain] += aPoints
-				}
-
-				// For max points calculation, only count positive points
-				if aPoints > 0 {
-					domainMaxPoints[aDomain] += aPoints
-				}
-
-				result.ResponseDetail = append(result.ResponseDetail, ResponseActionResult{
-					ID:          aID,
-					Label:       aLabel,
-					Phase:       phase,
-					DomainID:    aDomain,
-					Selected:    selected,
-					IsCorrect:   aCorrect,
-					Points:      int(aPoints),
-					Earned:      earned,
-					Explanation: aExplanation,
-				})
-			}
-		}
-	}
-
-	// --- Calculate per-domain percentage scores ---
-	for domainID, maxPts := range domainMaxPoints {
-		if maxPts <= 0 {
-			continue
-		}
-		earned := domainEarned[domainID]
-		if earned < 0 {
-			earned = 0 // Floor at 0
-		}
-		pct := math.Round((earned/maxPts)*100*100) / 100
-		if pct > 100 {
-			pct = 100
-		}
-		result.DomainScoreMap[domainID] = pct
-		result.DomainScores[domainID] = map[string]interface{}{
-			"earned":     earned,
-			"max_points": maxPts,
-			"percentage": pct,
-		}
-	}
-
-	// --- Calculate total weighted score ---
-	totalMax := 0.0
-	totalEarned := 0.0
-	for _, maxPts := range domainMaxPoints {
-		totalMax += maxPts
-	}
-	for _, earned := range domainEarned {
-		totalEarned += earned
-	}
-	if totalEarned < 0 {
-		totalEarned = 0
-	}
-	if totalMax > 0 {
-		result.TotalScore = math.Round((totalEarned/totalMax)*100*100) / 100
-	}
-
-	return result
-}
-
-// Helper to convert interface{} to float64
-func toFloat64(v interface{}) float64 {
-	switch val := v.(type) {
-	case float64:
-		return val
-	case int:
-		return float64(val)
-	case int64:
-		return float64(val)
-	default:
-		return 0
-	}
 }
 
 // sanitizeScenario removes answer data before sending to the frontend
@@ -907,4 +787,78 @@ func sanitizePlaybookSteps(steps any) any {
 	}
 
 	return sanitized
+}
+
+// GET /api/analytics/research-summary
+func (sc *SimulationController) GetResearchSummary(c *gin.Context) {
+	userID, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	// 1. Get Pre-test details
+	var preExam models.ExamSession
+	hasPre := sc.DB.Where("user_id = ? AND exam_type = 'pre' AND status = 'completed'", userID).
+		Order("completed_at DESC").
+		First(&preExam).Error == nil
+
+	// 2. Get Post-test details
+	var postExam models.ExamSession
+	hasPost := sc.DB.Where("user_id = ? AND exam_type = 'post' AND status = 'completed'", userID).
+		Order("completed_at DESC").
+		First(&postExam).Error == nil
+
+	// 3. Get User Skill Profiles
+	var profiles []models.UserSkillProfile
+	sc.DB.Where("user_id = ?", userID).Find(&profiles)
+
+	allPassed := len(profiles) >= 5
+	avgProficiency := 0.0
+	for _, p := range profiles {
+		avgProficiency += p.ProficiencyScore
+		if p.ProficiencyScore < ProficiencyThreshold {
+			allPassed = false
+		}
+	}
+	if len(profiles) > 0 {
+		avgProficiency = math.Round((avgProficiency/float64(len(profiles)))*100) / 100
+	}
+
+	// 4. Get simulation sessions count & total actions
+	var completedSessions []models.SimulationSession
+	sc.DB.Where("user_id = ? AND status = 'completed'", userID).Find(&completedSessions)
+
+	totalActions := 0
+	totalSimElapsed := 0
+	for _, s := range completedSessions {
+		totalActions += s.TotalActions
+		totalSimElapsed += s.ElapsedSeconds
+	}
+
+	var scoreImprovement *float64
+	if hasPre && hasPost && preExam.Score != nil && postExam.Score != nil {
+		diff := math.Round((*postExam.Score-*preExam.Score)*100) / 100
+		scoreImprovement = &diff
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"protocol_version":    "protocol-v1",
+		"calculation_version": services.CalculationVersion,
+		"rubric_version":       services.RubricVersion,
+		"participant_id":      userID,
+		"has_pre_test":        hasPre,
+		"pre_test_score":      preExam.Score,
+		"has_post_test":       hasPost,
+		"post_test_score":     postExam.Score,
+		"improvement_score":   scoreImprovement,
+		"all_domains_passed":  allPassed,
+		"eligible_for_post":   allPassed && len(completedSessions) >= MinScenarios,
+		"completed_scenarios": len(completedSessions),
+		"max_scenarios":       MaxScenarios,
+		"total_actions":       totalActions,
+		"total_elapsed_sec":   totalSimElapsed,
+		"average_proficiency": avgProficiency,
+		"domain_profiles":     profiles,
+	})
 }

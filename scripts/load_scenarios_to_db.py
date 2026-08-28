@@ -20,34 +20,61 @@ def load_scenarios_to_db(json_file_path, db_connection_string):
         print("Database migration check completed (added scenarios columns if missing).")
         
         inserted_count = 0
+        updated_count = 0
         
-        # Clear existing scenarios and dependent sessions to prevent duplicates on re-run
-        cursor.execute("DELETE FROM session_actions WHERE session_id IN (SELECT session_id FROM simulation_sessions)")
-        cursor.execute("DELETE FROM simulation_sessions")
-        cursor.execute("DELETE FROM scenarios")
-        conn.commit()
-        
+        # Safe idempotent upsert: do NOT delete user sessions or scenarios
         for s in scenarios:
             cursor.execute("""
-                INSERT INTO scenarios 
-                (title, description, domain_id, difficulty, initial_logs, playbook_steps, expected_outcomes, is_true_positive, tp_fp_explanation, status) 
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-            """, (
-                s['title'],
-                s['description'],
-                s['domain_id'],
-                s['difficulty'],
-                json.dumps(s['initial_logs']),
-                json.dumps(s['playbook_steps']),
-                json.dumps(s['expected_outcomes']),
-                s['is_true_positive'],
-                s['tp_fp_explanation'],
-                s.get('status', 'active')
-            ))
-            inserted_count += 1
+                SELECT scenario_id FROM scenarios WHERE title = %s AND domain_id = %s
+            """, (s['title'], s['domain_id']))
+            existing = cursor.fetchone()
+            
+            if existing:
+                cursor.execute("""
+                    UPDATE scenarios SET
+                        description = %s,
+                        difficulty = %s,
+                        initial_logs = %s,
+                        playbook_steps = %s,
+                        expected_outcomes = %s,
+                        is_true_positive = %s,
+                        tp_fp_explanation = %s,
+                        status = %s,
+                        updated_at = NOW()
+                    WHERE scenario_id = %s
+                """, (
+                    s['description'],
+                    s['difficulty'],
+                    json.dumps(s['initial_logs']),
+                    json.dumps(s['playbook_steps']),
+                    json.dumps(s['expected_outcomes']),
+                    s['is_true_positive'],
+                    s['tp_fp_explanation'],
+                    s.get('status', 'active'),
+                    existing[0]
+                ))
+                updated_count += 1
+            else:
+                cursor.execute("""
+                    INSERT INTO scenarios 
+                    (title, description, domain_id, difficulty, initial_logs, playbook_steps, expected_outcomes, is_true_positive, tp_fp_explanation, status) 
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                """, (
+                    s['title'],
+                    s['description'],
+                    s['domain_id'],
+                    s['difficulty'],
+                    json.dumps(s['initial_logs']),
+                    json.dumps(s['playbook_steps']),
+                    json.dumps(s['expected_outcomes']),
+                    s['is_true_positive'],
+                    s['tp_fp_explanation'],
+                    s.get('status', 'active')
+                ))
+                inserted_count += 1
             
         conn.commit()
-        print(f"Successfully inserted {inserted_count} scenarios into the database.")
+        print(f"Safe seed completed: {inserted_count} inserted, {updated_count} updated. No session data modified.")
     except Exception as e:
         conn.rollback()
         print(f"Database insertion failed: {e}")

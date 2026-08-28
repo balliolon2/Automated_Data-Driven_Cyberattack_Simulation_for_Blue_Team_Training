@@ -28,26 +28,52 @@ def load_json_to_db(json_file_path, db_connection_string):
         print("Successfully seeded security domains.")
 
         inserted_count = 0
+        updated_count = 0
+        skipped_count = 0
+
         for q in questions:
-            # Assuming your schema allows omitting question_id to auto-generate UUID
-            # and that 'domain_id' matches the existing security_domains
             cursor.execute("""
-                INSERT INTO questions 
-                (domain_id, type, question_text, options, correct_answer, explanation, difficulty) 
-                VALUES (%s, %s, %s, %s, %s, %s, %s)
-            """, (
-                q['domain_id'],
-                q['type'],
-                q['question_text'],
-                json.dumps(q['options']),
-                q['correct_answer'],
-                q['explanation'],
-                q['difficulty']
-            ))
-            inserted_count += 1
+                SELECT question_id FROM questions WHERE domain_id = %s AND question_text = %s
+            """, (q['domain_id'], q['question_text']))
+            existing = cursor.fetchone()
+
+            if existing:
+                cursor.execute("""
+                    UPDATE questions SET
+                        type = %s,
+                        options = %s,
+                        correct_answer = %s,
+                        explanation = %s,
+                        difficulty = %s,
+                        is_active = true
+                    WHERE question_id = %s
+                """, (
+                    q['type'],
+                    json.dumps(q['options']),
+                    q['correct_answer'],
+                    q['explanation'],
+                    q['difficulty'],
+                    existing[0]
+                ))
+                updated_count += 1
+            else:
+                cursor.execute("""
+                    INSERT INTO questions 
+                    (domain_id, type, question_text, options, correct_answer, explanation, difficulty) 
+                    VALUES (%s, %s, %s, %s, %s, %s, %s)
+                """, (
+                    q['domain_id'],
+                    q['type'],
+                    q['question_text'],
+                    json.dumps(q['options']),
+                    q['correct_answer'],
+                    q['explanation'],
+                    q['difficulty']
+                ))
+                inserted_count += 1
             
         conn.commit()
-        print(f"Successfully inserted {inserted_count} questions into the database.")
+        print(f"Safe question seed completed: {inserted_count} inserted, {updated_count} updated, {skipped_count} skipped.")
     except Exception as e:
         conn.rollback()
         print(f"Database insertion failed: {e}")

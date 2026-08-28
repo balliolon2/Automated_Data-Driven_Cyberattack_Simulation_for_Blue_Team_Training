@@ -69,6 +69,12 @@ func main() {
 			simulation.POST("/submit", simController.SubmitScenario)
 			simulation.GET("/result/:sessionId", simController.GetResult)
 		}
+
+		// Protected analytics / research routes
+		analytics := api.Group("/analytics", middlewares.AuthMiddleware())
+		{
+			analytics.GET("/research-summary", simController.GetResearchSummary)
+		}
 	}
 
 	log.Println("Server starting on :8080")
