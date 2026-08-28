@@ -135,3 +135,20 @@ When querying questions for a `post` test, you must query all questions previous
    - Backend: Run `go build -o /dev/null main.go` to verify compilation.
    - Frontend: Verify TypeScript types inside `/frontend` (e.g., `npm run tsc` or `vite build`).
 4. **Run Ingestion and Verification scripts** to prove your code didn't break core features before resolving tasks.
+
+---
+
+## Agent skills
+
+### Issue tracker
+
+GitHub issues (`balliolon2/Automated_Data-Driven_Cyberattack_Simulation_for_Blue_Team_Training`). See [issue-tracker.md](file:///c:/Users/bond/Documents/Automated_Data-Driven_Cyberattack_Simulation_for_Blue_Team_Training/docs/agents/issue-tracker.md).
+
+### Triage labels
+
+Canonical roles mapped 1:1. See [triage-labels.md](file:///c:/Users/bond/Documents/Automated_Data-Driven_Cyberattack_Simulation_for_Blue_Team_Training/docs/agents/triage-labels.md).
+
+### Domain docs
+
+Single-context repo (`CONTEXT.md` + `docs/adr/` at root). See [domain.md](file:///c:/Users/bond/Documents/Automated_Data-Driven_Cyberattack_Simulation_for_Blue_Team_Training/docs/agents/domain.md).
+
