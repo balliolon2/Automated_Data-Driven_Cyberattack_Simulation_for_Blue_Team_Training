@@ -268,8 +268,6 @@ export default function ScenarioLoadingState() {
         {/* Minimalist System Footer */}
         <div className="px-6 py-3 bg-graphite-900/60 border-t border-graphite-800 flex flex-wrap items-center justify-between text-[11px] font-mono text-graphite-400 gap-4">
           <div className="flex items-center gap-4">
-            <span>MODEL: <strong className="text-slate-300">GPT-4o-THREAT-ENGINE</strong></span>
-            <span className="text-graphite-700">|</span>
             <span>STANDARD: <strong className="text-slate-300">COMPTIA SEC+ 701</strong></span>
           </div>
           <div className="flex items-center gap-2">
