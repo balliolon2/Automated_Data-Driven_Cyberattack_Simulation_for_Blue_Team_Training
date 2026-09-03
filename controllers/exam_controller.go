@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"time"
 
+	"cybersim/dto"
 	"cybersim/models"
 
 	"github.com/gin-gonic/gin"
@@ -19,15 +20,7 @@ func NewExamController(db *gorm.DB) *ExamController {
 	return &ExamController{DB: db}
 }
 
-type QuestionResponse struct {
-	QuestionID   string `json:"question_id"`
-	DomainID     string `json:"domain_id"`
-	Type         string `json:"type"`
-	QuestionText string `json:"question_text"`
-	Options      any    `json:"options"`
-	OrderIndex   int    `json:"order_index"`
-	UserAnswer   string `json:"user_answer,omitempty"`
-}
+type QuestionResponse = dto.QuestionDTO
 
 // Helper to load questions for a session
 func (ec *ExamController) getSessionQuestions(sessionID string) ([]QuestionResponse, error) {
@@ -63,7 +56,18 @@ func (ec *ExamController) getSessionQuestions(sessionID string) ([]QuestionRespo
 	return resp, nil
 }
 
-// POST /api/exams/pre-test
+// StartPreTest godoc
+// @Summary Start or resume pre-test exam session
+// @Description Initializes a 30-question Pre-Test with required domain distribution (4/7/5/8/6). If an in-progress pre-test already exists, returns the existing session.
+// @Tags Exams
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Success 201 {object} dto.ExamSessionResponse
+// @Failure 400 {object} dto.ErrorResponse
+// @Failure 401 {object} dto.ErrorResponse
+// @Failure 500 {object} dto.ErrorResponse
+// @Router /exams/pre-test [post]
 func (ec *ExamController) StartPreTest(c *gin.Context) {
 	userID, exists := c.Get("user_id")
 	if !exists {
@@ -155,7 +159,19 @@ func (ec *ExamController) StartPreTest(c *gin.Context) {
 	})
 }
 
-// POST /api/exams/post-test
+// StartPostTest godoc
+// @Summary Start post-test exam session
+// @Description Initializes a 30-question Post-Test with zero overlap from the Pre-Test questions.
+// @Tags Exams
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Success 201 {object} dto.ExamSessionResponse
+// @Failure 400 {object} dto.ErrorResponse
+// @Failure 401 {object} dto.ErrorResponse
+// @Failure 403 {object} dto.ErrorResponse
+// @Failure 500 {object} dto.ErrorResponse
+// @Router /exams/post-test [post]
 func (ec *ExamController) StartPostTest(c *gin.Context) {
 	userID, exists := c.Get("user_id")
 	if !exists {
@@ -288,7 +304,18 @@ func (ec *ExamController) StartPostTest(c *gin.Context) {
 	})
 }
 
-// GET /api/exams/session
+// GetActiveSession godoc
+// @Summary Get active exam session
+// @Description Recovers the active exam session and questions for the authenticated learner.
+// @Tags Exams
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {object} dto.ExamSessionResponse
+// @Failure 401 {object} dto.ErrorResponse
+// @Failure 404 {object} dto.ErrorResponse
+// @Failure 500 {object} dto.ErrorResponse
+// @Router /exams/session [get]
 func (ec *ExamController) GetActiveSession(c *gin.Context) {
 	userID, exists := c.Get("user_id")
 	if !exists {
@@ -315,14 +342,23 @@ func (ec *ExamController) GetActiveSession(c *gin.Context) {
 	})
 }
 
-type SubmitAnswerInput struct {
-	SessionID        string `json:"session_id" binding:"required"`
-	QuestionID       string `json:"question_id" binding:"required"`
-	UserAnswer       string `json:"user_answer" binding:"required"`
-	TimeSpentSeconds int    `json:"time_spent_seconds"`
-}
+type SubmitAnswerInput = dto.SubmitAnswerRequest
 
-// POST /api/exams/submit-answer
+// SubmitAnswer godoc
+// @Summary Submit an exam answer
+// @Description Commits an answer for an exam question and returns progression or final score results.
+// @Tags Exams
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param request body dto.SubmitAnswerRequest true "Exam Answer Submission"
+// @Success 200 {object} dto.SubmitAnswerResponse
+// @Failure 400 {object} dto.ErrorResponse
+// @Failure 401 {object} dto.ErrorResponse
+// @Failure 403 {object} dto.ErrorResponse
+// @Failure 404 {object} dto.ErrorResponse
+// @Failure 500 {object} dto.ErrorResponse
+// @Router /exams/submit-answer [post]
 func (ec *ExamController) SubmitAnswer(c *gin.Context) {
 	userID, exists := c.Get("user_id")
 	if !exists {
@@ -536,7 +572,15 @@ func (ec *ExamController) SubmitAnswer(c *gin.Context) {
 	c.JSON(http.StatusOK, responseData)
 }
 
-// GET /api/exams/sample
+// GetSampleQuestion godoc
+// @Summary Get a sample exam question
+// @Description Retrieves a random question from the database question pool for preview.
+// @Tags Exams
+// @Accept json
+// @Produce json
+// @Success 200 {object} dto.QuestionDTO
+// @Failure 500 {object} dto.ErrorResponse
+// @Router /exams/sample [get]
 func (ec *ExamController) GetSampleQuestion(c *gin.Context) {
 	var question models.Question
 	err := ec.DB.Order("RANDOM()").First(&question).Error

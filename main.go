@@ -1,15 +1,36 @@
 package main
 
+// @title SOC Trainer REST API
+// @version 1.0
+// @description Automated Data-Driven Cyberattack Simulation for Blue Team Training platform REST API.
+// @termsOfService https://github.com/balliolon2/Automated_Data-Driven_Cyberattack_Simulation_for_Blue_Team_Training
+
+// @contact.name SOC Trainer Development Team
+// @license.name MIT
+
+// @host localhost:8080
+// @BasePath /api
+
+// @securityDefinitions.apikey BearerAuth
+// @in header
+// @name Authorization
+// @description Type "Bearer" followed by a space and JWT token. Example: "Bearer eyJhbGciOi..."
+
+//go:generate swag init -g main.go --parseDependency --parseInternal
+
 import (
 	"log"
 	"os"
 
 	"cybersim/controllers"
+	_ "cybersim/docs"
 	"cybersim/middlewares"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	_ "github.com/pgvector/pgvector-go"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
@@ -74,6 +95,12 @@ func main() {
 		analytics := api.Group("/analytics", middlewares.AuthMiddleware())
 		{
 			analytics.GET("/research-summary", simController.GetResearchSummary)
+		}
+
+		// Swagger Documentation
+		if os.Getenv("ENABLE_SWAGGER") != "false" {
+			api.GET("/docs/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+			log.Println("Swagger documentation enabled at /api/docs/index.html")
 		}
 	}
 

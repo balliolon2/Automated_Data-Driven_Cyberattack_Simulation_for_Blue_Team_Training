@@ -5,6 +5,7 @@ import (
 	"os"
 	"time"
 
+	"cybersim/dto"
 	"cybersim/models"
 
 	"github.com/gin-gonic/gin"
@@ -31,11 +32,19 @@ func NewAuthController(db *gorm.DB) *AuthController {
 	return &AuthController{DB: db}
 }
 
-type RegisterInput struct {
-	Email    string `json:"email" binding:"required,email"`
-	Password string `json:"password" binding:"required,min=6"`
-}
+type RegisterInput = dto.RegisterRequest
 
+// Register godoc
+// @Summary Register a new learner
+// @Description Creates a new learner account with email and password
+// @Tags Auth
+// @Accept json
+// @Produce json
+// @Param request body dto.RegisterRequest true "User Registration Info"
+// @Success 201 {object} dto.MessageResponse
+// @Failure 400 {object} dto.ErrorResponse
+// @Failure 500 {object} dto.ErrorResponse
+// @Router /register [post]
 func (ac *AuthController) Register(c *gin.Context) {
 	var input RegisterInput
 	if err := c.ShouldBindJSON(&input); err != nil {
@@ -62,11 +71,20 @@ func (ac *AuthController) Register(c *gin.Context) {
 	c.JSON(http.StatusCreated, gin.H{"message": "User registered successfully"})
 }
 
-type LoginInput struct {
-	Email    string `json:"email" binding:"required,email"`
-	Password string `json:"password" binding:"required"`
-}
+type LoginInput = dto.LoginRequest
 
+// Login godoc
+// @Summary Login user
+// @Description Authenticates a user and returns a signed JWT token
+// @Tags Auth
+// @Accept json
+// @Produce json
+// @Param request body dto.LoginRequest true "Login Credentials"
+// @Success 200 {object} dto.AuthResponse
+// @Failure 400 {object} dto.ErrorResponse
+// @Failure 401 {object} dto.ErrorResponse
+// @Failure 500 {object} dto.ErrorResponse
+// @Router /login [post]
 func (ac *AuthController) Login(c *gin.Context) {
 	var input LoginInput
 	if err := c.ShouldBindJSON(&input); err != nil {

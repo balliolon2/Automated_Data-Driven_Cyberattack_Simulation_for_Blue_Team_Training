@@ -10,6 +10,7 @@ import (
 	"os"
 	"time"
 
+	"cybersim/dto"
 	"cybersim/models"
 	"cybersim/services"
 
@@ -40,42 +41,12 @@ func NewSimulationController(db *gorm.DB) *SimulationController {
 	return &SimulationController{DB: db}
 }
 
-// --- Response types ---
-
-type DomainStatus struct {
-	DomainID         string  `json:"domain_id"`
-	DomainName       string  `json:"domain_name"`
-	ProficiencyScore float64 `json:"proficiency_score"`
-	Threshold        float64 `json:"threshold"`
-	Passed           bool    `json:"passed"`
-}
-
-type SimulationStatusResponse struct {
-	NeedsTraining      bool           `json:"needs_training"`
-	Domains            []DomainStatus `json:"domains"`
-	CompletedScenarios int            `json:"completed_scenarios"`
-	MaxScenarios       int            `json:"max_scenarios"`
-	AllDomainsPassed   bool           `json:"all_domains_passed"`
-}
-
-type ScenarioResponse struct {
-	ScenarioID  string `json:"scenario_id"`
-	Title       string `json:"title"`
-	Description string `json:"description"`
-	DomainID    string `json:"domain_id"`
-	Difficulty  int    `json:"difficulty"`
-	InitialLogs any    `json:"initial_logs"`
-	// PlaybookSteps are sent without is_correct and explanation for the user to answer
-	PlaybookSteps any `json:"playbook_steps"`
-	SanitizedFindings any `json:"sanitized_findings"`
-}
-
-type LogQueryInput struct {
-	SessionID string `json:"session_id" binding:"required"`
-	Query     string `json:"query" binding:"required"`
-}
-
-type SubmitScenarioInput = models.SubmitScenarioInput
+// --- DTO Aliases ---
+type DomainStatus = dto.DomainStatusDTO
+type SimulationStatusResponse = dto.SimulationStatusResponse
+type ScenarioResponse = dto.ScenarioResponse
+type LogQueryInput = dto.LogQueryRequest
+type SubmitScenarioInput = dto.SubmitScenarioRequest
 
 // --- Domain name helper ---
 
@@ -87,7 +58,16 @@ var domainNames = map[string]string{
 	"domain5": "Security Program Management and Oversight",
 }
 
-// GET /api/simulation/status
+// GetStatus godoc
+// @Summary Get learner simulation status
+// @Description Returns per-domain proficiency status, completed scenario count, and training eligibility.
+// @Tags Simulation
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {object} dto.SimulationStatusResponse
+// @Failure 401 {object} dto.ErrorResponse
+// @Router /simulation/status [get]
 func (sc *SimulationController) GetStatus(c *gin.Context) {
 	userID, exists := c.Get("user_id")
 	if !exists {
@@ -144,7 +124,18 @@ func (sc *SimulationController) GetStatus(c *gin.Context) {
 	})
 }
 
-// POST /api/simulation/start
+// StartScenario godoc
+// @Summary Start next adaptive simulation scenario
+// @Description Synthesizes or retrieves the next scenario focused on the learner's weakest domain. If an active simulation exists, resumes it.
+// @Tags Simulation
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {object} dto.ActiveSimulationResponse
+// @Failure 400 {object} dto.ErrorResponse
+// @Failure 401 {object} dto.ErrorResponse
+// @Failure 500 {object} dto.ErrorResponse
+// @Router /simulation/start [post]
 func (sc *SimulationController) StartScenario(c *gin.Context) {
 	userID, exists := c.Get("user_id")
 	if !exists {
@@ -388,7 +379,18 @@ func (sc *SimulationController) StartScenario(c *gin.Context) {
 	})
 }
 
-// GET /api/simulation/session
+// GetActiveSession godoc
+// @Summary Get active simulation session
+// @Description Recovers the in-progress simulation session and scenario data.
+// @Tags Simulation
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {object} dto.ActiveSimulationResponse
+// @Failure 401 {object} dto.ErrorResponse
+// @Failure 404 {object} dto.ErrorResponse
+// @Failure 500 {object} dto.ErrorResponse
+// @Router /simulation/session [get]
 func (sc *SimulationController) GetActiveSession(c *gin.Context) {
 	userID, exists := c.Get("user_id")
 	if !exists {
@@ -430,7 +432,20 @@ func (sc *SimulationController) GetActiveSession(c *gin.Context) {
 	c.JSON(http.StatusNotFound, gin.H{"message": "No active simulation session found"})
 }
 
-// POST /api/simulation/log-query
+// LogQuery godoc
+// @Summary Execute and record a telemetry log query
+// @Description Records a query action executed by the learner against telemetry logs for auditing and investigation scoring.
+// @Tags Simulation
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param request body dto.LogQueryRequest true "Log Query Request"
+// @Success 200 {object} dto.LogQueryResponse
+// @Failure 400 {object} dto.ErrorResponse
+// @Failure 401 {object} dto.ErrorResponse
+// @Failure 403 {object} dto.ErrorResponse
+// @Failure 500 {object} dto.ErrorResponse
+// @Router /simulation/log-query [post]
 func (sc *SimulationController) LogQuery(c *gin.Context) {
 	userID, exists := c.Get("user_id")
 	if !exists {
@@ -480,7 +495,20 @@ func (sc *SimulationController) LogQuery(c *gin.Context) {
 	})
 }
 
-// POST /api/simulation/submit
+// SubmitScenario godoc
+// @Summary Submit scenario response actions and triage decision
+// @Description Evaluates the learner's TP/FP classification, response actions, and discovered key findings, updating proficiency scores via weighted average.
+// @Tags Simulation
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param request body dto.SubmitScenarioRequest true "Scenario Submission"
+// @Success 200 {object} dto.SubmitScenarioResponse
+// @Failure 400 {object} dto.ErrorResponse
+// @Failure 401 {object} dto.ErrorResponse
+// @Failure 403 {object} dto.ErrorResponse
+// @Failure 500 {object} dto.ErrorResponse
+// @Router /simulation/submit [post]
 func (sc *SimulationController) SubmitScenario(c *gin.Context) {
 	userID, exists := c.Get("user_id")
 	if !exists {
@@ -509,7 +537,13 @@ func (sc *SimulationController) SubmitScenario(c *gin.Context) {
 	}
 
 	// Score the submission using the deep evaluator module
-	result := services.ScoreSubmission(scenario, input)
+	result := services.ScoreSubmission(scenario, models.SubmitScenarioInput{
+		SessionID:          input.SessionID,
+		IsTruePositive:     input.IsTruePositive,
+		TPFPSelected:       input.TPFPSelected,
+		SelectedActions:    input.SelectedActions,
+		DiscoveredFindings: input.DiscoveredFindings,
+	})
 
 	tx := sc.DB.Begin()
 
@@ -642,7 +676,19 @@ func (sc *SimulationController) SubmitScenario(c *gin.Context) {
 	})
 }
 
-// GET /api/simulation/result/:sessionId
+// GetResult godoc
+// @Summary Get detailed retrospective result of a simulation session
+// @Description Returns the complete evaluation breakdown, action audit trail, and updated domain proficiencies for a completed simulation session.
+// @Tags Simulation
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param sessionId path string true "Simulation Session UUID"
+// @Success 200 {object} dto.SimulationResultResponse
+// @Failure 400 {object} dto.ErrorResponse
+// @Failure 401 {object} dto.ErrorResponse
+// @Failure 404 {object} dto.ErrorResponse
+// @Router /simulation/result/{sessionId} [get]
 func (sc *SimulationController) GetResult(c *gin.Context) {
 	userID, exists := c.Get("user_id")
 	if !exists {
@@ -789,7 +835,16 @@ func sanitizePlaybookSteps(steps any) any {
 	return sanitized
 }
 
-// GET /api/analytics/research-summary
+// GetResearchSummary godoc
+// @Summary Get research evaluation summary
+// @Description Returns structured research and experiment metrics across pre-test, scenario loop, and post-test pursuant to the evaluation protocol.
+// @Tags Analytics
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {object} dto.ResearchSummaryResponse
+// @Failure 401 {object} dto.ErrorResponse
+// @Router /analytics/research-summary [get]
 func (sc *SimulationController) GetResearchSummary(c *gin.Context) {
 	userID, exists := c.Get("user_id")
 	if !exists {

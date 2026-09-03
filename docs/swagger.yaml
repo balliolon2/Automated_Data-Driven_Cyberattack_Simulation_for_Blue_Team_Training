@@ -1,0 +1,828 @@
+basePath: /api
+definitions:
+  dto.ActiveSimulationResponse:
+    properties:
+      actions: {}
+      scenario:
+        $ref: '#/definitions/dto.ScenarioResponse'
+      session: {}
+    type: object
+  dto.AuthResponse:
+    properties:
+      email:
+        example: analyst@soc.local
+        type: string
+      token:
+        example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+        type: string
+    type: object
+  dto.DetailedExamResultDTO:
+    properties:
+      correct_answer:
+        example: A
+        type: string
+      domain_id:
+        example: domain1
+        type: string
+      explanation:
+        example: Digital signatures ensure non-repudiation.
+        type: string
+      is_correct:
+        example: true
+        type: boolean
+      options: {}
+      question_id:
+        example: d1-q01
+        type: string
+      question_text:
+        example: Which security control provides non-repudiation?
+        type: string
+      type:
+        example: multiple_choice
+        type: string
+      user_answer:
+        example: A
+        type: string
+    type: object
+  dto.DomainScoreDTO:
+    properties:
+      correct_count:
+        example: 3
+        type: integer
+      domain_id:
+        example: domain1
+        type: string
+      percentage:
+        example: 75
+        type: number
+      total_count:
+        example: 4
+        type: integer
+    type: object
+  dto.DomainStatusDTO:
+    properties:
+      domain_id:
+        example: domain1
+        type: string
+      domain_name:
+        example: General Security Concepts
+        type: string
+      passed:
+        example: true
+        type: boolean
+      proficiency_score:
+        example: 75.5
+        type: number
+      threshold:
+        example: 70
+        type: number
+    type: object
+  dto.ErrorResponse:
+    properties:
+      code:
+        example: BAD_REQUEST
+        type: string
+      error:
+        example: Invalid request payload
+        type: string
+      message:
+        example: Detailed error description
+        type: string
+    type: object
+  dto.ExamSessionResponse:
+    properties:
+      questions:
+        items:
+          $ref: '#/definitions/dto.QuestionDTO'
+        type: array
+      session: {}
+    type: object
+  dto.LogQueryRequest:
+    properties:
+      query:
+        example: DeviceName == 'Chiller-01'
+        type: string
+      session_id:
+        example: 123e4567-e89b-12d3-a456-426614174000
+        type: string
+    required:
+    - query
+    - session_id
+    type: object
+  dto.LogQueryResponse:
+    properties:
+      action_id:
+        example: 42
+        type: integer
+      recorded:
+        example: true
+        type: boolean
+    type: object
+  dto.LoginRequest:
+    properties:
+      email:
+        example: analyst@soc.local
+        type: string
+      password:
+        example: Secret123!
+        type: string
+    required:
+    - email
+    - password
+    type: object
+  dto.MessageResponse:
+    properties:
+      message:
+        example: Operation completed successfully
+        type: string
+    type: object
+  dto.QuestionDTO:
+    properties:
+      domain_id:
+        example: domain1
+        type: string
+      options: {}
+      order_index:
+        example: 1
+        type: integer
+      question_id:
+        example: d1-q01
+        type: string
+      question_text:
+        example: Which security control provides non-repudiation?
+        type: string
+      type:
+        example: multiple_choice
+        type: string
+      user_answer:
+        example: A
+        type: string
+    type: object
+  dto.RegisterRequest:
+    properties:
+      email:
+        example: analyst@soc.local
+        type: string
+      password:
+        example: Secret123!
+        minLength: 6
+        type: string
+    required:
+    - email
+    - password
+    type: object
+  dto.ResearchSummaryResponse:
+    properties:
+      all_domains_passed:
+        example: true
+        type: boolean
+      average_proficiency:
+        example: 78.5
+        type: number
+      calculation_version:
+        example: v1.0-weighted-0.4-0.6
+        type: string
+      completed_scenarios:
+        example: 3
+        type: integer
+      domain_profiles:
+        items:
+          $ref: '#/definitions/dto.DomainStatusDTO'
+        type: array
+      eligible_for_post:
+        example: true
+        type: boolean
+      has_post_test:
+        example: true
+        type: boolean
+      has_pre_test:
+        example: true
+        type: boolean
+      improvement_score:
+        example: 20
+        type: number
+      max_scenarios:
+        example: 10
+        type: integer
+      participant_id: {}
+      post_test_score:
+        example: 85
+        type: number
+      pre_test_score:
+        example: 65
+        type: number
+      protocol_version:
+        example: protocol-v1
+        type: string
+      rubric_version:
+        example: v1.0-20-40-40
+        type: string
+      total_actions:
+        example: 18
+        type: integer
+      total_elapsed_sec:
+        example: 720
+        type: integer
+    type: object
+  dto.ScenarioResponse:
+    properties:
+      description:
+        example: Anomalous telemetry detected in OT cooling network.
+        type: string
+      difficulty:
+        example: 2
+        type: integer
+      domain_id:
+        example: domain4
+        type: string
+      initial_logs: {}
+      playbook_steps:
+        description: PlaybookSteps is retained for frontend JSON contract compatibility
+      response_actions:
+        description: ResponseActions is the canonical domain model representation
+      sanitized_findings: {}
+      scenario_id:
+        example: sc-chiller-dos-01
+        type: string
+      title:
+        example: Industrial Chiller DoS Attack
+        type: string
+    type: object
+  dto.SimulationResultResponse:
+    properties:
+      actions: {}
+      domain_proficiencies:
+        items:
+          $ref: '#/definitions/dto.DomainStatusDTO'
+        type: array
+      result: {}
+      scenario: {}
+      session: {}
+    type: object
+  dto.SimulationStatusResponse:
+    properties:
+      all_domains_passed:
+        example: false
+        type: boolean
+      completed_scenarios:
+        example: 2
+        type: integer
+      domains:
+        items:
+          $ref: '#/definitions/dto.DomainStatusDTO'
+        type: array
+      error:
+        example: No skill profile found. Please complete the pre-test first.
+        type: string
+      max_scenarios:
+        example: 10
+        type: integer
+      needs_training:
+        example: true
+        type: boolean
+    type: object
+  dto.SubmitAnswerRequest:
+    properties:
+      question_id:
+        example: d1-q01
+        type: string
+      session_id:
+        example: 987e6543-e21b-12d3-a456-426614174000
+        type: string
+      time_spent_seconds:
+        example: 45
+        type: integer
+      user_answer:
+        example: A
+        type: string
+    required:
+    - question_id
+    - session_id
+    - user_answer
+    type: object
+  dto.SubmitAnswerResponse:
+    properties:
+      completed:
+        example: true
+        type: boolean
+      correct_count:
+        example: 25
+        type: integer
+      domain_scores:
+        items:
+          $ref: '#/definitions/dto.DomainScoreDTO'
+        type: array
+      message:
+        example: Exam completed successfully!
+        type: string
+      results:
+        items:
+          $ref: '#/definitions/dto.DetailedExamResultDTO'
+        type: array
+      score:
+        example: 83.33
+        type: number
+    type: object
+  dto.SubmitScenarioRequest:
+    properties:
+      discovered_findings:
+        example:
+        - '["find-auth-fail"]'
+        items:
+          type: string
+        type: array
+      is_true_positive:
+        example: true
+        type: boolean
+      selected_actions:
+        example:
+        - '["act-contain-01"]'
+        items:
+          type: string
+        type: array
+      session_id:
+        example: 123e4567-e89b-12d3-a456-426614174000
+        type: string
+      tp_fp_selected:
+        example: true
+        type: boolean
+    required:
+    - selected_actions
+    - session_id
+    - tp_fp_selected
+    type: object
+  dto.SubmitScenarioResponse:
+    properties:
+      completion_reason:
+        example: learner_completed
+        type: string
+      eligible:
+        example: false
+        type: boolean
+      result: {}
+    type: object
+host: localhost:8080
+info:
+  contact:
+    name: SOC Trainer Development Team
+  description: Automated Data-Driven Cyberattack Simulation for Blue Team Training
+    platform REST API.
+  license:
+    name: MIT
+  termsOfService: https://github.com/balliolon2/Automated_Data-Driven_Cyberattack_Simulation_for_Blue_Team_Training
+  title: SOC Trainer REST API
+  version: "1.0"
+paths:
+  /analytics/research-summary:
+    get:
+      consumes:
+      - application/json
+      description: Returns structured research and experiment metrics across pre-test,
+        scenario loop, and post-test pursuant to the evaluation protocol.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.ResearchSummaryResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get research evaluation summary
+      tags:
+      - Analytics
+  /exams/post-test:
+    post:
+      consumes:
+      - application/json
+      description: Initializes a 30-question Post-Test with zero overlap from the
+        Pre-Test questions.
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/dto.ExamSessionResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Start post-test exam session
+      tags:
+      - Exams
+  /exams/pre-test:
+    post:
+      consumes:
+      - application/json
+      description: Initializes a 30-question Pre-Test with required domain distribution
+        (4/7/5/8/6). If an in-progress pre-test already exists, returns the existing
+        session.
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/dto.ExamSessionResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Start or resume pre-test exam session
+      tags:
+      - Exams
+  /exams/sample:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves a random question from the database question pool for
+        preview.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.QuestionDTO'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      summary: Get a sample exam question
+      tags:
+      - Exams
+  /exams/session:
+    get:
+      consumes:
+      - application/json
+      description: Recovers the active exam session and questions for the authenticated
+        learner.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.ExamSessionResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get active exam session
+      tags:
+      - Exams
+  /exams/submit-answer:
+    post:
+      consumes:
+      - application/json
+      description: Commits an answer for an exam question and returns progression
+        or final score results.
+      parameters:
+      - description: Exam Answer Submission
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.SubmitAnswerRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.SubmitAnswerResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Submit an exam answer
+      tags:
+      - Exams
+  /login:
+    post:
+      consumes:
+      - application/json
+      description: Authenticates a user and returns a signed JWT token
+      parameters:
+      - description: Login Credentials
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.LoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.AuthResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      summary: Login user
+      tags:
+      - Auth
+  /register:
+    post:
+      consumes:
+      - application/json
+      description: Creates a new learner account with email and password
+      parameters:
+      - description: User Registration Info
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.RegisterRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/dto.MessageResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      summary: Register a new learner
+      tags:
+      - Auth
+  /simulation/log-query:
+    post:
+      consumes:
+      - application/json
+      description: Records a query action executed by the learner against telemetry
+        logs for auditing and investigation scoring.
+      parameters:
+      - description: Log Query Request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.LogQueryRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.LogQueryResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Execute and record a telemetry log query
+      tags:
+      - Simulation
+  /simulation/result/{sessionId}:
+    get:
+      consumes:
+      - application/json
+      description: Returns the complete evaluation breakdown, action audit trail,
+        and updated domain proficiencies for a completed simulation session.
+      parameters:
+      - description: Simulation Session UUID
+        in: path
+        name: sessionId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.SimulationResultResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get detailed retrospective result of a simulation session
+      tags:
+      - Simulation
+  /simulation/session:
+    get:
+      consumes:
+      - application/json
+      description: Recovers the in-progress simulation session and scenario data.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.ActiveSimulationResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get active simulation session
+      tags:
+      - Simulation
+  /simulation/start:
+    post:
+      consumes:
+      - application/json
+      description: Synthesizes or retrieves the next scenario focused on the learner's
+        weakest domain. If an active simulation exists, resumes it.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.ActiveSimulationResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Start next adaptive simulation scenario
+      tags:
+      - Simulation
+  /simulation/status:
+    get:
+      consumes:
+      - application/json
+      description: Returns per-domain proficiency status, completed scenario count,
+        and training eligibility.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.SimulationStatusResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get learner simulation status
+      tags:
+      - Simulation
+  /simulation/submit:
+    post:
+      consumes:
+      - application/json
+      description: Evaluates the learner's TP/FP classification, response actions,
+        and discovered key findings, updating proficiency scores via weighted average.
+      parameters:
+      - description: Scenario Submission
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.SubmitScenarioRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.SubmitScenarioResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Submit scenario response actions and triage decision
+      tags:
+      - Simulation
+securityDefinitions:
+  BearerAuth:
+    description: 'Type "Bearer" followed by a space and JWT token. Example: "Bearer
+      eyJhbGciOi..."'
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"
