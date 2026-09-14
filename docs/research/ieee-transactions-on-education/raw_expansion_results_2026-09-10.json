@@ -1,0 +1,255 @@
+{
+  "7405338": {
+    "articleNumber": "7405338",
+    "doi": "10.1109/TE.2016.2520400",
+    "title": "A Network Steganography Lab on Detecting TCP/IP Covert Channels",
+    "year": "2016",
+    "pub_title": "IEEE Transactions on Education",
+    "content_type": "IEEE Journals",
+    "citation_count": 17,
+    "access": "locked",
+    "queries": [
+      "security analyst training"
+    ],
+    "abstract": "This paper presents a network security laboratory to teach data analysis for detecting TCP/IP covert channels. The laboratory is mainly designed for students of electrical engineering, but is open to students of other technical disciplines with similar background. Covert channels provide a method for leaking data from protected systems, which is a major concern for big enterprises and governments...."
+  },
+  "7967715": {
+    "articleNumber": "7967715",
+    "doi": "10.1109/TE.2017.2715174",
+    "title": "Identifying Core Concepts of Cybersecurity: Results of Two Delphi Processes",
+    "year": "2018",
+    "pub_title": "IEEE Transactions on Education",
+    "content_type": "IEEE Journals",
+    "citation_count": 54,
+    "access": "locked",
+    "queries": [
+      "\"cyberdefense\" OR \"cyber defense\" education"
+    ],
+    "abstract": "This paper presents and analyzes results of two Delphi processes that polled cybersecurity experts to rate cybersecurity topics based on importance, difficulty, and timelessness. These ratings can be used to identify core concepts–cross-cutting ideas that connect knowledge in the discipline. The first Delphi process identified core concepts that should be learned in any first course on cybersecuri..."
+  },
+  "5262961": {
+    "articleNumber": "5262961",
+    "doi": "10.1109/TE.2009.2024080",
+    "title": "IT-Adventures: A Program to Spark IT Interest in High School Students Using Inquiry-Based Learning With Cyber Defense, Game Design, and Robotics",
+    "year": "2010",
+    "pub_title": "IEEE Transactions on Education",
+    "content_type": "IEEE Journals",
+    "citation_count": 33,
+    "access": "locked",
+    "queries": [
+      "\"cyberdefense\" OR \"cyber defense\" education"
+    ],
+    "abstract": "The IT-Adventures program is dedicated to increasing interest in and awareness of information technology among high school students using inquiry-based learning focused on three content areas: cyber defense, game design programming, and robotics. The program combines secondary, post-secondary, and industry partnerships in educational programming, competitive events, and service learning projects t..."
+  },
+  "9452797": {
+    "articleNumber": "9452797",
+    "doi": "10.1109/TE.2021.3086025",
+    "title": "A Study of Cybersecurity Education Using a Present-Test-Practice-Assess Model",
+    "year": "2022",
+    "pub_title": "IEEE Transactions on Education",
+    "content_type": "IEEE Journals",
+    "citation_count": 31,
+    "access": "locked",
+    "queries": [
+      "simulation cybersecurity training",
+      "\"Capture the Flag\" education"
+    ],
+    "abstract": "Contribution: Based on a previous exploratory study, this research further investigated learning mode contributions from simulations and live competitive activities compared to a traditional classroom, laboratory, and testing approach to instruction in order to assess the applied behavioral contributions of each. Background: Cybersecurity capabilities in organizations lag behind the threats; conse..."
+  },
+  "11229940": {
+    "articleNumber": "11229940",
+    "doi": "10.1109/TE.2025.3626489",
+    "title": "Blockchain Integration for Practical Cybersecurity Education With Scalable Cyber Infrastructure",
+    "year": "2025",
+    "pub_title": "IEEE Transactions on Education",
+    "content_type": "IEEE Journals",
+    "citation_count": 1,
+    "access": "locked",
+    "queries": [
+      "hands-on cybersecurity learning"
+    ],
+    "abstract": "The escalating prevalence of cybersecurity threats, coupled with the growing significance of blockchain technology, necessitates advanced practical training in undergraduate computer science and engineering curricula. However, traditional educational approaches often fall short in providing realistic, scalable, and collaborative learning environments. Addressing this gap, this study proposes an in..."
+  },
+  "11372737": {
+    "articleNumber": "11372737",
+    "doi": "10.1109/TE.2026.3654077",
+    "title": "Immersive Virtual Environment for Automotive Security Education",
+    "year": "2026",
+    "pub_title": "IEEE Transactions on Education",
+    "content_type": "IEEE Journals",
+    "citation_count": 0,
+    "access": "locked",
+    "queries": [
+      "hands-on cybersecurity learning"
+    ],
+    "abstract": "As automotive systems increasingly incorporate electronics, software, and sensors, they become complex and widely distributed cyber-physical systems. This complexity makes them more susceptible to cyber-attacks. Nevertheless, despite its great need, the cybersecurity of automotive systems needs to be better understood, even by key stakeholders. This article presents an immersive virtual environmen..."
+  },
+  "4358727": {
+    "articleNumber": "4358727",
+    "doi": "10.1109/TE.2007.904584",
+    "title": "Learning Computer Networking on Open Paravirtual Laboratories",
+    "year": "2007",
+    "pub_title": "IEEE Transactions on Education",
+    "content_type": "IEEE Journals",
+    "citation_count": 53,
+    "access": "locked",
+    "queries": [
+      "hands-on cybersecurity learning"
+    ],
+    "abstract": "Learning practical information communication technology skills such as network configuration and security planning requires hands-on experience with a number of different devices which may be unavailable or too costly to provide, especially for institutions under tight budget constraints. This paper describes how a specific open software technology, paravirtualization, can be used to set up open s..."
+  },
+  "11664215": {
+    "articleNumber": "11664215",
+    "doi": "10.1109/TE.2026.3722649",
+    "title": "Training Environment for Automation of Digital Substations",
+    "year": "2026",
+    "pub_title": "IEEE Transactions on Education",
+    "content_type": "IEEE Early Access Articles",
+    "citation_count": 0,
+    "access": "locked",
+    "queries": [
+      "hands-on cybersecurity learning"
+    ],
+    "abstract": "Contribution: A learning factory for training in automation and control of digital traction substations.  Background: The digitization of electrical substations has become essential for ensuring performance and security, allowing for faster response times and better resource management. To achieve this, it is necessary that workers develop certain technical skills; however, the required training t..."
+  },
+  "1629214": {
+    "articleNumber": "1629214",
+    "doi": "10.1109/TE.2006.873979",
+    "title": "Mobile technology as a learning object and an exploration tool in an IS curriculum: an innovative instruction of wireless network security",
+    "year": "2006",
+    "pub_title": "IEEE Transactions on Education",
+    "content_type": "IEEE Journals",
+    "citation_count": 3,
+    "access": "locked",
+    "queries": [
+      "hands-on cybersecurity learning"
+    ],
+    "abstract": "Information systems (IS) is a fully recognized business discipline. Many IS programs have not given network security appropriate attention; nor have they brought enough hands-on experience of both wireline and wireless networks to the class rooms. This study proposes a systematic framework to cover wireless security attack, detection, and protection. It also includes a learning matrix for educator..."
+  },
+  "6632976": {
+    "articleNumber": "6632976",
+    "doi": "10.1109/TE.2013.2282285",
+    "title": "Cloud-Based Virtual Laboratory for Network Security Education",
+    "year": "2014",
+    "pub_title": "IEEE Transactions on Education",
+    "content_type": "IEEE Journals",
+    "citation_count": 120,
+    "access": "locked",
+    "queries": [
+      "hands-on cybersecurity learning"
+    ],
+    "abstract": "Hands-on experiments are essential for computer network security education. Existing laboratory solutions usually require significant effort to build, configure, and maintain and often do not support reconfigurability, flexibility, and scalability. This paper presents a cloud-based virtual laboratory education platform called V-Lab that provides a contained experimental environment for hands-on ex..."
+  },
+  "5454381": {
+    "articleNumber": "5454381",
+    "doi": "10.1109/TE.2010.2048215",
+    "title": "The Design of NetSecLab: A Small Competition-Based Network Security Lab",
+    "year": "2011",
+    "pub_title": "IEEE Transactions on Education",
+    "content_type": "IEEE Journals",
+    "citation_count": 21,
+    "access": "locked",
+    "queries": [
+      "hands-on cybersecurity learning"
+    ],
+    "abstract": "This paper describes a competition-style of exercise to teach system and network security and to reinforce themes taught in class. The exercise, called NetSecLab, is conducted on a closed network with student-formed teams, each with their own Linux system to defend and from which to launch attacks. Students are expected to learn how to: 1) install the specified Linux distribution; 2) set up the re..."
+  },
+  "4696064": {
+    "articleNumber": "4696064",
+    "doi": "10.1109/TE.2008.925764",
+    "title": "JGOMAS: New Approach to AI Teaching",
+    "year": "2009",
+    "pub_title": "IEEE Transactions on Education",
+    "content_type": "IEEE Journals",
+    "citation_count": 21,
+    "access": "locked",
+    "queries": [
+      "\"Capture the Flag\" education"
+    ],
+    "abstract": "This paper presents a new environment for teaching practical work in AI subjects. The main purpose of this environment is to make AI techniques more appealing to students and to facilitate the use of the toolkits which are currently widely used in research and development. This new environment has a toolkit for developing and executing agents, called JADE-based game-oriented multiagent system (JGO..."
+  },
+  "10600095": {
+    "articleNumber": "10600095",
+    "doi": "10.1109/TE.2024.3417908",
+    "title": "Challenge-Based Learning for Competency Development in Engineering Education, a Prisma-Based Systematic Literature Review",
+    "year": "2024",
+    "pub_title": "IEEE Transactions on Education",
+    "content_type": "IEEE Journals",
+    "citation_count": 24,
+    "access": "open-access",
+    "queries": [
+      "\"adaptive learning\" engineering education"
+    ],
+    "abstract": "The teaching-learning process in engineering aims to meet current societal demands and address real challenges faced by businesses and the job market. Challenge-based learning (CBL) has gained traction as an active and innovative approach in engineering education, introducing real challenges and open questions to the classroom regarding environmental sustainability and issues faced by Industry 4.0..."
+  },
+  "9170850": {
+    "articleNumber": "9170850",
+    "doi": "10.1109/TE.2020.3012744",
+    "title": "A Novel Teaching Strategy Through Adaptive Learning Activities for Computer Programming",
+    "year": "2021",
+    "pub_title": "IEEE Transactions on Education",
+    "content_type": "IEEE Journals",
+    "citation_count": 62,
+    "access": "locked",
+    "queries": [
+      "\"adaptive learning\" engineering education"
+    ],
+    "abstract": "Contribution: This article presents the instruction of computer programming using adaptive learning activities considering students&#39; cognitive skills based on the learning theory of the Revised Bloom Taxonomy (RBT). To achieve this, the system converts students&#39; knowledge level to fuzzy weights, and using rule-based decision making, delivers adequate learning activities regarding their kind and co..."
+  },
+  "10237049": {
+    "articleNumber": "10237049",
+    "doi": "10.1109/TE.2023.3303421",
+    "title": "Investigating the Association Between Student Engagement With Video Content and Their Learnings",
+    "year": "2023",
+    "pub_title": "IEEE Transactions on Education",
+    "content_type": "IEEE Journals",
+    "citation_count": 6,
+    "access": "locked",
+    "queries": [
+      "\"adaptive learning\" engineering education"
+    ],
+    "abstract": "Contribution: This study adds to the literature by investigating the association of student behavioral and cognitive engagement with video content and their learning. This study addresses the lack of feedback on how students engage with the video content during the asynchronous learning mode. Background: Higher education rapidly integrates various forms of digital technology into their learning en..."
+  },
+  "11134132": {
+    "articleNumber": "11134132",
+    "doi": "10.1109/TE.2025.3593411",
+    "title": "Concept Maps and Open Learner Models in a Computer Networking Course",
+    "year": "2025",
+    "pub_title": "IEEE Transactions on Education",
+    "content_type": "IEEE Journals",
+    "citation_count": 0,
+    "access": "locked",
+    "queries": [
+      "\"adaptive learning\" engineering education"
+    ],
+    "abstract": "Contribution: We explored the effects of using concept maps for the instruction of a college-level telecommunications course, as both the “backbone” structure of the traditional lectures and a navigational support feature within an online independent practice support system, on students’ final learning gains and engagement with the learning content.Background: The usage of concept maps as an instr..."
+  },
+  "1532377": {
+    "articleNumber": "1532377",
+    "doi": "10.1109/TE.2005.858398",
+    "title": "QoL guaranteed adaptation and personalization in E-learning systems",
+    "year": "2005",
+    "pub_title": "IEEE Transactions on Education",
+    "content_type": "IEEE Journals",
+    "citation_count": 36,
+    "access": "locked",
+    "queries": [
+      "\"adaptive learning\" engineering education"
+    ],
+    "abstract": "This paper investigates the problem of adaptation and personalization in e-learning systems. A new metric-QoL (Quality of Learning)-is recommended for e-learning systems to evaluate the learning process. This paper proposes the Adaptive & Personalized E-Learning System (APeLS) that provides dynamic learning content and an adaptive learning process for learners to enhance the quality of learning. A..."
+  },
+  "11105060": {
+    "articleNumber": "11105060",
+    "doi": "10.1109/TE.2025.3584007",
+    "title": "The Impact of Artificial Intelligence on Learning and Teaching of Engineering",
+    "year": "2025",
+    "pub_title": "IEEE Transactions on Education",
+    "content_type": "IEEE Journals",
+    "citation_count": 2,
+    "access": "locked",
+    "queries": [
+      "\"intelligent tutoring\" security"
+    ],
+    "abstract": "This article explores the intersecting domains of artificial intelligence (AI), education, engineering, and the associated risks they entail. It highlights the transformative potential of AI in education, enabling personalized learning and innovative teaching methodologies. In the field of engineering, AI offers opportunities for process optimization, design innovation, and virtual laboratories, t..."
+  }
+}

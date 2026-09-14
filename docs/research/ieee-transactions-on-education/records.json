@@ -1,0 +1,397 @@
+{
+  "search_runs": [
+    {
+      "search_run_id": "ieee-toe-2026-09-10-01",
+      "started_at": "2026-09-10",
+      "status": "confirmed",
+      "configuration": {
+        "primary_source": "IEEE Xplore",
+        "target_publication": "IEEE Transactions on Education",
+        "publication_types_primary": [
+          "research article"
+        ],
+        "publication_types_supporting": [
+          "review",
+          "survey",
+          "conference paper"
+        ],
+        "year_window": "2021-2026",
+        "foundational_exception": "allowed with label and written reason",
+        "candidate_pool_target": "10-15",
+        "query_results_per_query": 20,
+        "retry_policy": "max 2 attempts per URL/step, then Access Failed",
+        "candidate_pool_count_rule": "only articles with Metadata Verified or better",
+        "criteria": {
+          "evidence_quality": 0.3,
+          "learning_outcome": 0.25,
+          "practical_cybersecurity_training": 0.2,
+          "project_relevance": 0.15,
+          "adaptivity": 0.1
+        },
+        "scale": "0-5 per criterion, shared rubric",
+        "weighted_score_formula": "sum(criterion_score / 5 * criterion_weight) * 100 over assessable criteria",
+        "tie_breakers": [
+          "evidence_quality",
+          "full_text_availability"
+        ],
+        "query_groups": [
+          "Cybersecurity Education",
+          "SOC / Security Operations Training",
+          "Incident Response Education",
+          "Cyber Range / Simulation-Based Learning",
+          "Adaptive / Personalized Cybersecurity Learning",
+          "Learning Analytics / Pretest-Posttest Evaluation"
+        ]
+      },
+      "queries_executed": [
+        {
+          "group": "Cybersecurity Education",
+          "queries": [
+            "\"cybersecurity education\"",
+            "\"security education\""
+          ],
+          "method": "IEEE Xplore REST search, punumber=13"
+        },
+        {
+          "group": "SOC / Security Operations Training",
+          "queries": [
+            "\"security operations\" training",
+            "\"SOC analyst\"",
+            "SOC \"incident triage\""
+          ],
+          "method": "IEEE Xplore REST search"
+        },
+        {
+          "group": "Incident Response Education",
+          "queries": [
+            "\"incident response\" education",
+            "\"incident response\" training"
+          ],
+          "method": "IEEE Xplore REST search"
+        },
+        {
+          "group": "Cyber Range / Simulation-Based Learning",
+          "queries": [
+            "\"cyber range\"",
+            "\"simulation-based learning\" security"
+          ],
+          "method": "IEEE Xplore REST search"
+        },
+        {
+          "group": "Adaptive / Personalized Cybersecurity Learning",
+          "queries": [
+            "adaptive learning cybersecurity",
+            "personalized learning security education"
+          ],
+          "method": "IEEE Xplore REST search"
+        },
+        {
+          "group": "Learning Analytics / Pretest-Posttest Evaluation",
+          "queries": [
+            "\"pretest-posttest\" learning",
+            "\"pre-test post-test\" assessment"
+          ],
+          "method": "IEEE Xplore REST search"
+        },
+        {
+          "type": "expansion",
+          "queries": [
+            "\"security operations center\"",
+            "\"SOC\" analyst training",
+            "blue team",
+            "security analyst training",
+            "\"cyberdefense\" OR \"cyber defense\" education",
+            "\"incident handling\" OR \"incident management\" education",
+            "simulation cybersecurity training",
+            "hands-on cybersecurity learning",
+            "\"Capture the Flag\" education",
+            "CTF cybersecurity learning",
+            "\"adaptive learning\" engineering education",
+            "\"intelligent tutoring\" security",
+            "\"competency-based\" cybersecurity",
+            "\"skills assessment\" cybersecurity students"
+          ],
+          "note": "Expansion queries proposed by workflow and executed in same run with user's blanket approval ('ตามคำแนะนำทุกคำถาม')"
+        }
+      ],
+      "auxiliary_references": [
+        {
+          "record_id": "8548564",
+          "title": "Cybersecurity Interventions for Teens: Two Time-Based Approaches",
+          "year": "2019",
+          "reason": "pre-2021 foundational or adjacent methodology; kept for background per workflow §2 Step 2.5"
+        },
+        {
+          "record_id": "7809088",
+          "title": "Teaching Game Theory to Improve Adversarial Thinking in Cybersecurity Students",
+          "year": "2017",
+          "reason": "pre-2021 foundational or adjacent methodology; kept for background per workflow §2 Step 2.5"
+        },
+        {
+          "record_id": "6632976",
+          "title": "Cloud-Based Virtual Laboratory for Network Security Education",
+          "year": "2014",
+          "reason": "pre-2021 foundational or adjacent methodology; kept for background per workflow §2 Step 2.5"
+        },
+        {
+          "record_id": "5454381",
+          "title": "The Design of NetSecLab: A Small Competition-Based Network Security Lab",
+          "year": "2011",
+          "reason": "pre-2021 foundational or adjacent methodology; kept for background per workflow §2 Step 2.5"
+        },
+        {
+          "record_id": "1629214",
+          "title": "Mobile technology as a learning object and an exploration tool in an IS curriculum: an innovative instruction of wireless network security",
+          "year": "2006",
+          "reason": "pre-2021 foundational or adjacent methodology; kept for background per workflow §2 Step 2.5"
+        },
+        {
+          "record_id": "11105060",
+          "title": "The Impact of Artificial Intelligence on Learning and Teaching of Engineering",
+          "year": "2025",
+          "reason": "pre-2021 foundational or adjacent methodology; kept for background per workflow §2 Step 2.5"
+        },
+        {
+          "record_id": "7405338",
+          "title": "A Network Steganography Lab on Detecting TCP/IP Covert Channels",
+          "year": "2016",
+          "reason": "pre-2021 foundational or adjacent methodology; kept for background per workflow §2 Step 2.5"
+        },
+        {
+          "record_id": "5262961",
+          "title": "IT-Adventures: A Program to Spark IT Interest in High School Students Using Inquiry-Based Learning With Cyber Defense, Game Design, and Robotics",
+          "year": "2010",
+          "reason": "pre-2021 foundational or adjacent methodology; kept for background per workflow §2 Step 2.5"
+        },
+        {
+          "record_id": "4358727",
+          "title": "Learning Computer Networking on Open Paravirtual Laboratories",
+          "year": "2007",
+          "reason": "pre-2021 foundational or adjacent methodology; kept for background per workflow §2 Step 2.5"
+        },
+        {
+          "record_id": "11664215",
+          "title": "Training Environment for Automation of Digital Substations",
+          "year": "2026",
+          "reason": "pre-2021 foundational or adjacent methodology; kept for background per workflow §2 Step 2.5"
+        },
+        {
+          "record_id": "10600095",
+          "title": "Challenge-Based Learning for Competency Development in Engineering Education, a Prisma-Based Systematic Literature Review",
+          "year": "2024",
+          "reason": "pre-2021 foundational or adjacent methodology; kept for background per workflow §2 Step 2.5"
+        },
+        {
+          "record_id": "10237049",
+          "title": "Investigating the Association Between Student Engagement With Video Content and Their Learnings",
+          "year": "2023",
+          "reason": "pre-2021 foundational or adjacent methodology; kept for background per workflow §2 Step 2.5"
+        }
+      ],
+      "notes": [],
+      "query_results_summary": {
+        "total_unique_records_found": 30,
+        "passed_initial_screening": 18,
+        "security_core_main_pool": 13,
+        "in_year_window_main_pool": 6,
+        "candidate_pool_count_rule": "Metadata Verified+ only, 2021-2026",
+        "candidate_pool_count": 6,
+        "below_target": true,
+        "below_target_note": "Candidate pool = 6 (target 10-15). SOC/security-operations-specific queries returned 0 results in IEEE ToE; expansion queries added 18 more unique records of which several were security-core but foundational (pre-2021)."
+      },
+      "candidates": [
+        {
+          "record_id": "10380620",
+          "title": "Understanding Cybersecurity Education Gaps in Europe",
+          "doi": "10.1109/TE.2023.3340868",
+          "year": "2024",
+          "pages": "190-201",
+          "pub_title": "IEEE Transactions on Education",
+          "content_type": "IEEE Journals",
+          "citation_count": 11,
+          "access": "locked",
+          "evidence_status": "Abstract Verified",
+          "screening_status": "PASS_INITIAL",
+          "security_core": true,
+          "queries": [
+            "\"cybersecurity education\""
+          ],
+          "criterion_scores": {
+            "evidence_quality": 4,
+            "learning_outcome": 2,
+            "practical_cybersecurity_training": 2,
+            "project_relevance": 2,
+            "adaptivity": 1
+          },
+          "weighted_score": 50.0,
+          "not_assessable_criteria": [],
+          "evidence_notes": "PESTLE + stakeholder survey on education-system factors; policy-level, not a training intervention. Useful for motivation/background. Abstract Verified; TE 2024.",
+          "source_locations": "IEEE Xplore abstract (document/10380620); TE pages ?",
+          "selection_status": "not_selected"
+        },
+        {
+          "record_id": "9452797",
+          "title": "A Study of Cybersecurity Education Using a Present-Test-Practice-Assess Model",
+          "doi": "10.1109/TE.2021.3086025",
+          "year": "2022",
+          "pages": "40-45",
+          "pub_title": "IEEE Transactions on Education",
+          "content_type": "IEEE Journals",
+          "citation_count": 31,
+          "access": "locked",
+          "evidence_status": "Abstract Verified",
+          "screening_status": "PASS_INITIAL",
+          "security_core": true,
+          "queries": [
+            "\"cybersecurity education\"",
+            "simulation cybersecurity training",
+            "\"Capture the Flag\" education"
+          ],
+          "criterion_scores": {
+            "evidence_quality": 5,
+            "learning_outcome": 5,
+            "practical_cybersecurity_training": 5,
+            "project_relevance": 4,
+            "adaptivity": 2
+          },
+          "weighted_score": 91.0,
+          "not_assessable_criteria": [],
+          "evidence_notes": "RCT-style multi-section assignment; pretest as covariate, post-test DV; applied behavioral outcomes; directly comparable Pre/Post design. Abstract Verified; pages 40-45; TE Feb 2022.",
+          "source_locations": "IEEE Xplore abstract (document/9452797); TE pages ?",
+          "selection_status": "TOP"
+        },
+        {
+          "record_id": "10367784",
+          "title": "Cybersecurity Education in the Age of Artificial Intelligence: A Novel Proactive and Collaborative Learning Paradigm",
+          "doi": "10.1109/TE.2023.3337337",
+          "year": "2024",
+          "pages": "395-404",
+          "pub_title": "IEEE Transactions on Education",
+          "content_type": "IEEE Journals",
+          "citation_count": 15,
+          "access": "locked",
+          "evidence_status": "Abstract Verified",
+          "screening_status": "PASS_INITIAL",
+          "security_core": true,
+          "queries": [
+            "\"cybersecurity education\""
+          ],
+          "criterion_scores": {
+            "evidence_quality": 3,
+            "learning_outcome": 3,
+            "practical_cybersecurity_training": 4,
+            "project_relevance": 4,
+            "adaptivity": 2
+          },
+          "weighted_score": 65.0,
+          "not_assessable_criteria": [],
+          "evidence_notes": "Novel immersive + collaborative learning paradigm for AI-cybersecurity; 'encouraging results' but work ongoing; engagement reported, controlled outcomes not evident from abstract. Abstract Verified; TE 2024.",
+          "source_locations": "IEEE Xplore abstract (document/10367784); TE pages ?",
+          "selection_status": "not_selected"
+        },
+        {
+          "record_id": "11229940",
+          "title": "Blockchain Integration for Practical Cybersecurity Education With Scalable Cyber Infrastructure",
+          "doi": "10.1109/TE.2025.3626489",
+          "year": "2025",
+          "pages": "543-552",
+          "pub_title": "IEEE Transactions on Education",
+          "content_type": "IEEE Journals",
+          "citation_count": 1,
+          "access": "locked",
+          "evidence_status": "Abstract Verified",
+          "screening_status": "PASS_INITIAL",
+          "security_core": true,
+          "queries": [
+            "\"cybersecurity education\"",
+            "hands-on cybersecurity learning"
+          ],
+          "criterion_scores": {
+            "evidence_quality": 3,
+            "learning_outcome": 4,
+            "practical_cybersecurity_training": 4,
+            "project_relevance": 3,
+            "adaptivity": 2
+          },
+          "weighted_score": 67.0,
+          "not_assessable_criteria": [],
+          "evidence_notes": "Hands-on cyber-infrastructure labs with evidence-based learning; evaluation from student surveys (self-report caution per ToE scope). Abstract Verified; TE 2025.",
+          "source_locations": "IEEE Xplore abstract (document/11229940); TE pages ?",
+          "selection_status": "TOP"
+        },
+        {
+          "record_id": "10022010",
+          "title": "A Systematic Literature Review on Cyber Security Education for Children",
+          "doi": "10.1109/TE.2022.3231019",
+          "year": "2023",
+          "pages": "274-286",
+          "pub_title": "IEEE Transactions on Education",
+          "content_type": "IEEE Journals",
+          "citation_count": 51,
+          "access": "locked",
+          "evidence_status": "Abstract Verified",
+          "screening_status": "PASS_INITIAL",
+          "security_core": true,
+          "queries": [
+            "\"security education\""
+          ],
+          "criterion_scores": {
+            "evidence_quality": 4,
+            "learning_outcome": 3,
+            "practical_cybersecurity_training": 3,
+            "project_relevance": 2,
+            "adaptivity": 1
+          },
+          "weighted_score": 59.0,
+          "not_assessable_criteria": [],
+          "evidence_notes": "PRISMA SLR of 412 papers / 44 analyzed; strong methodological transparency; notes literature lacks comparative effectiveness evaluation - useful gap citation for our contribution. Not SOC-specific. Abstract Verified.",
+          "source_locations": "IEEE Xplore abstract (document/10022010); TE pages ?",
+          "selection_status": "not_selected"
+        },
+        {
+          "record_id": "11372737",
+          "title": "Immersive Virtual Environment for Automotive Security Education",
+          "doi": "10.1109/TE.2026.3654077",
+          "year": "2026",
+          "pages": "86-101",
+          "pub_title": "IEEE Transactions on Education",
+          "content_type": "IEEE Journals",
+          "citation_count": 0,
+          "access": "locked",
+          "evidence_status": "Abstract Verified",
+          "screening_status": "PASS_INITIAL",
+          "security_core": true,
+          "queries": [
+            "\"security education\"",
+            "hands-on cybersecurity learning"
+          ],
+          "criterion_scores": {
+            "evidence_quality": 4,
+            "learning_outcome": 4,
+            "practical_cybersecurity_training": 4,
+            "project_relevance": 3,
+            "adaptivity": 1
+          },
+          "weighted_score": 71.0,
+          "not_assessable_criteria": [],
+          "evidence_notes": "User studies with statistically significant improvements in knowledge/engagement/self-efficacy; VR platform for sensor attacks; domain-specific (automotive). Abstract Verified; TE 2026.",
+          "source_locations": "IEEE Xplore abstract (document/11372737); TE pages ?",
+          "selection_status": "TOP"
+        }
+      ],
+      "excluded_records_count": 12,
+      "checkpoint": {
+        "type": "User Confirmation",
+        "confirmed_at": "2026-09-10",
+        "pool_accepted": true,
+        "top_selection": [
+          "9452797",
+          "11372737",
+          "11229940"
+        ],
+        "research_gap_confirmed": true,
+        "full_text_access": "not available yet - upgrade to Full Text Verified deferred"
+      }
+    }
+  ]
+}

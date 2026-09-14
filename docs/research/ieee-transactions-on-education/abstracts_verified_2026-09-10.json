@@ -1,0 +1,1709 @@
+{
+  "10380620": {
+    "userInfo": {
+      "institute": false,
+      "member": false,
+      "individual": false,
+      "guest": false,
+      "subscribedContent": false,
+      "fileCabinetContent": false,
+      "fileCabinetUser": false,
+      "dtrDeleteCookieOnLogout": false,
+      "institutionalFileCabinetUser": false,
+      "dtrCookieExpirationDays": 0,
+      "showPatentCitations": true,
+      "showGet802Link": false,
+      "showOpenUrlLink": false,
+      "tracked": false,
+      "institutionUserId": 0,
+      "desktop": false,
+      "delegatedAdmin": false,
+      "isInstitutionDashboardEnabled": false,
+      "isInstitutionProfileEnabled": false,
+      "isRoamingEnabled": false,
+      "isDelegatedAdmin": false,
+      "isMdl": false,
+      "isCwg": false,
+      "isReadAndPublish": false,
+      "isIel": false,
+      "isAcademic": false
+    },
+    "authors": [
+      {
+        "name": "Sara Ricci",
+        "affiliation": [
+          "Department of Telecommunication, Brno University of Technology, Brno, Czechia"
+        ],
+        "ringgoldId": "48274",
+        "firstName": "Sara",
+        "lastName": "Ricci",
+        "orcid": "0000-0003-0842-4951",
+        "id": "37085674727"
+      },
+      {
+        "name": "Simon Parker",
+        "affiliation": [
+          "German Cancer Research Center, Deutsches Krebsforschungszentrum, Heidelberg, Germany"
+        ],
+        "ringgoldId": "28333",
+        "firstName": "Simon",
+        "lastName": "Parker",
+        "orcid": "0000-0001-9993-533X",
+        "id": "587500316295459"
+      },
+      {
+        "name": "Jan Jerabek",
+        "affiliation": [
+          "Department of Telecommunication, Brno University of Technology, Brno, Czechia"
+        ],
+        "ringgoldId": "48274",
+        "firstName": "Jan",
+        "lastName": "Jerabek",
+        "orcid": "0000-0001-9487-5024",
+        "id": "37294305100"
+      },
+      {
+        "name": "Yianna Danidou",
+        "affiliation": [
+          "Centre of Excellence in Risk and Decision Science, European University Cyprus, Nicosia, Cyprus"
+        ],
+        "ringgoldId": "112436",
+        "firstName": "Yianna",
+        "lastName": "Danidou",
+        "orcid": "0000-0003-1722-9701",
+        "id": "882273570207164"
+      },
+      {
+        "name": "Argyro Chatzopoulou",
+        "affiliation": [
+          "IT Services and IT Consulting, APIROPLUS Solutions Ltd., Limassol, Cyprus"
+        ],
+        "firstName": "Argyro",
+        "lastName": "Chatzopoulou",
+        "orcid": "0000-0001-6111-929X",
+        "id": "37088512192"
+      },
+      {
+        "name": "Remi Badonnel",
+        "affiliation": [
+          "University of Lorraine, Loria/Inria, Vandoeuvre-lés-Nancy, France"
+        ],
+        "ringgoldId": "137665",
+        "firstName": "Remi",
+        "lastName": "Badonnel",
+        "orcid": "0000-0001-9213-4695",
+        "id": "37424233000"
+      },
+      {
+        "name": "Imre Lendak",
+        "affiliation": [
+          "Faculty of Technical Sciences, University of Novi Sad, Novi Sad, Serbia",
+          "Data Science and Engineering Department, Eötvös Loránd University, Budapest, Hungary"
+        ],
+        "ringgoldId": "229819",
+        "firstName": "Imre",
+        "lastName": "Lendak",
+        "orcid": "0000-0001-6188-4936",
+        "id": "38193489000"
+      },
+      {
+        "name": "Vladimir Janout",
+        "affiliation": [
+          "Department of Telecommunication, Brno University of Technology, Brno, Czechia"
+        ],
+        "ringgoldId": "48274",
+        "firstName": "Vladimir",
+        "lastName": "Janout",
+        "orcid": "0000-0003-1594-3901",
+        "id": "522152749367913"
+      }
+    ],
+    "issn": [
+      {
+        "format": "Print ISSN",
+        "value": "0018-9359"
+      },
+      {
+        "format": "Electronic ISSN",
+        "value": "1557-9638"
+      }
+    ],
+    "articleNumber": "10380620",
+    "mediaPath": "/mediastore/IEEE/content/media/13/10495361/10380620",
+    "getProgramTermsAccepted": false,
+    "sections": {
+      "abstract": "true",
+      "authors": "true",
+      "disclaimer": "false",
+      "figures": "true",
+      "multimedia": "false",
+      "references": "true",
+      "citedby": "true",
+      "keywords": "true",
+      "definitions": "false",
+      "algorithm": "false",
+      "dataset": "false",
+      "cadmore": "false",
+      "footnotes": "true",
+      "relatedContent": "false"
+    },
+    "abstract": "Demand for cybersecurity professionals from industry and institutions is high, driven by an increasing digitization of society and the growing range of potential targets for cyber attacks. However, despite this pressing need a significant shortfall in the number of cybersecurity experts remains and a discrepancy has emerged between the skills introduced through education and those required in professional settings. In this article, a political, economic, social, technological, legal, and environmental (PESTLE) analysis was utilized to explore the factors impacting cybersecurity education in Europe. The PESTLE analysis enabled the categorization of factors affecting cybersecurty education and skills and allowed for cybersecurity professionals to assess the relevance of the factors at a national-level and European-level. Utilizing the concept of modularity from social network analysis, the interconnectivity of factors was also considered. Finally, a European-level stakeholder survey was conducted to verify the findings. As a result of the above process, a lack of societal awareness of cybersecurity was identified as a major challenge to education, along with a lack of EU-level certification. It should be noted that significant differences between factors perceived as impacting cybersecurity education were found between countries suggesting a need for local solutions to the problem.",
+    "publicationDate": "April 2024",
+    "publicationYear": "2024",
+    "pdfPath": "/iel7/13/10495361/10380620.pdf",
+    "formulaStrippedArticleTitle": "Understanding Cybersecurity Education Gaps in Europe",
+    "displayPublicationTitle": "IEEE Transactions on Education",
+    "pdfUrl": "/stamp/stamp.jsp?tp=&arnumber=10380620",
+    "publicationTitle": "IEEE Transactions on Education",
+    "startPage": "190",
+    "endPage": "201",
+    "keywords": [
+      {
+        "type": "IEEE Keywords",
+        "kwd": [
+          "Computer security",
+          "Europe",
+          "Organizations",
+          "Training",
+          "Stakeholders",
+          "Surveys",
+          "Social networking (online)"
+        ]
+      },
+      {
+        "type": "Index Terms",
+        "kwd": [
+          "Gap In Europe",
+          "Social Network Analysis",
+          "Lack Of Knowledge",
+          "Social Factors",
+          "Factor Group",
+          "Pilot Project",
+          "Political Factors",
+          "Personal Protection",
+          "General Data Protection Regulation",
+          "European Level",
+          "Lack Of Coordination",
+          "Personal Data Protection",
+          "Technological Factors",
+          "Broader Factors",
+          "Digital Economy",
+          "Diverse Workforce",
+          "Country-level Analysis",
+          "Skill Shortages",
+          "COVID-19 Pandemic Crisis",
+          "Cybercrime",
+          "Training Platform",
+          "Legal Factors",
+          "Regulatory Framework",
+          "Low Level Of Interest",
+          "Broad Areas",
+          "National Security",
+          "Role In Comprehension"
+        ]
+      },
+      {
+        "type": "Author Keywords",
+        "kwd": [
+          "Cybersecurity education",
+          "cybersecurity skills gap",
+          "political",
+          "economic",
+          "social",
+          "technological",
+          "legal",
+          "and environmental (PESTLE) analysis",
+          "social network analysis"
+        ]
+      }
+    ],
+    "authorNames": "Sara Ricci;Simon Parker;Jan Jerabek;Yianna Danidou;Argyro Chatzopoulou;Remi Badonnel;Imre Lendak;Vladimir Janout",
+    "allowComments": false,
+    "issueLink": "/xpl/tocresult.jsp?isnumber=10495361&punumber=13",
+    "pubLink": "/xpl/RecentIssue.jsp?punumber=13",
+    "articleCopyRight": "2024 IEEE",
+    "rightsLink": "http://s100.copyright.com/AppDispatchServlet?publisherName=ieee&publication=13&title=Understanding+Cybersecurity+Education+Gaps+in+Europe&isbn=&publicationDate=April+2024&author=Sara+Ricci&ContentID=10.1109/TE.2023.3340868&orderBeanReset=true&startPage=190&endPage=201&volumeNum=67&issueNum=2",
+    "displayPublicationDate": "04 January 2024",
+    "dateOfInsertion": "04 January 2024",
+    "doiLink": "https://doi.org/10.1109/TE.2023.3340868",
+    "isGetAddressInfoCaptured": false,
+    "isMarketingOptIn": false,
+    "pubTopics": [
+      {
+        "name": "General Topics for Engineers"
+      },
+      {
+        "name": "Engineering Profession"
+      }
+    ],
+    "publisher": "IEEE",
+    "displayDocTitle": "Understanding Cybersecurity Education Gaps in Europe",
+    "isProduct": false,
+    "isJournal": true,
+    "isDynamicHtml": true,
+    "isBookWithoutChapters": false,
+    "xploreDocumentType": "Journals & Magazine",
+    "isTutorial": false,
+    "isBook": false,
+    "volume": "67",
+    "issue": "2",
+    "isChapter": false,
+    "isEarlyAccess": false,
+    "isOpenAccess": false,
+    "isEphemera": false,
+    "isConference": false,
+    "isFreeDocument": false,
+    "isPromo": false,
+    "isStandard": false,
+    "isSpringer": false,
+    "isOnlineOnly": false,
+    "isDegruyter": false,
+    "persistentLink": "https://ieeexplore.ieee.org/servlet/opac?punumber=13",
+    "isNow": false,
+    "isSAE": false,
+    "htmlAbstractLink": "/document/10380620/",
+    "hasStandardVersions": false,
+    "isSMPTE": false,
+    "isLatestStandard": false,
+    "isGiveaway": false,
+    "htmlLink": "/document/10380620/",
+    "isTranslation": false,
+    "isCustomDenial": false,
+    "isOUP": false,
+    "fundingAgencies": {
+      "fundingAgency": [
+        {
+          "fundingName": "ERASMUS+ Programme of the European Union",
+          "grantNumber": "621701-EPP-1-2020-1-LTEPPKA2-SSA-B “REWIRE”"
+        },
+        {
+          "fundingId": "10.13039/100009532",
+          "fundingName": "Ministry of the Interior of the Czech Republic",
+          "grantNumber": "VJ03030003 through Program IMPAKT 1"
+        },
+        {
+          "fundingId": "10.13039/501100001659",
+          "fundingName": "German Research Foundation (DFG)—NFDI 1/1 “GHGA—German Human Genome Phenome Archive”"
+        },
+        {
+          "fundingName": "Project Strengthening the EIT Digital Knowledge Innovation Community in Hungary",
+          "grantNumber": "2021-1.2.1-EITKIC-2021-00006"
+        },
+        {
+          "fundingName": "Ministry of Innovation and Technology of Hungary from the National Research, Development and Innovation Fund, financed through the 2021- 1.2.1-EIT-KIC Funding Scheme"
+        }
+      ]
+    },
+    "openAccessFlag": "F",
+    "insertDate": "04 January 2024",
+    "ephemeraFlag": "false",
+    "title": "Understanding Cybersecurity Education Gaps in Europe",
+    "html_flag": "false",
+    "ml_html_flag": "true",
+    "sourcePdf": "te-ricci-3340868-x.pdf",
+    "mlTime": "PT0.071165S",
+    "xplore-pub-id": "13",
+    "sponsors": [
+      {
+        "name": "IEEE Education Society",
+        "url": "https://ieee-edusociety.org/"
+      }
+    ],
+    "isNumber": "10495361",
+    "rightsLinkFlag": "1",
+    "contentType": "periodicals",
+    "publicationNumber": "13",
+    "citationCount": "11",
+    "xplore-issue": "10495361",
+    "articleId": "10380620",
+    "contentTypeDisplay": "Journals",
+    "referenceCount": 71,
+    "subType": "IEEE Transaction",
+    "_value": "IEEE",
+    "lastupdate": "2026-09-05",
+    "doi": "10.1109/TE.2023.3340868"
+  },
+  "10367784": {
+    "userInfo": {
+      "institute": false,
+      "member": false,
+      "individual": false,
+      "guest": false,
+      "subscribedContent": false,
+      "fileCabinetContent": false,
+      "fileCabinetUser": false,
+      "dtrDeleteCookieOnLogout": false,
+      "institutionalFileCabinetUser": false,
+      "dtrCookieExpirationDays": 0,
+      "showPatentCitations": true,
+      "showGet802Link": false,
+      "showOpenUrlLink": false,
+      "tracked": false,
+      "institutionUserId": 0,
+      "delegatedAdmin": false,
+      "desktop": false,
+      "isInstitutionDashboardEnabled": false,
+      "isInstitutionProfileEnabled": false,
+      "isRoamingEnabled": false,
+      "isDelegatedAdmin": false,
+      "isMdl": false,
+      "isCwg": false,
+      "isIel": false,
+      "isAcademic": false,
+      "isReadAndPublish": false
+    },
+    "authors": [
+      {
+        "name": "Jin Wei-Kocsis",
+        "affiliation": [
+          "Department of Computer and Information Technology, Purdue University, West Lafayette, IN, USA"
+        ],
+        "bio": {
+          "p": [
+            "Jin Wei-Kocsis (Member, IEEE) received the B.E. degree in electronic information engineering from Beihang University, Beijing, China, in 2004, the M.S. degree in electrical engineering from the University of Hawaii at Manoa, Honolulu, HI, USA, in 2008, and the Ph.D. degree in electrical and computer engineering from the University of Toronto, Toronto, ON, Canada, in 2014.",
+            "She is currently an Associate Professor with the Department of Computer and Information Technology, Purdue University, West Lafayette, IN, USA. Her research interests include applied AI education, deep learning, security and privacy for cyber–physical–social systems, and wireless communications.",
+            "Dr. Wei-Kocsis’s accomplishments have been recognized through the NSF Awards, the NASA Early Career Faculty Award, the Homeland Security National Training Program/Continuing Training Grant, and Transportation Research Board Grants."
+          ]
+        },
+        "ringgoldId": "311308",
+        "firstName": "Jin",
+        "lastName": "Wei-Kocsis",
+        "orcid": "0000-0002-6833-6382",
+        "id": "37087040578"
+      },
+      {
+        "name": "Moein Sabounchi",
+        "affiliation": [
+          "Department of Computer and Information Technology, Purdue University, West Lafayette, IN, USA"
+        ],
+        "bio": {
+          "p": [
+            "Moein Sabounchi received the B.Sc. degree in electrical engineering from Razi University, Kermanshah, Iran, in 2011, and the M.Sc. degree in electrical engineering from the Ferdowsi university of Mashhad, Mashhad, Iran, in 2014. He is currently pursuing the Ph.D. degree with the Department of Computer and Information Technology, Purdue University, West Lafayette, IN, USA.",
+            "His current research interests include the utilization of data-driven technologies in engineering and education."
+          ]
+        },
+        "ringgoldId": "311308",
+        "firstName": "Moein",
+        "lastName": "Sabounchi",
+        "id": "37085350340"
+      },
+      {
+        "name": "Gihan J. Mendis",
+        "affiliation": [
+          "Department of Computer and Information Technology, Purdue University, West Lafayette, IN, USA",
+          "Blue Wave AI Labs, West Lafayette, IN, USA"
+        ],
+        "bio": {
+          "p": [
+            "Gihan J. Mendis received the B.Sc. Eng. degree (Hons.) in electronics and telecommunication engineering from the University of Moratuwa, Moratuwa, Sri Lanka, in 2012, the M.Sc. degree in electrical engineering from the University of Akron, Akron, OH, USA, in 2016, and the Ph.D. degree in technology from Purdue University, West Lafayette, IN, USA, in 2023.",
+            "He currently works as a Senior AI Engineer with Blue Wave AI Labs, West Lafayette. His research interests include data-driven decision making for cyber–physical system (CPS), deep learning for CPS security, decentralized deep learning, encrypted deep learning, and deep learning algorithms."
+          ]
+        },
+        "ringgoldId": "311308",
+        "firstName": "Gihan J.",
+        "lastName": "Mendis",
+        "orcid": "0000-0002-3949-9641",
+        "id": "37085895544"
+      },
+      {
+        "name": "Praveen Fernando",
+        "affiliation": [
+          "Department of Computer and Information Technology, Purdue University, West Lafayette, IN, USA"
+        ],
+        "bio": {
+          "p": [
+            "Praveen Fernando received the B.Sc. degree in electronics and telecommunication engineering from the University of Moratuwa, Moratuwa, Sri Lanka, in 2017. He is currently pursuing the Ph.D. degree in technology with Purdue University, West Lafayette, IN, USA.",
+            "His research interests include applied AI in wireless communications."
+          ]
+        },
+        "ringgoldId": "311308",
+        "firstName": "Praveen",
+        "lastName": "Fernando",
+        "orcid": "0000-0002-0163-0886",
+        "id": "37088349365"
+      },
+      {
+        "name": "Baijian Yang",
+        "affiliation": [
+          "Department of Computer and Information Technology, Purdue University, West Lafayette, IN, USA"
+        ],
+        "bio": {
+          "p": [
+            "Baijian Yang (Member, IEEE) received the B.S. and M.S. degrees in automation (EECS) from Tsinghua University, Beijing, China, in 1995 and 1998, respectively, and the Ph.D. degree in computer science from Michigan State University, East Lansing, MI, USA, in 2002.",
+            "He is currently a Professor with the Department of Computer and Information Technology, Purdue University, West Lafayette, IN, USA. In addition to his rich academic background, he holds several industry certifications, such as CISSP, MCSE, and Six Sigma Black Belt and has published two books on Windows Phone Programming. His research interests include cybersecurity, data-driven security analytics, and applied machine learning.",
+            "Prof. Yang served as a Steering Committee Member of IEEE Cybersecurity Initiative from 2015 to 2017, and he served as a Board Director of ATMAE from 2014 to 2016."
+          ]
+        },
+        "ringgoldId": "311308",
+        "firstName": "Baijian",
+        "lastName": "Yang",
+        "orcid": "0000-0003-4440-3701",
+        "id": "37086000642"
+      },
+      {
+        "name": "Tonglin Zhang",
+        "affiliation": [
+          "Department of Statistics, Purdue University, West Lafayette, IN, USA"
+        ],
+        "bio": {
+          "p": [
+            "Tonglin Zhang received the B.S. degree in mathematics from and the M.S. degree in statistics from Peking University, Beijing, China, in 1991 and 1994, respectively, the Ph.D. (Pre-Candidate) degree in mathematics from the University of Minnesota, Minneapolis, MN, USA, in 1998, and the Ph.D. degree in statistics from the University of Michigan at Ann Arbor, Ann Arbor, MI, USA in 2002.",
+            "He is an Associate Professor of Statistics with Purdue University, West Lafayette, IN, USA. He has published almost 100 research articles in decent journals and reputational conferences of statistics and computer science. His role in the project is the development of AI/ML theories and computational methods for Cybersecurity Education models to help students with diverse backgrounds of the learners. He has extensive research and teaching experience in developing collaborative and explainable AI. His research interests include AI/ML, big data, spatial statistics, mathematical statistics, high-dimensional data, and variable selection. His research covers both theories and applications."
+          ]
+        },
+        "ringgoldId": "311536",
+        "firstName": "Tonglin",
+        "lastName": "Zhang",
+        "id": "37085770453"
+      }
+    ],
+    "issn": [
+      {
+        "format": "Print ISSN",
+        "value": "0018-9359"
+      },
+      {
+        "format": "Electronic ISSN",
+        "value": "1557-9638"
+      }
+    ],
+    "articleNumber": "10367784",
+    "mediaPath": "/mediastore/IEEE/content/media/13/10547108/10367784",
+    "getProgramTermsAccepted": false,
+    "sections": {
+      "abstract": "true",
+      "authors": "true",
+      "disclaimer": "false",
+      "figures": "true",
+      "multimedia": "false",
+      "references": "true",
+      "citedby": "true",
+      "keywords": "true",
+      "definitions": "false",
+      "algorithm": "false",
+      "dataset": "false",
+      "cadmore": "false",
+      "footnotes": "false",
+      "relatedContent": "false"
+    },
+    "abstract": "Contribution: A novel proactive and collaborative learning paradigm was proposed to engage learners with different backgrounds and enable effective retention and transfer of the multidisciplinary artificial intelligence (AI)-cybersecurity knowledge. Specifically, the proposed learning paradigm contains: 1) an immersive learning environment to motivate the students for exploring AI/ machine learning (ML) development in the context of real-world cybersecurity scenarios by constructing learning models with tangible objects and 2) a proactive education paradigm designed with the use of collaborative learning activities based on game-based learning and social constructivism. Background: Increasing evidence shows that AI techniques can be manipulated, evaded, and misled, which can result in new and profound security implications. There is an education and training gap to foster a qualified cyber-workforce that understands the usefulness, limitations, and best practices of AI technologies in the cybersecurity domain. Efforts have been made to incorporate a comprehensive curriculum to meet the demand. There still remain essential challenges for effectively educating students on the interaction of AI and cybersecurity. Intended Outcomes: A novel proactive and collaborative learning paradigm is proposed to educate and train a qualified cyber-workforce in this new era where security breaches, privacy violations, and AI have become commonplace. Application Design: The development of this learning paradigm is grounded in the pedagogical approaches of technology-mediated learning and social constructivism. Findings: Although the research work is still ongoing, the prototype learning paradigm has shown encouraging results in promoting the learners’ engagement in applied AI learning.",
+    "publicationDate": "June 2024",
+    "pdfPath": "/iel7/13/10547108/10367784.pdf",
+    "publicationYear": "2024",
+    "publicationTitle": "IEEE Transactions on Education",
+    "displayPublicationTitle": "IEEE Transactions on Education",
+    "pdfUrl": "/stamp/stamp.jsp?tp=&arnumber=10367784",
+    "startPage": "395",
+    "endPage": "404",
+    "formulaStrippedArticleTitle": "Cybersecurity Education in the Age of Artificial Intelligence: A Novel Proactive and Collaborative Learning Paradigm",
+    "keywords": [
+      {
+        "type": "IEEE Keywords",
+        "kwd": [
+          "Computer security",
+          "Artificial intelligence",
+          "Virtual reality",
+          "Learning systems",
+          "Visualization",
+          "Federated learning",
+          "Training"
+        ]
+      },
+      {
+        "type": "Index Terms",
+        "kwd": [
+          "Proactive Learning",
+          "Age Of Artificial Intelligence",
+          "Age Education",
+          "Best Practices",
+          "Learning Environment",
+          "Social Construction",
+          "Privacy Issues",
+          "Achievement Gap",
+          "Artificial Intelligence Techniques",
+          "Immersive Environment",
+          "Tangible Objects",
+          "Essential Challenge",
+          "Immersive Learning",
+          "Neural Network",
+          "Deep Learning",
+          "Learning Algorithms",
+          "Convolutional Neural Network",
+          "Building Blocks",
+          "Diverse Backgrounds",
+          "Deep Reinforcement Learning",
+          "Distributed Denial Of Service",
+          "Adversarial Attacks",
+          "Deep Reinforcement Learning Model",
+          "Generative Adversarial Networks",
+          "Machine Learning Technology",
+          "Recurrent Neural Network",
+          "Social Constructivist Theory",
+          "Learning Module",
+          "Long Short-term Memory"
+        ]
+      },
+      {
+        "type": "Author Keywords",
+        "kwd": [
+          "Artificial intelligence (AI)",
+          "cybersecurity",
+          "education",
+          "machine learning (ML)"
+        ]
+      }
+    ],
+    "allowComments": false,
+    "authorNames": "Jin Wei-Kocsis;Moein Sabounchi;Gihan J. Mendis;Praveen Fernando;Baijian Yang;Tonglin Zhang",
+    "issueLink": "/xpl/tocresult.jsp?isnumber=10547108&punumber=13",
+    "pubLink": "/xpl/RecentIssue.jsp?punumber=13",
+    "articleCopyRight": "2023 IEEE",
+    "rightsLink": "http://s100.copyright.com/AppDispatchServlet?publisherName=ieee&publication=13&title=Cybersecurity+Education+in+the+Age+of+Artificial+Intelligence%3A+A+Novel+Proactive+and+Collaborative+Learning+Paradigm&isbn=&publicationDate=June+2024&author=Jin+Wei-Kocsis&ContentID=10.1109/TE.2023.3337337&orderBeanReset=true&startPage=395&endPage=404&volumeNum=67&issueNum=3",
+    "displayPublicationDate": "21 December 2023",
+    "doiLink": "https://doi.org/10.1109/TE.2023.3337337",
+    "dateOfInsertion": "21 December 2023",
+    "chorusPdfPath": "/ielaam/13/10547108/10367784-aam.pdf",
+    "isGetAddressInfoCaptured": false,
+    "isMarketingOptIn": false,
+    "pubTopics": [
+      {
+        "name": "General Topics for Engineers"
+      },
+      {
+        "name": "Engineering Profession"
+      }
+    ],
+    "publisher": "IEEE",
+    "displayDocTitle": "Cybersecurity Education in the Age of Artificial Intelligence: A Novel Proactive and Collaborative Learning Paradigm",
+    "isEarlyAccess": false,
+    "isOpenAccess": false,
+    "isEphemera": false,
+    "isConference": false,
+    "isBookWithoutChapters": false,
+    "isDynamicHtml": true,
+    "isTutorial": false,
+    "isJournal": true,
+    "isOnlineOnly": false,
+    "isChapter": false,
+    "isFreeDocument": false,
+    "isSpringer": false,
+    "xploreDocumentType": "Journals & Magazine",
+    "isPromo": false,
+    "volume": "67",
+    "issue": "3",
+    "isProduct": false,
+    "isStandard": false,
+    "isBook": false,
+    "isDegruyter": false,
+    "htmlLink": "/document/10367784/",
+    "isTranslation": false,
+    "isCustomDenial": false,
+    "isOUP": false,
+    "isNow": false,
+    "isSAE": false,
+    "htmlAbstractLink": "/document/10367784/",
+    "hasStandardVersions": false,
+    "isSMPTE": false,
+    "isLatestStandard": false,
+    "isGiveaway": false,
+    "persistentLink": "https://ieeexplore.ieee.org/servlet/opac?punumber=13",
+    "fundingAgencies": {
+      "fundingAgency": [
+        {
+          "fundingName": "U.S. National Science Foundation (NSF) Research",
+          "grantNumber": "2114974"
+        }
+      ]
+    },
+    "openAccessFlag": "F",
+    "insertDate": "21 December 2023",
+    "ephemeraFlag": "false",
+    "chorusFlag": "true",
+    "title": "Cybersecurity Education in the Age of Artificial Intelligence: A Novel Proactive and Collaborative Learning Paradigm",
+    "html_flag": "false",
+    "ml_html_flag": "true",
+    "sourcePdf": "te-weikocsis-3337337-x.pdf",
+    "mlTime": "PT0.051207S",
+    "xplore-pub-id": "13",
+    "sponsors": [
+      {
+        "name": "IEEE Education Society",
+        "url": "https://ieee-edusociety.org/"
+      }
+    ],
+    "isNumber": "10547108",
+    "rightsLinkFlag": "1",
+    "contentType": "periodicals",
+    "publicationNumber": "13",
+    "citationCount": "15",
+    "xplore-issue": "10547108",
+    "articleId": "10367784",
+    "contentTypeDisplay": "Journals",
+    "referenceCount": 52,
+    "subType": "IEEE Transaction",
+    "_value": "IEEE",
+    "lastupdate": "2026-09-05",
+    "doi": "10.1109/TE.2023.3337337"
+  },
+  "11229940": {
+    "userInfo": {
+      "institute": false,
+      "member": false,
+      "individual": false,
+      "guest": false,
+      "subscribedContent": false,
+      "fileCabinetContent": false,
+      "fileCabinetUser": false,
+      "dtrDeleteCookieOnLogout": false,
+      "institutionalFileCabinetUser": false,
+      "dtrCookieExpirationDays": 0,
+      "showPatentCitations": true,
+      "showGet802Link": false,
+      "showOpenUrlLink": false,
+      "tracked": false,
+      "institutionUserId": 0,
+      "delegatedAdmin": false,
+      "desktop": false,
+      "isInstitutionDashboardEnabled": false,
+      "isInstitutionProfileEnabled": false,
+      "isRoamingEnabled": false,
+      "isDelegatedAdmin": false,
+      "isMdl": false,
+      "isCwg": false,
+      "isIel": false,
+      "isAcademic": false,
+      "isReadAndPublish": false
+    },
+    "authors": [
+      {
+        "name": "Thushari Hapuarachchi",
+        "affiliation": [
+          "ICNS Laboratory and Cyber Florida, University of South Florida, Tampa, FL, USA"
+        ],
+        "ringgoldId": "7831",
+        "firstName": "Thushari",
+        "lastName": "Hapuarachchi",
+        "orcid": "0009-0001-0067-6997",
+        "id": "37089959831"
+      },
+      {
+        "name": "Mariyam Mapkar",
+        "affiliation": [
+          "CIS Department, Fordham University, New York, NY, USA"
+        ],
+        "ringgoldId": "5923",
+        "firstName": "Mariyam",
+        "lastName": "Mapkar",
+        "id": "248960032769447"
+      },
+      {
+        "name": "Mohamed Rahouti",
+        "affiliation": [
+          "CIS Department, Fordham University, New York, NY, USA"
+        ],
+        "ringgoldId": "5923",
+        "firstName": "Mohamed",
+        "lastName": "Rahouti",
+        "orcid": "0000-0001-9701-5505",
+        "id": "37086495680"
+      },
+      {
+        "name": "Kaiqi Xiong",
+        "affiliation": [
+          "ICNS Laboratory and Cyber Florida, University of South Florida, Tampa, FL, USA"
+        ],
+        "ringgoldId": "7831",
+        "firstName": "Kaiqi",
+        "lastName": "Xiong",
+        "orcid": "0000-0003-2933-8083",
+        "id": "37078078300"
+      },
+      {
+        "name": "John Craven",
+        "affiliation": [
+          "Graduate School of Education, Fordham University, New York, NY, USA"
+        ],
+        "ringgoldId": "217482",
+        "firstName": "John",
+        "lastName": "Craven",
+        "orcid": "0000-0003-3229-6953",
+        "id": "544127155565064"
+      }
+    ],
+    "issn": [
+      {
+        "format": "Print ISSN",
+        "value": "0018-9359"
+      },
+      {
+        "format": "Electronic ISSN",
+        "value": "1557-9638"
+      }
+    ],
+    "articleNumber": "11229940",
+    "mediaPath": "/mediastore/IEEE/content/media/13/11273025/11229940",
+    "getProgramTermsAccepted": false,
+    "sections": {
+      "abstract": "true",
+      "authors": "true",
+      "disclaimer": "false",
+      "figures": "true",
+      "multimedia": "false",
+      "references": "true",
+      "citedby": "true",
+      "keywords": "true",
+      "definitions": "false",
+      "algorithm": "false",
+      "dataset": "false",
+      "cadmore": "false",
+      "footnotes": "true",
+      "relatedContent": "false"
+    },
+    "abstract": "The escalating prevalence of cybersecurity threats, coupled with the growing significance of blockchain technology, necessitates advanced practical training in undergraduate computer science and engineering curricula. However, traditional educational approaches often fall short in providing realistic, scalable, and collaborative learning environments. Addressing this gap, this study proposes an innovative educational framework integrating hands-on cybersecurity and blockchain experiences using large-scale cyber infrastructure (CI), specifically leveraging the FABRIC testbed. Key elements of the proposed methodology include open-ended problem-solving, evidence-based learning, flexible and collaborative laboratory experiments, and structured reflective practices. Evaluation results from comprehensive student surveys indicate that this approach significantly enhances students’ practical skills, theoretical understanding, and adaptability. The study demonstrates that incorporating real-world CI resources within STEM education not only prepares students to navigate complex professional challenges but also fosters deeper engagement and effective learning in rapidly evolving fields.",
+    "publicationDate": "December 2025",
+    "pdfPath": "/iel8/13/11273025/11229940.pdf",
+    "publicationYear": "2025",
+    "publicationTitle": "IEEE Transactions on Education",
+    "displayPublicationTitle": "IEEE Transactions on Education",
+    "pdfUrl": "/stamp/stamp.jsp?tp=&arnumber=11229940",
+    "startPage": "543",
+    "endPage": "552",
+    "formulaStrippedArticleTitle": "Blockchain Integration for Practical Cybersecurity Education With Scalable Cyber Infrastructure",
+    "keywords": [
+      {
+        "type": "IEEE Keywords",
+        "kwd": [
+          "Computer security",
+          "Blockchains",
+          "Fabrics",
+          "Education",
+          "Collaboration",
+          "Laboratories",
+          "Training",
+          "Creativity",
+          "Containers",
+          "Virtual machines"
+        ]
+      },
+      {
+        "type": "Index Terms",
+        "kwd": [
+          "Scalable",
+          "Learning Experiences",
+          "Laboratory Experiments",
+          "Learning Environment",
+          "Practical Skills",
+          "Reflective Practice",
+          "Pedagogical Framework",
+          "STEM Education",
+          "Critical Thinking",
+          "Level Of Knowledge",
+          "Personal Development",
+          "Knowledge In The Field",
+          "Student Engagement",
+          "Virtual Machines",
+          "Local Computing",
+          "Hands-on Experience",
+          "Peer Feedback",
+          "Smart Contracts",
+          "Traditional Laboratory",
+          "Advanced Topics",
+          "Effectiveness Of Educational Interventions",
+          "Blockchain Network",
+          "Hands-on Approach",
+          "Docker Container",
+          "Foster Creativity",
+          "Consensus Mechanism",
+          "Flexible Environment"
+        ]
+      },
+      {
+        "type": "Author Keywords",
+        "kwd": [
+          "Blockchain",
+          "cyber infrastructure (CI)",
+          "cybersecurity",
+          "FABRIC",
+          "hands-on learning",
+          "STEM"
+        ]
+      }
+    ],
+    "allowComments": false,
+    "authorNames": "Thushari Hapuarachchi;Mariyam Mapkar;Mohamed Rahouti;Kaiqi Xiong;John Craven",
+    "issueLink": "/xpl/tocresult.jsp?isnumber=11273025&punumber=13",
+    "pubLink": "/xpl/RecentIssue.jsp?punumber=13",
+    "articleCopyRight": "2025 IEEE",
+    "rightsLink": "http://s100.copyright.com/AppDispatchServlet?publisherName=ieee&publication=13&title=Blockchain+Integration+for+Practical+Cybersecurity+Education+With+Scalable+Cyber+Infrastructure&isbn=&publicationDate=December+2025&author=Thushari+Hapuarachchi&ContentID=10.1109/TE.2025.3626489&orderBeanReset=true&startPage=543&endPage=552&volumeNum=68&issueNum=6",
+    "displayPublicationDate": "05 November 2025",
+    "doiLink": "https://doi.org/10.1109/TE.2025.3626489",
+    "dateOfInsertion": "05 November 2025",
+    "isGetAddressInfoCaptured": false,
+    "isMarketingOptIn": false,
+    "pubTopics": [
+      {
+        "name": "General Topics for Engineers"
+      },
+      {
+        "name": "Engineering Profession"
+      }
+    ],
+    "publisher": "IEEE",
+    "displayDocTitle": "Blockchain Integration for Practical Cybersecurity Education With Scalable Cyber Infrastructure",
+    "isEarlyAccess": false,
+    "isOpenAccess": false,
+    "isEphemera": false,
+    "isConference": false,
+    "isBookWithoutChapters": false,
+    "isDynamicHtml": true,
+    "isTutorial": false,
+    "isJournal": true,
+    "isOnlineOnly": false,
+    "isChapter": false,
+    "isFreeDocument": false,
+    "isSpringer": false,
+    "xploreDocumentType": "Journals & Magazine",
+    "isPromo": false,
+    "volume": "68",
+    "issue": "6",
+    "isProduct": false,
+    "isStandard": false,
+    "isBook": false,
+    "isDegruyter": false,
+    "htmlLink": "/document/11229940/",
+    "isTranslation": false,
+    "isCustomDenial": false,
+    "isOUP": false,
+    "isNow": false,
+    "isSAE": false,
+    "htmlAbstractLink": "/document/11229940/",
+    "hasStandardVersions": false,
+    "isSMPTE": false,
+    "isLatestStandard": false,
+    "isGiveaway": false,
+    "persistentLink": "https://ieeexplore.ieee.org/servlet/opac?punumber=13",
+    "fundingAgencies": {
+      "fundingAgency": [
+        {
+          "fundingId": "10.13039/100000001",
+          "fundingName": "National Science Foundation (NSF)",
+          "grantNumber": "2236280, 1633978, 1620871, 1620862 and 1636622"
+        },
+        {
+          "fundingName": "BBN/GPO Project 1936 through an NSF/CNS Grant"
+        },
+        {
+          "fundingName": "Florida Center for Cybersecurity (Cyber Florida) through a Seed Grant"
+        }
+      ]
+    },
+    "openAccessFlag": "F",
+    "insertDate": "05 November 2025",
+    "ephemeraFlag": "false",
+    "title": "Blockchain Integration for Practical Cybersecurity Education With Scalable Cyber Infrastructure",
+    "html_flag": "false",
+    "ml_html_flag": "true",
+    "sourcePdf": "te-rahouti-3626489-x.pdf",
+    "mlTime": "PT0.045152S",
+    "xplore-pub-id": "13",
+    "sponsors": [
+      {
+        "name": "IEEE Education Society",
+        "url": "https://ieee-edusociety.org/"
+      }
+    ],
+    "isNumber": "11273025",
+    "rightsLinkFlag": "1",
+    "contentType": "periodicals",
+    "publicationNumber": "13",
+    "citationCount": "1",
+    "xplore-issue": "11273025",
+    "articleId": "11229940",
+    "contentTypeDisplay": "Journals",
+    "referenceCount": 23,
+    "subType": "IEEE Transaction",
+    "_value": "IEEE",
+    "lastupdate": "2026-09-06",
+    "doi": "10.1109/TE.2025.3626489"
+  },
+  "10022010": {
+    "userInfo": {
+      "institute": false,
+      "member": false,
+      "individual": false,
+      "guest": false,
+      "subscribedContent": false,
+      "fileCabinetContent": false,
+      "fileCabinetUser": false,
+      "dtrDeleteCookieOnLogout": false,
+      "institutionalFileCabinetUser": false,
+      "dtrCookieExpirationDays": 0,
+      "showPatentCitations": true,
+      "showGet802Link": false,
+      "showOpenUrlLink": false,
+      "tracked": false,
+      "institutionUserId": 0,
+      "delegatedAdmin": false,
+      "desktop": false,
+      "isInstitutionDashboardEnabled": false,
+      "isInstitutionProfileEnabled": false,
+      "isRoamingEnabled": false,
+      "isDelegatedAdmin": false,
+      "isMdl": false,
+      "isCwg": false,
+      "isIel": false,
+      "isAcademic": false,
+      "isReadAndPublish": false
+    },
+    "authors": [
+      {
+        "name": "Rahime Belen Sağlam",
+        "affiliation": [
+          "Institute of Cyber Security for Society, School of Computing, University of Kent, Canterbury, U.K"
+        ],
+        "bio": {
+          "p": [
+            "Rahime Belen Sağlam received the M.Sc. and Ph.D. degrees in information systems from Middle East Technical University, Ankara, Turkey, in 2009 and 2014, respectively.",
+            "She worked as a Research Associate of Cyber Security with the Institute of Cyber Security for Society and the School of Computing, University of Kent, Canterbury, U.K. She has studies in text mining, information retrieval, and application of machine learning techniques in different domains. Her research includes data privacy, personal information disclosure, and the GDPR compliance of different technologies. Her recent research interests also include cyber security education amongst young people and protection against online harm for children and women."
+          ]
+        },
+        "ringgoldId": "152170",
+        "firstName": "Rahime Belen",
+        "lastName": "Sağlam",
+        "orcid": "0000-0002-6969-6451",
+        "id": "37086543116"
+      },
+      {
+        "name": "Vincent Miller",
+        "affiliation": [
+          "School of Social Policy, Sociology and Social Research, University of Kent, Canterbury, U.K"
+        ],
+        "bio": {
+          "p": [
+            "Vincent Miller received the M.A. degree in geography from the University of Alberta, Edmonton, Canada, in 1994, and the Ph.D. degree in sociology from Lancaster University, Bailrigg, U.K., in 2001.",
+            "He is a Reader of Sociology and Cultural Studies with the School of Social Policy, Sociology and Social Research, University of Kent, Canterbury, U.K. His research interests include digital culture, critical studies of social media, and interpersonal relationships in online environments and he has authored several books and articles on these topics."
+          ]
+        },
+        "ringgoldId": "152106",
+        "firstName": "Vincent",
+        "lastName": "Miller",
+        "id": "37089649056"
+      },
+      {
+        "name": "Virginia N. L. Franqueira",
+        "affiliation": [
+          "Institute of Cyber Security for Society, School of Computing, University of Kent, Canterbury, U.K"
+        ],
+        "bio": {
+          "p": [
+            "Virginia N. L. Franqueira received the M.Sc. degree in computer science from the Federal University of Espirito Santo, Vitória, Brazil, in 2003, and the Ph.D. degree in computer science from the University of Twente, Enschede, The Netherlands, in 2009.",
+            "She is an Assistant Professor of Cyber Security with the Institute of Cyber Security for Society and the School of Computing, University of Kent, Canterbury, U.K. Her research interests include digital forensics, studies related to cybercrime in the context of interpersonal crimes (e.g., cyberstalking, child sexual abuse and exploitation, and domestic abuse), connected vehicles, critical infrastructure security, and cyber security education for children and protecting them against online harm.",
+            "Dr. Franqueira is a Fellow of The Higher Education Academy, U.K."
+          ]
+        },
+        "ringgoldId": "152170",
+        "firstName": "Virginia N. L.",
+        "lastName": "Franqueira",
+        "orcid": "0000-0003-1332-9115",
+        "id": "37317970600"
+      }
+    ],
+    "issn": [
+      {
+        "format": "Print ISSN",
+        "value": "0018-9359"
+      },
+      {
+        "format": "Electronic ISSN",
+        "value": "1557-9638"
+      }
+    ],
+    "articleNumber": "10022010",
+    "mediaPath": "/mediastore/IEEE/content/media/13/10142034/10022010",
+    "getProgramTermsAccepted": false,
+    "sections": {
+      "abstract": "true",
+      "authors": "true",
+      "disclaimer": "false",
+      "figures": "true",
+      "multimedia": "false",
+      "references": "true",
+      "citedby": "true",
+      "keywords": "true",
+      "definitions": "false",
+      "algorithm": "false",
+      "dataset": "false",
+      "cadmore": "false",
+      "footnotes": "true",
+      "relatedContent": "false"
+    },
+    "abstract": "<italic xmlns:mml=\"http://www.w3.org/1998/Math/MathML\" xmlns:xlink=\"http://www.w3.org/1999/xlink\">Contribution:</i> This article presents a systematic literature review of research concerning cyber security education for children (under 18s) on a global scale. <italic xmlns:mml=\"http://www.w3.org/1998/Math/MathML\" xmlns:xlink=\"http://www.w3.org/1999/xlink\">Background:</i> While the Internet brings great convenience to children, it can potentially cause harms due to lack of knowledge about online risks. <italic xmlns:mml=\"http://www.w3.org/1998/Math/MathML\" xmlns:xlink=\"http://www.w3.org/1999/xlink\">Research Questions:</i> 1. What cyber security skills are taught to children worldwide? 2. What are key strategies/methods for cyber security education? 3. What stakeholders are regarded as responsible for cyber security education of children? <italic xmlns:mml=\"http://www.w3.org/1998/Math/MathML\" xmlns:xlink=\"http://www.w3.org/1999/xlink\">Methodology:</i> Using the PRISMA protocol for literature search, 412 papers published between January 2015 and June 2021 were retrieved and 44 were identified for thematic analysis. <italic xmlns:mml=\"http://www.w3.org/1998/Math/MathML\" xmlns:xlink=\"http://www.w3.org/1999/xlink\">Findings:</i> The content considered for cyber security education varies greatly between nations, being therefore inconsistent and filled with gaps. This article suggests curriculum content framed around six broad categories of cyber security awareness for educators and policy makers to follow, and further recommends that curriculum should be influenced not only by expert advice, but also through a “bottom-up” approach listening to children’s voice to adequately gauge the level of Internet engagement and their activities. This article finds that innovative teaching methods (e.g., gamification) are claimed to provide “hands on” and “real life” experiences that greatly enhance traditional classroom teaching (e.g., mentoring), but existing literature lacks evaluation of comparative effectiveness. Finally, this article finds that the primary provider for cyber security education, from the sample analyzed, is regarded as schoolteachers, supported by parents and by a formal curriculum resourced adequately by governments.",
+    "publicationDate": "June 2023",
+    "publicationYear": "2023",
+    "pdfPath": "/iel7/13/10142034/10022010.pdf",
+    "publicationTitle": "IEEE Transactions on Education",
+    "pdfUrl": "/stamp/stamp.jsp?tp=&arnumber=10022010",
+    "startPage": "274",
+    "endPage": "286",
+    "displayPublicationTitle": "IEEE Transactions on Education",
+    "keywords": [
+      {
+        "type": "IEEE Keywords",
+        "kwd": [
+          "Computer crime",
+          "Education",
+          "Security",
+          "Safety",
+          "Internet",
+          "Systematics",
+          "Protocols"
+        ]
+      },
+      {
+        "type": "Index Terms",
+        "kwd": [
+          "Systematic Review",
+          "Security Education",
+          "School Education",
+          "Thematic Analysis",
+          "Gamification",
+          "Online Risk",
+          "Information And Communication Technologies",
+          "High School Students",
+          "Top-down Approach",
+          "Bottom-up Approach",
+          "Cyberbullying",
+          "Denial Of Service",
+          "Ethical Behavior",
+          "Massive Open Online Courses",
+          "Serious Games",
+          "Safety Education",
+          "Online Safety",
+          "Computer-based Approaches",
+          "Distributed Denial Of Service",
+          "Sexting",
+          "Phishing",
+          "Digital Storytelling",
+          "Online Privacy",
+          "Online Identity",
+          "Nature Of The Internet",
+          "Malware",
+          "Identity Theft"
+        ]
+      },
+      {
+        "type": "Author Keywords",
+        "kwd": [
+          "Children",
+          "cyber security",
+          "education",
+          "online safety",
+          "PRISMA",
+          "school",
+          "skills",
+          "systematic literature review (SLR)",
+          "teaching"
+        ]
+      }
+    ],
+    "articleCopyRight": "2023 IEEE",
+    "authorNames": "Rahime Belen Sağlam;Vincent Miller;Virginia N. L. Franqueira",
+    "pubLink": "/xpl/RecentIssue.jsp?punumber=13",
+    "displayPublicationDate": "19 January 2023",
+    "dateOfInsertion": "19 January 2023",
+    "rightsLink": "http://s100.copyright.com/AppDispatchServlet?publisherName=ieee&publication=13&title=A+Systematic+Literature+Review+on+Cyber+Security+Education+for+Children&isbn=&publicationDate=June+2023&author=Rahime+Belen+Sa%C4%9Flam&ContentID=10.1109/TE.2022.3231019&orderBeanReset=true&startPage=274&endPage=286&volumeNum=66&issueNum=3",
+    "allowComments": false,
+    "issueLink": "/xpl/tocresult.jsp?isnumber=10142034&punumber=13",
+    "doiLink": "https://doi.org/10.1109/TE.2022.3231019",
+    "formulaStrippedArticleTitle": "A Systematic Literature Review on Cyber Security Education for Children",
+    "isGetAddressInfoCaptured": false,
+    "isMarketingOptIn": false,
+    "pubTopics": [
+      {
+        "name": "General Topics for Engineers"
+      },
+      {
+        "name": "Engineering Profession"
+      }
+    ],
+    "publisher": "IEEE",
+    "isDynamicHtml": true,
+    "displayDocTitle": "A Systematic Literature Review on Cyber Security Education for Children",
+    "volume": "66",
+    "isFreeDocument": false,
+    "isStandard": false,
+    "isTutorial": false,
+    "isProduct": false,
+    "isJournal": true,
+    "issue": "3",
+    "isEarlyAccess": false,
+    "isOpenAccess": false,
+    "isEphemera": false,
+    "isConference": false,
+    "isBookWithoutChapters": false,
+    "xploreDocumentType": "Journals & Magazine",
+    "isBook": false,
+    "isOnlineOnly": false,
+    "isSpringer": false,
+    "isChapter": false,
+    "isPromo": false,
+    "isLatestStandard": false,
+    "hasStandardVersions": false,
+    "isGiveaway": false,
+    "isTranslation": false,
+    "htmlLink": "/document/10022010/",
+    "htmlAbstractLink": "/document/10022010/",
+    "isOUP": false,
+    "isSAE": false,
+    "isNow": false,
+    "isSMPTE": false,
+    "persistentLink": "https://ieeexplore.ieee.org/servlet/opac?punumber=13",
+    "isCustomDenial": false,
+    "isDegruyter": false,
+    "fundingAgencies": {
+      "fundingAgency": [
+        {
+          "fundingName": "Global Forum on Cyber Expertise (GFCE)"
+        }
+      ]
+    },
+    "openAccessFlag": "F",
+    "insertDate": "19 January 2023",
+    "ephemeraFlag": "false",
+    "title": "A Systematic Literature Review on Cyber Security Education for Children",
+    "html_flag": "false",
+    "ml_html_flag": "true",
+    "sourcePdf": "te-franqueira-3231019-x.pdf",
+    "mlTime": "PT0.088541S",
+    "xplore-pub-id": "13",
+    "sponsors": [
+      {
+        "name": "IEEE Education Society",
+        "url": "https://ieee-edusociety.org/"
+      }
+    ],
+    "isNumber": "10142034",
+    "rightsLinkFlag": "1",
+    "contentType": "periodicals",
+    "publicationNumber": "13",
+    "citationCount": "51",
+    "xplore-issue": "10142034",
+    "articleId": "10022010",
+    "contentTypeDisplay": "Journals",
+    "referenceCount": 51,
+    "subType": "IEEE Transaction",
+    "_value": "IEEE",
+    "lastupdate": "2026-09-05",
+    "doi": "10.1109/TE.2022.3231019"
+  },
+  "11372737": {
+    "userInfo": {
+      "institute": false,
+      "member": false,
+      "individual": false,
+      "guest": false,
+      "subscribedContent": false,
+      "fileCabinetContent": false,
+      "fileCabinetUser": false,
+      "dtrDeleteCookieOnLogout": false,
+      "institutionalFileCabinetUser": false,
+      "dtrCookieExpirationDays": 0,
+      "showPatentCitations": true,
+      "showGet802Link": false,
+      "showOpenUrlLink": false,
+      "tracked": false,
+      "institutionUserId": 0,
+      "delegatedAdmin": false,
+      "desktop": false,
+      "isInstitutionDashboardEnabled": false,
+      "isInstitutionProfileEnabled": false,
+      "isRoamingEnabled": false,
+      "isDelegatedAdmin": false,
+      "isMdl": false,
+      "isCwg": false,
+      "isReadAndPublish": false,
+      "isAcademic": false,
+      "isIel": false
+    },
+    "authors": [
+      {
+        "name": "Richard Owoputi",
+        "affiliation": [
+          "Volvo Car USA, Sunnyvale, CA, USA"
+        ],
+        "firstName": "Richard",
+        "lastName": "Owoputi",
+        "orcid": "0000-0001-9874-0848",
+        "id": "37089615878"
+      },
+      {
+        "name": "Aidan Kwok",
+        "affiliation": [
+          "Colby College, Waterville, ME, USA"
+        ],
+        "ringgoldId": "8439",
+        "firstName": "Aidan",
+        "lastName": "Kwok",
+        "id": "639096641700098"
+      },
+      {
+        "name": "Zifeng Liu",
+        "affiliation": [
+          "School of Teaching and Learning, University of Florida, Gainesville, FL, USA"
+        ],
+        "ringgoldId": "3463",
+        "firstName": "Zifeng",
+        "lastName": "Liu",
+        "orcid": "0009-0005-5833-2141",
+        "id": "37089483613"
+      },
+      {
+        "name": "Wangda Zhu",
+        "affiliation": [
+          "School of Teaching and Learning, University of Florida, Gainesville, FL, USA"
+        ],
+        "ringgoldId": "3463",
+        "firstName": "Wangda",
+        "lastName": "Zhu",
+        "id": "568546882664890"
+      },
+      {
+        "name": "Wanli Xing",
+        "affiliation": [
+          "School of Teaching and Learning, University of Florida, Gainesville, FL, USA"
+        ],
+        "ringgoldId": "3463",
+        "firstName": "Wanli",
+        "lastName": "Xing",
+        "orcid": "0000-0002-1446-889X",
+        "id": "37088999328"
+      },
+      {
+        "name": "Sandip Ray",
+        "affiliation": [
+          "Department of Electrical and Computer Engineering, University of Florida, Gainesville, FL, USA"
+        ],
+        "ringgoldId": "3463",
+        "firstName": "Sandip",
+        "lastName": "Ray",
+        "orcid": "0000-0002-8671-5052",
+        "id": "37306587700"
+      }
+    ],
+    "issn": [
+      {
+        "format": "Print ISSN",
+        "value": "0018-9359"
+      },
+      {
+        "format": "Electronic ISSN",
+        "value": "1557-9638"
+      }
+    ],
+    "articleNumber": "11372737",
+    "mediaPath": "/mediastore/IEEE/content/media/13/11477826/11372737",
+    "getProgramTermsAccepted": false,
+    "sections": {
+      "abstract": "true",
+      "authors": "true",
+      "disclaimer": "false",
+      "figures": "true",
+      "multimedia": "false",
+      "references": "true",
+      "citedby": "false",
+      "keywords": "true",
+      "definitions": "false",
+      "algorithm": "false",
+      "dataset": "false",
+      "cadmore": "false",
+      "footnotes": "false",
+      "relatedContent": "false"
+    },
+    "displayPublicationTitle": "IEEE Transactions on Education",
+    "abstract": "As automotive systems increasingly incorporate electronics, software, and sensors, they become complex and widely distributed cyber-physical systems. This complexity makes them more susceptible to cyber-attacks. Nevertheless, despite its great need, the cybersecurity of automotive systems needs to be better understood, even by key stakeholders. This article presents an immersive virtual environment (IVE) platform that enhances the understanding of cybersecurity in automotive systems, focusing on ranging sensor attacks. By utilizing virtual reality (VR), the platform provides a hands-on experience for users to explore and comprehend cyber-attack implications. User studies were conducted to evaluate the effectiveness of the platform, revealing statistically significant improvements in participants’ knowledge, engagement, and self-efficacy related to automotive security. The findings underscore the potential of immersive learning tools in automotive security education, with IVE demonstrating a substantial impact on participants’ comprehension and interest in automotive security.",
+    "publicationDate": "April 2026",
+    "publicationYear": "2026",
+    "pdfPath": "/iel8/13/11477826/11372737.pdf",
+    "pdfUrl": "/stamp/stamp.jsp?tp=&arnumber=11372737",
+    "publicationTitle": "IEEE Transactions on Education",
+    "startPage": "86",
+    "endPage": "101",
+    "formulaStrippedArticleTitle": "Immersive Virtual Environment for Automotive Security Education",
+    "keywords": [
+      {
+        "type": "IEEE Keywords",
+        "kwd": [
+          "Sensors",
+          "Automotive engineering",
+          "Distance measurement",
+          "Training",
+          "Safety",
+          "Autonomous vehicles",
+          "Acoustics",
+          "Jamming",
+          "Computer hacking",
+          "Immersive learning"
+        ]
+      },
+      {
+        "type": "Index Terms",
+        "kwd": [
+          "Security Education",
+          "Automotive Security",
+          "User Study",
+          "Range Of Sensors",
+          "Hands-on Experience",
+          "Immersive Environment",
+          "Automotive Systems",
+          "Immersive Learning",
+          "Curiosity",
+          "Locus Of Control",
+          "Human-computer Interaction",
+          "Autonomous Vehicles",
+          "Electrical Engineering",
+          "User Engagement",
+          "Interest In Learning",
+          "Changes In Students",
+          "Virtual Reality Technology",
+          "Immersive Virtual Reality",
+          "Learning Attitude",
+          "Ultrasonic Sensors",
+          "Attack Scenarios",
+          "Jamming Attacks",
+          "Understanding Of Security",
+          "Spoofing Attacks",
+          "Self-reported Survey Data",
+          "Virtual Reality Devices",
+          "Stop Sign",
+          "User Reactions",
+          "Virtual Reality Experience",
+          "Obstacle Avoidance"
+        ]
+      },
+      {
+        "type": "Author Keywords",
+        "kwd": [
+          "Automotive security",
+          "cyber-attacks",
+          "immersive learning",
+          "virtual reality (VR)"
+        ]
+      }
+    ],
+    "allowComments": false,
+    "pubLink": "/xpl/RecentIssue.jsp?punumber=13",
+    "doiLink": "https://doi.org/10.1109/TE.2026.3654077",
+    "authorNames": "Richard Owoputi;Aidan Kwok;Zifeng Liu;Wangda Zhu;Wanli Xing;Sandip Ray",
+    "dateOfInsertion": "06 February 2026",
+    "articleCopyRight": "2026 IEEE",
+    "rightsLink": "http://s100.copyright.com/AppDispatchServlet?publisherName=ieee&publication=13&title=Immersive+Virtual+Environment+for+Automotive+Security+Education&isbn=&publicationDate=April+2026&author=Richard+Owoputi&ContentID=10.1109/TE.2026.3654077&orderBeanReset=true&startPage=86&endPage=101&volumeNum=69&issueNum=2",
+    "displayPublicationDate": "06 February 2026",
+    "issueLink": "/xpl/tocresult.jsp?isnumber=11477826&punumber=13",
+    "isGetAddressInfoCaptured": false,
+    "isMarketingOptIn": false,
+    "pubTopics": [
+      {
+        "name": "General Topics for Engineers"
+      },
+      {
+        "name": "Engineering Profession"
+      }
+    ],
+    "publisher": "IEEE",
+    "isOpenAccess": false,
+    "isEphemera": false,
+    "isConference": false,
+    "xploreDocumentType": "Journals & Magazine",
+    "isBook": false,
+    "isTutorial": false,
+    "isPromo": false,
+    "volume": "69",
+    "issue": "2",
+    "isFreeDocument": false,
+    "isBookWithoutChapters": false,
+    "isDynamicHtml": true,
+    "isSpringer": false,
+    "isJournal": true,
+    "isStandard": false,
+    "isOnlineOnly": false,
+    "isProduct": false,
+    "isEarlyAccess": false,
+    "isChapter": false,
+    "htmlLink": "/document/11372737/",
+    "isCustomDenial": false,
+    "isGiveaway": false,
+    "htmlAbstractLink": "/document/11372737/",
+    "isSMPTE": false,
+    "isLatestStandard": false,
+    "isNow": false,
+    "isTranslation": false,
+    "isSAE": false,
+    "isOUP": false,
+    "isDegruyter": false,
+    "persistentLink": "https://ieeexplore.ieee.org/servlet/opac?punumber=13",
+    "hasStandardVersions": false,
+    "displayDocTitle": "Immersive Virtual Environment for Automotive Security Education",
+    "fundingAgencies": {
+      "fundingAgency": [
+        {
+          "fundingId": "10.13039/100000001",
+          "fundingName": "National Science Foundation",
+          "grantNumber": "SATC-2221900 and REU-2150136"
+        }
+      ]
+    },
+    "openAccessFlag": "F",
+    "insertDate": "06 February 2026",
+    "ephemeraFlag": "false",
+    "title": "Immersive Virtual Environment for Automotive Security Education",
+    "html_flag": "false",
+    "ml_html_flag": "true",
+    "sourcePdf": "te-owoputi-3654077-x.pdf",
+    "mlTime": "PT0.158554S",
+    "xplore-pub-id": "13",
+    "sponsors": [
+      {
+        "name": "IEEE Education Society",
+        "url": "https://ieee-edusociety.org/"
+      }
+    ],
+    "isNumber": "11477826",
+    "rightsLinkFlag": "1",
+    "contentType": "periodicals",
+    "publicationNumber": "13",
+    "xplore-issue": "11477826",
+    "articleId": "11372737",
+    "contentTypeDisplay": "Journals",
+    "referenceCount": 75,
+    "subType": "IEEE Transaction",
+    "_value": "IEEE",
+    "lastupdate": "2026-09-06",
+    "doi": "10.1109/TE.2026.3654077"
+  },
+  "9452797": {
+    "userInfo": {
+      "institute": false,
+      "member": false,
+      "individual": false,
+      "guest": false,
+      "subscribedContent": false,
+      "fileCabinetContent": false,
+      "fileCabinetUser": false,
+      "dtrDeleteCookieOnLogout": false,
+      "institutionalFileCabinetUser": false,
+      "dtrCookieExpirationDays": 0,
+      "showPatentCitations": true,
+      "showGet802Link": false,
+      "showOpenUrlLink": false,
+      "tracked": false,
+      "institutionUserId": 0,
+      "desktop": false,
+      "delegatedAdmin": false,
+      "isInstitutionDashboardEnabled": false,
+      "isInstitutionProfileEnabled": false,
+      "isRoamingEnabled": false,
+      "isDelegatedAdmin": false,
+      "isMdl": false,
+      "isCwg": false,
+      "isReadAndPublish": false,
+      "isIel": false,
+      "isAcademic": false
+    },
+    "authors": [
+      {
+        "name": "Michael D. Workman",
+        "affiliation": [
+          "Department of Technology Management, Texas A&M University, College Station, TX, USA"
+        ],
+        "ringgoldId": "14736",
+        "firstName": "Michael D.",
+        "lastName": "Workman",
+        "orcid": "0000-0003-3151-3143",
+        "id": "37089279439"
+      },
+      {
+        "name": "J. Anthony Luévanos",
+        "affiliation": [
+          "Department of Technology Management, Texas A&M University, College Station, TX, USA"
+        ],
+        "ringgoldId": "14736",
+        "firstName": "J. Anthony",
+        "lastName": "Luévanos",
+        "id": "37089278131"
+      },
+      {
+        "name": "Bin Mai",
+        "affiliation": [
+          "Department of Technology Management, Texas A&M University, College Station, TX, USA"
+        ],
+        "ringgoldId": "14736",
+        "firstName": "Bin",
+        "lastName": "Mai",
+        "orcid": "0000-0002-2392-1502",
+        "id": "37089280494"
+      }
+    ],
+    "issn": [
+      {
+        "format": "Print ISSN",
+        "value": "0018-9359"
+      },
+      {
+        "format": "Electronic ISSN",
+        "value": "1557-9638"
+      }
+    ],
+    "articleNumber": "9452797",
+    "mediaPath": "/mediastore/IEEE/content/media/13/9701848/9452797",
+    "getProgramTermsAccepted": false,
+    "sections": {
+      "abstract": "true",
+      "authors": "true",
+      "disclaimer": "false",
+      "figures": "false",
+      "multimedia": "false",
+      "references": "true",
+      "citedby": "true",
+      "keywords": "true",
+      "definitions": "false",
+      "algorithm": "false",
+      "dataset": "false",
+      "cadmore": "false",
+      "footnotes": "true",
+      "relatedContent": "false"
+    },
+    "abstract": "<italic xmlns:mml=\"http://www.w3.org/1998/Math/MathML\" xmlns:xlink=\"http://www.w3.org/1999/xlink\">Contribution:</i> Based on a previous exploratory study, this research further investigated learning mode contributions from simulations and live competitive activities compared to a traditional classroom, laboratory, and testing approach to instruction in order to assess the applied behavioral contributions of each. <italic xmlns:mml=\"http://www.w3.org/1998/Math/MathML\" xmlns:xlink=\"http://www.w3.org/1999/xlink\">Background:</i> Cybersecurity capabilities in organizations lag behind the threats; consequently, there is a renewed emphasis on cybersecurity education. However, education appears to lack its full potential in most settings. Few empirical studies have systematically tested the efficacy of various training methods and modes, and those that have been conducted have yielded inconsistent findings. Recent literature on the use of gamified simulations have suggested that they may improve cybersecurity behaviors. Similarly, live activities, such as hackathons and capture the flag events, have been surmised to augment learning and capabilities. This study sought to systematically investigate this question. <italic xmlns:mml=\"http://www.w3.org/1998/Math/MathML\" xmlns:xlink=\"http://www.w3.org/1999/xlink\">Research Questions:</i> 1) Do cybersecurity simulations improve applied learning performance; 2) do live competitive activities improve applied learning performance; and 3) do any or each of these modes amplify applied learning performance when used in combination? <italic xmlns:mml=\"http://www.w3.org/1998/Math/MathML\" xmlns:xlink=\"http://www.w3.org/1999/xlink\">Methodology:</i> This study randomly assigned computer science students to one of four sections using different modalities. It used pretest scores on an applied exam as the co-variate, with post-test scores as the dependent variable. <italic xmlns:mml=\"http://www.w3.org/1998/Math/MathML\" xmlns:xlink=\"http://www.w3.org/1999/xlink\">Results:</i> Simulations improved learning performance over traditional classroom/lab instruction alone whereas live competitive activities did not. However, the greatest learning outcomes achieved was structured cybersecurity simulated environments combined with live competitive activities.",
+    "publicationDate": "February 2022",
+    "publicationYear": "2022",
+    "pdfPath": "/iel7/13/9701848/09452797.pdf",
+    "formulaStrippedArticleTitle": "A Study of Cybersecurity Education Using a Present-Test-Practice-Assess Model",
+    "displayPublicationTitle": "IEEE Transactions on Education",
+    "pdfUrl": "/stamp/stamp.jsp?tp=&arnumber=9452797",
+    "publicationTitle": "IEEE Transactions on Education",
+    "startPage": "40",
+    "endPage": "45",
+    "keywords": [
+      {
+        "type": "IEEE Keywords",
+        "kwd": [
+          "Computer security",
+          "Training",
+          "Education",
+          "Analytical models",
+          "Games",
+          "Best practices",
+          "Testing"
+        ]
+      },
+      {
+        "type": "Index Terms",
+        "kwd": [
+          "Learning Outcomes",
+          "Life Activities",
+          "Gamification",
+          "Training Modalities",
+          "Pre-test Scores",
+          "Laboratory Approaches",
+          "Behavior Change",
+          "Best Practices",
+          "Teaching Mode",
+          "Multivariate Analysis Of Covariance",
+          "Procedural Knowledge",
+          "Amazon Web Services",
+          "Intrusion Detection System",
+          "Cyberinfrastructure"
+        ]
+      },
+      {
+        "type": "Author Keywords",
+        "kwd": [
+          "Cybersecurity education",
+          "cybersecurity training",
+          "hackathons",
+          "training simulations"
+        ]
+      }
+    ],
+    "authorNames": "Michael D. Workman;J. Anthony Luévanos;Bin Mai",
+    "allowComments": false,
+    "issueLink": "/xpl/tocresult.jsp?isnumber=9701848&punumber=13",
+    "pubLink": "/xpl/RecentIssue.jsp?punumber=13",
+    "articleCopyRight": "2021 IEEE",
+    "rightsLink": "http://s100.copyright.com/AppDispatchServlet?publisherName=ieee&publication=13&title=A+Study+of+Cybersecurity+Education+Using+a+Present-Test-Practice-Assess+Model&isbn=&publicationDate=February+2022&author=Michael+D.+Workman&ContentID=10.1109/TE.2021.3086025&orderBeanReset=true&startPage=40&endPage=45&volumeNum=65&issueNum=1",
+    "displayPublicationDate": "11 June 2021",
+    "dateOfInsertion": "11 June 2021",
+    "doiLink": "https://doi.org/10.1109/TE.2021.3086025",
+    "isGetAddressInfoCaptured": false,
+    "isMarketingOptIn": false,
+    "pubTopics": [
+      {
+        "name": "General Topics for Engineers"
+      },
+      {
+        "name": "Engineering Profession"
+      }
+    ],
+    "publisher": "IEEE",
+    "displayDocTitle": "A Study of Cybersecurity Education Using a Present-Test-Practice-Assess Model",
+    "isProduct": false,
+    "isJournal": true,
+    "isDynamicHtml": true,
+    "isBookWithoutChapters": false,
+    "xploreDocumentType": "Journals & Magazine",
+    "isTutorial": false,
+    "isBook": false,
+    "volume": "65",
+    "issue": "1",
+    "isChapter": false,
+    "isEarlyAccess": false,
+    "isOpenAccess": false,
+    "isEphemera": false,
+    "isConference": false,
+    "isFreeDocument": false,
+    "isPromo": false,
+    "isStandard": false,
+    "isSpringer": false,
+    "isOnlineOnly": false,
+    "isDegruyter": false,
+    "persistentLink": "https://ieeexplore.ieee.org/servlet/opac?punumber=13",
+    "isNow": false,
+    "isSAE": false,
+    "htmlAbstractLink": "/document/9452797/",
+    "hasStandardVersions": false,
+    "isSMPTE": false,
+    "isLatestStandard": false,
+    "isGiveaway": false,
+    "htmlLink": "/document/9452797/",
+    "isTranslation": false,
+    "isCustomDenial": false,
+    "isOUP": false,
+    "openAccessFlag": "F",
+    "insertDate": "11 June 2021",
+    "ephemeraFlag": "false",
+    "title": "A Study of Cybersecurity Education Using a Present-Test-Practice-Assess Model",
+    "html_flag": "false",
+    "ml_html_flag": "true",
+    "sourcePdf": "te-workman-3086025-x.pdf",
+    "mlTime": "PT0.092482S",
+    "xplore-pub-id": "13",
+    "sponsors": [
+      {
+        "name": "IEEE Education Society",
+        "url": "https://ieee-edusociety.org/"
+      }
+    ],
+    "isNumber": "9701848",
+    "rightsLinkFlag": "1",
+    "contentType": "periodicals",
+    "publicationNumber": "13",
+    "citationCount": "31",
+    "xplore-issue": "9701848",
+    "articleId": "9452797",
+    "contentTypeDisplay": "Journals",
+    "referenceCount": 51,
+    "subType": "IEEE Transaction",
+    "_value": "IEEE",
+    "lastupdate": "2026-09-05",
+    "doi": "10.1109/TE.2021.3086025"
+  }
+}

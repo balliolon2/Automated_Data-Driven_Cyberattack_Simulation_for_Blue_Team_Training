@@ -1,0 +1,284 @@
+{
+  "10380620": {
+    "articleNumber": "10380620",
+    "doi": "10.1109/TE.2023.3340868",
+    "title": "Understanding Cybersecurity Education Gaps in Europe",
+    "year": "2024",
+    "pub_title": "IEEE Transactions on Education",
+    "content_type": "IEEE Journals",
+    "citation_count": 11,
+    "access": "locked",
+    "queries": [
+      "\"cybersecurity education\""
+    ],
+    "abstract": "Demand for cybersecurity professionals from industry and institutions is high, driven by an increasing digitization of society and the growing range of potential targets for cyber attacks. However, despite this pressing need a significant shortfall in the number of cybersecurity experts remains and a discrepancy has emerged between the skills introduced through education and those required in prof..."
+  },
+  "9452797": {
+    "articleNumber": "9452797",
+    "doi": "10.1109/TE.2021.3086025",
+    "title": "A Study of Cybersecurity Education Using a Present-Test-Practice-Assess Model",
+    "year": "2022",
+    "pub_title": "IEEE Transactions on Education",
+    "content_type": "IEEE Journals",
+    "citation_count": 31,
+    "access": "locked",
+    "queries": [
+      "\"cybersecurity education\""
+    ],
+    "abstract": "Contribution: Based on a previous exploratory study, this research further investigated learning mode contributions from simulations and live competitive activities compared to a traditional classroom, laboratory, and testing approach to instruction in order to assess the applied behavioral contributions of each. Background: Cybersecurity capabilities in organizations lag behind the threats; conse..."
+  },
+  "10367784": {
+    "articleNumber": "10367784",
+    "doi": "10.1109/TE.2023.3337337",
+    "title": "Cybersecurity Education in the Age of Artificial Intelligence: A Novel Proactive and Collaborative Learning Paradigm",
+    "year": "2024",
+    "pub_title": "IEEE Transactions on Education",
+    "content_type": "IEEE Journals",
+    "citation_count": 15,
+    "access": "locked",
+    "queries": [
+      "\"cybersecurity education\""
+    ],
+    "abstract": "Contribution: A novel proactive and collaborative learning paradigm was proposed to engage learners with different backgrounds and enable effective retention and transfer of the multidisciplinary artificial intelligence (AI)-cybersecurity knowledge. Specifically, the proposed learning paradigm contains: 1) an immersive learning environment to motivate the students for exploring AI/ machine learnin..."
+  },
+  "11229940": {
+    "articleNumber": "11229940",
+    "doi": "10.1109/TE.2025.3626489",
+    "title": "Blockchain Integration for Practical Cybersecurity Education With Scalable Cyber Infrastructure",
+    "year": "2025",
+    "pub_title": "IEEE Transactions on Education",
+    "content_type": "IEEE Journals",
+    "citation_count": 1,
+    "access": "locked",
+    "queries": [
+      "\"cybersecurity education\""
+    ],
+    "abstract": "The escalating prevalence of cybersecurity threats, coupled with the growing significance of blockchain technology, necessitates advanced practical training in undergraduate computer science and engineering curricula. However, traditional educational approaches often fall short in providing realistic, scalable, and collaborative learning environments. Addressing this gap, this study proposes an in..."
+  },
+  "8548564": {
+    "articleNumber": "8548564",
+    "doi": "10.1109/TE.2018.2877182",
+    "title": "Cybersecurity Interventions for Teens: Two Time-Based Approaches",
+    "year": "2019",
+    "pub_title": "IEEE Transactions on Education",
+    "content_type": "IEEE Journals",
+    "citation_count": 14,
+    "access": "locked",
+    "queries": [
+      "\"cybersecurity education\""
+    ],
+    "abstract": "Contribution: Intervention effectiveness is shown to vary in its influence on teenagers’ outcomes with cybersecurity problem-solving and engagement. In-depth, high-intensity types of intervention may be more effective for female students. Background: Instructional interventions are being developed to address both the critical shortage in cybersecurity talent and gender gaps in the cyber workforce...."
+  },
+  "7967715": {
+    "articleNumber": "7967715",
+    "doi": "10.1109/TE.2017.2715174",
+    "title": "Identifying Core Concepts of Cybersecurity: Results of Two Delphi Processes",
+    "year": "2018",
+    "pub_title": "IEEE Transactions on Education",
+    "content_type": "IEEE Journals",
+    "citation_count": 54,
+    "access": "locked",
+    "queries": [
+      "\"cybersecurity education\"",
+      "\"security education\""
+    ],
+    "abstract": "This paper presents and analyzes results of two Delphi processes that polled cybersecurity experts to rate cybersecurity topics based on importance, difficulty, and timelessness. These ratings can be used to identify core concepts–cross-cutting ideas that connect knowledge in the discipline. The first Delphi process identified core concepts that should be learned in any first course on cybersecuri..."
+  },
+  "7809088": {
+    "articleNumber": "7809088",
+    "doi": "10.1109/TE.2016.2636125",
+    "title": "Teaching Game Theory to Improve Adversarial Thinking in Cybersecurity Students",
+    "year": "2017",
+    "pub_title": "IEEE Transactions on Education",
+    "content_type": "IEEE Journals",
+    "citation_count": 40,
+    "access": "locked",
+    "queries": [
+      "\"cybersecurity education\"",
+      "\"pretest-posttest\" learning"
+    ],
+    "abstract": "The ability to anticipate the strategic actions of hackers, including where, when, and how they might attack, and their tactics for evading detection, is a valuable skill for cybersecurity. Therefore, developing the strategic reasoning abilities of cybersecurity students is an important cybersecurity education learning objective. This paper proposes that basic game theory concepts should be taught..."
+  },
+  "10022010": {
+    "articleNumber": "10022010",
+    "doi": "10.1109/TE.2022.3231019",
+    "title": "A Systematic Literature Review on Cyber Security Education for Children",
+    "year": "2023",
+    "pub_title": "IEEE Transactions on Education",
+    "content_type": "IEEE Journals",
+    "citation_count": 51,
+    "access": "locked",
+    "queries": [
+      "\"security education\""
+    ],
+    "abstract": "Contribution: This article presents a systematic literature review of research concerning cyber security education for children (under 18s) on a global scale. Background: While the Internet brings great convenience to children, it can potentially cause harms due to lack of knowledge about online risks. Research Questions: 1. What cyber security skills are taught to children worldwide? 2. What are ..."
+  },
+  "6632976": {
+    "articleNumber": "6632976",
+    "doi": "10.1109/TE.2013.2282285",
+    "title": "Cloud-Based Virtual Laboratory for Network Security Education",
+    "year": "2014",
+    "pub_title": "IEEE Transactions on Education",
+    "content_type": "IEEE Journals",
+    "citation_count": 120,
+    "access": "locked",
+    "queries": [
+      "\"security education\""
+    ],
+    "abstract": "Hands-on experiments are essential for computer network security education. Existing laboratory solutions usually require significant effort to build, configure, and maintain and often do not support reconfigurability, flexibility, and scalability. This paper presents a cloud-based virtual laboratory education platform called V-Lab that provides a contained experimental environment for hands-on ex..."
+  },
+  "11372737": {
+    "articleNumber": "11372737",
+    "doi": "10.1109/TE.2026.3654077",
+    "title": "Immersive Virtual Environment for Automotive Security Education",
+    "year": "2026",
+    "pub_title": "IEEE Transactions on Education",
+    "content_type": "IEEE Journals",
+    "citation_count": 0,
+    "access": "locked",
+    "queries": [
+      "\"security education\""
+    ],
+    "abstract": "As automotive systems increasingly incorporate electronics, software, and sensors, they become complex and widely distributed cyber-physical systems. This complexity makes them more susceptible to cyber-attacks. Nevertheless, despite its great need, the cybersecurity of automotive systems needs to be better understood, even by key stakeholders. This article presents an immersive virtual environmen..."
+  },
+  "9121708": {
+    "articleNumber": "9121708",
+    "doi": "10.1109/TE.2020.2998701",
+    "title": "Instruction in 802.11 Technology in Online Virtual Labs",
+    "year": "2021",
+    "pub_title": "IEEE Transactions on Education",
+    "content_type": "IEEE Journals",
+    "citation_count": 13,
+    "access": "locked",
+    "queries": [
+      "\"security education\""
+    ],
+    "abstract": "Contribution: A novel approach to remote instruction in 802.11 technology is described using the virtual lab technology. Background: Lab-based education has been a staple of computing education for decades. By interacting with the technology, students are able to gain a much greater understanding of the subject through hands-on activities. Recently, virtual labs have provided a mechanism to allow ..."
+  },
+  "4084627": {
+    "articleNumber": "4084627",
+    "doi": "10.1109/TE.2006.890543",
+    "title": "Teaching Grid Computing: Topics, Exercises, and Experiences",
+    "year": "2007",
+    "pub_title": "IEEE Transactions on Education",
+    "content_type": "IEEE Journals",
+    "citation_count": 9,
+    "access": "locked",
+    "queries": [
+      "\"security education\""
+    ],
+    "abstract": "Grid protocols and technologies are being adopted in a wide variety of academic, government, and industrial environments, and a growing body of research-oriented literature in grid computing is being compiled. However, there is a need for educational material that is suitable for classroom use. This paper describes topics, exercises, and experiences of teaching grid computing at two different univ..."
+  },
+  "5454381": {
+    "articleNumber": "5454381",
+    "doi": "10.1109/TE.2010.2048215",
+    "title": "The Design of NetSecLab: A Small Competition-Based Network Security Lab",
+    "year": "2011",
+    "pub_title": "IEEE Transactions on Education",
+    "content_type": "IEEE Journals",
+    "citation_count": 21,
+    "access": "locked",
+    "queries": [
+      "\"security education\""
+    ],
+    "abstract": "This paper describes a competition-style of exercise to teach system and network security and to reinforce themes taught in class. The exercise, called NetSecLab, is conducted on a closed network with student-formed teams, each with their own Linux system to defend and from which to launch attacks. Students are expected to learn how to: 1) install the specified Linux distribution; 2) set up the re..."
+  },
+  "1629214": {
+    "articleNumber": "1629214",
+    "doi": "10.1109/TE.2006.873979",
+    "title": "Mobile technology as a learning object and an exploration tool in an IS curriculum: an innovative instruction of wireless network security",
+    "year": "2006",
+    "pub_title": "IEEE Transactions on Education",
+    "content_type": "IEEE Journals",
+    "citation_count": 3,
+    "access": "locked",
+    "queries": [
+      "\"security education\""
+    ],
+    "abstract": "Information systems (IS) is a fully recognized business discipline. Many IS programs have not given network security appropriate attention; nor have they brought enough hands-on experience of both wireline and wireless networks to the class rooms. This study proposes a systematic framework to cover wireless security attack, detection, and protection. It also includes a learning matrix for educator..."
+  },
+  "11105060": {
+    "articleNumber": "11105060",
+    "doi": "10.1109/TE.2025.3584007",
+    "title": "The Impact of Artificial Intelligence on Learning and Teaching of Engineering",
+    "year": "2025",
+    "pub_title": "IEEE Transactions on Education",
+    "content_type": "IEEE Journals",
+    "citation_count": 2,
+    "access": "locked",
+    "queries": [
+      "personalized learning security education"
+    ],
+    "abstract": "This article explores the intersecting domains of artificial intelligence (AI), education, engineering, and the associated risks they entail. It highlights the transformative potential of AI in education, enabling personalized learning and innovative teaching methodologies. In the field of engineering, AI offers opportunities for process optimization, design innovation, and virtual laboratories, t..."
+  },
+  "9205909": {
+    "articleNumber": "9205909",
+    "doi": "10.1109/TE.2020.3019034",
+    "title": "A Concept Map-Based Remedial Learning System With Applications to the IEEE Floating-Point Standard and MIPS Encoding",
+    "year": "2021",
+    "pub_title": "IEEE Transactions on Education",
+    "content_type": "IEEE Journals",
+    "citation_count": 5,
+    "access": "locked",
+    "queries": [
+      "\"pretest-posttest\" learning"
+    ],
+    "abstract": "Contributions: A concept-map-based remedial learning system is presented to enhance students&#39; grasp of the learning concepts of the IEEE floating-point standard and microprocessor without interlocked pipeline stages (MIPSs) encoding according to their understanding of these learning concepts. Background: Concept maps have been used to represent the knowledge structures of learning topics. This stu..."
+  },
+  "7258408": {
+    "articleNumber": "7258408",
+    "doi": "10.1109/TE.2015.2467352",
+    "title": "5E Mobile Inquiry Learning Approach for Enhancing Learning Motivation and Scientific Inquiry Ability of University Students",
+    "year": "2016",
+    "pub_title": "IEEE Transactions on Education",
+    "content_type": "IEEE Journals",
+    "citation_count": 49,
+    "access": "locked",
+    "queries": [
+      "\"pretest-posttest\" learning"
+    ],
+    "abstract": "In recent years, many universities have opened courses to increase students&#39; knowledge in the field of nanotechnology. These have been shown to increase students&#39; knowledge of nanotechnology, but beyond this, advanced and applied nanotechnology courses should also focus on learning motivation and scientific enquiry abilities to equip students to develop the deeper knowledge and skills required for..."
+  },
+  "11373230": {
+    "articleNumber": "11373230",
+    "doi": "10.1109/TE.2026.3654951",
+    "title": "Effect of Students’ Metacognitive Self-Regulation and Situational Interest on Conceptual Change in Electric Circuits",
+    "year": "2026",
+    "pub_title": "IEEE Transactions on Education",
+    "content_type": "IEEE Journals",
+    "citation_count": 0,
+    "access": "locked",
+    "queries": [
+      "\"pretest-posttest\" learning"
+    ],
+    "abstract": "Contribution: Although noncognitive factors play crucial roles in facilitating the conceptual change process, many prior studies have focused primarily on cognitive variables. This study proposes and tests a model to examine the relationships among learners’ metacognitive self-regulation (MSR), situational interest, deep engagement, and shallow engagement in the conceptual change process.Backgroun..."
+  },
+  "1668284": {
+    "articleNumber": "1668284",
+    "doi": "10.1109/TE.2006.879802",
+    "title": "Use of a classroom response system to enhance classroom interactivity",
+    "year": "2006",
+    "pub_title": "IEEE Transactions on Education",
+    "content_type": "IEEE Journals",
+    "citation_count": 144,
+    "access": "locked",
+    "queries": [
+      "\"pretest-posttest\" learning"
+    ],
+    "abstract": "Classroom interactivity is a critical component of teaching and learning. This paper reports on the use of a classroom response system to enhance classroom interactivity in a systems analysis and design course. The success of the project was assessed using both quantitative and qualitative data. A pretest/posttest design was used to examine the effects of a classroom response system on interactivi..."
+  },
+  "9707628": {
+    "articleNumber": "9707628",
+    "doi": "10.1109/TE.2022.3147099",
+    "title": "Conceptual-Based Writing Exercises in a Circuit Analysis Course",
+    "year": "2022",
+    "pub_title": "IEEE Transactions on Education",
+    "content_type": "IEEE Journals",
+    "citation_count": 5,
+    "access": "locked",
+    "queries": [
+      "\"pre-test post-test\" assessment"
+    ],
+    "abstract": "Contribution: This article describes the implementation, assessment, and evaluation of conceptual-based writing exercises in an introductory course on electric circuit analysis. Background: Students’ struggles in gateway courses such as circuit analysis are often traced to inadequate metacognitive skills on the part of the student as well their misconceptions regarding fundamental phenomena relate..."
+  }
+}
