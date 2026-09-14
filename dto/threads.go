@@ -91,10 +91,11 @@ type ThreadResponse struct {
 	Title       string             `json:"title"`
 	Content     string             `json:"content"`
 	Tags        []string           `json:"tags"`
-	UpvoteCount int                `json:"upvote_count"`
-	ViewCount   int                `json:"view_count"`
-	IsPinned    bool               `json:"is_pinned"`
-	IsLocked    bool               `json:"is_locked"`
-	CreatedAt   string             `json:"created_at"`
-	UpdatedAt   string             `json:"updated_at"`
+	UpvoteCount    int                `json:"upvote_count"`
+	ViewCount      int                `json:"view_count"`
+	IsPinned       bool               `json:"is_pinned"`
+	IsLocked       bool               `json:"is_locked"`
+	UserHasUpvoted bool               `json:"user_has_upvoted"`
+	CreatedAt      string             `json:"created_at"`
+	UpdatedAt      string             `json:"updated_at"`
 }

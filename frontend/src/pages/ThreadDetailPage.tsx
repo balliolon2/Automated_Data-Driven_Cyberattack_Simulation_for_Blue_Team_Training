@@ -14,10 +14,11 @@ import {
   Share2,
   Calendar,
   Loader2,
-  MessageSquare,
 } from "lucide-react";
 import MarkdownView from "../components/MarkdownView";
 import RoleBadge from "../components/RoleBadge";
+import CommentSection from "../components/CommentSection";
+import { cn } from "../lib/utils";
 
 interface ThreadAuthor {
   user_id: string;
@@ -43,6 +44,7 @@ interface ThreadDetail {
   view_count: number;
   is_pinned: boolean;
   is_locked: boolean;
+  user_has_upvoted?: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -61,6 +63,11 @@ export default function ThreadDetailPage() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [copied, setCopied] = useState(false);
 
+  // Upvote state
+  const [threadUpvoted, setThreadUpvoted] = useState(false);
+  const [threadUpvoteCount, setThreadUpvoteCount] = useState(0);
+  const [upvoteLoading, setUpvoteLoading] = useState(false);
+
   useEffect(() => {
     if (id) {
       fetchThread(id);
@@ -75,10 +82,34 @@ export default function ThreadDetailPage() {
 
       const res = await axios.get(`/api/threads/${threadId}`, { headers });
       setThread(res.data);
+      setThreadUpvoteCount(res.data.upvote_count || 0);
+      setThreadUpvoted(Boolean(res.data.user_has_upvoted));
     } catch (err) {
       console.error("Failed to load thread:", err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleToggleThreadUpvote = async () => {
+    if (!token) {
+      navigate("/login");
+      return;
+    }
+    if (!id || upvoteLoading) return;
+    setUpvoteLoading(true);
+    try {
+      const res = await axios.post(
+        `/api/threads/${id}/upvote`,
+        {},
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setThreadUpvoted(res.data.upvoted);
+      setThreadUpvoteCount(res.data.upvote_count);
+    } catch (err) {
+      console.error("Failed to toggle upvote:", err);
+    } finally {
+      setUpvoteLoading(false);
     }
   };
 
@@ -148,6 +179,20 @@ export default function ThreadDetailPage() {
         </button>
 
         <div className="flex items-center gap-2">
+          <button
+            onClick={handleToggleThreadUpvote}
+            disabled={upvoteLoading}
+            className={cn(
+              "flex items-center gap-1.5 px-3 py-1.5 rounded-md border text-xs font-mono transition-all cursor-pointer",
+              threadUpvoted
+                ? "bg-emerald-950/60 text-emerald-300 border-emerald-500/50 shadow-sm"
+                : "bg-graphite-900 hover:bg-graphite-800 text-graphite-300 hover:text-white border-graphite-800"
+            )}
+          >
+            <ThumbsUp className={cn("w-3.5 h-3.5", threadUpvoted ? "fill-emerald-400 text-emerald-400" : "")} />
+            <span>Helpful ({threadUpvoteCount})</span>
+          </button>
+
           <button
             onClick={handleShare}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-graphite-800 text-graphite-300 hover:text-white hover:bg-graphite-900 text-xs transition-colors cursor-pointer"
@@ -247,10 +292,19 @@ export default function ThreadDetailPage() {
               <Eye className="w-3.5 h-3.5" />
               {thread.view_count} views
             </span>
-            <span className="flex items-center gap-1 text-emerald-400">
-              <ThumbsUp className="w-3.5 h-3.5" />
-              {thread.upvote_count} helpful
-            </span>
+            <button
+              onClick={handleToggleThreadUpvote}
+              disabled={upvoteLoading}
+              className={cn(
+                "flex items-center gap-1 px-2 py-0.5 rounded border text-xs transition-colors cursor-pointer",
+                threadUpvoted
+                  ? "bg-emerald-950/40 text-emerald-300 border-emerald-500/40 font-bold"
+                  : "text-graphite-400 hover:text-white border-graphite-800 hover:bg-graphite-900"
+              )}
+            >
+              <ThumbsUp className={cn("w-3.5 h-3.5", threadUpvoted ? "fill-emerald-400 text-emerald-400" : "")} />
+              <span>{threadUpvoteCount} helpful</span>
+            </button>
           </div>
         </div>
       </div>
@@ -297,16 +351,11 @@ export default function ThreadDetailPage() {
         </div>
       )}
 
-      {/* Spec 3 Placeholder Callout */}
-      <div className="p-4 rounded-lg bg-graphite-900/40 border border-graphite-800 text-center space-y-1">
-        <div className="flex items-center justify-center gap-1.5 text-xs font-semibold text-graphite-300">
-          <MessageSquare className="w-3.5 h-3.5 text-indigo-400" />
-          <span>Interactive Discussion & Upvoting</span>
-        </div>
-        <p className="text-[11px] text-graphite-500">
-          Thread comments and peer discussions are ready to unlock in Spec 3.
-        </p>
-      </div>
+      {/* Thread Discussion & Comments (Spec 3) */}
+      <CommentSection
+        threadId={thread.thread_id}
+        threadAuthorId={thread.author.user_id}
+      />
     </div>
   );
 }

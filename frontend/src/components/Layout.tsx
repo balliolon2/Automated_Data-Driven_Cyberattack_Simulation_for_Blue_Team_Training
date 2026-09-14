@@ -1,6 +1,7 @@
 import { Outlet, Link, useNavigate, useLocation } from "react-router-dom";
 import { ShieldCheck, LogOut, User, ShieldAlert, Award } from "lucide-react";
 import { clsx } from "clsx";
+import NotificationBell from "./NotificationBell";
 
 export default function Layout() {
   const navigate = useNavigate();
@@ -71,7 +72,9 @@ export default function Layout() {
             <div className="h-4 w-px bg-graphite-800 hidden sm:block" />
             
             {token ? (
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-3 sm:gap-4">
+                <NotificationBell />
+
                 <Link to="/profile" className="hidden sm:flex items-center gap-2 text-sm text-graphite-300 hover:text-white transition-colors">
                   <div className="w-6 h-6 rounded-full bg-graphite-900 flex items-center justify-center border border-graphite-800">
                     {userRole === "admin" ? (
@@ -110,7 +113,7 @@ export default function Layout() {
             ) : (
               <Link 
                 to="/login" 
-                className="px-4 py-1.5 rounded-md bg-white text-black text-xs font-semibold hover:bg-white/90 transition-all duration-200"
+                className="px-4 py-1.5 rounded-md bg-graphite-100 hover:bg-white text-graphite-950 text-xs font-semibold transition-all duration-200"
               >
                 Login
               </Link>

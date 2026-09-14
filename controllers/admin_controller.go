@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"fmt"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -136,6 +137,18 @@ func (ac *AdminController) Approve(c *gin.Context) {
 
 	tx.Commit()
 
+	// 3. Dispatch in-app notification to applicant
+	go func(targetUserID string) {
+		ac.DB.Create(&models.UserNotification{
+			UserID:    targetUserID,
+			Title:     "Specialist Application Approved",
+			Message:   "Congratulations! Your application has been approved. You now have full specialist permissions.",
+			LinkURL:   "/specialist/reviews",
+			IsRead:    false,
+			CreatedAt: time.Now(),
+		})
+	}(app.UserID)
+
 	c.JSON(http.StatusOK, gin.H{
 		"message":        "Application approved and user elevated to Specialist successfully",
 		"application_id": app.ApplicationID,
@@ -174,6 +187,18 @@ func (ac *AdminController) Reject(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update application status"})
 		return
 	}
+
+	// Dispatch in-app notification to applicant
+	go func(targetUserID, reason string) {
+		ac.DB.Create(&models.UserNotification{
+			UserID:    targetUserID,
+			Title:     "Specialist Application Update",
+			Message:   fmt.Sprintf("Your specialist application was reviewed and declined. Reason: %s", reason),
+			LinkURL:   "/profile",
+			IsRead:    false,
+			CreatedAt: time.Now(),
+		})
+	}(app.UserID, input.Reason)
 
 	c.JSON(http.StatusOK, gin.H{
 		"message":          "Application rejected",

@@ -105,3 +105,44 @@ func RequireRoles(roles ...string) gin.HandlerFunc {
 func RequireAdmin() gin.HandlerFunc {
 	return RequireRoles("admin")
 }
+
+// OptionalAuthMiddleware extracts JWT claims if provided, without requiring authentication
+func OptionalAuthMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		authHeader := c.GetHeader("Authorization")
+		if authHeader == "" {
+			c.Next()
+			return
+		}
+
+		parts := strings.SplitN(authHeader, " ", 2)
+		if len(parts) != 2 || parts[0] != "Bearer" {
+			c.Next()
+			return
+		}
+
+		tokenString := parts[1]
+		token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+				return nil, errors.New("unexpected signing method")
+			}
+			return jwtSecret, nil
+		})
+
+		if err == nil && token.Valid {
+			if claims, ok := token.Claims.(jwt.MapClaims); ok {
+				if userID, ok := claims["user_id"].(string); ok {
+					c.Set("user_id", userID)
+				}
+				if role, ok := claims["role"].(string); ok {
+					c.Set("role", role)
+				}
+				if nickname, ok := claims["nickname"].(string); ok {
+					c.Set("nickname", nickname)
+				}
+			}
+		}
+
+		c.Next()
+	}
+}

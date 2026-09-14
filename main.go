@@ -72,6 +72,9 @@ func main() {
 	specialistController := controllers.NewSpecialistController(db)
 	adminController := controllers.NewAdminController(db)
 	threadController := controllers.NewThreadController(db)
+	commentController := controllers.NewCommentController(db)
+	upvoteController := controllers.NewUpvoteController(db)
+	notificationController := controllers.NewNotificationController(db)
 
 	// Routes
 	api := r.Group("/api")
@@ -109,6 +112,31 @@ func main() {
 			threads.POST("", middlewares.RequireRoles("specialist", "admin"), threadController.CreateThread)
 			threads.PUT("/:id", threadController.UpdateThread)
 			threads.DELETE("/:id", threadController.DeleteThread)
+
+			// Thread Upvote
+			threads.POST("/:id/upvote", upvoteController.ToggleThreadUpvote)
+
+			// Thread Comments
+			threads.POST("/:id/comments", commentController.CreateComment)
+			threads.GET("/:id/comments", commentController.ListComments)
+		}
+
+		// Comment moderation & actions (Authenticated)
+		comments := api.Group("/comments", middlewares.AuthMiddleware())
+		{
+			comments.PUT("/:id", commentController.UpdateComment)
+			comments.DELETE("/:id", commentController.DeleteComment)
+			comments.POST("/:id/pin", commentController.TogglePinComment)
+			comments.POST("/:id/hide", commentController.ToggleHideComment)
+			comments.POST("/:id/upvote", upvoteController.ToggleCommentUpvote)
+		}
+
+		// In-App Notifications (Authenticated)
+		notifications := api.Group("/notifications", middlewares.AuthMiddleware())
+		{
+			notifications.GET("", notificationController.ListNotifications)
+			notifications.PUT("/:id/read", notificationController.MarkAsRead)
+			notifications.PUT("/read-all", notificationController.MarkAllAsRead)
 		}
 
 		// Application document streaming (accessible by Admin or applicant owner)

@@ -156,9 +156,33 @@ func (tc *ThreadController) ListThreads(c *gin.Context) {
 		return
 	}
 
+	var reqUserID string
+	if uid, exists := c.Get("user_id"); exists {
+		if s, ok := uid.(string); ok {
+			reqUserID = s
+		}
+	}
+
+	userUpvotes := make(map[string]bool)
+	if reqUserID != "" && len(threads) > 0 {
+		var threadIDs []string
+		for _, t := range threads {
+			threadIDs = append(threadIDs, t.ThreadID)
+		}
+		var upvotedIDs []string
+		tc.DB.Model(&models.ThreadUpvote{}).Where("thread_id IN ? AND user_id = ?", threadIDs, reqUserID).Pluck("thread_id", &upvotedIDs)
+		for _, id := range upvotedIDs {
+			userUpvotes[id] = true
+		}
+	}
+
 	items := make([]dto.ThreadResponse, 0, len(threads))
 	for _, t := range threads {
-		items = append(items, t.ToResponseDTO())
+		resp := t.ToResponseDTO()
+		if userUpvotes[t.ThreadID] {
+			resp.UserHasUpvoted = true
+		}
+		items = append(items, resp)
 	}
 
 	c.JSON(http.StatusOK, gin.H{
@@ -182,7 +206,16 @@ func (tc *ThreadController) GetThread(c *gin.Context) {
 	tc.DB.Model(&models.AnalysisThread{}).Where("thread_id = ?", threadID).UpdateColumn("view_count", gorm.Expr("view_count + 1"))
 	thread.ViewCount++
 
-	c.JSON(http.StatusOK, thread.ToResponseDTO())
+	resp := thread.ToResponseDTO()
+	if uid, exists := c.Get("user_id"); exists {
+		if s, ok := uid.(string); ok && s != "" {
+			var count int64
+			tc.DB.Model(&models.ThreadUpvote{}).Where("thread_id = ? AND user_id = ?", thread.ThreadID, s).Count(&count)
+			resp.UserHasUpvoted = count > 0
+		}
+	}
+
+	c.JSON(http.StatusOK, resp)
 }
 
 // UpdateThread updates title, content, or tags (author or admin only)

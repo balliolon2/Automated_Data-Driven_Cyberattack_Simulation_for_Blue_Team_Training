@@ -243,3 +243,45 @@ CREATE TABLE analysis_threads (
 );
 CREATE INDEX idx_analysis_threads_scenario ON analysis_threads(scenario_id);
 CREATE INDEX idx_analysis_threads_author ON analysis_threads(author_id);
+
+CREATE TABLE thread_comments (
+  comment_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  thread_id UUID REFERENCES analysis_threads(thread_id) ON DELETE CASCADE,
+  user_id UUID REFERENCES users(user_id) ON DELETE CASCADE,
+  parent_comment_id UUID REFERENCES thread_comments(comment_id) ON DELETE CASCADE,
+  content TEXT NOT NULL,
+  upvote_count INT DEFAULT 0,
+  is_pinned BOOLEAN DEFAULT false,
+  is_hidden BOOLEAN DEFAULT false,
+  created_at TIMESTAMP DEFAULT now(),
+  updated_at TIMESTAMP DEFAULT now()
+);
+CREATE INDEX idx_thread_comments_thread ON thread_comments(thread_id);
+CREATE INDEX idx_thread_comments_parent ON thread_comments(parent_comment_id);
+
+CREATE TABLE thread_upvotes (
+  thread_id UUID REFERENCES analysis_threads(thread_id) ON DELETE CASCADE,
+  user_id UUID REFERENCES users(user_id) ON DELETE CASCADE,
+  created_at TIMESTAMP DEFAULT now(),
+  PRIMARY KEY (thread_id, user_id)
+);
+
+CREATE TABLE comment_upvotes (
+  comment_id UUID REFERENCES thread_comments(comment_id) ON DELETE CASCADE,
+  user_id UUID REFERENCES users(user_id) ON DELETE CASCADE,
+  created_at TIMESTAMP DEFAULT now(),
+  PRIMARY KEY (comment_id, user_id)
+);
+
+CREATE TABLE user_notifications (
+  notification_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES users(user_id) ON DELETE CASCADE,
+  title VARCHAR(120) NOT NULL,
+  message TEXT NOT NULL,
+  link_url VARCHAR(255),
+  is_read BOOLEAN DEFAULT false,
+  created_at TIMESTAMP DEFAULT now()
+);
+CREATE INDEX idx_user_notifications_user ON user_notifications(user_id);
+CREATE INDEX idx_user_notifications_unread ON user_notifications(user_id, is_read);
+
