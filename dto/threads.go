@@ -6,6 +6,7 @@ import "time"
 type SpecialistSubmissionSummary struct {
 	SessionID           string   `json:"session_id"`
 	LearnerNickname     string   `json:"learner_nickname"`
+	LearnerTier         int      `json:"learner_tier"`
 	ScenarioID          string   `json:"scenario_id"`
 	ScenarioTitle       string   `json:"scenario_title"`
 	DomainID            string   `json:"domain_id"`
@@ -22,6 +23,7 @@ type SpecialistSubmissionSummary struct {
 type SpecialistSubmissionDetail struct {
 	SessionID           string                     `json:"session_id"`
 	LearnerNickname     string                     `json:"learner_nickname"`
+	LearnerTier         int                        `json:"learner_tier"`
 	ScenarioID          string                     `json:"scenario_id"`
 	ScenarioTitle       string                     `json:"scenario_title"`
 	ScenarioDescription string                     `json:"scenario_description"`

@@ -101,7 +101,9 @@ export default function ScenarioResultPage() {
         if (res.data.session?.scenario_id) {
           setThreadsLoading(true);
           try {
-            const threadRes = await axios.get(`/api/threads?scenario_id=${res.data.session.scenario_id}`);
+            const threadRes = await axios.get(`/api/threads?scenario_id=${res.data.session.scenario_id}`, {
+              headers: { Authorization: `Bearer ${token}` },
+            });
             setLinkedThreads(threadRes.data.threads || []);
           } catch (tErr) {
             console.error("Failed to load linked threads:", tErr);

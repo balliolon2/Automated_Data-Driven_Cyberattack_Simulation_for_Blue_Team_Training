@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
@@ -213,8 +214,18 @@ func (sc *SpecialistController) GetSubmissions(c *gin.Context) {
 	domainID := strings.TrimSpace(c.Query("domain_id"))
 	maxScoreStr := strings.TrimSpace(c.Query("max_score"))
 
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	if page < 1 {
+		page = 1
+	}
+	pageSize, _ := strconv.Atoi(c.DefaultQuery("page_size", "20"))
+	if pageSize < 1 || pageSize > 100 {
+		pageSize = 20
+	}
+	offset := (page - 1) * pageSize
+
 	query := sc.DB.Table("simulation_sessions").
-		Select("simulation_sessions.session_id, simulation_sessions.scenario_id, simulation_sessions.final_score, simulation_sessions.completed_at, simulation_sessions.total_actions, scenarios.title as scenario_title, scenarios.domain_id, users.nickname as learner_nickname").
+		Select("simulation_sessions.session_id, simulation_sessions.scenario_id, simulation_sessions.final_score, simulation_sessions.completed_at, simulation_sessions.total_actions, scenarios.title as scenario_title, scenarios.domain_id, users.nickname as learner_nickname, users.current_tier as learner_tier").
 		Joins("JOIN scenarios ON scenarios.scenario_id = simulation_sessions.scenario_id").
 		Joins("JOIN users ON users.user_id = simulation_sessions.user_id").
 		Where("simulation_sessions.status = 'completed'")
@@ -238,13 +249,14 @@ func (sc *SpecialistController) GetSubmissions(c *gin.Context) {
 		ScenarioTitle   string     `json:"scenario_title"`
 		DomainID        string     `json:"domain_id"`
 		LearnerNickname string     `json:"learner_nickname"`
+		LearnerTier     int        `json:"learner_tier"`
 		FinalScore      *float64   `json:"final_score"`
 		TotalActions    int        `json:"total_actions"`
 		CompletedAt     *time.Time `json:"completed_at"`
 	}
 
 	var rows []submissionRow
-	if err := query.Order("simulation_sessions.completed_at desc").Limit(50).Find(&rows).Error; err != nil {
+	if err := query.Order("simulation_sessions.completed_at desc").Offset(offset).Limit(pageSize).Find(&rows).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch submissions"})
 		return
 	}
@@ -263,6 +275,8 @@ func (sc *SpecialistController) GetSubmissions(c *gin.Context) {
 		// Count TP/FP correctness and findings for this session
 		var tpfpCorrect bool
 		var findingsFoundCount int
+		var totalFindingsCount int
+
 		var triageAction models.SessionAction
 		if err := sc.DB.Where("session_id = ? AND action_type = 'triage_alert'", r.SessionID).First(&triageAction).Error; err == nil && triageAction.IsCorrect != nil {
 			tpfpCorrect = *triageAction.IsCorrect
@@ -277,6 +291,14 @@ func (sc *SpecialistController) GetSubmissions(c *gin.Context) {
 			}
 		}
 
+		// Calculate total findings from scenario
+		var scn models.Scenario
+		if err := sc.DB.Select("expected_outcomes").Where("scenario_id = ?", r.ScenarioID).First(&scn).Error; err == nil && scn.ExpectedOutcomes != nil {
+			if outList, ok := scn.ExpectedOutcomes.([]interface{}); ok {
+				totalFindingsCount = len(outList)
+			}
+		}
+
 		domainName := domainNames[r.DomainID]
 		if domainName == "" {
 			domainName = r.DomainID
@@ -285,6 +307,7 @@ func (sc *SpecialistController) GetSubmissions(c *gin.Context) {
 		result = append(result, dto.SpecialistSubmissionSummary{
 			SessionID:          r.SessionID,
 			LearnerNickname:    r.LearnerNickname,
+			LearnerTier:        r.LearnerTier,
 			ScenarioID:         r.ScenarioID,
 			ScenarioTitle:      r.ScenarioTitle,
 			DomainID:           r.DomainID,
@@ -292,6 +315,7 @@ func (sc *SpecialistController) GetSubmissions(c *gin.Context) {
 			FinalScore:         score,
 			TPFPCorrect:        tpfpCorrect,
 			FindingsFoundCount: findingsFoundCount,
+			TotalFindingsCount: totalFindingsCount,
 			ActionsCount:       r.TotalActions,
 			CompletedAt:        completedStr,
 		})
@@ -388,6 +412,7 @@ func (sc *SpecialistController) GetSubmissionDetail(c *gin.Context) {
 	detail := dto.SpecialistSubmissionDetail{
 		SessionID:           session.SessionID,
 		LearnerNickname:     user.Nickname,
+		LearnerTier:         user.CurrentTier,
 		ScenarioID:          scenario.ScenarioID,
 		ScenarioTitle:       scenario.Title,
 		ScenarioDescription: scenario.Description,

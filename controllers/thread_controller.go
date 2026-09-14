@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -21,6 +22,39 @@ func NewThreadController(db *gorm.DB) *ThreadController {
 	return &ThreadController{DB: db}
 }
 
+// validateThreadContent validates and cleans title and content
+func validateThreadContent(title, content string) (string, string, error) {
+	cleanTitle := strings.TrimSpace(title)
+	if len(cleanTitle) < 5 {
+		return "", "", fmt.Errorf("Title must be at least 5 characters long")
+	}
+	cleanContent := strings.TrimSpace(content)
+	if len(cleanContent) < 20 {
+		return "", "", fmt.Errorf("Content must be at least 20 characters long")
+	}
+	return cleanTitle, cleanContent, nil
+}
+
+// buildThreadFilterScope constructs reusable query filters for listing threads
+func buildThreadFilterScope(scenarioID, domainID, authorID, tag string) func(db *gorm.DB) *gorm.DB {
+	return func(db *gorm.DB) *gorm.DB {
+		if scenarioID != "" {
+			db = db.Where("analysis_threads.scenario_id = ?", scenarioID)
+		}
+		if domainID != "" {
+			db = db.Joins("JOIN scenarios ON scenarios.scenario_id = analysis_threads.scenario_id").
+				Where("scenarios.domain_id = ?", domainID)
+		}
+		if authorID != "" {
+			db = db.Where("analysis_threads.author_id = ?", authorID)
+		}
+		if tag != "" {
+			db = db.Where("analysis_threads.tags::text LIKE ?", "%\""+tag+"\"%")
+		}
+		return db
+	}
+}
+
 // CreateThread publishes a new analysis thread (Specialist or Admin)
 func (tc *ThreadController) CreateThread(c *gin.Context) {
 	userID, exists := c.Get("user_id")
@@ -35,14 +69,9 @@ func (tc *ThreadController) CreateThread(c *gin.Context) {
 		return
 	}
 
-	cleanTitle := strings.TrimSpace(req.Title)
-	if len(cleanTitle) < 5 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Title must be at least 5 characters long"})
-		return
-	}
-	cleanContent := strings.TrimSpace(req.Content)
-	if len(cleanContent) < 20 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Content must be at least 20 characters long"})
+	cleanTitle, cleanContent, err := validateThreadContent(req.Title, req.Content)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
@@ -89,6 +118,7 @@ func (tc *ThreadController) CreateThread(c *gin.Context) {
 // ListThreads returns a paginated list of analysis threads with filtering and sorting
 func (tc *ThreadController) ListThreads(c *gin.Context) {
 	scenarioID := strings.TrimSpace(c.Query("scenario_id"))
+	domainID := strings.TrimSpace(c.Query("domain_id"))
 	tag := strings.TrimSpace(c.Query("tag"))
 	authorID := strings.TrimSpace(c.Query("author_id"))
 	sort := strings.ToLower(strings.TrimSpace(c.Query("sort")))
@@ -103,36 +133,21 @@ func (tc *ThreadController) ListThreads(c *gin.Context) {
 	}
 	offset := (page - 1) * pageSize
 
-	query := tc.DB.Model(&models.AnalysisThread{}).Preload("Author").Preload("Scenario")
-
-	if scenarioID != "" {
-		query = query.Where("scenario_id = ?", scenarioID)
-	}
-	if authorID != "" {
-		query = query.Where("author_id = ?", authorID)
-	}
-	if tag != "" {
-		query = query.Where("tags::text LIKE ?", "%\""+tag+"\"%")
-	}
+	filterScope := buildThreadFilterScope(scenarioID, domainID, authorID, tag)
 
 	var total int64
-	tc.DB.Model(&models.AnalysisThread{}).Scopes(func(d *gorm.DB) *gorm.DB {
-		if scenarioID != "" {
-			d = d.Where("scenario_id = ?", scenarioID)
-		}
-		if authorID != "" {
-			d = d.Where("author_id = ?", authorID)
-		}
-		if tag != "" {
-			d = d.Where("tags::text LIKE ?", "%\""+tag+"\"%")
-		}
-		return d
-	}).Count(&total)
+	tc.DB.Model(&models.AnalysisThread{}).Scopes(filterScope).Count(&total)
 
-	if sort == "popular" {
-		query = query.Order("is_pinned desc, upvote_count desc, created_at desc")
+	query := tc.DB.Model(&models.AnalysisThread{}).
+		Preload("Author").
+		Preload("Scenario").
+		Scopes(filterScope)
+
+	if sort == "popular" || sort == "upvotes" {
+		query = query.Order("analysis_threads.is_pinned desc, analysis_threads.upvote_count desc, analysis_threads.created_at desc")
 	} else {
-		query = query.Order("is_pinned desc, created_at desc")
+		// Default: latest/recent
+		query = query.Order("analysis_threads.is_pinned desc, analysis_threads.created_at desc")
 	}
 
 	var threads []models.AnalysisThread
@@ -197,14 +212,9 @@ func (tc *ThreadController) UpdateThread(c *gin.Context) {
 		return
 	}
 
-	cleanTitle := strings.TrimSpace(req.Title)
-	if len(cleanTitle) < 5 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Title must be at least 5 characters long"})
-		return
-	}
-	cleanContent := strings.TrimSpace(req.Content)
-	if len(cleanContent) < 20 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Content must be at least 20 characters long"})
+	cleanTitle, cleanContent, err := validateThreadContent(req.Title, req.Content)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 

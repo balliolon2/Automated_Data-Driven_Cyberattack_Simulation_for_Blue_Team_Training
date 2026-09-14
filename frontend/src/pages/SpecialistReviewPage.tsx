@@ -153,7 +153,7 @@ export default function SpecialistReviewPage() {
         </p>
         <button
           onClick={() => navigate("/profile")}
-          className="mt-4 px-4 py-2 rounded-md bg-white text-black font-semibold text-xs hover:bg-white/90 transition-all"
+          className="mt-4 px-4 py-2 rounded-md bg-graphite-100 hover:bg-white text-graphite-950 font-semibold text-xs transition-colors cursor-pointer"
         >
           Go to Profile & Apply
         </button>

@@ -101,14 +101,14 @@ func main() {
 			specialistReviews.GET("/submissions/:session_id", specialistController.GetSubmissionDetail)
 		}
 
-		// Analysis Threads
-		threads := api.Group("/threads")
+		// Analysis Threads (Authenticated: Any role can read, Specialist/Admin can create)
+		threads := api.Group("/threads", middlewares.AuthMiddleware())
 		{
 			threads.GET("", threadController.ListThreads)
 			threads.GET("/:id", threadController.GetThread)
-			threads.POST("", middlewares.AuthMiddleware(), middlewares.RequireRoles("specialist", "admin"), threadController.CreateThread)
-			threads.PUT("/:id", middlewares.AuthMiddleware(), threadController.UpdateThread)
-			threads.DELETE("/:id", middlewares.AuthMiddleware(), threadController.DeleteThread)
+			threads.POST("", middlewares.RequireRoles("specialist", "admin"), threadController.CreateThread)
+			threads.PUT("/:id", threadController.UpdateThread)
+			threads.DELETE("/:id", threadController.DeleteThread)
 		}
 
 		// Application document streaming (accessible by Admin or applicant owner)

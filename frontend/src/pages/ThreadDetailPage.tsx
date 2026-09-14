@@ -17,6 +17,7 @@ import {
   MessageSquare,
 } from "lucide-react";
 import MarkdownView from "../components/MarkdownView";
+import RoleBadge from "../components/RoleBadge";
 
 interface ThreadAuthor {
   user_id: string;
@@ -69,7 +70,10 @@ export default function ThreadDetailPage() {
   const fetchThread = async (threadId: string) => {
     setLoading(true);
     try {
-      const res = await axios.get(`/api/threads/${threadId}`);
+      const headers: Record<string, string> = {};
+      if (token) headers["Authorization"] = `Bearer ${token}`;
+
+      const res = await axios.get(`/api/threads/${threadId}`, { headers });
       setThread(res.data);
     } catch (err) {
       console.error("Failed to load thread:", err);
@@ -123,7 +127,7 @@ export default function ThreadDetailPage() {
         </p>
         <button
           onClick={() => navigate("/discussions")}
-          className="px-4 py-2 rounded-md bg-white text-black font-semibold text-xs hover:bg-white/90 transition-all"
+          className="px-4 py-2 rounded-md bg-graphite-100 hover:bg-white text-graphite-950 font-semibold text-xs transition-colors cursor-pointer"
         >
           Back to Discussions
         </button>
@@ -229,16 +233,7 @@ export default function ThreadDetailPage() {
                 <span className="font-mono font-medium text-white text-xs">
                   {thread.author.nickname}
                 </span>
-                {thread.author.role === "specialist" && (
-                  <span className="px-1.5 py-0.2 rounded text-[9px] font-mono font-bold bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
-                    SPECIALIST
-                  </span>
-                )}
-                {thread.author.role === "admin" && (
-                  <span className="px-1.5 py-0.2 rounded text-[9px] font-mono font-bold bg-amber-500/10 text-amber-400 border border-amber-500/20">
-                    ADMIN
-                  </span>
-                )}
+                <RoleBadge role={thread.author.role} />
               </div>
               <div className="flex items-center gap-1.5 text-graphite-500 text-[11px] font-mono mt-0.5">
                 <Calendar className="w-3 h-3" />

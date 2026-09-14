@@ -14,6 +14,7 @@ import {
   Tag as TagIcon,
   Crosshair,
 } from "lucide-react";
+import RoleBadge from "../components/RoleBadge";
 
 interface ThreadAuthor {
   user_id: string;
@@ -48,10 +49,12 @@ export default function DiscussionsFeedPage() {
   const [searchParams, setSearchParams] = useSearchParams();
 
   const currentScenarioId = searchParams.get("scenario_id") || "";
+  const currentDomainId = searchParams.get("domain_id") || "";
   const currentTag = searchParams.get("tag") || "";
   const currentSort = searchParams.get("sort") || "recent";
 
   const userRole = localStorage.getItem("userRole") || "learner";
+  const token = localStorage.getItem("token");
   const isSpecialistOrAdmin = userRole === "specialist" || userRole === "admin";
 
   const [threads, setThreads] = useState<Thread[]>([]);
@@ -60,17 +63,21 @@ export default function DiscussionsFeedPage() {
 
   useEffect(() => {
     fetchThreads();
-  }, [currentScenarioId, currentTag, currentSort]);
+  }, [currentScenarioId, currentDomainId, currentTag, currentSort]);
 
   const fetchThreads = async () => {
     setLoading(true);
     try {
       const params = new URLSearchParams();
       if (currentScenarioId) params.append("scenario_id", currentScenarioId);
+      if (currentDomainId) params.append("domain_id", currentDomainId);
       if (currentTag) params.append("tag", currentTag);
       if (currentSort) params.append("sort", currentSort);
 
-      const res = await axios.get(`/api/threads?${params.toString()}`);
+      const headers: Record<string, string> = {};
+      if (token) headers["Authorization"] = `Bearer ${token}`;
+
+      const res = await axios.get(`/api/threads?${params.toString()}`, { headers });
       setThreads(res.data.threads || []);
     } catch (err) {
       console.error("Failed to load threads:", err);
@@ -137,17 +144,42 @@ export default function DiscussionsFeedPage() {
       </div>
 
       {/* Filter / Search Bar */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-4 rounded-lg bg-graphite-900/50 border border-graphite-800 text-xs">
+      <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 p-4 rounded-lg bg-graphite-900/50 border border-graphite-800 text-xs">
         {/* Search */}
         <div className="relative">
           <Search className="w-3.5 h-3.5 text-graphite-500 absolute left-3 top-1/2 -translate-y-1/2" />
           <input
             type="text"
-            placeholder="Search discussion topics, tags..."
+            placeholder="Search topics, tags..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full pl-9 pr-3 py-1.5 rounded bg-graphite-950 border border-graphite-800 text-graphite-200 placeholder-graphite-500 focus:outline-none focus:border-graphite-600 text-xs font-mono"
           />
+        </div>
+
+        {/* Domain Filter */}
+        <div className="flex items-center gap-2">
+          <Crosshair className="w-3.5 h-3.5 text-graphite-500 shrink-0" />
+          <select
+            value={currentDomainId}
+            onChange={(e) => {
+              const params = new URLSearchParams(searchParams);
+              if (e.target.value) {
+                params.set("domain_id", e.target.value);
+              } else {
+                params.delete("domain_id");
+              }
+              setSearchParams(params);
+            }}
+            className="w-full px-2.5 py-1.5 rounded bg-graphite-950 border border-graphite-800 text-graphite-200 focus:outline-none focus:border-graphite-600 text-xs"
+          >
+            <option value="">All Domains</option>
+            <option value="domain1">Domain 1: Security Concepts</option>
+            <option value="domain2">Domain 2: Threats & Mitigations</option>
+            <option value="domain3">Domain 3: Security Architecture</option>
+            <option value="domain4">Domain 4: Security Operations</option>
+            <option value="domain5">Domain 5: Security Management</option>
+          </select>
         </div>
 
         {/* Sort */}
@@ -175,17 +207,17 @@ export default function DiscussionsFeedPage() {
             {currentScenarioId && (
               <span className="px-2 py-1 rounded bg-amber-950/40 border border-amber-500/30 text-amber-300 font-mono text-[11px] flex items-center gap-1">
                 <Crosshair className="w-3 h-3" />
-                Scenario Filtered
+                Scenario
               </span>
             )}
           </div>
 
-          {(currentTag || currentScenarioId || searchQuery) && (
+          {(currentTag || currentScenarioId || currentDomainId || searchQuery) && (
             <button
               onClick={clearFilters}
               className="text-[11px] text-graphite-400 hover:text-white underline underline-offset-2 ml-auto cursor-pointer"
             >
-              Reset filters
+              Reset
             </button>
           )}
         </div>
@@ -208,7 +240,7 @@ export default function DiscussionsFeedPage() {
           {isSpecialistOrAdmin && (
             <button
               onClick={() => navigate("/discussions/new")}
-              className="mt-2 px-4 py-2 rounded-md bg-white text-black font-semibold text-xs hover:bg-white/90 transition-all cursor-pointer"
+              className="mt-2 px-4 py-2 rounded-md bg-graphite-100 hover:bg-white text-graphite-950 font-semibold text-xs transition-colors cursor-pointer"
             >
               Create First Post
             </button>
@@ -236,16 +268,7 @@ export default function DiscussionsFeedPage() {
                     <span className="font-mono text-xs font-medium text-graphite-200">
                       {thread.author.nickname}
                     </span>
-                    {thread.author.role === "specialist" && (
-                      <span className="px-1.5 py-0.2 rounded text-[9px] font-mono font-bold bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
-                        SPECIALIST
-                      </span>
-                    )}
-                    {thread.author.role === "admin" && (
-                      <span className="px-1.5 py-0.2 rounded text-[9px] font-mono font-bold bg-amber-500/10 text-amber-400 border border-amber-500/20">
-                        ADMIN
-                      </span>
-                    )}
+                    <RoleBadge role={thread.author.role} />
                   </div>
 
                   <span className="text-graphite-600">•</span>

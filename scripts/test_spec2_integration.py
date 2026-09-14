@@ -66,8 +66,8 @@ def run_spec2_tests():
         sys.exit(1)
     print("PASSED: Learner denied access with 403 Forbidden")
 
-    print("\n[Test 2] Testing Specialist access to /api/specialist/submissions...")
-    res = requests.get(f"{BASE_URL}/specialist/submissions", headers={"Authorization": f"Bearer {spec_token}"})
+    print("\n[Test 2] Testing Specialist access to /api/specialist/submissions with pagination...")
+    res = requests.get(f"{BASE_URL}/specialist/submissions?page=1&page_size=10", headers={"Authorization": f"Bearer {spec_token}"})
     if res.status_code != 200:
         print(f"FAILED: Expected 200 for specialist access to reviews, got {res.status_code}: {res.text}")
         sys.exit(1)
@@ -75,9 +75,9 @@ def run_spec2_tests():
     print(f"PASSED: Specialist retrieved submissions list ({len(submissions)} items)")
 
     # -------------------------------------------------------------
-    # Test 3: Anonymization check (Strictly Nickname, no Email or UserID)
+    # Test 3: Anonymization & Fields Check (Nickname, Tier, Zero PII)
     # -------------------------------------------------------------
-    print("\n[Test 3] Checking privacy anonymization on returned submissions...")
+    print("\n[Test 3] Checking privacy anonymization and tier on returned submissions...")
     for sub in submissions:
         if "email" in sub or "user_id" in sub:
             print(f"FAILED: Privacy violation! Submission contains leaked identifier: {sub}")
@@ -85,12 +85,22 @@ def run_spec2_tests():
         if "learner_nickname" not in sub:
             print(f"FAILED: Missing learner_nickname: {sub}")
             sys.exit(1)
-    print("PASSED: All submission records are properly anonymized with learner nicknames only")
+        if "learner_tier" not in sub:
+            print(f"FAILED: Missing learner_tier in submission summary: {sub}")
+            sys.exit(1)
+    print("PASSED: All submission records properly anonymized with learner nicknames and tier only")
 
     # -------------------------------------------------------------
-    # Test 4: RBAC on Authoring Analysis Threads (POST /api/threads)
+    # Test 4: RBAC & Auth on Analysis Threads
     # -------------------------------------------------------------
-    print("\n[Test 4] Testing RBAC on POST /api/threads (Learner forbidden)...")
+    print("\n[Test 4] Testing Unauthenticated access to /api/threads (401 Unauthorized)...")
+    unauth_res = requests.get(f"{BASE_URL}/threads")
+    if unauth_res.status_code != 401:
+        print(f"FAILED: Expected 401 for unauthenticated thread listing, got {unauth_res.status_code}")
+        sys.exit(1)
+    print("PASSED: Unauthenticated access blocked with 401 Unauthorized")
+
+    print("\n[Test 5] Testing RBAC on POST /api/threads (Learner forbidden)...")
     res = requests.post(f"{BASE_URL}/threads", headers={"Authorization": f"Bearer {learner_token}"}, json={
         "title": "Unauthorized Learner Attempt at Writing Thread",
         "content": "This post should be rejected because learners cannot author specialist threads.",
@@ -102,9 +112,9 @@ def run_spec2_tests():
     print("PASSED: Learner blocked from thread authoring with 403 Forbidden")
 
     # -------------------------------------------------------------
-    # Test 5: Specialist Authoring Analysis Thread (POST /api/threads)
+    # Test 6: Specialist Authoring Analysis Thread (POST /api/threads)
     # -------------------------------------------------------------
-    print("\n[Test 5] Specialist authoring a new analysis thread...")
+    print("\n[Test 6] Specialist authoring a new analysis thread...")
     thread_payload = {
         "title": f"Tactical SIEM Investigation Walkthrough #{rand_id}",
         "content": "### Blue Team Investigation Walkthrough\n\nDuring triage, the primary IOC was an obfuscated PowerShell encoded command.\n\n| Step | Action | Finding |\n|---|---|---|\n| 1 | Alert Triage | Suspicious command line |\n| 2 | Containment | VLAN isolation |",
@@ -122,10 +132,10 @@ def run_spec2_tests():
     print(f"PASSED: Thread created successfully (ID: {thread_id}, Author: {spec_nick})")
 
     # -------------------------------------------------------------
-    # Test 6: Public Feed Listing & Tag Filtering (GET /api/threads)
+    # Test 7: Feed Listing, Tag Filtering & Sorting (GET /api/threads)
     # -------------------------------------------------------------
-    print("\n[Test 6] Listing public threads and filtering by tag...")
-    list_res = requests.get(f"{BASE_URL}/threads?tag=powershell")
+    print("\n[Test 7] Listing authenticated threads with tag and sort filters...")
+    list_res = requests.get(f"{BASE_URL}/threads?tag=powershell&sort=upvotes", headers={"Authorization": f"Bearer {learner_token}"})
     if list_res.status_code != 200:
         print(f"FAILED: Expected 200, got {list_res.status_code}")
         sys.exit(1)
@@ -133,14 +143,14 @@ def run_spec2_tests():
     if not any(t["thread_id"] == thread_id for t in items):
         print(f"FAILED: Created thread not found in filtered list")
         sys.exit(1)
-    print("PASSED: Public feed retrieved and filtered by tag successfully")
+    print("PASSED: Feed retrieved and filtered by tag and sort=upvotes successfully")
 
     # -------------------------------------------------------------
-    # Test 7: Fetch Single Thread & View Count Increment (GET /api/threads/:id)
+    # Test 8: Fetch Single Thread & View Count Increment (GET /api/threads/:id)
     # -------------------------------------------------------------
-    print("\n[Test 7] Fetching single thread and checking view count...")
+    print("\n[Test 8] Fetching single thread and checking view count...")
     initial_views = thread.get("view_count", 0)
-    detail_res = requests.get(f"{BASE_URL}/threads/{thread_id}")
+    detail_res = requests.get(f"{BASE_URL}/threads/{thread_id}", headers={"Authorization": f"Bearer {learner_token}"})
     if detail_res.status_code != 200:
         print(f"FAILED: Expected 200, got {detail_res.status_code}")
         sys.exit(1)
@@ -151,9 +161,9 @@ def run_spec2_tests():
     print(f"PASSED: Single thread fetched with view count incremented to {new_views}")
 
     # -------------------------------------------------------------
-    # Test 8: Unauthorized Edit & Delete Protection
+    # Test 9: Unauthorized Edit & Delete Protection
     # -------------------------------------------------------------
-    print("\n[Test 8] Testing edit/delete protection by non-author...")
+    print("\n[Test 9] Testing edit/delete protection by non-author...")
     bad_edit = requests.put(
         f"{BASE_URL}/threads/{thread_id}",
         headers={"Authorization": f"Bearer {other_token}"},
@@ -173,9 +183,9 @@ def run_spec2_tests():
     print("PASSED: Non-author edit and delete safely rejected with 403 Forbidden")
 
     # -------------------------------------------------------------
-    # Test 9: Author Edit (PUT /api/threads/:id)
+    # Test 10: Author Edit (PUT /api/threads/:id)
     # -------------------------------------------------------------
-    print("\n[Test 9] Author editing their own analysis thread...")
+    print("\n[Test 10] Author editing their own analysis thread...")
     update_res = requests.put(
         f"{BASE_URL}/threads/{thread_id}",
         headers={"Authorization": f"Bearer {spec_token}"},
@@ -194,16 +204,16 @@ def run_spec2_tests():
     print("PASSED: Thread updated successfully by author")
 
     # -------------------------------------------------------------
-    # Test 10: Author Delete (DELETE /api/threads/:id)
+    # Test 11: Author Delete (DELETE /api/threads/:id)
     # -------------------------------------------------------------
-    print("\n[Test 10] Author deleting their analysis thread...")
+    print("\n[Test 11] Author deleting their analysis thread...")
     del_res = requests.delete(f"{BASE_URL}/threads/{thread_id}", headers={"Authorization": f"Bearer {spec_token}"})
     if del_res.status_code != 200:
         print(f"FAILED: Expected 200 for author delete, got {del_res.status_code}")
         sys.exit(1)
     
     # Confirm 404
-    get_res = requests.get(f"{BASE_URL}/threads/{thread_id}")
+    get_res = requests.get(f"{BASE_URL}/threads/{thread_id}", headers={"Authorization": f"Bearer {spec_token}"})
     if get_res.status_code != 404:
         print(f"FAILED: Expected 404 after deletion, got {get_res.status_code}")
         sys.exit(1)
