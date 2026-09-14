@@ -1,5 +1,5 @@
 import { Outlet, Link, useNavigate, useLocation } from "react-router-dom";
-import { ShieldCheck, LogOut, User } from "lucide-react";
+import { ShieldCheck, LogOut, User, ShieldAlert, Award } from "lucide-react";
 import { clsx } from "clsx";
 
 export default function Layout() {
@@ -7,16 +7,23 @@ export default function Layout() {
   const location = useLocation();
   const token = localStorage.getItem("token");
   const userEmail = localStorage.getItem("userEmail");
+  const userNickname = localStorage.getItem("userNickname") || (userEmail ? userEmail.split("@")[0] : "");
+  const userRole = localStorage.getItem("userRole") || "learner";
 
   const handleLogout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("userEmail");
+    localStorage.removeItem("userNickname");
+    localStorage.removeItem("userRole");
+    localStorage.removeItem("userId");
     navigate("/login");
   };
 
   const navLinks = [
     { path: "/exam", label: "Exam" },
-    { path: "/evaluation", label: "Evaluation" }
+    { path: "/evaluation", label: "Evaluation" },
+    ...(token ? [{ path: "/profile", label: "Profile" }] : []),
+    ...(token && userRole === "admin" ? [{ path: "/admin/specialists", label: "Admin Portal" }] : []),
   ];
 
   return (
@@ -35,7 +42,7 @@ export default function Layout() {
               {navLinks.map((link) => {
                 const isActive = link.path === "/exam"
                   ? ["/exam", "/pre-test", "/post-test"].includes(location.pathname)
-                  : location.pathname === link.path;
+                  : location.pathname.startsWith(link.path);
 
                 return (
                   <Link
@@ -61,17 +68,36 @@ export default function Layout() {
             
             {token ? (
               <div className="flex items-center gap-4">
-                {userEmail && (
-                  <div className="hidden sm:flex items-center gap-2 text-sm text-graphite-300">
-                    <div className="w-6 h-6 rounded-full bg-graphite-900 flex items-center justify-center border border-graphite-800">
+                <Link to="/profile" className="hidden sm:flex items-center gap-2 text-sm text-graphite-300 hover:text-white transition-colors">
+                  <div className="w-6 h-6 rounded-full bg-graphite-900 flex items-center justify-center border border-graphite-800">
+                    {userRole === "admin" ? (
+                      <ShieldAlert className="w-3.5 h-3.5 text-amber-400" />
+                    ) : userRole === "specialist" ? (
+                      <Award className="w-3.5 h-3.5 text-indigo-400" />
+                    ) : (
                       <User className="w-3.5 h-3.5 text-graphite-400" />
-                    </div>
-                    <span className="font-medium text-xs font-mono text-graphite-300">{userEmail}</span>
+                    )}
                   </div>
-                )}
+                  <span className="font-medium text-xs font-mono text-graphite-200">
+                    {userNickname || userEmail}
+                  </span>
+
+                  {/* Role Badge */}
+                  {userRole === "admin" && (
+                    <span className="px-1.5 py-0.5 rounded text-[10px] font-mono font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                      ADMIN
+                    </span>
+                  )}
+                  {userRole === "specialist" && (
+                    <span className="px-1.5 py-0.5 rounded text-[10px] font-mono font-semibold bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
+                      SPECIALIST
+                    </span>
+                  )}
+                </Link>
+
                 <button 
                   onClick={handleLogout}
-                  className="flex items-center gap-2 px-3 py-1.5 rounded-md border border-graphite-800 bg-transparent text-graphite-300 text-xs font-medium hover:bg-graphite-900 hover:text-white transition-all duration-200"
+                  className="flex items-center gap-2 px-3 py-1.5 rounded-md border border-graphite-800 bg-transparent text-graphite-300 text-xs font-medium hover:bg-graphite-900 hover:text-white transition-all duration-200 cursor-pointer"
                 >
                   <LogOut className="w-3.5 h-3.5" />
                   <span className="hidden sm:inline">Logout</span>

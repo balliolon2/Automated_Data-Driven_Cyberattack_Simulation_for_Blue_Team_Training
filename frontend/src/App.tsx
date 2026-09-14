@@ -3,6 +3,8 @@ import Layout from "./components/Layout"
 import LandingPage from "./pages/LandingPage"
 import LoginPage from "./pages/LoginPage"
 import RegisterPage from "./pages/RegisterPage"
+import ProfilePage from "./pages/ProfilePage"
+import AdminSpecialistsPage from "./pages/AdminSpecialistsPage"
 import ExamPage from "./pages/ExamPage"
 import ExamRedirectPage from "./pages/ExamRedirectPage"
 import EvaluationPage from "./pages/EvaluationPage"
@@ -18,6 +20,8 @@ function App() {
           <Route index element={<LandingPage />} />
           <Route path="login" element={<LoginPage />} />
           <Route path="register" element={<RegisterPage />} />
+          <Route path="profile" element={<ProfilePage />} />
+          <Route path="admin/specialists" element={<AdminSpecialistsPage />} />
           <Route path="exam" element={<ExamRedirectPage />} />
           <Route path="pre-test" element={<ExamPage mode="pre" />} />
           <Route path="post-test" element={<ExamPage mode="post" />} />

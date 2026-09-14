@@ -3,6 +3,7 @@ package controllers
 import (
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"cybersim/dto"
@@ -36,7 +37,7 @@ type RegisterInput = dto.RegisterRequest
 
 // Register godoc
 // @Summary Register a new learner
-// @Description Creates a new learner account with email and password
+// @Description Creates a new learner account with email, password, and nickname
 // @Tags Auth
 // @Accept json
 // @Produce json
@@ -52,6 +53,30 @@ func (ac *AuthController) Register(c *gin.Context) {
 		return
 	}
 
+	nickname := strings.TrimSpace(input.Nickname)
+	if nickname == "" {
+		parts := strings.Split(input.Email, "@")
+		if len(parts) > 0 && parts[0] != "" {
+			nickname = parts[0]
+		} else {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Nickname is required"})
+			return
+		}
+	}
+
+	// Check if email already exists
+	var existingUser models.User
+	if err := ac.DB.Where("email = ?", input.Email).First(&existingUser).Error; err == nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Email is already registered"})
+		return
+	}
+
+	// Check if nickname already exists
+	if err := ac.DB.Where("nickname = ?", nickname).First(&existingUser).Error; err == nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Nickname is already taken"})
+		return
+	}
+
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(input.Password), bcrypt.DefaultCost)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not hash password"})
@@ -60,15 +85,21 @@ func (ac *AuthController) Register(c *gin.Context) {
 
 	user := models.User{
 		Email:        input.Email,
+		Nickname:     nickname,
 		PasswordHash: string(hashedPassword),
+		Role:         "learner",
 	}
 
 	if err := ac.DB.Create(&user).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not create user. Email might already exist."})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not create user: " + err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusCreated, gin.H{"message": "User registered successfully"})
+	c.JSON(http.StatusCreated, gin.H{
+		"message":  "User registered successfully",
+		"nickname": user.Nickname,
+		"email":    user.Email,
+	})
 }
 
 type LoginInput = dto.LoginRequest
@@ -103,10 +134,16 @@ func (ac *AuthController) Login(c *gin.Context) {
 		return
 	}
 
+	// Update last login
+	now := time.Now()
+	user.LastLogin = &now
+	ac.DB.Model(&user).Update("last_login", now)
+
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"user_id": user.UserID,
-		"role":    user.Role,
-		"exp":     time.Now().Add(time.Hour * 24).Unix(),
+		"user_id":  user.UserID,
+		"role":     user.Role,
+		"nickname": user.Nickname,
+		"exp":      time.Now().Add(time.Hour * 24).Unix(),
 	})
 
 	tokenString, err := token.SignedString(jwtSecret)
@@ -115,5 +152,101 @@ func (ac *AuthController) Login(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"token": tokenString, "email": user.Email})
+	c.JSON(http.StatusOK, dto.AuthResponse{
+		Token:    tokenString,
+		Email:    user.Email,
+		Nickname: user.Nickname,
+		Role:     user.Role,
+		UserID:   user.UserID,
+	})
+}
+
+// GetProfile returns the authenticated user's profile and latest specialist application status
+func (ac *AuthController) GetProfile(c *gin.Context) {
+	userID, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	var user models.User
+	if err := ac.DB.Where("user_id = ?", userID).First(&user).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+		return
+	}
+
+	// Find latest application if any
+	var app models.SpecialistApplication
+	var appDTO *dto.SpecialistApplicationDTO
+	if err := ac.DB.Where("user_id = ?", userID).Order("created_at desc").First(&app).Error; err == nil {
+		var reviewedAtStr *string
+		if app.ReviewedAt != nil {
+			s := app.ReviewedAt.Format(time.RFC3339)
+			reviewedAtStr = &s
+		}
+		appDTO = &dto.SpecialistApplicationDTO{
+			ApplicationID:   app.ApplicationID,
+			UserID:          app.UserID,
+			Nickname:        user.Nickname,
+			Email:           user.Email,
+			Status:          app.Status,
+			Bio:             app.Bio,
+			ResumePath:      app.ResumePath,
+			CertificatePath: app.CertificatePath,
+			LinkedInURL:     app.LinkedInURL,
+			PortfolioURL:    app.PortfolioURL,
+			RejectionReason: app.RejectionReason,
+			ReviewedBy:      app.ReviewedBy,
+			ReviewedAt:      reviewedAtStr,
+			CreatedAt:       app.CreatedAt.Format(time.RFC3339),
+		}
+	}
+
+	c.JSON(http.StatusOK, dto.UserProfileResponse{
+		UserID:            user.UserID,
+		Email:             user.Email,
+		Nickname:          user.Nickname,
+		Role:              user.Role,
+		CurrentTier:       user.CurrentTier,
+		LatestApplication: appDTO,
+	})
+}
+
+// UpdateNickname updates the current user's nickname
+func (ac *AuthController) UpdateNickname(c *gin.Context) {
+	userID, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	var input dto.UpdateNicknameRequest
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	newNickname := strings.TrimSpace(input.Nickname)
+	if newNickname == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Nickname cannot be empty"})
+		return
+	}
+
+	// Check if nickname taken by someone else
+	var count int64
+	ac.DB.Model(&models.User{}).Where("nickname = ? AND user_id != ?", newNickname, userID).Count(&count)
+	if count > 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Nickname is already taken"})
+		return
+	}
+
+	if err := ac.DB.Model(&models.User{}).Where("user_id = ?", userID).Update("nickname", newNickname).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not update nickname"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message":  "Nickname updated successfully",
+		"nickname": newNickname,
+	})
 }

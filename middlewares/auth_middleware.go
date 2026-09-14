@@ -66,8 +66,42 @@ func AuthMiddleware() gin.HandlerFunc {
 
 		role, _ := claims["role"].(string)
 
+		nickname, _ := claims["nickname"].(string)
+
 		c.Set("user_id", userID)
 		c.Set("role", role)
+		c.Set("nickname", nickname)
 		c.Next()
 	}
+}
+
+// RequireRoles restricts an endpoint to specific roles
+func RequireRoles(roles ...string) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		userRole, exists := c.Get("role")
+		if !exists {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+			c.Abort()
+			return
+		}
+		roleStr, ok := userRole.(string)
+		if !ok {
+			c.JSON(http.StatusForbidden, gin.H{"error": "Invalid role"})
+			c.Abort()
+			return
+		}
+		for _, r := range roles {
+			if roleStr == r {
+				c.Next()
+				return
+			}
+		}
+		c.JSON(http.StatusForbidden, gin.H{"error": "Forbidden: insufficient permissions"})
+		c.Abort()
+	}
+}
+
+// RequireAdmin restricts an endpoint strictly to admins
+func RequireAdmin() gin.HandlerFunc {
+	return RequireRoles("admin")
 }

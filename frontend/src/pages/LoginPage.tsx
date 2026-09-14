@@ -20,11 +20,20 @@ export default function LoginPage() {
         email,
         password,
       });
-      // Save token to localStorage
+      // Save user details to localStorage
       localStorage.setItem("token", response.data.token);
       localStorage.setItem("userEmail", response.data.email);
-      // Navigate to the exam page or dashboard
-      navigate("/exam");
+      localStorage.setItem("userNickname", response.data.nickname || response.data.email.split('@')[0]);
+      localStorage.setItem("userRole", response.data.role || "learner");
+      if (response.data.user_id) {
+        localStorage.setItem("userId", response.data.user_id);
+      }
+      
+      if (response.data.role === "admin") {
+        navigate("/admin/specialists");
+      } else {
+        navigate("/exam");
+      }
     } catch (err: any) {
       setError(err.response?.data?.error || "Login failed. Please check your credentials.");
     } finally {

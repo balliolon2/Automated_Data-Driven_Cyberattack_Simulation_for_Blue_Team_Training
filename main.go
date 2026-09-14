@@ -25,6 +25,7 @@ import (
 	"cybersim/controllers"
 	_ "cybersim/docs"
 	"cybersim/middlewares"
+	"cybersim/models"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -47,6 +48,11 @@ func main() {
 
 	log.Println("Successfully connected to the database!")
 
+	// Run migrations for Spec 1 (nickname, specialist role, specialist_applications table)
+	if err := models.RunMigrations(db); err != nil {
+		log.Printf("Migration warning: %v", err)
+	}
+
 	// Initialize Gin
 	r := gin.Default()
 
@@ -63,6 +69,8 @@ func main() {
 	authController := controllers.NewAuthController(db)
 	examController := controllers.NewExamController(db)
 	simController := controllers.NewSimulationController(db)
+	specialistController := controllers.NewSpecialistController(db)
+	adminController := controllers.NewAdminController(db)
 
 	// Routes
 	api := r.Group("/api")
@@ -70,6 +78,29 @@ func main() {
 		api.POST("/register", authController.Register)
 		api.POST("/login", authController.Login)
 		api.GET("/exams/sample", examController.GetSampleQuestion)
+
+		// Protected user profile routes
+		userGroup := api.Group("/user", middlewares.AuthMiddleware())
+		{
+			userGroup.GET("/profile", authController.GetProfile)
+			userGroup.PUT("/nickname", authController.UpdateNickname)
+		}
+
+		// Protected specialist application routes
+		specialist := api.Group("/specialist", middlewares.AuthMiddleware())
+		{
+			specialist.POST("/apply", specialistController.Apply)
+			specialist.GET("/application-status", specialistController.GetApplicationStatus)
+		}
+
+		// Protected admin routes
+		admin := api.Group("/admin", middlewares.AuthMiddleware(), middlewares.RequireAdmin())
+		{
+			admin.GET("/applications", adminController.ListApplications)
+			admin.GET("/applications/:id/files/:file_type", adminController.StreamDocument)
+			admin.POST("/applications/:id/approve", adminController.Approve)
+			admin.POST("/applications/:id/reject", adminController.Reject)
+		}
 
 		// Protected exam routes
 		exams := api.Group("/exams", middlewares.AuthMiddleware())

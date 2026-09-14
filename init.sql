@@ -2,7 +2,7 @@
 CREATE EXTENSION IF NOT EXISTS vector;
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
-CREATE TYPE role AS ENUM ('learner', 'expert', 'admin');
+CREATE TYPE role AS ENUM ('learner', 'specialist', 'admin');
 CREATE TYPE test_type AS ENUM ('pre', 'post');
 CREATE TYPE question_type AS ENUM ('multiple_choice', 'true_false', 'scenario_based', 'drag_drop');
 CREATE TYPE scenario_status AS ENUM ('draft', 'active', 'archived');
@@ -14,12 +14,29 @@ CREATE TYPE feedback_source AS ENUM ('rag', 'rule_based', 'expert');
 CREATE TABLE users (
   user_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   email VARCHAR UNIQUE NOT NULL,
+  nickname VARCHAR UNIQUE NOT NULL,
   password_hash VARCHAR NOT NULL,
   role role DEFAULT 'learner',
   current_tier INT DEFAULT 1,
   created_at TIMESTAMP DEFAULT now(),
   last_login TIMESTAMP,
   is_active BOOLEAN DEFAULT true
+);
+
+CREATE TABLE specialist_applications (
+  application_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES users(user_id) ON DELETE CASCADE,
+  status VARCHAR NOT NULL DEFAULT 'pending',
+  bio TEXT NOT NULL,
+  resume_path VARCHAR NOT NULL,
+  certificate_path VARCHAR,
+  linkedin_url VARCHAR,
+  portfolio_url VARCHAR,
+  rejection_reason TEXT,
+  reviewed_by UUID REFERENCES users(user_id),
+  reviewed_at TIMESTAMP,
+  created_at TIMESTAMP DEFAULT now(),
+  updated_at TIMESTAMP DEFAULT now()
 );
 
 CREATE TABLE security_domains (
