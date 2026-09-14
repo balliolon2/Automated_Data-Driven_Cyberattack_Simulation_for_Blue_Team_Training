@@ -3,6 +3,7 @@ package models
 import (
 	"log"
 
+	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
 
@@ -131,6 +132,28 @@ func RunMigrations(db *gorm.DB) error {
 	); err != nil {
 		log.Printf("Error during AutoMigrate: %v", err)
 		return err
+	}
+
+	// 6. Ensure default admin user exists
+	var adminCount int64
+	db.Model(&User{}).Where("role = ?", "admin").Count(&adminCount)
+	if adminCount == 0 {
+		hash, err := bcrypt.GenerateFromPassword([]byte("password"), bcrypt.DefaultCost)
+		if err == nil {
+			admin := User{
+				Email:        "admin@soc.local",
+				Nickname:     "admin",
+				PasswordHash: string(hash),
+				Role:         "admin",
+				CurrentTier:  1,
+				IsActive:     true,
+			}
+			if err := db.Create(&admin).Error; err != nil {
+				log.Printf("Warning creating default admin: %v", err)
+			} else {
+				log.Println("Default admin account created: admin@soc.local")
+			}
+		}
 	}
 
 	log.Println("Database schema migration completed successfully.")
