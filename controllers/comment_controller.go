@@ -125,13 +125,18 @@ func (cc *CommentController) CreateComment(c *gin.Context) {
 		authorRole = userRole.(string)
 	}
 
+	authorNick := "Someone"
+	if n, ok := userNickname.(string); ok && n != "" {
+		authorNick = n
+	}
+
 	c.JSON(http.StatusCreated, dto.CommentResponse{
 		CommentID:       comment.CommentID,
 		ThreadID:        comment.ThreadID,
 		ParentCommentID: comment.ParentCommentID,
 		Author: dto.CommentAuthorDTO{
 			UserID:   userID.(string),
-			Nickname: userNickname.(string),
+			Nickname: authorNick,
 			Role:     authorRole,
 		},
 		Content:     comment.Content,
@@ -177,14 +182,30 @@ func (cc *CommentController) ListComments(c *gin.Context) {
 		}
 	}
 
+	// Fetch all Level 2 replies in bulk to eliminate N+1 queries
+	rootIDs := make([]string, 0, len(rootComments))
+	for _, r := range rootComments {
+		rootIDs = append(rootIDs, r.CommentID)
+	}
+
+	childrenByParent := make(map[string][]models.ThreadComment)
+	if len(rootIDs) > 0 {
+		var childComments []models.ThreadComment
+		if err := cc.DB.Preload("User").
+			Where("parent_comment_id IN ?", rootIDs).
+			Order("created_at asc").
+			Find(&childComments).Error; err == nil {
+			for _, ch := range childComments {
+				if ch.ParentCommentID != nil {
+					childrenByParent[*ch.ParentCommentID] = append(childrenByParent[*ch.ParentCommentID], ch)
+				}
+			}
+		}
+	}
+
 	result := make([]dto.CommentResponse, 0, len(rootComments))
 	for _, root := range rootComments {
-		// Fetch Level 2 replies for this root comment
-		var childComments []models.ThreadComment
-		cc.DB.Preload("User").
-			Where("parent_comment_id = ?", root.CommentID).
-			Order("created_at asc").
-			Find(&childComments)
+		childComments := childrenByParent[root.CommentID]
 
 		replies := make([]dto.CommentResponse, 0, len(childComments))
 		for _, ch := range childComments {
@@ -365,6 +386,11 @@ func (cc *CommentController) TogglePinComment(c *gin.Context) {
 
 	if thread.AuthorID != userID.(string) && userRole != "admin" {
 		c.JSON(http.StatusForbidden, gin.H{"error": "Only the thread author or admin can pin comments"})
+		return
+	}
+
+	if comment.ParentCommentID != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Only top-level comments can be pinned"})
 		return
 	}
 

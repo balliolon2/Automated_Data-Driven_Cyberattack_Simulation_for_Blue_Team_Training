@@ -3,6 +3,7 @@ package dto
 type UpvoteResponse struct {
 	UpvoteCount int  `json:"upvote_count"`
 	HasUpvoted  bool `json:"has_upvoted"`
+	Upvoted     bool `json:"upvoted"`
 }
 
 type NotificationResponse struct {

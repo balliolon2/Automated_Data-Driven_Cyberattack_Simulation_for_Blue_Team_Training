@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import axios from "axios";
 import { Bell, CheckCheck, Clock } from "lucide-react";
 import { cn } from "../lib/utils";
@@ -15,6 +15,7 @@ interface NotificationItem {
 
 export default function NotificationBell() {
   const navigate = useNavigate();
+  const location = useLocation();
   const token = localStorage.getItem("token");
 
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
@@ -31,6 +32,13 @@ export default function NotificationBell() {
     const interval = setInterval(fetchNotifications, 45000);
     return () => clearInterval(interval);
   }, [token]);
+
+  // Re-fetch on route navigation
+  useEffect(() => {
+    if (token) {
+      fetchNotifications();
+    }
+  }, [location.pathname]);
 
   // Close popover when clicking outside
   useEffect(() => {

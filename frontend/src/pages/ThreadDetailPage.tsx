@@ -104,7 +104,7 @@ export default function ThreadDetailPage() {
         {},
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      setThreadUpvoted(res.data.upvoted);
+      setThreadUpvoted(Boolean(res.data.has_upvoted ?? res.data.upvoted));
       setThreadUpvoteCount(res.data.upvote_count);
     } catch (err) {
       console.error("Failed to toggle upvote:", err);
@@ -158,7 +158,7 @@ export default function ThreadDetailPage() {
         </p>
         <button
           onClick={() => navigate("/discussions")}
-          className="px-4 py-2 rounded-md bg-graphite-100 hover:bg-white text-graphite-950 font-semibold text-xs transition-colors cursor-pointer"
+          className="px-4 py-2 rounded-md bg-graphite-900 hover:bg-graphite-800 text-graphite-200 border border-graphite-800 font-semibold text-xs transition-colors cursor-pointer"
         >
           Back to Discussions
         </button>

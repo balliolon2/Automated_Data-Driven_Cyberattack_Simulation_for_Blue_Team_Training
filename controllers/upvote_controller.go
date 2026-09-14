@@ -83,6 +83,7 @@ func (uc *UpvoteController) ToggleThreadUpvote(c *gin.Context) {
 	c.JSON(http.StatusOK, dto.UpvoteResponse{
 		UpvoteCount: newCount,
 		HasUpvoted:  hasUpvoted,
+		Upvoted:     hasUpvoted,
 	})
 }
 
@@ -149,5 +150,6 @@ func (uc *UpvoteController) ToggleCommentUpvote(c *gin.Context) {
 	c.JSON(http.StatusOK, dto.UpvoteResponse{
 		UpvoteCount: newCount,
 		HasUpvoted:  hasUpvoted,
+		Upvoted:     hasUpvoted,
 	})
 }

@@ -116,10 +116,12 @@ func main() {
 			// Thread Upvote
 			threads.POST("/:id/upvote", upvoteController.ToggleThreadUpvote)
 
-			// Thread Comments
+			// Thread Comments (Create requires auth)
 			threads.POST("/:id/comments", commentController.CreateComment)
-			threads.GET("/:id/comments", commentController.ListComments)
 		}
+
+		// Thread Comments (Public read with optional auth)
+		api.GET("/threads/:id/comments", middlewares.OptionalAuthMiddleware(), commentController.ListComments)
 
 		// Comment moderation & actions (Authenticated)
 		comments := api.Group("/comments", middlewares.AuthMiddleware())

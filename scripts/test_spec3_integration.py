@@ -71,14 +71,14 @@ def run_spec3_tests():
     print("\n[Test 1] Testing Thread Upvote (Toggle On & Off)...")
     # Upvote once
     up1 = requests.post(f"{BASE_URL}/threads/{thread_id}/upvote", headers={"Authorization": f"Bearer {learner1_token}"})
-    if up1.status_code != 200 or not up1.json().get("upvoted") or up1.json().get("upvote_count") != 1:
+    if up1.status_code != 200 or not up1.json().get("has_upvoted") or up1.json().get("upvote_count") != 1:
         print(f"FAILED on thread upvote toggle on: {up1.text}")
         sys.exit(1)
     print("PASSED: Learner 1 upvoted thread (count = 1)")
 
     # Upvote again (toggle off)
     up2 = requests.post(f"{BASE_URL}/threads/{thread_id}/upvote", headers={"Authorization": f"Bearer {learner1_token}"})
-    if up2.status_code != 200 or up2.json().get("upvoted") or up2.json().get("upvote_count") != 0:
+    if up2.status_code != 200 or up2.json().get("has_upvoted") or up2.json().get("upvote_count") != 0:
         print(f"FAILED on thread upvote toggle off: {up2.text}")
         sys.exit(1)
     print("PASSED: Learner 1 toggled upvote off (count = 0)")
@@ -161,13 +161,13 @@ def run_spec3_tests():
     # -------------------------------------------------------------
     print("\n[Test 4] Testing Comment Upvote (Toggle On & Off)...")
     cup1 = requests.post(f"{BASE_URL}/comments/{c1_id}/upvote", headers={"Authorization": f"Bearer {learner2_token}"})
-    if cup1.status_code != 200 or not cup1.json().get("upvoted") or cup1.json().get("upvote_count") != 1:
+    if cup1.status_code != 200 or not cup1.json().get("has_upvoted") or cup1.json().get("upvote_count") != 1:
         print(f"FAILED on comment upvote toggle on: {cup1.text}")
         sys.exit(1)
     print("PASSED: Learner 2 upvoted c1 (count = 1)")
 
     cup2 = requests.post(f"{BASE_URL}/comments/{c1_id}/upvote", headers={"Authorization": f"Bearer {learner2_token}"})
-    if cup2.status_code != 200 or cup2.json().get("upvoted") or cup2.json().get("upvote_count") != 0:
+    if cup2.status_code != 200 or cup2.json().get("has_upvoted") or cup2.json().get("upvote_count") != 0:
         print(f"FAILED on comment upvote toggle off: {cup2.text}")
         sys.exit(1)
     print("PASSED: Learner 2 toggled upvote off (count = 0)")
@@ -211,6 +211,13 @@ def run_spec3_tests():
         sys.exit(1)
     print("PASSED: 4th pin attempt rejected with 400 Bad Request (Max 3 pinned comments enforced)")
 
+    # Attempt to pin nested reply c2 -> should be rejected with 400
+    p_nested = requests.post(f"{BASE_URL}/comments/{c2_id}/pin", headers={"Authorization": f"Bearer {spec_token}"})
+    if p_nested.status_code != 400:
+        print(f"FAILED: Expected 400 when attempting to pin nested reply, got {p_nested.status_code}")
+        sys.exit(1)
+    print("PASSED: Pinning nested reply rejected with 400 (Only top-level comments can be pinned)")
+
     # -------------------------------------------------------------
     # Test 6: Comment Moderation (Hide / Unhide)
     # -------------------------------------------------------------
@@ -225,7 +232,7 @@ def run_spec3_tests():
     list_for_learner = requests.get(f"{BASE_URL}/threads/{thread_id}/comments", headers={"Authorization": f"Bearer {learner1_token}"}).json()
     replies = list_for_learner[0]["replies"]
     hidden_reply = [r for r in replies if r["comment_id"] == c3_id][0]
-    if "hidden by thread moderator" not in hidden_reply["content"]:
+    if "hidden by the moderator" not in hidden_reply["content"]:
         print(f"FAILED: Expected masked content for hidden comment, got: {hidden_reply['content']}")
         sys.exit(1)
     print("PASSED: Regular learner receives masked spam placeholder")

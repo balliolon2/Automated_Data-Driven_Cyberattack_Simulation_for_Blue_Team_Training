@@ -6,7 +6,7 @@ interface RoleBadgeProps {
 }
 
 export default function RoleBadge({ role, className }: RoleBadgeProps) {
-  if (!role || role === "learner") return null;
+  if (!role) return null;
 
   if (role === "admin") {
     return (
@@ -30,6 +30,19 @@ export default function RoleBadge({ role, className }: RoleBadgeProps) {
         )}
       >
         SPECIALIST
+      </span>
+    );
+  }
+
+  if (role === "learner") {
+    return (
+      <span
+        className={cn(
+          "px-1.5 py-0.5 rounded text-[9px] font-mono font-bold bg-graphite-900 text-graphite-400 border border-graphite-800 uppercase tracking-wide",
+          className
+        )}
+      >
+        LEARNER
       </span>
     );
   }
