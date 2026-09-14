@@ -202,13 +202,39 @@ export default function ExamPage({ mode }: { mode: "pre" | "post" }) {
 
   const currentQ = questions[currentQuestionIdx];
   const totalQuestions = questions.length;
+  const answeredCount = questions.filter(q => !!answers[q.question_id]).length;
+  const progressPercent = totalQuestions > 0 ? Math.round((answeredCount / totalQuestions) * 100) : 0;
+  const isComplete = totalQuestions > 0 && answeredCount === totalQuestions;
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 min-h-[75vh]">
       {/* Sidebar: Navigator */}
       <div className="lg:col-span-1 bg-graphite-900 border border-graphite-800 rounded-lg p-4 flex flex-col justify-between">
         <div>
-          <h3 className="font-semibold text-sm mb-4 text-white">Question Navigator</h3>
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="font-semibold text-sm text-white">Question Navigator</h3>
+            <span
+              className={`text-xs font-mono px-2 py-0.5 rounded border transition-colors ${
+                isComplete
+                  ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400 font-medium'
+                  : 'bg-graphite-950 border-graphite-800 text-graphite-300'
+              }`}
+            >
+              {answeredCount}/{totalQuestions} Answered
+            </span>
+          </div>
+
+          {/* Micro Progress Bar */}
+          <div className="mb-4">
+            <div className="w-full bg-graphite-950 rounded-full h-1.5 border border-graphite-800/80 overflow-hidden">
+              <div
+                className={`h-full transition-all duration-300 rounded-full ${
+                  isComplete ? 'bg-emerald-500' : 'bg-white'
+                }`}
+                style={{ width: `${progressPercent}%` }}
+              />
+            </div>
+          </div>
           <div className="max-h-[350px] overflow-y-auto pr-2 custom-scrollbar">
             <div className="grid grid-cols-5 gap-2">
               {questions.map((q, i) => {
