@@ -1,7 +1,14 @@
 package models
 
 import (
+	"cybersim/dto"
 	"time"
+)
+
+const (
+	ApplicationStatusPending  = "pending"
+	ApplicationStatusApproved = "approved"
+	ApplicationStatusRejected = "rejected"
 )
 
 type SpecialistApplication struct {
@@ -20,4 +27,29 @@ type SpecialistApplication struct {
 	ReviewedAt      *time.Time `json:"reviewed_at,omitempty"`
 	CreatedAt       time.Time  `gorm:"default:now()" json:"created_at"`
 	UpdatedAt       time.Time  `gorm:"default:now()" json:"updated_at"`
+}
+
+// ToDTO converts a SpecialistApplication database model into a public DTO
+func (app *SpecialistApplication) ToDTO(nickname, email string) dto.SpecialistApplicationDTO {
+	var reviewedAtStr *string
+	if app.ReviewedAt != nil {
+		s := app.ReviewedAt.Format(time.RFC3339)
+		reviewedAtStr = &s
+	}
+	return dto.SpecialistApplicationDTO{
+		ApplicationID:   app.ApplicationID,
+		UserID:          app.UserID,
+		Nickname:        nickname,
+		Email:           email,
+		Status:          app.Status,
+		Bio:             app.Bio,
+		ResumePath:      app.ResumePath,
+		CertificatePath: app.CertificatePath,
+		LinkedInURL:     app.LinkedInURL,
+		PortfolioURL:    app.PortfolioURL,
+		RejectionReason: app.RejectionReason,
+		ReviewedBy:      app.ReviewedBy,
+		ReviewedAt:      reviewedAtStr,
+		CreatedAt:       app.CreatedAt.Format(time.RFC3339),
+	}
 }

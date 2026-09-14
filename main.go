@@ -93,11 +93,14 @@ func main() {
 			specialist.GET("/application-status", specialistController.GetApplicationStatus)
 		}
 
-		// Protected admin routes
+		// Application document streaming (accessible by Admin or applicant owner)
+		api.GET("/admin/applications/:id/files/:file_type", middlewares.AuthMiddleware(), adminController.StreamDocument)
+		api.GET("/applications/:id/files/:file_type", middlewares.AuthMiddleware(), adminController.StreamDocument)
+
+		// Protected admin routes (Strictly Admin only)
 		admin := api.Group("/admin", middlewares.AuthMiddleware(), middlewares.RequireAdmin())
 		{
 			admin.GET("/applications", adminController.ListApplications)
-			admin.GET("/applications/:id/files/:file_type", adminController.StreamDocument)
 			admin.POST("/applications/:id/approve", adminController.Approve)
 			admin.POST("/applications/:id/reject", adminController.Reject)
 		}

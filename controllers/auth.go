@@ -179,27 +179,8 @@ func (ac *AuthController) GetProfile(c *gin.Context) {
 	var app models.SpecialistApplication
 	var appDTO *dto.SpecialistApplicationDTO
 	if err := ac.DB.Where("user_id = ?", userID).Order("created_at desc").First(&app).Error; err == nil {
-		var reviewedAtStr *string
-		if app.ReviewedAt != nil {
-			s := app.ReviewedAt.Format(time.RFC3339)
-			reviewedAtStr = &s
-		}
-		appDTO = &dto.SpecialistApplicationDTO{
-			ApplicationID:   app.ApplicationID,
-			UserID:          app.UserID,
-			Nickname:        user.Nickname,
-			Email:           user.Email,
-			Status:          app.Status,
-			Bio:             app.Bio,
-			ResumePath:      app.ResumePath,
-			CertificatePath: app.CertificatePath,
-			LinkedInURL:     app.LinkedInURL,
-			PortfolioURL:    app.PortfolioURL,
-			RejectionReason: app.RejectionReason,
-			ReviewedBy:      app.ReviewedBy,
-			ReviewedAt:      reviewedAtStr,
-			CreatedAt:       app.CreatedAt.Format(time.RFC3339),
-		}
+		dtoObj := app.ToDTO(user.Nickname, user.Email)
+		appDTO = &dtoObj
 	}
 
 	c.JSON(http.StatusOK, dto.UserProfileResponse{

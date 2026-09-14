@@ -9,7 +9,6 @@ import (
 	"strings"
 	"time"
 
-	"cybersim/dto"
 	"cybersim/models"
 
 	"github.com/gin-gonic/gin"
@@ -122,39 +121,49 @@ func (sc *SpecialistController) Apply(c *gin.Context) {
 		}
 	}
 
-	// Check if applicant already has a previous application; if rejected, update or insert
+	// Check if applicant already has a previous application
 	var existing models.SpecialistApplication
 	now := time.Now()
-	if err := sc.DB.Where("user_id = ?", userID).Order("created_at desc").First(&existing).Error; err == nil && existing.Status == "rejected" {
-		// Update rejected application to pending (re-application)
-		existing.Status = "pending"
-		existing.Bio = bio
-		existing.ResumePath = resumeSavePath
-		if certSavePath != "" {
-			existing.CertificatePath = certSavePath
-		}
-		existing.LinkedInURL = linkedinURL
-		existing.PortfolioURL = portfolioURL
-		existing.RejectionReason = ""
-		existing.ReviewedBy = nil
-		existing.ReviewedAt = nil
-		existing.UpdatedAt = now
-		if err := sc.DB.Save(&existing).Error; err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update application"})
+	if err := sc.DB.Where("user_id = ?", userID).Order("created_at desc").First(&existing).Error; err == nil {
+		if existing.Status == models.ApplicationStatusPending {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "An application is already pending administrator review"})
 			return
 		}
-		c.JSON(http.StatusOK, gin.H{
-			"message":        "Application re-submitted successfully",
-			"application_id": existing.ApplicationID,
-			"status":         existing.Status,
-		})
-		return
+		if existing.Status == models.ApplicationStatusApproved {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "You are already an approved Specialist"})
+			return
+		}
+		if existing.Status == models.ApplicationStatusRejected {
+			// Update rejected application to pending (re-application)
+			existing.Status = models.ApplicationStatusPending
+			existing.Bio = bio
+			existing.ResumePath = resumeSavePath
+			if certSavePath != "" {
+				existing.CertificatePath = certSavePath
+			}
+			existing.LinkedInURL = linkedinURL
+			existing.PortfolioURL = portfolioURL
+			existing.RejectionReason = ""
+			existing.ReviewedBy = nil
+			existing.ReviewedAt = nil
+			existing.UpdatedAt = now
+			if err := sc.DB.Save(&existing).Error; err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update application"})
+				return
+			}
+			c.JSON(http.StatusOK, gin.H{
+				"message":        "Application re-submitted successfully",
+				"application_id": existing.ApplicationID,
+				"status":         existing.Status,
+			})
+			return
+		}
 	}
 
 	application := models.SpecialistApplication{
 		ApplicationID:   appID,
 		UserID:          userID.(string),
-		Status:          "pending",
+		Status:          models.ApplicationStatusPending,
 		Bio:             bio,
 		ResumePath:      resumeSavePath,
 		CertificatePath: certSavePath,
@@ -190,24 +199,8 @@ func (sc *SpecialistController) GetApplicationStatus(c *gin.Context) {
 		return
 	}
 
-	var reviewedAtStr *string
-	if app.ReviewedAt != nil {
-		s := app.ReviewedAt.Format(time.RFC3339)
-		reviewedAtStr = &s
-	}
+	var user models.User
+	_ = sc.DB.Where("user_id = ?", userID).First(&user)
 
-	c.JSON(http.StatusOK, dto.SpecialistApplicationDTO{
-		ApplicationID:   app.ApplicationID,
-		UserID:          app.UserID,
-		Status:          app.Status,
-		Bio:             app.Bio,
-		ResumePath:      app.ResumePath,
-		CertificatePath: app.CertificatePath,
-		LinkedInURL:     app.LinkedInURL,
-		PortfolioURL:    app.PortfolioURL,
-		RejectionReason: app.RejectionReason,
-		ReviewedBy:      app.ReviewedBy,
-		ReviewedAt:      reviewedAtStr,
-		CreatedAt:       app.CreatedAt.Format(time.RFC3339),
-	})
+	c.JSON(http.StatusOK, app.ToDTO(user.Nickname, user.Email))
 }

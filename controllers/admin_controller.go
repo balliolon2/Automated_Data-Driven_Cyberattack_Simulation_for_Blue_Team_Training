@@ -39,34 +39,13 @@ func (ac *AdminController) ListApplications(c *gin.Context) {
 
 	result := make([]dto.SpecialistApplicationDTO, 0, len(applications))
 	for _, app := range applications {
-		var reviewedAtStr *string
-		if app.ReviewedAt != nil {
-			s := app.ReviewedAt.Format(time.RFC3339)
-			reviewedAtStr = &s
-		}
 		nickname := ""
 		email := ""
 		if app.User != nil {
 			nickname = app.User.Nickname
 			email = app.User.Email
 		}
-
-		result = append(result, dto.SpecialistApplicationDTO{
-			ApplicationID:   app.ApplicationID,
-			UserID:          app.UserID,
-			Nickname:        nickname,
-			Email:           email,
-			Status:          app.Status,
-			Bio:             app.Bio,
-			ResumePath:      app.ResumePath,
-			CertificatePath: app.CertificatePath,
-			LinkedInURL:     app.LinkedInURL,
-			PortfolioURL:    app.PortfolioURL,
-			RejectionReason: app.RejectionReason,
-			ReviewedBy:      app.ReviewedBy,
-			ReviewedAt:      reviewedAtStr,
-			CreatedAt:       app.CreatedAt.Format(time.RFC3339),
-		})
+		result = append(result, app.ToDTO(nickname, email))
 	}
 
 	c.JSON(http.StatusOK, result)
