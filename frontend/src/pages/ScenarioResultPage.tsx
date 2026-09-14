@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, Link } from "react-router-dom";
 import axios from "axios";
-import { CheckCircle2, XCircle, ChevronRight, Award, ShieldAlert, ShieldCheck, Loader2 } from "lucide-react";
+import { CheckCircle2, XCircle, ChevronRight, Award, ShieldAlert, ShieldCheck, Loader2, MessageSquare, Plus } from "lucide-react";
 import DomainBreakdown from "../components/DomainBreakdown";
 import { cn } from "../lib/utils";
 
@@ -67,6 +67,8 @@ export default function ScenarioResultPage() {
   const [result, setResult] = useState<ResultData | null>(null);
   const [domainProficiencies, setDomainProficiencies] = useState<DomainStatus[]>([]);
   const [needsTraining, setNeedsTraining] = useState<boolean>(true);
+  const [linkedThreads, setLinkedThreads] = useState<any[]>([]);
+  const [threadsLoading, setThreadsLoading] = useState(false);
 
   const navigate = useNavigate();
 
@@ -94,6 +96,19 @@ export default function ScenarioResultPage() {
           headers: { Authorization: `Bearer ${token}` }
         });
         setNeedsTraining(statusRes.data.needs_training);
+
+        // 3. Fetch linked analysis threads if scenario exists
+        if (res.data.session?.scenario_id) {
+          setThreadsLoading(true);
+          try {
+            const threadRes = await axios.get(`/api/threads?scenario_id=${res.data.session.scenario_id}`);
+            setLinkedThreads(threadRes.data.threads || []);
+          } catch (tErr) {
+            console.error("Failed to load linked threads:", tErr);
+          } finally {
+            setThreadsLoading(false);
+          }
+        }
 
       } catch (err) {
         console.error("Failed to load scenario results:", err);
@@ -317,6 +332,99 @@ export default function ScenarioResultPage() {
                 );
               })}
             </div>
+          </div>
+
+          {/* Specialist Insights & Community Discussions */}
+          <div className="p-5 rounded-lg bg-graphite-900/40 border border-graphite-800 space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b border-graphite-800 pb-3">
+              <div className="flex items-center gap-2">
+                <MessageSquare className="w-4 h-4 text-indigo-400" />
+                <h3 className="font-bold text-sm text-white">Specialist Insights & Analysis Debriefs</h3>
+              </div>
+
+              {(localStorage.getItem("userRole") === "specialist" || localStorage.getItem("userRole") === "admin") && (
+                <button
+                  onClick={() =>
+                    navigate(
+                      `/discussions/new?scenario_id=${session?.scenario_id}&scenario_title=${encodeURIComponent(
+                        scenario?.title || ""
+                      )}`
+                    )
+                  }
+                  className="flex items-center gap-1.5 px-3 py-1 rounded bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold transition-colors cursor-pointer self-start sm:self-auto"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Write Analysis on this Scenario</span>
+                </button>
+              )}
+            </div>
+
+            {threadsLoading ? (
+              <div className="py-6 text-center text-graphite-500 font-mono text-xs">
+                Loading linked analysis threads...
+              </div>
+            ) : linkedThreads.length === 0 ? (
+              <div className="py-8 text-center space-y-2 border border-dashed border-graphite-800/80 rounded-lg">
+                <p className="text-xs text-graphite-400">
+                  No specialist analysis published yet for this specific scenario.
+                </p>
+                {localStorage.getItem("userRole") === "specialist" || localStorage.getItem("userRole") === "admin" ? (
+                  <button
+                    onClick={() =>
+                      navigate(
+                        `/discussions/new?scenario_id=${session?.scenario_id}&scenario_title=${encodeURIComponent(
+                          scenario?.title || ""
+                        )}`
+                      )
+                    }
+                    className="text-xs text-indigo-400 hover:text-indigo-300 font-semibold underline underline-offset-2 cursor-pointer"
+                  >
+                    Be the first specialist to deconstruct this attack attempt!
+                  </button>
+                ) : (
+                  <Link
+                    to="/discussions"
+                    className="text-xs text-graphite-400 hover:text-white underline underline-offset-2 inline-block"
+                  >
+                    Browse general discussions & debriefs &rarr;
+                  </Link>
+                )}
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {linkedThreads.map((t) => (
+                  <div
+                    key={t.thread_id}
+                    onClick={() => navigate(`/discussions/${t.thread_id}`)}
+                    className="p-3.5 rounded-lg bg-graphite-950 border border-graphite-800 hover:border-graphite-700 transition-all cursor-pointer space-y-2"
+                  >
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="font-mono text-[11px] text-graphite-300">
+                        by {t.author.nickname}
+                      </span>
+                      <span className="px-1.5 py-0.2 rounded text-[9px] font-mono font-bold bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
+                        {t.author.role.toUpperCase()}
+                      </span>
+                    </div>
+
+                    <h4 className="font-semibold text-white text-xs hover:text-indigo-300 transition-colors line-clamp-1">
+                      {t.title}
+                    </h4>
+
+                    <p className="text-[11px] text-graphite-400 line-clamp-2 leading-relaxed">
+                      {t.content.replace(/[#*`>|]/g, "").slice(0, 100)}...
+                    </p>
+
+                    <div className="flex items-center justify-between text-[10px] font-mono text-graphite-500 pt-1.5 border-t border-graphite-800/60">
+                      <span>{t.upvote_count} helpful</span>
+                      <span className="text-indigo-400 flex items-center gap-0.5">
+                        Read full &rarr;
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>

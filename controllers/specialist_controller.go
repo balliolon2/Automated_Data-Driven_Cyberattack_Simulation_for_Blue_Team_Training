@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"cybersim/dto"
 	"cybersim/models"
 
 	"github.com/gin-gonic/gin"
@@ -203,4 +204,207 @@ func (sc *SpecialistController) GetApplicationStatus(c *gin.Context) {
 	_ = sc.DB.Where("user_id = ?", userID).First(&user)
 
 	c.JSON(http.StatusOK, app.ToDTO(user.Nickname, user.Email))
+}
+
+
+// GetSubmissions retrieves completed simulation sessions with anonymized learner nicknames
+func (sc *SpecialistController) GetSubmissions(c *gin.Context) {
+	scenarioID := strings.TrimSpace(c.Query("scenario_id"))
+	domainID := strings.TrimSpace(c.Query("domain_id"))
+	maxScoreStr := strings.TrimSpace(c.Query("max_score"))
+
+	query := sc.DB.Table("simulation_sessions").
+		Select("simulation_sessions.session_id, simulation_sessions.scenario_id, simulation_sessions.final_score, simulation_sessions.completed_at, simulation_sessions.total_actions, scenarios.title as scenario_title, scenarios.domain_id, users.nickname as learner_nickname").
+		Joins("JOIN scenarios ON scenarios.scenario_id = simulation_sessions.scenario_id").
+		Joins("JOIN users ON users.user_id = simulation_sessions.user_id").
+		Where("simulation_sessions.status = 'completed'")
+
+	if scenarioID != "" {
+		query = query.Where("simulation_sessions.scenario_id = ?", scenarioID)
+	}
+	if domainID != "" {
+		query = query.Where("scenarios.domain_id = ?", domainID)
+	}
+	if maxScoreStr != "" {
+		var maxScore float64
+		if _, err := fmt.Sscanf(maxScoreStr, "%f", &maxScore); err == nil {
+			query = query.Where("simulation_sessions.final_score <= ?", maxScore)
+		}
+	}
+
+	type submissionRow struct {
+		SessionID       string     `json:"session_id"`
+		ScenarioID      string     `json:"scenario_id"`
+		ScenarioTitle   string     `json:"scenario_title"`
+		DomainID        string     `json:"domain_id"`
+		LearnerNickname string     `json:"learner_nickname"`
+		FinalScore      *float64   `json:"final_score"`
+		TotalActions    int        `json:"total_actions"`
+		CompletedAt     *time.Time `json:"completed_at"`
+	}
+
+	var rows []submissionRow
+	if err := query.Order("simulation_sessions.completed_at desc").Limit(50).Find(&rows).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch submissions"})
+		return
+	}
+
+	result := make([]dto.SpecialistSubmissionSummary, 0, len(rows))
+	for _, r := range rows {
+		score := 0.0
+		if r.FinalScore != nil {
+			score = *r.FinalScore
+		}
+		completedStr := ""
+		if r.CompletedAt != nil {
+			completedStr = r.CompletedAt.Format(time.RFC3339)
+		}
+
+		// Count TP/FP correctness and findings for this session
+		var tpfpCorrect bool
+		var findingsFoundCount int
+		var triageAction models.SessionAction
+		if err := sc.DB.Where("session_id = ? AND action_type = 'triage_alert'", r.SessionID).First(&triageAction).Error; err == nil && triageAction.IsCorrect != nil {
+			tpfpCorrect = *triageAction.IsCorrect
+		}
+
+		var findingsAction models.SessionAction
+		if err := sc.DB.Where("session_id = ? AND action_type = 'submit_decision'", r.SessionID).First(&findingsAction).Error; err == nil && findingsAction.Payload != nil {
+			if payloadMap, ok := findingsAction.Payload.(map[string]interface{}); ok {
+				if fList, ok := payloadMap["discovered_findings"].([]interface{}); ok {
+					findingsFoundCount = len(fList)
+				}
+			}
+		}
+
+		domainName := domainNames[r.DomainID]
+		if domainName == "" {
+			domainName = r.DomainID
+		}
+
+		result = append(result, dto.SpecialistSubmissionSummary{
+			SessionID:          r.SessionID,
+			LearnerNickname:    r.LearnerNickname,
+			ScenarioID:         r.ScenarioID,
+			ScenarioTitle:      r.ScenarioTitle,
+			DomainID:           r.DomainID,
+			DomainName:         domainName,
+			FinalScore:         score,
+			TPFPCorrect:        tpfpCorrect,
+			FindingsFoundCount: findingsFoundCount,
+			ActionsCount:       r.TotalActions,
+			CompletedAt:        completedStr,
+		})
+	}
+
+	c.JSON(http.StatusOK, result)
+}
+
+// GetSubmissionDetail provides deep-dive investigation trace for an attempt
+func (sc *SpecialistController) GetSubmissionDetail(c *gin.Context) {
+	sessionID := c.Param("session_id")
+
+	var session models.SimulationSession
+	if err := sc.DB.Where("session_id = ?", sessionID).First(&session).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Session not found"})
+		return
+	}
+
+	var scenario models.Scenario
+	if err := sc.DB.Where("scenario_id = ?", session.ScenarioID).First(&scenario).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Scenario not found"})
+		return
+	}
+
+	var user models.User
+	if err := sc.DB.Where("user_id = ?", session.UserID).First(&user).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+		return
+	}
+
+	var actions []models.SessionAction
+	sc.DB.Where("session_id = ?", sessionID).Order("step_order asc").Find(&actions)
+
+	timeline := make([]dto.SubmissionTimelineAction, 0, len(actions))
+	var learnerChoice *bool
+	var tpfpCorrect bool
+	var tpfpPoints float64
+	var selectedActions []string
+	var discoveredFindings []string
+
+	for _, a := range actions {
+		timeline = append(timeline, dto.SubmissionTimelineAction{
+			ActionID:   a.ActionID,
+			StepOrder:  a.StepOrder,
+			ActionType: string(a.ActionType),
+			Payload:    a.Payload,
+			IsCorrect:  a.IsCorrect,
+			Points:     a.Points,
+			Timestamp:  a.Timestamp,
+		})
+
+		if a.ActionType == "triage_alert" && a.Payload != nil {
+			if m, ok := a.Payload.(map[string]interface{}); ok {
+				if choice, ok := m["user_choice"].(bool); ok {
+					learnerChoice = &choice
+				}
+			}
+			if a.IsCorrect != nil {
+				tpfpCorrect = *a.IsCorrect
+			}
+			tpfpPoints = float64(a.Points)
+		} else if a.ActionType == "respond" && a.Payload != nil {
+			if m, ok := a.Payload.(map[string]interface{}); ok {
+				if acts, ok := m["selected_actions"].([]interface{}); ok {
+					for _, act := range acts {
+						if s, ok := act.(string); ok {
+							selectedActions = append(selectedActions, s)
+						}
+					}
+				}
+			}
+		} else if a.ActionType == "submit_decision" && a.Payload != nil {
+			if m, ok := a.Payload.(map[string]interface{}); ok {
+				if finds, ok := m["discovered_findings"].([]interface{}); ok {
+					for _, f := range finds {
+						if s, ok := f.(string); ok {
+							discoveredFindings = append(discoveredFindings, s)
+						}
+					}
+				}
+			}
+		}
+	}
+
+	score := 0.0
+	if session.FinalScore != nil {
+		score = *session.FinalScore
+	}
+	completedStr := ""
+	if session.CompletedAt != nil {
+		completedStr = session.CompletedAt.Format(time.RFC3339)
+	}
+
+	detail := dto.SpecialistSubmissionDetail{
+		SessionID:           session.SessionID,
+		LearnerNickname:     user.Nickname,
+		ScenarioID:          scenario.ScenarioID,
+		ScenarioTitle:       scenario.Title,
+		ScenarioDescription: scenario.Description,
+		DomainID:            scenario.DomainID,
+		IsTruePositive:      scenario.IsTruePositive,
+		TpFpExplanation:     scenario.TpFpExplanation,
+		LearnerChoice:       learnerChoice,
+		TPFPCorrect:         tpfpCorrect,
+		TPFPPoints:          tpfpPoints,
+		DiscoveredFindings:  discoveredFindings,
+		ExpectedFindings:    scenario.ExpectedOutcomes,
+		SelectedActions:     selectedActions,
+		ExpectedActions:     scenario.PlaybookSteps,
+		FinalScore:          score,
+		Timeline:            timeline,
+		CompletedAt:         completedStr,
+	}
+
+	c.JSON(http.StatusOK, detail)
 }

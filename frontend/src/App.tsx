@@ -11,6 +11,10 @@ import EvaluationPage from "./pages/EvaluationPage"
 import SimulationPage from "./pages/SimulationPage"
 import ScenarioResultPage from "./pages/ScenarioResultPage"
 import SimulationCompletePage from "./pages/SimulationCompletePage"
+import SpecialistReviewPage from "./pages/SpecialistReviewPage"
+import DiscussionsFeedPage from "./pages/DiscussionsFeedPage"
+import ThreadEditorPage from "./pages/ThreadEditorPage"
+import ThreadDetailPage from "./pages/ThreadDetailPage"
 
 function App() {
   return (
@@ -22,6 +26,11 @@ function App() {
           <Route path="register" element={<RegisterPage />} />
           <Route path="profile" element={<ProfilePage />} />
           <Route path="admin/specialists" element={<AdminSpecialistsPage />} />
+          <Route path="specialist/reviews" element={<SpecialistReviewPage />} />
+          <Route path="discussions" element={<DiscussionsFeedPage />} />
+          <Route path="discussions/new" element={<ThreadEditorPage />} />
+          <Route path="discussions/:id" element={<ThreadDetailPage />} />
+          <Route path="discussions/:id/edit" element={<ThreadEditorPage />} />
           <Route path="exam" element={<ExamRedirectPage />} />
           <Route path="pre-test" element={<ExamPage mode="pre" />} />
           <Route path="post-test" element={<ExamPage mode="post" />} />

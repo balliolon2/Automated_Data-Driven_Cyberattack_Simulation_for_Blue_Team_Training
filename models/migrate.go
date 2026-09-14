@@ -46,6 +46,12 @@ func RunMigrations(db *gorm.DB) error {
 		return err
 	}
 
+	// 5. AutoMigrate AnalysisThread table
+	if err := db.AutoMigrate(&AnalysisThread{}); err != nil {
+		log.Printf("Error automigrating AnalysisThread: %v", err)
+		return err
+	}
+
 	log.Println("Database schema migration completed successfully.")
 	return nil
 }

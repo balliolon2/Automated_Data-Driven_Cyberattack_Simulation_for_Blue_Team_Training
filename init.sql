@@ -225,3 +225,21 @@ CREATE TABLE help_click_analytics (
 CREATE INDEX idx_help_clicks_user ON help_click_analytics(user_id);
 CREATE INDEX idx_help_clicks_scenario ON help_click_analytics(scenario_id);
 CREATE INDEX idx_help_clicks_time ON help_click_analytics(timestamp);
+
+-- 1.8 Specialist & Community tables
+CREATE TABLE analysis_threads (
+  thread_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  author_id UUID REFERENCES users(user_id) ON DELETE CASCADE,
+  scenario_id UUID REFERENCES scenarios(scenario_id) ON DELETE SET NULL,
+  title VARCHAR(255) NOT NULL,
+  content TEXT NOT NULL,
+  tags JSONB,
+  upvote_count INT DEFAULT 0,
+  view_count INT DEFAULT 0,
+  is_pinned BOOLEAN DEFAULT false,
+  is_locked BOOLEAN DEFAULT false,
+  created_at TIMESTAMP DEFAULT now(),
+  updated_at TIMESTAMP DEFAULT now()
+);
+CREATE INDEX idx_analysis_threads_scenario ON analysis_threads(scenario_id);
+CREATE INDEX idx_analysis_threads_author ON analysis_threads(author_id);

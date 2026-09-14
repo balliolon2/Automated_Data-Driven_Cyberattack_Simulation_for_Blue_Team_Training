@@ -71,6 +71,7 @@ func main() {
 	simController := controllers.NewSimulationController(db)
 	specialistController := controllers.NewSpecialistController(db)
 	adminController := controllers.NewAdminController(db)
+	threadController := controllers.NewThreadController(db)
 
 	// Routes
 	api := r.Group("/api")
@@ -91,6 +92,23 @@ func main() {
 		{
 			specialist.POST("/apply", specialistController.Apply)
 			specialist.GET("/application-status", specialistController.GetApplicationStatus)
+		}
+
+		// Specialist Review Console (Specialist and Admin only)
+		specialistReviews := api.Group("/specialist", middlewares.AuthMiddleware(), middlewares.RequireRoles("specialist", "admin"))
+		{
+			specialistReviews.GET("/submissions", specialistController.GetSubmissions)
+			specialistReviews.GET("/submissions/:session_id", specialistController.GetSubmissionDetail)
+		}
+
+		// Analysis Threads
+		threads := api.Group("/threads")
+		{
+			threads.GET("", threadController.ListThreads)
+			threads.GET("/:id", threadController.GetThread)
+			threads.POST("", middlewares.AuthMiddleware(), middlewares.RequireRoles("specialist", "admin"), threadController.CreateThread)
+			threads.PUT("/:id", middlewares.AuthMiddleware(), threadController.UpdateThread)
+			threads.DELETE("/:id", middlewares.AuthMiddleware(), threadController.DeleteThread)
 		}
 
 		// Application document streaming (accessible by Admin or applicant owner)
