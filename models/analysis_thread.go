@@ -9,9 +9,9 @@ import (
 type AnalysisThread struct {
 	ThreadID    string     `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"thread_id"`
 	AuthorID    string     `gorm:"type:uuid;not null;index" json:"author_id"`
-	Author      *User      `gorm:"foreignKey:AuthorID" json:"author,omitempty"`
+	Author      *User      `gorm:"foreignKey:AuthorID;references:UserID;constraint:-" json:"author,omitempty"`
 	ScenarioID  *string    `gorm:"type:uuid;index" json:"scenario_id,omitempty"`
-	Scenario    *Scenario  `gorm:"foreignKey:ScenarioID" json:"scenario,omitempty"`
+	Scenario    *Scenario  `gorm:"foreignKey:ScenarioID;references:ScenarioID;constraint:-" json:"scenario,omitempty"`
 	Title       string     `gorm:"type:varchar(255);not null" json:"title"`
 	Content     string     `gorm:"type:text;not null" json:"content"`
 	Tags        any        `gorm:"type:jsonb;serializer:json" json:"tags"`

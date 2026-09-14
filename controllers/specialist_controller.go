@@ -3,6 +3,7 @@ package controllers
 import (
 	"crypto/rand"
 	"fmt"
+	"log"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -176,6 +177,7 @@ func (sc *SpecialistController) Apply(c *gin.Context) {
 	}
 
 	if err := sc.DB.Create(&application).Error; err != nil {
+		log.Printf("Failed to create specialist application: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create application"})
 		return
 	}
