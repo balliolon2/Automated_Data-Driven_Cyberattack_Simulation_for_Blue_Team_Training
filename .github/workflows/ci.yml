@@ -100,15 +100,22 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-          cache: 'pip'
 
       - name: Install Python Dependencies
         run: |
-          pip install requests psycopg2-binary
+          pip install -r requirements.txt
 
       - name: Initialize PostgreSQL Schema (init.sql)
         run: |
-          PGPASSWORD=password123 psql -h localhost -U postgres -d cyber_sim -f init.sql
+          python -c "
+          import psycopg2
+          conn = psycopg2.connect('postgres://postgres:password123@localhost:5432/cyber_sim?sslmode=disable')
+          with open('init.sql', 'r', encoding='utf-8') as f:
+              conn.cursor().execute(f.read())
+          conn.commit()
+          conn.close()
+          print('PostgreSQL schema initialized successfully!')
+          "
 
       - name: Seed CompTIA Domains & Questions to DB
         env:
@@ -116,14 +123,17 @@ jobs:
         run: |
           python scripts/load_exams_to_db.py
 
-      - name: Start Go Backend Service
+      - name: Start Backend & Run Integration Test Harness
         env:
           DATABASE_URL: "postgres://postgres:password123@localhost:5432/cyber_sim?sslmode=disable"
           JWT_SECRET: "ci-test-jwt-secret-key-12345"
+          ADMIN_EMAIL: "admin@soc.local"
+          ADMIN_PASSWORD: "password"
           PORT: "8080"
           ENABLE_SWAGGER: "false"
         run: |
-          go run main.go &
+          go run main.go > backend.log 2>&1 &
+          
           # Poll health check until backend responds healthy
           for i in {1..30}; do
             if curl -s http://localhost:8080/api/health | grep -q "healthy"; then
@@ -134,8 +144,12 @@ jobs:
             sleep 1
           done
 
-      - name: Run Integration Test Harness
-        run: |
+          if ! curl -s http://localhost:8080/api/health | grep -q "healthy"; then
+            echo "Error: Backend API failed to start. Logs:"
+            cat backend.log
+            exit 1
+          fi
+
           python scripts/test_integration.py
 
   build-validation:
