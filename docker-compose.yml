@@ -43,6 +43,9 @@ services:
       - DATABASE_URL=host=db user=${POSTGRES_USER:-admin} password=${POSTGRES_PASSWORD:-password} dbname=${POSTGRES_DB:-cyber_sim} port=5432 sslmode=disable TimeZone=Asia/Bangkok
       - GIN_MODE=${GIN_MODE:-release}
       - JWT_SECRET=${JWT_SECRET:-secret_jwt_key_default}
+      - ADMIN_EMAIL=${ADMIN_EMAIL:-}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-}
+      - ADMIN_NICKNAME=${ADMIN_NICKNAME:-admin}
       - LLM_API_KEY=${LLM_API_KEY:-}
       - LLM_BASE_URL=${LLM_BASE_URL:-https://api.openai.com/v1}
       - LLM_MODEL=${LLM_MODEL:-gpt-4o-mini}

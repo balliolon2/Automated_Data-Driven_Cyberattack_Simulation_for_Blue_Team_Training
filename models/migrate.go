@@ -2,6 +2,7 @@ package models
 
 import (
 	"log"
+	"os"
 
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
@@ -134,25 +135,52 @@ func RunMigrations(db *gorm.DB) error {
 		return err
 	}
 
-	// 6. Ensure default admin user exists
-	var adminCount int64
-	db.Model(&User{}).Where("role = ?", "admin").Count(&adminCount)
-	if adminCount == 0 {
-		hash, err := bcrypt.GenerateFromPassword([]byte("password"), bcrypt.DefaultCost)
-		if err == nil {
-			admin := User{
-				Email:        "admin@soc.local",
-				Nickname:     "admin",
-				PasswordHash: string(hash),
-				Role:         "admin",
-				CurrentTier:  1,
-				IsActive:     true,
-			}
-			if err := db.Create(&admin).Error; err != nil {
-				log.Printf("Warning creating default admin: %v", err)
+	// 6. Provision or synchronize admin user from environment variables (.env)
+	adminEmail := os.Getenv("ADMIN_EMAIL")
+	adminPassword := os.Getenv("ADMIN_PASSWORD")
+	adminNickname := os.Getenv("ADMIN_NICKNAME")
+	if adminNickname == "" {
+		adminNickname = "admin"
+	}
+
+	if adminEmail != "" && adminPassword != "" {
+		var existingAdmin User
+		result := db.Where("email = ? AND role = ?", adminEmail, "admin").First(&existingAdmin)
+		if result.Error != nil {
+			// Admin does not exist, provision new admin user
+			hash, err := bcrypt.GenerateFromPassword([]byte(adminPassword), bcrypt.DefaultCost)
+			if err == nil {
+				admin := User{
+					Email:        adminEmail,
+					Nickname:     adminNickname,
+					PasswordHash: string(hash),
+					Role:         "admin",
+					CurrentTier:  1,
+					IsActive:     true,
+				}
+				if err := db.Create(&admin).Error; err != nil {
+					log.Printf("Warning creating admin account: %v", err)
+				} else {
+					log.Printf("Admin account provisioned from environment: %s", adminEmail)
+				}
 			} else {
-				log.Println("Default admin account created: admin@soc.local")
+				log.Printf("Error hashing admin password: %v", err)
 			}
+		} else {
+			// Admin account exists: verify or update password if changed in .env
+			if err := bcrypt.CompareHashAndPassword([]byte(existingAdmin.PasswordHash), []byte(adminPassword)); err != nil {
+				hash, err := bcrypt.GenerateFromPassword([]byte(adminPassword), bcrypt.DefaultCost)
+				if err == nil {
+					db.Model(&existingAdmin).Update("password_hash", string(hash))
+					log.Printf("Admin password synchronized with current .env for: %s", adminEmail)
+				}
+			}
+		}
+	} else {
+		var adminCount int64
+		db.Model(&User{}).Where("role = ?", "admin").Count(&adminCount)
+		if adminCount == 0 {
+			log.Println("Notice: No admin account found in database. Configure ADMIN_EMAIL and ADMIN_PASSWORD in .env to provision an initial administrator.")
 		}
 	}
 

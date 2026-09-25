@@ -45,7 +45,9 @@ def run_spec2_tests():
     app_id = app_res.json().get("application_id")
 
     # Login as admin to approve candidate
-    admin_login = requests.post(f"{BASE_URL}/login", json={"email": "admin@soc.local", "password": "password"})
+    admin_email = os.environ.get("ADMIN_EMAIL", "admin@soc.local")
+    admin_password = os.environ.get("ADMIN_PASSWORD", "password")
+    admin_login = requests.post(f"{BASE_URL}/login", json={"email": admin_email, "password": admin_password})
     if admin_login.status_code == 200:
         admin_token = admin_login.json().get("token")
         requests.post(f"{BASE_URL}/admin/applications/{app_id}/approve", headers={"Authorization": f"Bearer {admin_token}"})

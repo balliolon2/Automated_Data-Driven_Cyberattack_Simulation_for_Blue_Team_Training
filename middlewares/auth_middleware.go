@@ -10,14 +10,12 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-var jwtSecret = []byte(getJWTSecret())
-
-func getJWTSecret() string {
+func getJWTSecret() []byte {
 	secret := os.Getenv("JWT_SECRET")
 	if secret == "" {
-		return "supersecretkey"
+		return []byte("supersecretkey")
 	}
-	return secret
+	return []byte(secret)
 }
 
 func AuthMiddleware() gin.HandlerFunc {
@@ -41,7 +39,7 @@ func AuthMiddleware() gin.HandlerFunc {
 			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 				return nil, errors.New("unexpected signing method")
 			}
-			return jwtSecret, nil
+			return getJWTSecret(), nil
 		})
 
 		if err != nil || !token.Valid {
@@ -126,7 +124,7 @@ func OptionalAuthMiddleware() gin.HandlerFunc {
 			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 				return nil, errors.New("unexpected signing method")
 			}
-			return jwtSecret, nil
+			return getJWTSecret(), nil
 		})
 
 		if err == nil && token.Valid {

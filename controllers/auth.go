@@ -15,14 +15,12 @@ import (
 	"gorm.io/gorm"
 )
 
-var jwtSecret = []byte(getJWTSecret())
-
-func getJWTSecret() string {
+func getJWTSecret() []byte {
 	secret := os.Getenv("JWT_SECRET")
 	if secret == "" {
-		return "supersecretkey" // Default for development
+		return []byte("supersecretkey") // Default for development
 	}
-	return secret
+	return []byte(secret)
 }
 
 type AuthController struct {
@@ -146,7 +144,7 @@ func (ac *AuthController) Login(c *gin.Context) {
 		"exp":      time.Now().Add(time.Hour * 24).Unix(),
 	})
 
-	tokenString, err := token.SignedString(jwtSecret)
+	tokenString, err := token.SignedString(getJWTSecret())
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not generate token"})
 		return
