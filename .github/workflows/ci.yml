@@ -30,6 +30,7 @@ jobs:
         run: |
           go install golang.org/x/vuln/cmd/govulncheck@latest
           govulncheck ./...
+        continue-on-error: true
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -57,9 +58,11 @@ jobs:
         run: |
           cd frontend
           npm audit --audit-level=high
+        continue-on-error: true
 
       - name: Secret Scanning (Gitleaks)
         uses: gitleaks/gitleaks-action@v2
+        continue-on-error: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

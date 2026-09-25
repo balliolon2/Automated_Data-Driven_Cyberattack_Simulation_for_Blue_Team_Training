@@ -4,6 +4,8 @@ on:
   schedule:
     # Run every 14 minutes to prevent Render free-tier spin down (15-min idle timeout)
     - cron: '*/14 * * * *'
+  push:
+    branches: [ main ]
   workflow_dispatch:
 
 jobs:
