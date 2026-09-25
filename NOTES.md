@@ -79,4 +79,21 @@
 14. **Helpful / Upvoting System**:
     - 1-upvote per user on threads and comments to highlight quality analyses.
 
+## Settled Decisions (CI/CD & DevSecOps Pipeline)
+
+15. **Zero-Cost Hosting Architecture**:
+    - Frontend SPA: Cloudflare Pages (Free tier, fast edge CDN, unlimited bandwidth).
+    - Backend Go API: Render.com (Free Web Service tier, Docker runtime).
+    - Database: Neon Serverless PostgreSQL (Free tier with pgvector extension support).
+
+16. **Pipeline Stages & DevSecOps Gates**:
+    - **Trigger Gate**: PRs to `main` trigger CI only (Linting, DevSecOps scanning, Test Harness, Build). Direct push/merge to `main` triggers CD.
+    - **DevSecOps Scans**: Gitleaks (secret sniffing) + `govulncheck` (Go CVEs) + `npm audit` (Frontend dependencies).
+    - **Integration Verification**: GitHub Actions spins up `pgvector/pgvector:pg16` service container, initializes `init.sql`, runs `load_exams_to_db.py`, launches Go backend, and runs `test_integration.py` to assert exam 30-question distribution & zero-overlap integrity.
+
+17. **Continuous Delivery & Cold-Start Optimization**:
+    - **Backend Deploy**: Triggered via Render Deploy Hook Webhook upon green merge to `main`.
+    - **Frontend Deploy**: Automated deploy to Cloudflare Pages.
+    - **Keep-Alive Worker**: Scheduled cron every 14 minutes pings the health endpoint to prevent Render Free Tier container hibernation.
+
 

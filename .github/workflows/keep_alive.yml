@@ -1,0 +1,27 @@
+name: Production Keep-Alive Worker
+
+on:
+  schedule:
+    # Run every 14 minutes to prevent Render free-tier spin down (15-min idle timeout)
+    - cron: '*/14 * * * *'
+  workflow_dispatch:
+
+jobs:
+  ping-backend:
+    name: Ping Health Endpoint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send Keep-Alive Ping
+        env:
+          TARGET_URL: ${{ secrets.RENDER_BACKEND_URL || 'https://soc-trainer-api.onrender.com/api/health' }}
+        run: |
+          echo "Sending keep-alive ping to: ${TARGET_URL}"
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 25 "${TARGET_URL}" || echo "000")
+          echo "Health check HTTP status: ${STATUS}"
+          if [ "$STATUS" = "200" ]; then
+            echo "Backend is active and healthy!"
+          elif [ "$STATUS" = "000" ]; then
+            echo "Request timed out or network error (server may be waking up)."
+          else
+            echo "Backend responded with status code: ${STATUS}"
+          fi

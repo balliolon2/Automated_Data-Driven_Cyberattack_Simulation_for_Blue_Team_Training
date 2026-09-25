@@ -105,3 +105,33 @@ Post-Test started. Session ID: a25cf54a-c2f5-40d8-9412-7160f6735177. Questions c
 Overlap count between Pre-Test and Post-Test: 0
 Verification SUCCESS: Zero question overlap between Pre-Test and Post-Test!
 ```
+
+---
+
+## 🚀 CI/CD & DevSecOps Automation (Zero-Cost)
+
+The project includes an enterprise-grade automated CI/CD pipeline on GitHub Actions at zero hosting expense:
+
+1. **Continuous Integration (`.github/workflows/ci.yml`)**:
+   - Runs automatically on Pull Requests and pushes to `main`.
+   - **Lint & Code Quality**: `go vet ./...`, TypeScript `tsc -b`, and ESLint.
+   - **DevSecOps Security Gate**: Gitleaks (secret scanning), `govulncheck` (Go CVE vulnerability scan), and `npm audit --audit-level=high`.
+   - **Integration Test Harness**: Spins up ephemeral `pgvector/pgvector:pg16` service container, seeds exam data via `scripts/load_exams_to_db.py`, launches the Go API, and asserts test logic with `scripts/test_integration.py`.
+   - **Build Validation**: Validates Docker backend build and Vite frontend production bundle.
+
+2. **Continuous Delivery (`.github/workflows/cd.yml`)**:
+   - Triggers on push/merge to `main`.
+   - Deploys Go backend container to Render Free Web Service via Deploy Hook.
+   - Deploys React frontend SPA to Cloudflare Pages.
+
+3. **Cold-Start Liveness Worker (`.github/workflows/keep_alive.yml`)**:
+   - Scheduled cron every 14 minutes pings `/api/health` to prevent free-tier container hibernation.
+
+### GitHub Repository Secrets (Optional for Deployment)
+| Secret Name | Description |
+| :--- | :--- |
+| `RENDER_DEPLOY_HOOK_URL` | Webhook URL from Render Web Service Settings to trigger redeploy |
+| `RENDER_BACKEND_URL` | Public API URL for keep-alive worker (defaults to `https://soc-trainer-api.onrender.com/api/health`) |
+| `VITE_API_URL` | Production Backend API URL for frontend build |
+| `CLOUDFLARE_API_TOKEN` | (Optional) Cloudflare API token if using Wrangler Action |
+| `CLOUDFLARE_ACCOUNT_ID` | (Optional) Cloudflare Account ID if using Wrangler Action |

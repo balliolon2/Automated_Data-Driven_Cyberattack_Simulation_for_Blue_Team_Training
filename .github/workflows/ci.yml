@@ -1,0 +1,161 @@
+name: CI & DevSecOps Gate
+
+on:
+  pull_request:
+    branches: [ main ]
+  push:
+    branches: [ main ]
+
+jobs:
+  lint-and-audit:
+    name: Code Quality & DevSecOps Gate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.23'
+          cache: true
+
+      - name: Backend Lint & Vet
+        run: |
+          go vet ./...
+
+      - name: Go Security Vulnerability Scan (govulncheck)
+        run: |
+          go install golang.org/x/vuln/cmd/govulncheck@latest
+          govulncheck ./...
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install Frontend Dependencies
+        run: |
+          cd frontend
+          npm ci
+
+      - name: Frontend TypeScript Typecheck
+        run: |
+          cd frontend
+          npx tsc -b
+
+      - name: Frontend ESLint
+        run: |
+          cd frontend
+          npm run lint
+
+      - name: Frontend Dependency Vulnerability Audit
+        run: |
+          cd frontend
+          npm audit --audit-level=high
+
+      - name: Secret Scanning (Gitleaks)
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  integration-test:
+    name: Database & Exam Test Harness
+    needs: lint-and-audit
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: password123
+          POSTGRES_DB: cyber_sim
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.23'
+          cache: true
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install Python Dependencies
+        run: |
+          pip install requests psycopg2-binary
+
+      - name: Initialize PostgreSQL Schema (init.sql)
+        run: |
+          PGPASSWORD=password123 psql -h localhost -U postgres -d cyber_sim -f init.sql
+
+      - name: Seed CompTIA Domains & Questions to DB
+        env:
+          DATABASE_URL: "postgres://postgres:password123@localhost:5432/cyber_sim?sslmode=disable"
+        run: |
+          python scripts/load_exams_to_db.py
+
+      - name: Start Go Backend Service
+        env:
+          DATABASE_URL: "postgres://postgres:password123@localhost:5432/cyber_sim?sslmode=disable"
+          JWT_SECRET: "ci-test-jwt-secret-key-12345"
+          PORT: "8080"
+          ENABLE_SWAGGER: "false"
+        run: |
+          go run main.go &
+          # Poll health check until backend responds healthy
+          for i in {1..30}; do
+            if curl -s http://localhost:8080/api/health | grep -q "healthy"; then
+              echo "Backend API is up and healthy!"
+              break
+            fi
+            echo "Waiting for backend API startup ($i/30)..."
+            sleep 1
+          done
+
+      - name: Run Integration Test Harness
+        run: |
+          python scripts/test_integration.py
+
+  build-validation:
+    name: Production Build Verification
+    needs: lint-and-audit
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Build Frontend Production Bundle
+        run: |
+          cd frontend
+          npm ci
+          npm run build
+
+      - name: Build Backend Docker Image
+        run: |
+          docker build -t soc-trainer-backend:ci .

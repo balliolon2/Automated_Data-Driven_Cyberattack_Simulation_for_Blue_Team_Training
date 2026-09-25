@@ -1,0 +1,82 @@
+name: Continuous Delivery (CD)
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  deploy-backend:
+    name: Deploy Backend to Render (Free Web Service)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Render Deploy Hook
+        if: ${{ env.RENDER_HOOK != '' }}
+        env:
+          RENDER_HOOK: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+        run: |
+          echo "Triggering Render redeployment for Go backend..."
+          RESPONSE=$(curl -s -w "\n%{http_code}" -X POST "${RENDER_HOOK}")
+          HTTP_STATUS=$(echo "$RESPONSE" | tail -n1)
+          BODY=$(echo "$RESPONSE" | sed '$d')
+          echo "Render response status: $HTTP_STATUS"
+          echo "Response body: $BODY"
+          if [ "$HTTP_STATUS" -ge 200 ] && [ "$HTTP_STATUS" -lt 300 ]; then
+            echo "Successfully dispatched Render deployment!"
+          else
+            echo "Warning: Render deploy hook returned non-2xx status code ($HTTP_STATUS)."
+          fi
+
+      - name: Skip Notice if Render Secret Not Configured
+        if: ${{ env.RENDER_HOOK == '' }}
+        env:
+          RENDER_HOOK: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+        run: |
+          echo "RENDER_DEPLOY_HOOK_URL secret is not set in repository secrets."
+          echo "Add RENDER_DEPLOY_HOOK_URL in GitHub repo Settings -> Secrets to enable automated backend deployment."
+
+  deploy-frontend:
+    name: Deploy Frontend to Cloudflare Pages
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install Frontend Dependencies
+        run: |
+          cd frontend
+          npm ci
+
+      - name: Build Production Frontend
+        env:
+          VITE_API_URL: ${{ secrets.VITE_API_URL || 'https://soc-trainer-api.onrender.com/api' }}
+        run: |
+          cd frontend
+          npm run build
+
+      - name: Deploy to Cloudflare Pages (Action)
+        if: ${{ env.CF_TOKEN != '' && env.CF_ACCOUNT != '' }}
+        uses: cloudflare/wrangler-action@v3
+        env:
+          CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CF_ACCOUNT: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy frontend/dist --project-name=soc-trainer-frontend
+
+      - name: Cloudflare Git Integration Notice
+        if: ${{ env.CF_TOKEN == '' || env.CF_ACCOUNT == '' }}
+        env:
+          CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CF_ACCOUNT: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          echo "Cloudflare Secrets (CLOUDFLARE_API_TOKEN / CLOUDFLARE_ACCOUNT_ID) not configured for Action deploy."
+          echo "If using Cloudflare's direct GitHub integration, Cloudflare Pages will automatically detect the push to main and build frontend/dist."

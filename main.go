@@ -57,8 +57,12 @@ func main() {
 	r := gin.Default()
 
 	// Setup CORS
+	allowedOrigins := []string{"http://localhost:5173", "http://localhost"}
+	if frontendURL := os.Getenv("FRONTEND_URL"); frontendURL != "" {
+		allowedOrigins = append(allowedOrigins, frontendURL)
+	}
 	r.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"http://localhost:5173", "http://localhost"}, // Vite dev server and docker frontend
+		AllowOrigins:     allowedOrigins,
 		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization"},
 		ExposeHeaders:    []string{"Content-Length"},
@@ -179,6 +183,14 @@ func main() {
 			analytics.GET("/research-summary", simController.GetResearchSummary)
 		}
 
+		// Health Check Endpoint
+		api.GET("/health", func(c *gin.Context) {
+			c.JSON(200, gin.H{
+				"status":  "healthy",
+				"service": "soc-trainer-api",
+			})
+		})
+
 		// Swagger Documentation
 		if os.Getenv("ENABLE_SWAGGER") != "false" {
 			api.GET("/docs/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
@@ -186,8 +198,13 @@ func main() {
 		}
 	}
 
-	log.Println("Server starting on :8080")
-	if err := r.Run(":8080"); err != nil {
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
+
+	log.Printf("Server starting on :%s", port)
+	if err := r.Run(":" + port); err != nil {
 		log.Fatalf("failed to start server: %v", err)
 	}
 }
