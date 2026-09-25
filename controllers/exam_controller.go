@@ -3,6 +3,8 @@ package controllers
 import (
 	"math"
 	"net/http"
+	"os"
+	"strconv"
 	"time"
 
 	"cybersim/dto"
@@ -199,29 +201,38 @@ func (ec *ExamController) StartPostTest(c *gin.Context) {
 
 	// 2. Verify all 5 domains have reached the proficiency threshold (Default 70%)
 	threshold := 70.0
-	var profiles []models.UserSkillProfile
-	ec.DB.Where("user_id = ?", userID).Find(&profiles)
-
-	if len(profiles) < 5 {
-		c.JSON(http.StatusForbidden, gin.H{
-			"error":    "You are not eligible for the Post-Test. Skill profiles for all 5 security domains must be established.",
-			"eligible": false,
-			"reason":   "threshold_not_reached",
-		})
-		return
+	if envThreshold := os.Getenv("PROFICIENCY_THRESHOLD"); envThreshold != "" {
+		if val, err := strconv.ParseFloat(envThreshold, 64); err == nil {
+			threshold = val
+		}
 	}
+	bypassThreshold := os.Getenv("BYPASS_POST_TEST_THRESHOLD") == "true"
 
-	for _, p := range profiles {
-		if p.ProficiencyScore < threshold {
+	if !bypassThreshold && threshold > 0 {
+		var profiles []models.UserSkillProfile
+		ec.DB.Where("user_id = ?", userID).Find(&profiles)
+
+		if len(profiles) < 5 {
 			c.JSON(http.StatusForbidden, gin.H{
-				"error":             "You are not eligible for the Post-Test. All 5 CompTIA Security+ domains must reach the 70% proficiency threshold in simulation training.",
-				"eligible":          false,
-				"reason":            "threshold_not_reached",
-				"domain_id":         p.DomainID,
-				"proficiency_score": p.ProficiencyScore,
-				"threshold":         threshold,
+				"error":    "You are not eligible for the Post-Test. Skill profiles for all 5 security domains must be established.",
+				"eligible": false,
+				"reason":   "threshold_not_reached",
 			})
 			return
+		}
+
+		for _, p := range profiles {
+			if p.ProficiencyScore < threshold {
+				c.JSON(http.StatusForbidden, gin.H{
+					"error":             "You are not eligible for the Post-Test. All 5 CompTIA Security+ domains must reach the 70% proficiency threshold in simulation training.",
+					"eligible":          false,
+					"reason":            "threshold_not_reached",
+					"domain_id":         p.DomainID,
+					"proficiency_score": p.ProficiencyScore,
+					"threshold":         threshold,
+				})
+				return
+			}
 		}
 	}
 

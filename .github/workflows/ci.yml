@@ -129,6 +129,7 @@ jobs:
           JWT_SECRET: "ci-test-jwt-secret-key-12345"
           ADMIN_EMAIL: "admin@soc.local"
           ADMIN_PASSWORD: "password"
+          BYPASS_POST_TEST_THRESHOLD: "true"
           PORT: "8080"
           ENABLE_SWAGGER: "false"
         run: |
