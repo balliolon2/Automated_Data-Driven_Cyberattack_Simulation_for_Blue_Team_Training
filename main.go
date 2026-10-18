@@ -192,7 +192,7 @@ func main() {
 		})
 
 		// Swagger Documentation
-		if os.Getenv("ENABLE_SWAGGER") != "false" {
+		if os.Getenv("ENABLE_SWAGGER") == "true" {
 			api.GET("/docs/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 			log.Println("Swagger documentation enabled at /api/docs/index.html")
 		}

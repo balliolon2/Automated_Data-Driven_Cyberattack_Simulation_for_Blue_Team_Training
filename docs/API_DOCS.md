@@ -102,12 +102,10 @@ go generate ./...
 
 ## ⚙️ Configuration & Security Gating
 
-By default, the Swagger documentation is active across development and test environments.
-
-To disable the Swagger UI in production environments, set the following environment variable:
+Swagger is disabled by default. To enable it, set the following environment variable:
 
 ```bash
-ENABLE_SWAGGER=false
+ENABLE_SWAGGER=true
 ```
 
-When set to `false`, requests to `/api/docs/*` will return HTTP 404.
+The API only registers `/api/docs/*` when `ENABLE_SWAGGER` is exactly `true`. For any other value, including unset, requests to `/api/docs/*` return HTTP 404.

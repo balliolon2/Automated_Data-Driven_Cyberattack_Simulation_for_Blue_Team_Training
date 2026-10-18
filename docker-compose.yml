@@ -36,32 +36,71 @@ services:
           memory: 1g
 
   seed:
-    image: python:3.11-slim
+    build:
+      context: ./docker/seeder
+      dockerfile: Dockerfile
+    image: soc-trainer-seeder
     container_name: cyber_sim_seed
     depends_on:
       db:
         condition: service_healthy
     environment:
       DATABASE_URL: "host=db user=${POSTGRES_USER:-admin} password=${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required} dbname=${POSTGRES_DB:-cyber_sim} port=5432 sslmode=disable"
-      PIP_NO_CACHE_DIR: "1"
     volumes:
-      - ./:/app:ro
+      - ./scripts:/app/scripts:ro
+      - ./examination:/app/examination:ro
     working_dir: /work
+    user: "65532:65532"
+    read_only: true
+    tmpfs:
+      - /work:rw,uid=65532,gid=65532,mode=0750
+      - /tmp:rw,uid=65532,gid=65532,mode=1777
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
     command:
-      - bash
+      - sh
       - -c
       - |
-        pip install psycopg2-binary requests &&
         python /app/scripts/parse_exams.py &&
         python /app/scripts/load_exams_to_db.py &&
         python /app/scripts/generate_scenarios.py &&
-        python /app/scripts/load_scenarios_to_db.py &&
-        echo "[seed] exam questions and scenarios loaded"
+        python /app/scripts/load_scenarios_to_db.py
     networks:
       - backend_net
+    restart: "no"
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256m
+
+  uploads-init:
+    image: alpine:latest
+    container_name: cyber_sim_uploads_init
+    command: ["sh", "-c", "chown -R 65534:65534 /app/uploads"]
+    volumes:
+      - uploads:/app/uploads
+    network_mode: "none"
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - FOWNER
     security_opt:
       - no-new-privileges:true
     restart: "no"
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 128m
     logging:
       driver: json-file
       options:
@@ -87,7 +126,9 @@ services:
       LLM_MODEL: ${LLM_MODEL:-gpt-4o-mini}
       ENABLE_SWAGGER: ${ENABLE_SWAGGER:-false}
       FRONTEND_URL: ${FRONTEND_URL:-http://localhost}
+      PROFICIENCY_THRESHOLD: ${PROFICIENCY_THRESHOLD:-70.0}
       PORT: "8080"
+      BYPASS_POST_TEST_THRESHOLD: ${BYPASS_POST_TEST_THRESHOLD:-false}
     user: "65534:65534"
     read_only: true
     tmpfs:
@@ -97,10 +138,14 @@ services:
     security_opt:
       - no-new-privileges:true
     init: true
+    volumes:
+      - uploads:/app/uploads
     depends_on:
       db:
         condition: service_healthy
       seed:
+        condition: service_completed_successfully
+      uploads-init:
         condition: service_completed_successfully
     networks:
       - backend_net
@@ -162,7 +207,7 @@ services:
       - tools
     environment:
       PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL:-admin@admin.com}
-      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD:?PGADMIN_DEFAULT_PASSWORD is required}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD:-}
       PGADMIN_CONFIG_SERVER_MODE: "False"
     ports:
       - "127.0.0.1:5050:80"
@@ -193,3 +238,4 @@ networks:
 
 volumes:
   pgdata:
+  uploads:
