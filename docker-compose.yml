@@ -1,3 +1,4 @@
+name: soc-trainer
 
 services:
   db:
@@ -5,32 +6,67 @@ services:
     container_name: cyber_sim_db
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-admin}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required - copy .env.example to .env and set a strong value}
       POSTGRES_DB: ${POSTGRES_DB:-cyber_sim}
-    ports:
-      - "5432:5432"
+      POSTGRES_INITDB_ARGS: "--auth-host=scram-sha-256"
     volumes:
       - pgdata:/var/lib/postgresql/data
-      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+    networks:
+      - backend_net
+    shm_size: 256mb
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-admin} -d ${POSTGRES_DB:-cyber_sim}"]
-      interval: 5s
+      interval: 10s
       timeout: 5s
       retries: 10
+      start_period: 20s
+    security_opt:
+      - no-new-privileges:true
     restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 1g
 
-  pgadmin:
-    image: dpage/pgadmin4
-    container_name: cyber_sim_pgadmin
-    environment:
-      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL:-admin@admin.com}
-      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD:-password}
-    ports:
-      - "5050:80"
+  seed:
+    image: python:3.11-slim
+    container_name: cyber_sim_seed
     depends_on:
       db:
         condition: service_healthy
-    restart: unless-stopped
+    environment:
+      DATABASE_URL: "host=db user=${POSTGRES_USER:-admin} password=${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required} dbname=${POSTGRES_DB:-cyber_sim} port=5432 sslmode=disable"
+      PIP_NO_CACHE_DIR: "1"
+    volumes:
+      - ./:/app:ro
+    working_dir: /work
+    command:
+      - bash
+      - -c
+      - |
+        pip install psycopg2-binary requests &&
+        python /app/scripts/parse_exams.py &&
+        python /app/scripts/load_exams_to_db.py &&
+        python /app/scripts/generate_scenarios.py &&
+        python /app/scripts/load_scenarios_to_db.py &&
+        echo "[seed] exam questions and scenarios loaded"
+    networks:
+      - backend_net
+    security_opt:
+      - no-new-privileges:true
+    restart: "no"
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   backend:
     build:
@@ -38,21 +74,54 @@ services:
       dockerfile: Dockerfile
     container_name: cyber_sim_backend
     ports:
-      - "8080:8080"
+      - "127.0.0.1:8080:8080"
     environment:
-      - DATABASE_URL=host=db user=${POSTGRES_USER:-admin} password=${POSTGRES_PASSWORD:-password} dbname=${POSTGRES_DB:-cyber_sim} port=5432 sslmode=disable TimeZone=Asia/Bangkok
-      - GIN_MODE=${GIN_MODE:-release}
-      - JWT_SECRET=${JWT_SECRET:-secret_jwt_key_default}
-      - ADMIN_EMAIL=${ADMIN_EMAIL:-}
-      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-}
-      - ADMIN_NICKNAME=${ADMIN_NICKNAME:-admin}
-      - LLM_API_KEY=${LLM_API_KEY:-}
-      - LLM_BASE_URL=${LLM_BASE_URL:-https://api.openai.com/v1}
-      - LLM_MODEL=${LLM_MODEL:-gpt-4o-mini}
+      DATABASE_URL: "host=db user=${POSTGRES_USER:-admin} password=${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required} dbname=${POSTGRES_DB:-cyber_sim} port=5432 sslmode=disable TimeZone=Asia/Bangkok"
+      GIN_MODE: ${GIN_MODE:-release}
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required - set a strong value in .env}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
+      ADMIN_NICKNAME: ${ADMIN_NICKNAME:-admin}
+      LLM_API_KEY: ${LLM_API_KEY:-}
+      LLM_BASE_URL: ${LLM_BASE_URL:-https://api.openai.com/v1}
+      LLM_MODEL: ${LLM_MODEL:-gpt-4o-mini}
+      ENABLE_SWAGGER: ${ENABLE_SWAGGER:-false}
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost}
+      PORT: "8080"
+    user: "65534:65534"
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    init: true
     depends_on:
       db:
         condition: service_healthy
+      seed:
+        condition: service_completed_successfully
+    networks:
+      - backend_net
+      - frontend_net
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/api/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
     restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 512m
 
   frontend:
     build:
@@ -62,8 +131,65 @@ services:
     ports:
       - "80:80"
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
+    networks:
+      - frontend_net
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1/"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
     restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256m
+
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: cyber_sim_pgadmin
+    profiles:
+      - tools
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL:-admin@admin.com}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD:?PGADMIN_DEFAULT_PASSWORD is required}
+      PGADMIN_CONFIG_SERVER_MODE: "False"
+    ports:
+      - "127.0.0.1:5050:80"
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - backend_net
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512m
+
+networks:
+  frontend_net:
+    driver: bridge
+  backend_net:
+    driver: bridge
 
 volumes:
   pgdata:
