@@ -401,7 +401,7 @@
       "containment": [
         {
           "id": "d1_c1",
-          "label": "Revoke active Okta sessions for user ajones",
+          "label": "Revoke all active Okta SSO tokens and web sessions for user ajones immediately",
           "is_correct": true,
           "domain_id": "domain1",
           "points": 5,
@@ -409,55 +409,79 @@
         },
         {
           "id": "d1_c2",
-          "label": "Disable user ajones AD account temporarily",
-          "is_correct": true,
-          "domain_id": "domain1",
-          "points": 5,
-          "explanation": "Prevents further domain access until investigated."
-        },
-        {
-          "id": "d1_c3",
-          "label": "Block external IP 198.51.100.42 at perimeter firewall",
+          "label": "Temporarily disable the ajones Active Directory account and block external IP 198.51.100.42 at the perimeter firewall",
           "is_correct": true,
           "domain_id": "domain4",
           "points": 5,
-          "explanation": "Stops connections from the attacker's source IP."
+          "explanation": "Prevents further domain access and stops connections from the attacker's source IP."
+        },
+        {
+          "id": "d1_c3",
+          "label": "Demote domain controller DC-01 offline immediately and flush all volatile Kerberos ticket caches across the forest",
+          "is_correct": false,
+          "domain_id": "domain1",
+          "points": -3,
+          "explanation": "Demoting the primary domain controller causes an enterprise-wide outage and destroys volatile forensic evidence."
+        },
+        {
+          "id": "d1_c4",
+          "label": "Switch the Okta tenant MFA policy for ajones from push notifications to unverified email links while keeping existing sessions active",
+          "is_correct": false,
+          "domain_id": "domain1",
+          "points": -3,
+          "explanation": "Leaves the attacker's active hijacked session intact and weakens authentication controls."
         }
       ],
       "eradication": [
         {
           "id": "d1_e1",
-          "label": "Enforce registration of FIDO2 WebAuthn keys for ajones",
+          "label": "Enforce phishing-resistant FIDO2 WebAuthn hardware keys for ajones and revoke legacy push notification enrollment",
           "is_correct": true,
           "domain_id": "domain1",
           "points": 5,
-          "explanation": "FIDO2 is resistant to push fatigue and phishing."
+          "explanation": "FIDO2 hardware tokens prevent push fatigue and session hijacking."
         },
         {
           "id": "d1_e2",
-          "label": "Format the user's primary mobile device",
+          "label": "Factory reset the user's mobile phone while leaving the compromised ajones and admin_backup AD password hashes unchanged",
           "is_correct": false,
           "domain_id": "domain1",
-          "points": -2,
-          "explanation": "Unnecessary since push fatigue does not imply the physical device is compromised."
+          "points": -3,
+          "explanation": "Push fatigue does not require wiping the phone, and leaving compromised AD passwords allows immediate re-entry."
+        },
+        {
+          "id": "d1_e3",
+          "label": "Delete all Okta authentication audit logs from 198.51.100.42 to clear the security alert queue on DC-01",
+          "is_correct": false,
+          "domain_id": "domain1",
+          "points": -3,
+          "explanation": "Erasing audit logs destroys forensic evidence without removing the threat actor's access."
         }
       ],
       "recovery": [
         {
           "id": "d1_r1",
-          "label": "Verify backup administrator passwords and revert unauthorized changes",
+          "label": "Reset the admin_backup password on DC-01, revert unauthorized privilege changes, and re-enable ajones after credential rotation",
           "is_correct": true,
           "domain_id": "domain1",
           "points": 5,
-          "explanation": "Reverts the password change done on admin_backup."
+          "explanation": "Reverts the unauthorized password change on admin_backup and safely restores user access."
         },
         {
           "id": "d1_r2",
-          "label": "Re-enable ajones AD account after resetting password",
-          "is_correct": true,
+          "label": "Restore ajones domain access using the previous password hash so cached workstation scripts continue running without interruption",
+          "is_correct": false,
           "domain_id": "domain5",
-          "points": 5,
-          "explanation": "Safely restores user access."
+          "points": -3,
+          "explanation": "Reusing the compromised password allows the attacker to immediately log back in."
+        },
+        {
+          "id": "d1_r3",
+          "label": "Exempt ajones and admin_backup from MFA requirements for 48 hours on DC-01 to prevent further push fatigue lockouts",
+          "is_correct": false,
+          "domain_id": "domain1",
+          "points": -3,
+          "explanation": "Removing MFA on targeted accounts exposes them to trivial credential stuffing."
         }
       ]
     }
@@ -810,39 +834,79 @@
       "containment": [
         {
           "id": "d1_c4",
-          "label": "Revoke session and lock user mroberts",
+          "label": "Revoke active VPN session for user mroberts and lock their Active Directory account immediately",
           "is_correct": false,
           "domain_id": "domain1",
           "points": -3,
-          "explanation": "Unnecessary lockout; disrupts legitimate business operations."
+          "explanation": "Unnecessary lockout that disrupts verified legitimate business travel operations."
         },
         {
           "id": "d1_c5",
-          "label": "Allow connection and dismiss alert after verification",
+          "label": "Allow the verified VPN connection from 195.154.122.90 for mroberts and document HR travel confirmation",
           "is_correct": true,
           "domain_id": "domain1",
           "points": 5,
-          "explanation": "Correct action since validation succeeded."
+          "explanation": "Correct non-disruptive action since MFA, asset posture #4288, and HR travel logs succeeded."
+        },
+        {
+          "id": "d1_c6",
+          "label": "Block the entire French ISP IP block 195.154.0.0/16 at the corporate VPN gateway firewall",
+          "is_correct": false,
+          "domain_id": "domain3",
+          "points": -3,
+          "explanation": "Over-reactive geo-blocking that cuts off legitimate traveling employees in Paris."
         }
       ],
       "eradication": [
         {
           "id": "d1_e3",
-          "label": "Review Okta security logs for prior anomalies",
+          "label": "Correlate VPN gateway logs with HR travel records for mroberts to confirm no anomalous lateral activity occurred",
           "is_correct": true,
           "domain_id": "domain1",
           "points": 5,
-          "explanation": "Ensures no prior malicious session activity."
+          "explanation": "Ensures no unauthorized activity accompanied the verified travel session."
+        },
+        {
+          "id": "d1_e4",
+          "label": "Trigger a remote wipe on corporate laptop Asset Tag #4288 and revoke mroberts's VPN client certificate",
+          "is_correct": false,
+          "domain_id": "domain1",
+          "points": -3,
+          "explanation": "Destructive action against a compliant corporate asset during an authorized business trip."
+        },
+        {
+          "id": "d1_e5",
+          "label": "Permanently disable geolocation anomaly detection rules on the VPN gateway for all corporate users",
+          "is_correct": false,
+          "domain_id": "domain4",
+          "points": -3,
+          "explanation": "Creates a permanent visibility blind spot across the enterprise instead of logging a travel exception."
         }
       ],
       "recovery": [
         {
           "id": "d1_r3",
-          "label": "Update user travel status database to prevent future alerts",
+          "label": "Sync approved HR travel itinerary dates (Jul 12 - Jul 18) for mroberts with the SIEM geolocation whitelist",
           "is_correct": true,
           "domain_id": "domain5",
           "points": 5,
-          "explanation": "Prevents alert fatigue by syncing travel plans."
+          "explanation": "Prevents recurring false positive alert fatigue during the remainder of the Paris summit."
+        },
+        {
+          "id": "d1_r4",
+          "label": "Force mroberts to connect over an unencrypted split-tunnel guest proxy until returning from France",
+          "is_correct": false,
+          "domain_id": "domain3",
+          "points": -3,
+          "explanation": "Degrades transport security for a legitimate remote employee."
+        },
+        {
+          "id": "d1_r5",
+          "label": "Reset all marketing department file share permissions and purge marketing_strategy.pdf from the server",
+          "is_correct": false,
+          "domain_id": "domain5",
+          "points": -3,
+          "explanation": "Disrupts legitimate business file access when no breach occurred."
         }
       ]
     }
@@ -1177,47 +1241,79 @@
       "containment": [
         {
           "id": "d1_c6",
-          "label": "Revoke the modified DACL and restore standard permissions",
+          "label": "Revert the modified DACL on CN=Payroll_Confidential, lock svc_backup, and isolate jsmith workstation 10.0.2.14",
           "is_correct": true,
           "domain_id": "domain1",
           "points": 5,
-          "explanation": "Restores confidentiality of payroll data."
+          "explanation": "Restores payroll folder confidentiality, halts svc_backup abuse, and isolates the target host."
         },
         {
           "id": "d1_c7",
-          "label": "Lock AD account svc_backup",
-          "is_correct": true,
+          "label": "Delete the entire Payroll_Confidential share on the file server before capturing SMB access logs for 10.0.2.14",
+          "is_correct": false,
           "domain_id": "domain1",
-          "points": 5,
-          "explanation": "Prevents further unauthorized directory modifications."
+          "points": -3,
+          "explanation": "Destroys critical business data and forensic file access timestamps."
         },
         {
           "id": "d1_c8",
-          "label": "Isolate work host 10.0.2.14 belonging to jsmith",
-          "is_correct": true,
+          "label": "Grant all finance users temporary read permissions to Payroll_Confidential while monitoring jsmith on 10.0.2.14",
+          "is_correct": false,
           "domain_id": "domain4",
-          "points": 5,
-          "explanation": "Prevents lateral movement or data exfiltration from host."
+          "points": -3,
+          "explanation": "Expands unauthorized exposure of sensitive payroll records instead of containing the breach."
         }
       ],
       "eradication": [
         {
           "id": "d1_e4",
-          "label": "Investigate svc_backup credential leakage",
+          "label": "Rotate svc_backup and jsmith credentials, remove unauthorized ACL entries, and inspect 10.0.2.14 for exfiltrated copies of salary_matrix_2026.xlsx",
           "is_correct": true,
           "domain_id": "domain2",
           "points": 5,
-          "explanation": "Identifies how the service account was compromised."
+          "explanation": "Remediates the compromised accounts and removes unauthorized local copies of sensitive files."
+        },
+        {
+          "id": "d1_e5",
+          "label": "Restart the Windows Server SMB service without rotating svc_backup credentials or removing jsmith from the Payroll_Confidential DACL",
+          "is_correct": false,
+          "domain_id": "domain1",
+          "points": -3,
+          "explanation": "Leaves both the compromised service account and the unauthorized permission grant active."
+        },
+        {
+          "id": "d1_e6",
+          "label": "Purge all Active Directory security event logs on the domain controller to clear DACL modification alerts for svc_backup",
+          "is_correct": false,
+          "domain_id": "domain4",
+          "points": -3,
+          "explanation": "Destroys the audit trail required for incident investigation."
         }
       ],
       "recovery": [
         {
           "id": "d1_r4",
-          "label": "Audit all recent changes made by svc_backup",
+          "label": "Audit all historical permission changes made by svc_backup, enforce least-privilege delegation, and restore monitored access to Payroll_Confidential",
           "is_correct": true,
           "domain_id": "domain5",
           "points": 5,
-          "explanation": "Ensures no other backdoors were created."
+          "explanation": "Verifies no other backdoor ACLs were created and hardens directory permission governance."
+        },
+        {
+          "id": "d1_r5",
+          "label": "Re-enable svc_backup with Domain Admin privileges so automated nightly backup scripts do not encounter permission errors",
+          "is_correct": false,
+          "domain_id": "domain1",
+          "points": -3,
+          "explanation": "Violates least privilege and re-exposes the domain to privilege escalation."
+        },
+        {
+          "id": "d1_r6",
+          "label": "Disable file server object access auditing on Payroll_Confidential to reduce event log volume after restoring 10.0.2.14",
+          "is_correct": false,
+          "domain_id": "domain5",
+          "points": -3,
+          "explanation": "Blinds the SOC to future unauthorized reads of sensitive payroll files."
         }
       ]
     }
@@ -1534,55 +1630,79 @@
       "containment": [
         {
           "id": "d2_c1",
-          "label": "Block external IP 198.51.100.77 at web application firewall",
+          "label": "Block external attacker IP 198.51.100.77 at the WAF and disable or enforce strict input filtering on the /users/search endpoint",
           "is_correct": true,
           "domain_id": "domain4",
           "points": 5,
-          "explanation": "Blocks further connection from the attacker."
+          "explanation": "Blocks further requests from the attacker and mitigates the vulnerable search API endpoint immediately."
         },
         {
           "id": "d2_c2",
-          "label": "Take the search endpoint offline or enable strict WAF rules",
-          "is_correct": true,
+          "label": "Restart the nginx web server daemon while keeping the /users/search endpoint open to 198.51.100.77 to observe further queries",
+          "is_correct": false,
           "domain_id": "domain2",
-          "points": 5,
-          "explanation": "Mitigates the vulnerable search API endpoint immediately."
+          "points": -3,
+          "explanation": "Leaves the SQL injection vulnerability actively exploitable by the external threat actor."
+        },
+        {
+          "id": "d2_c3",
+          "label": "Block loopback traffic on 127.0.0.1 between nginx and PostgreSQL without restricting external requests from 198.51.100.77",
+          "is_correct": false,
+          "domain_id": "domain3",
+          "points": -3,
+          "explanation": "Breaks all internal database connectivity randomly without addressing the attacker's perimeter access."
         }
       ],
       "eradication": [
         {
           "id": "d2_e1",
-          "label": "Implement parameterized queries (prepared statements) on search API",
+          "label": "Refactor the /users/search query to use parameterized prepared statements and force a password reset for all exposed user hashes",
           "is_correct": true,
           "domain_id": "domain2",
           "points": 5,
-          "explanation": "Permanently remediates SQL injection vulnerability."
+          "explanation": "Permanently remediates the SQL injection flaw and invalidates credentials leaked in the 1.2MB dump."
         },
         {
           "id": "d2_e2",
-          "label": "Rotate all admin passwords stored in DB",
-          "is_correct": true,
-          "domain_id": "domain1",
-          "points": 5,
-          "explanation": "Secures credentials potentially exposed by data dump."
-        },
-        {
-          "id": "d2_e3",
-          "label": "Delete the entire PostgreSQL database",
+          "label": "Drop the entire PostgreSQL users table and delete all nginx access logs referencing 198.51.100.77",
           "is_correct": false,
           "domain_id": "domain3",
           "points": -4,
-          "explanation": "Overkill; leads to total business data loss."
+          "explanation": "Causes catastrophic production data loss and destroys forensic web access evidence."
+        },
+        {
+          "id": "d2_e3",
+          "label": "Add a client-side JavaScript character filter on the search form while leaving the backend SQL string concatenation unchanged",
+          "is_correct": false,
+          "domain_id": "domain2",
+          "points": -3,
+          "explanation": "Client-side validation is trivially bypassed via direct HTTP GET requests from 198.51.100.77."
         }
       ],
       "recovery": [
         {
           "id": "d2_r1",
-          "label": "Scan database for web shells or persistent anomalies",
+          "label": "Audit PostgreSQL for unauthorized database functions or web shells, deploy WAF SQLi signatures, and bring /users/search back online",
           "is_correct": true,
           "domain_id": "domain4",
           "points": 5,
-          "explanation": "Ensures no secondary payloads were uploaded."
+          "explanation": "Ensures no secondary persistence remains in the database and validates defense-in-depth before restoring service."
+        },
+        {
+          "id": "d2_r2",
+          "label": "Restore the PostgreSQL database from a snapshot without patching /users/search and set WAF mode to pass-through for 198.51.100.77",
+          "is_correct": false,
+          "domain_id": "domain2",
+          "points": -3,
+          "explanation": "Leaves the application vulnerable to immediate re-exploitation."
+        },
+        {
+          "id": "d2_r3",
+          "label": "Configure PostgreSQL to run under the superuser account with trust authentication to speed up recovery after the 198.51.100.77 incident",
+          "is_correct": false,
+          "domain_id": "domain1",
+          "points": -3,
+          "explanation": "Severely degrades database privilege separation and authentication security."
         }
       ]
     }
@@ -1946,39 +2066,79 @@
       "containment": [
         {
           "id": "d2_c3",
-          "label": "Shut down switch ports for subnet 10.0.99.0/24",
+          "label": "Shut down switch ports for test subnet 10.0.99.0/24 and isolate the Active Directory controller immediately",
           "is_correct": false,
           "domain_id": "domain3",
-          "points": -2,
-          "explanation": "Interrupts scheduled security compliance audits."
+          "points": -3,
+          "explanation": "Interrupts an authorized security compliance audit (CR-4099) and causes unnecessary domain downtime."
         },
         {
           "id": "d2_c4",
-          "label": "Document alert as false positive and add scanning host to IDS exclusions",
+          "label": "Verify Change Request CR-4099 for scanner 10.0.99.12 and document the NIDS alert as an authorized False Positive",
           "is_correct": true,
           "domain_id": "domain4",
           "points": 5,
-          "explanation": "Correct action for authorized scanning activities."
+          "explanation": "Correctly validates the approved maintenance window without disrupting internal operations."
+        },
+        {
+          "id": "d2_c5",
+          "label": "Deploy an emergency firewall blackhole rule dropping all internal traffic between 10.0.99.12 and 10.0.1.0/24",
+          "is_correct": false,
+          "domain_id": "domain3",
+          "points": -3,
+          "explanation": "Invalidates the scheduled vulnerability assessment approved under CR-4099."
         }
       ],
       "eradication": [
         {
           "id": "d2_e4",
-          "label": "Review scanning configurations to minimize noise",
+          "label": "Coordinate with the security assessment team to tune NIDS threshold suppressions for 10.0.99.12 during approved CR-4099 windows",
           "is_correct": true,
           "domain_id": "domain2",
           "points": 5,
-          "explanation": "Helps optimization of scanning scope."
+          "explanation": "Reduces alert fatigue during scheduled scans while preserving detection outside maintenance windows."
+        },
+        {
+          "id": "d2_e5",
+          "label": "Re-image the internal vulnerability scanner at 10.0.99.12 and revoke the sysadmin account that approved CR-4099",
+          "is_correct": false,
+          "domain_id": "domain2",
+          "points": -3,
+          "explanation": "Destructive action against an authorized internal security appliance and administrator."
+        },
+        {
+          "id": "d2_e6",
+          "label": "Permanently disable SYN flood and port scan signatures on the NIDS across all internal subnets",
+          "is_correct": false,
+          "domain_id": "domain4",
+          "points": -3,
+          "explanation": "Blinds the NIDS to real internal lateral movement and reconnaissance outside the maintenance window."
         }
       ],
       "recovery": [
         {
           "id": "d2_r2",
-          "label": "Re-verify scanning schedule at the end of the maintenance window",
+          "label": "Confirm the vulnerability scan from 10.0.99.12 concludes at 12:00 per CR-4099 and verify full NIDS alerting resumes afterward",
           "is_correct": true,
           "domain_id": "domain5",
           "points": 5,
-          "explanation": "Ensures scans conclude on time."
+          "explanation": "Ensures temporary scan exclusions expire on schedule and normal monitoring posture is restored."
+        },
+        {
+          "id": "d2_r3",
+          "label": "Restore all hosts in 10.0.1.0/24 from offline backups to undo the TCP port scan packets sent by 10.0.99.12",
+          "is_correct": false,
+          "domain_id": "domain4",
+          "points": -3,
+          "explanation": "Port scanning does not corrupt host state; restoring from backup causes severe unnecessary downtime."
+        },
+        {
+          "id": "d2_r4",
+          "label": "Whitelist 10.0.99.0/24 permanently on all production firewalls without requiring future change management tickets",
+          "is_correct": false,
+          "domain_id": "domain5",
+          "points": -3,
+          "explanation": "Bypasses change management governance and creates a permanent unmonitored pivot zone."
         }
       ]
     }
@@ -2297,55 +2457,79 @@
       "containment": [
         {
           "id": "d2_c5",
-          "label": "Network isolate WS-FIN-08 immediately via EDR/switch block",
+          "label": "Isolate finance workstation WS-FIN-08 immediately via EDR network containment and disable mclark's Active Directory session",
           "is_correct": true,
           "domain_id": "domain4",
           "points": 5,
-          "explanation": "Prevents ransomware from spreading laterally via SMB/network shares."
+          "explanation": "Prevents ransomware from spreading laterally across SMB shares and revokes compromised user access."
         },
         {
           "id": "d2_c6",
-          "label": "Disable Active Directory user session for mclark",
-          "is_correct": true,
-          "domain_id": "domain1",
-          "points": 5,
-          "explanation": "Revokes user rights to network shares."
+          "label": "Mount all corporate SMB file shares onto WS-FIN-08 with write permissions to test which directories the ransomware targets",
+          "is_correct": false,
+          "domain_id": "domain3",
+          "points": -3,
+          "explanation": "Directly exposes enterprise network shares to active file encryption."
+        },
+        {
+          "id": "d2_c7",
+          "label": "Reboot WS-FIN-08 into normal Windows mode while keeping it connected to the 10.0.1.0/24 finance VLAN",
+          "is_correct": false,
+          "domain_id": "domain4",
+          "points": -3,
+          "explanation": "Allows persistent ransomware tasks to resume encryption and lateral propagation."
         }
       ],
       "eradication": [
         {
           "id": "d2_e5",
-          "label": "Terminate processes with active .locked handles and quarantine executable",
+          "label": "Terminate processes holding .locked file handles on WS-FIN-08, quarantine the ransomware binary, and clean-reimage the workstation OS",
           "is_correct": true,
           "domain_id": "domain2",
           "points": 5,
-          "explanation": "Stops active encryption process."
+          "explanation": "Halts active encryption and ensures zero ransomware persistence remains on the endpoint."
         },
         {
           "id": "d2_e6",
-          "label": "Format the hard drive of WS-FIN-08 and reinstall OS",
-          "is_correct": true,
-          "domain_id": "domain3",
-          "points": 5,
-          "explanation": "Ensures no malware remnants remain on endpoint."
+          "label": "Rename the .locked file extensions back to their original names on WS-FIN-08 without removing the ransomware executable",
+          "is_correct": false,
+          "domain_id": "domain2",
+          "points": -3,
+          "explanation": "Renaming encrypted files does not decrypt their contents and leaves the malware active."
+        },
+        {
+          "id": "d2_e7",
+          "label": "Delete the EDR agent on WS-FIN-08 to stop critical file modification alerts for user mclark",
+          "is_correct": false,
+          "domain_id": "domain4",
+          "points": -3,
+          "explanation": "Removes endpoint protection while allowing encryption to continue unchecked."
         }
       ],
       "recovery": [
         {
           "id": "d2_r3",
-          "label": "Restore files from offline backup repository",
+          "label": "Restore affected finance data on WS-FIN-08 from a verified immutable offline backup and rotate mclark's domain credentials",
           "is_correct": true,
           "domain_id": "domain3",
           "points": 5,
-          "explanation": "Safely retrieves clean copies of encrypted data."
+          "explanation": "Safely recovers clean data after shadow copy deletion and secures the user account."
         },
         {
           "id": "d2_r4",
-          "label": "Pay the threat actor ransom request to obtain key",
+          "label": "Pay the threat actor's ransom demand noted in ransom_decrypt_instruction.txt to obtain the untrusted decryption binary",
           "is_correct": false,
           "domain_id": "domain5",
           "points": -5,
-          "explanation": "Unsafe, violates policy, and does not guarantee decryption."
+          "explanation": "Violates security policy, funds threat actors, and does not guarantee safe data recovery."
+        },
+        {
+          "id": "d2_r5",
+          "label": "Attempt to recover files on WS-FIN-08 solely from local Volume Shadow Copies without checking offline backups",
+          "is_correct": false,
+          "domain_id": "domain4",
+          "points": -3,
+          "explanation": "Local shadow copies were explicitly destroyed by vssadmin.exe and wmic shadowcopy delete."
         }
       ]
     }
@@ -2664,39 +2848,79 @@
       "containment": [
         {
           "id": "d3_c1",
-          "label": "Revoke firewall rule allowing Guest VLAN to Prod DB routing",
+          "label": "Remove the misconfigured firewall rule permitting Guest VLAN 192.168.10.0/24 to reach 10.0.50.12:5432 and quarantine client 192.168.10.145 on the WLC",
           "is_correct": true,
           "domain_id": "domain3",
           "points": 5,
-          "explanation": "Corrects segmentation failure instantly."
+          "explanation": "Immediately severs the unauthorized inter-VLAN path and isolates the brute-forcing wireless client."
         },
         {
           "id": "d3_c2",
-          "label": "Block Guest client 192.168.10.145 on local WLC (Wireless Controller)",
-          "is_correct": true,
-          "domain_id": "domain4",
-          "points": 5,
-          "explanation": "Bans attacker device from network."
+          "label": "Shut down the PostgreSQL database service on 10.0.50.12 for all internal production applications while leaving the Guest VLAN route open",
+          "is_correct": false,
+          "domain_id": "domain3",
+          "points": -3,
+          "explanation": "Causes a production outage without fixing the underlying network segmentation flaw."
+        },
+        {
+          "id": "d3_c3",
+          "label": "Bridge Guest-WiFi VLAN 192.168.10.0/24 directly into the production database subnet 10.0.50.0/24 to bypass firewall inspection overhead",
+          "is_correct": false,
+          "domain_id": "domain3",
+          "points": -3,
+          "explanation": "Completely eliminates network segmentation and exposes all production servers to guest devices."
         }
       ],
       "eradication": [
         {
           "id": "d3_e1",
-          "label": "Verify firewall ACL hierarchy and implement implicit deny between zones",
+          "label": "Audit the inter-VLAN firewall ACL hierarchy, enforce an explicit deny-all rule between Guest-WiFi and internal zones, and lock default 'sa' accounts",
           "is_correct": true,
           "domain_id": "domain3",
           "points": 5,
-          "explanation": "Reinforces secure network architecture."
+          "explanation": "Permanently enforces zero-trust zone segmentation and hardens database authentication."
+        },
+        {
+          "id": "d3_e2",
+          "label": "Change the PostgreSQL listening port on 10.0.50.12 from 5432 to 5433 while retaining full IP routing from 192.168.10.145",
+          "is_correct": false,
+          "domain_id": "domain3",
+          "points": -3,
+          "explanation": "Port obfuscation does not remediate the missing inter-VLAN segmentation control."
+        },
+        {
+          "id": "d3_e3",
+          "label": "Clear the PostgreSQL failed authentication logs on 10.0.50.12 without modifying the Guest-WiFi firewall ruleset",
+          "is_correct": false,
+          "domain_id": "domain4",
+          "points": -3,
+          "explanation": "Erases brute-force evidence while leaving the database exposed to 192.168.10.145."
         }
       ],
       "recovery": [
         {
           "id": "d3_r1",
-          "label": "Verify DB access logs to confirm no successful logins were achieved",
+          "label": "Verify PostgreSQL audit logs on 10.0.50.12 to confirm zero successful logins from 192.168.10.145 and validate segmentation with a port scan test",
           "is_correct": true,
           "domain_id": "domain4",
           "points": 5,
-          "explanation": "Verifies data integrity and confidentiality."
+          "explanation": "Confirms data confidentiality remained intact and verifies the firewall fix blocks guest traffic."
+        },
+        {
+          "id": "d3_r2",
+          "label": "Set the PostgreSQL 'sa' and 'admin' accounts on 10.0.50.12 to passwordless trust authentication for internal recovery testing",
+          "is_correct": false,
+          "domain_id": "domain1",
+          "points": -3,
+          "explanation": "Introduces a critical authentication vulnerability on the production database server."
+        },
+        {
+          "id": "d3_r3",
+          "label": "Disable firewall connection logging between 192.168.10.0/24 and 10.0.50.0/24 to prevent future high-severity SIEM alerts",
+          "is_correct": false,
+          "domain_id": "domain4",
+          "points": -3,
+          "explanation": "Removes network visibility required to detect future segmentation breaches."
         }
       ]
     }
@@ -3046,39 +3270,79 @@
       "containment": [
         {
           "id": "d3_c3",
-          "label": "Shut down the entire Guest Wi-Fi SSID network",
+          "label": "Shut down the entire Guest Wi-Fi SSID network and quarantine all connected guest MAC addresses immediately",
           "is_correct": false,
           "domain_id": "domain3",
           "points": -3,
-          "explanation": "Inconveniences all users due to one video stream."
+          "explanation": "Over-reactive disruption to all guest users for benign video streaming on 192.168.10.12."
         },
         {
           "id": "d3_c4",
-          "label": "Apply QoS bandwidth limiting on the Guest VLAN interface",
+          "label": "Apply per-client QoS bandwidth rate limiting on the Guest VLAN interface for 192.168.10.12 and classify the alert as a False Positive",
           "is_correct": true,
           "domain_id": "domain3",
           "points": 5,
-          "explanation": "Mitigates high consumption without locking users out."
+          "explanation": "Controls bandwidth consumption proportionally without treating benign streaming as a security breach."
+        },
+        {
+          "id": "d3_c5",
+          "label": "Block outbound TCP port 443 across both corporate and guest firewall zones to halt traffic from 192.168.10.12",
+          "is_correct": false,
+          "domain_id": "domain3",
+          "points": -3,
+          "explanation": "Blocking HTTPS globally cripples business web operations for a benign guest event."
         }
       ],
       "eradication": [
         {
           "id": "d3_e2",
-          "label": "Review company wireless guest usage policies",
+          "label": "Tune the NIDS bandwidth anomaly threshold for Guest VLAN 192.168.10.0/24 to account for permitted media streaming domains",
           "is_correct": true,
           "domain_id": "domain5",
           "points": 5,
-          "explanation": "Ensures policy aligns with bandwidth usage expectations."
+          "explanation": "Aligns NIDS alerting thresholds with acceptable guest network usage policies."
+        },
+        {
+          "id": "d3_e3",
+          "label": "Deploy mandatory corporate root CA TLS decryption certificates onto unowned guest device 192.168.10.12",
+          "is_correct": false,
+          "domain_id": "domain3",
+          "points": -3,
+          "explanation": "Forcing corporate root certificates onto personal visitor devices is invasive and inappropriate for a guest network."
+        },
+        {
+          "id": "d3_e4",
+          "label": "Wipe the DHCP lease database and disable proxy logging for 192.168.10.12 to silence bandwidth warnings",
+          "is_correct": false,
+          "domain_id": "domain4",
+          "points": -3,
+          "explanation": "Disrupts IP allocation and removes proxy visibility without managing bandwidth."
         }
       ],
       "recovery": [
         {
           "id": "d3_r2",
-          "label": "Monitor guest traffic threshold alarms",
+          "label": "Monitor Guest VLAN QoS utilization metrics to verify 192.168.10.12 remains within capped bandwidth limits and close the ticket",
           "is_correct": true,
           "domain_id": "domain4",
           "points": 5,
-          "explanation": "Verifies that QoS bounds are respected."
+          "explanation": "Verifies that traffic shaping works as intended and completes benign incident closure."
+        },
+        {
+          "id": "d3_r3",
+          "label": "Route Guest VLAN 192.168.10.12 traffic through the internal corporate MPLS backbone to provide higher streaming throughput",
+          "is_correct": false,
+          "domain_id": "domain3",
+          "points": -3,
+          "explanation": "Violates network segmentation by routing untrusted guest traffic over internal corporate links."
+        },
+        {
+          "id": "d3_r4",
+          "label": "File a mandatory external regulatory data breach notification regarding the 1.2MB transfer from 192.168.10.12 to netflix.com",
+          "is_correct": false,
+          "domain_id": "domain5",
+          "points": -3,
+          "explanation": "Streaming media from Netflix is not data exfiltration and does not warrant a breach notification."
         }
       ]
     }
@@ -3399,47 +3663,79 @@
       "containment": [
         {
           "id": "d3_c5",
-          "label": "Revoke Public Access permissions and enable Block Public Access (BPA) on S3",
+          "label": "Enable S3 Block Public Access on bucket customer-contracts-prod immediately and revoke active AWS IAM sessions for temp_admin",
           "is_correct": true,
           "domain_id": "domain3",
           "points": 5,
-          "explanation": "Stops public anonymous access immediately."
+          "explanation": "Immediately halts anonymous public downloads from 198.51.100.99 and locks the account that altered the ACL."
         },
         {
           "id": "d3_c6",
-          "label": "Disable AWS IAM credentials for user temp_admin",
-          "is_correct": true,
-          "domain_id": "domain1",
-          "points": 5,
-          "explanation": "Prevents further privilege actions from compromised IAM user."
+          "label": "Delete the entire customer-contracts-prod S3 bucket and all stored PDF objects to stop downloads from 198.51.100.99",
+          "is_correct": false,
+          "domain_id": "domain3",
+          "points": -3,
+          "explanation": "Destroys critical production customer contracts instead of restricting bucket access permissions."
+        },
+        {
+          "id": "d3_c7",
+          "label": "Keep the PublicReadOwnerAuthorizedAll ACL active on customer-contracts-prod while renaming contract_99420.pdf",
+          "is_correct": false,
+          "domain_id": "domain3",
+          "points": -3,
+          "explanation": "Leaves the bucket publicly listable and readable by anonymous users at 198.51.100.99."
         }
       ],
       "eradication": [
         {
           "id": "d3_e3",
-          "label": "Enable bucket policy auditing and automated remediation scripts via AWS Config",
+          "label": "Apply an AWS Organizations Service Control Policy denying PutBucketAcl public grants and deploy AWS Config auto-remediation on customer-contracts-prod",
           "is_correct": true,
           "domain_id": "domain3",
           "points": 5,
-          "explanation": "Ensures drift from baseline config is auto-fixed."
+          "explanation": "Permanently prevents unauthorized public ACL modifications and remediates configuration drift."
+        },
+        {
+          "id": "d3_e4",
+          "label": "Disable AWS CloudTrail logging on customer-contracts-prod to stop generating critical GetObject alerts from 198.51.100.99",
+          "is_correct": false,
+          "domain_id": "domain4",
+          "points": -3,
+          "explanation": "Eliminates cloud audit visibility without fixing the bucket permission vulnerability."
+        },
+        {
+          "id": "d3_e5",
+          "label": "Attach the AdministratorAccess policy to temp_admin so the user can manually manage S3 bucket ACLs without restrictions",
+          "is_correct": false,
+          "domain_id": "domain1",
+          "points": -3,
+          "explanation": "Violates least privilege and expands the blast radius of the compromised or mismanaged IAM account."
         }
       ],
       "recovery": [
         {
           "id": "d3_r3",
-          "label": "Analyze CloudTrail logs to quantify exact files exfiltrated",
-          "is_correct": true,
-          "domain_id": "domain4",
-          "points": 5,
-          "explanation": "Required for compliance reporting."
-        },
-        {
-          "id": "d3_r4",
-          "label": "Prepare breach notification response per compliance policy",
+          "label": "Audit CloudTrail GetObject events from 198.51.100.99 to inventory exfiltrated contracts and initiate the compliance breach notification workflow",
           "is_correct": true,
           "domain_id": "domain5",
           "points": 5,
-          "explanation": "Necessary due to exfiltration of corporate customer contract details."
+          "explanation": "Quantifies the exact scope of exposed customer contracts and fulfills regulatory reporting duties."
+        },
+        {
+          "id": "d3_r4",
+          "label": "Move customer-contracts-prod objects to an unencrypted public FTP server while AWS S3 permissions are reviewed",
+          "is_correct": false,
+          "domain_id": "domain3",
+          "points": -3,
+          "explanation": "Exposes sensitive contracts over an even less secure cleartext protocol."
+        },
+        {
+          "id": "d3_r5",
+          "label": "Purge all CloudTrail history for temp_admin and 198.51.100.99 to avoid reporting the exposure during the next compliance audit",
+          "is_correct": false,
+          "domain_id": "domain5",
+          "points": -3,
+          "explanation": "Violates legal and regulatory audit integrity requirements."
         }
       ]
     }
@@ -3756,47 +4052,79 @@
       "containment": [
         {
           "id": "d4_c1",
-          "label": "Blackhole domain malicious-tunnel.com on corporate DNS servers",
-          "is_correct": true,
-          "domain_id": "domain3",
-          "points": 5,
-          "explanation": "Breaks the communication channel instantly."
-        },
-        {
-          "id": "d4_c2",
-          "label": "Isolate the client host 10.0.1.44 from the network",
+          "label": "Sinkhole malicious-tunnel.com on corporate DNS resolvers and isolate internal host 10.0.1.44 from the network segment",
           "is_correct": true,
           "domain_id": "domain4",
           "points": 5,
-          "explanation": "Stops the local script from exfiltrating files."
+          "explanation": "Severs the covert DNS exfiltration channel and contains the compromised endpoint."
+        },
+        {
+          "id": "d4_c2",
+          "label": "Shut down port 53 for all internal corporate DNS servers so no hosts in the enterprise can resolve domain names",
+          "is_correct": false,
+          "domain_id": "domain3",
+          "points": -3,
+          "explanation": "Disabling enterprise DNS causes a total business outage instead of targeting malicious-tunnel.com and 10.0.1.44."
+        },
+        {
+          "id": "d4_c3",
+          "label": "Configure host 10.0.1.44 to bypass internal DNS resolvers and query external public DNS 8.8.8.8 directly for malicious-tunnel.com",
+          "is_correct": false,
+          "domain_id": "domain3",
+          "points": -3,
+          "explanation": "Allows the DNS tunneling malware on 10.0.1.44 to continue exfiltrating data outside internal DNS visibility."
         }
       ],
       "eradication": [
         {
           "id": "d4_e1",
-          "label": "Scan host 10.0.1.44 for running DNS tunneling toolkits",
+          "label": "Identify and terminate the DNS tunneling process on 10.0.1.44, remove its scheduled persistence, and rotate credentials cached on the host",
           "is_correct": true,
           "domain_id": "domain2",
           "points": 5,
-          "explanation": "Locates the malware mechanism."
+          "explanation": "Removes the active tunneling toolkit and invalidates credentials exposed on 10.0.1.44."
         },
         {
           "id": "d4_e2",
-          "label": "Reinstall DNS service on target DC server",
+          "label": "Format and reinstall the corporate DNS server software while leaving workstation 10.0.1.44 untouched on the VLAN",
           "is_correct": false,
           "domain_id": "domain3",
-          "points": -2,
-          "explanation": "Unnecessary; the DNS server was just forwarding requests legitimately."
+          "points": -3,
+          "explanation": "The corporate DNS resolver merely forwarded queries; the infection resides on endpoint 10.0.1.44."
+        },
+        {
+          "id": "d4_e3",
+          "label": "Flush the DNS resolver cache for malicious-tunnel.com without scanning 10.0.1.44 for scheduled tasks or background daemons",
+          "is_correct": false,
+          "domain_id": "domain4",
+          "points": -3,
+          "explanation": "Flushing the DNS cache does not stop the malware on 10.0.1.44 from issuing new TXT queries."
         }
       ],
       "recovery": [
         {
           "id": "d4_r1",
-          "label": "Audit total TXT traffic volume to estimate loss",
+          "label": "Decode captured DNS TXT payloads from 10.0.1.44 to assess data exposure, deploy DNS query length anomaly rules, and restore the clean host",
           "is_correct": true,
           "domain_id": "domain4",
           "points": 5,
-          "explanation": "Estimates extent of data leakage."
+          "explanation": "Quantifies exfiltrated data and implements detection rules against high-entropy DNS queries."
+        },
+        {
+          "id": "d4_r2",
+          "label": "Whitelist TXT queries to malicious-tunnel.com on the SIEM so host 10.0.1.44 can return to production without generating alerts",
+          "is_correct": false,
+          "domain_id": "domain4",
+          "points": -3,
+          "explanation": "Permits ongoing covert data exfiltration to the attacker's domain."
+        },
+        {
+          "id": "d4_r3",
+          "label": "Disable DNS query logging on the corporate DNS server after reconnecting 10.0.1.44 to improve resolver latency",
+          "is_correct": false,
+          "domain_id": "domain4",
+          "points": -3,
+          "explanation": "Eliminates essential DNS telemetry needed to detect covert C2 and exfiltration channels."
         }
       ]
     }
@@ -4165,39 +4493,79 @@
       "containment": [
         {
           "id": "d4_c3",
-          "label": "Block UDP Port 123 outbound entirely at corporate firewall",
+          "label": "Block outbound UDP port 123 entirely at the corporate firewall and isolate srv-sync-time-02 (10.0.3.15) from the network",
           "is_correct": false,
           "domain_id": "domain3",
           "points": -4,
-          "explanation": "Breaks time synchronization for the entire enterprise."
+          "explanation": "Breaks Kerberos and log time synchronization across the enterprise for an authorized change (CR-3212)."
         },
         {
           "id": "d4_c4",
-          "label": "Document findings and close ticket as benign",
+          "label": "Correlate the UDP port 123 traffic from 10.0.3.15 with Change Request CR-3212 and classify the alert as a benign False Positive",
           "is_correct": true,
           "domain_id": "domain4",
           "points": 5,
-          "explanation": "Resolves case safely without breaking systems."
+          "explanation": "Confirms the high-frequency NTP polling to time.nist.gov (129.6.15.28) is an approved temporary workaround."
+        },
+        {
+          "id": "d4_c5",
+          "label": "Null-route government time server 129.6.15.28 on all core routers and revoke the sysadmin account that submitted CR-3212",
+          "is_correct": false,
+          "domain_id": "domain3",
+          "points": -3,
+          "explanation": "Disrupts legitimate upstream time synchronization and penalizes an authorized administrator."
         }
       ],
       "eradication": [
         {
           "id": "d4_e3",
-          "label": "Verify internal time sync hierarchy is working",
+          "label": "Add a temporary SIEM threshold exception for 10.0.3.15 polling time.nist.gov linked to CR-3212 until hardware replacement completes",
           "is_correct": true,
-          "domain_id": "domain3",
+          "domain_id": "domain4",
           "points": 5,
-          "explanation": "Ensures domain controllers sync properly."
+          "explanation": "Suppresses repetitive benign alerts while maintaining visibility on other hosts."
+        },
+        {
+          "id": "d4_e4",
+          "label": "Kill the w32time.exe service on srv-sync-time-02 (10.0.3.15) and delete its system32 binary to stop UDP 123 packets",
+          "is_correct": false,
+          "domain_id": "domain2",
+          "points": -3,
+          "explanation": "Causes immediate clock drift on the backup time server and breaks Windows system integrity."
+        },
+        {
+          "id": "d4_e5",
+          "label": "Re-image srv-sync-time-02 (10.0.3.15) from cold storage backups assuming the NTP traffic to 129.6.15.28 is a DDoS amplification trojan",
+          "is_correct": false,
+          "domain_id": "domain4",
+          "points": -3,
+          "explanation": "Wastes incident response resources re-imaging a server experiencing a documented hardware oscillator issue."
         }
       ],
       "recovery": [
         {
           "id": "d4_r2",
-          "label": "Confirm hardware replacement schedule for oscillator drift",
+          "label": "Verify the scheduled motherboard replacement for srv-sync-time-02 (10.0.3.15) and revert the NTP polling interval to baseline once repaired",
           "is_correct": true,
           "domain_id": "domain5",
           "points": 5,
-          "explanation": "Permanently fixes underlying root cause."
+          "explanation": "Tracks permanent remediation of the hardware root cause and restores standard NTP polling intervals."
+        },
+        {
+          "id": "d4_r3",
+          "label": "Configure all domain workstations to use unauthenticated external HTTP headers instead of NTP on 10.0.3.15 for clock sync",
+          "is_correct": false,
+          "domain_id": "domain3",
+          "points": -3,
+          "explanation": "Introduces insecure time synchronization that can break Kerberos authentication."
+        },
+        {
+          "id": "d4_r4",
+          "label": "Permanently disable UDP traffic monitoring on the perimeter firewall for all internal servers in subnet 10.0.3.0/24",
+          "is_correct": false,
+          "domain_id": "domain4",
+          "points": -3,
+          "explanation": "Creates a permanent blind spot for UDP-based data exfiltration or C2 traffic."
         }
       ]
     }
@@ -4501,55 +4869,79 @@
       "containment": [
         {
           "id": "d4_c5",
-          "label": "Delete the administrator account 'adm_backdoor'",
+          "label": "Disable the rogue 'adm_backdoor' account on DC-01, revoke kwilliams's sessions, and block secure-office365-portal.com (192.0.2.14) at the proxy",
           "is_correct": true,
           "domain_id": "domain1",
           "points": 5,
-          "explanation": "Removes the attacker's foothold."
+          "explanation": "Removes the attacker's backdoor account, secures the compromised user, and blocks the phishing infrastructure."
         },
         {
           "id": "d4_c6",
-          "label": "Revoke active web session and change password for user kwilliams",
-          "is_correct": true,
-          "domain_id": "domain1",
-          "points": 5,
-          "explanation": "Secures the harvested credentials."
+          "label": "Shut down domain controller DC-01 completely while leaving kwilliams logged into WS-HR-11 and able to reach 192.0.2.14",
+          "is_correct": false,
+          "domain_id": "domain3",
+          "points": -3,
+          "explanation": "Causes a domain authentication outage while leaving the compromised endpoint and phishing channel active."
         },
         {
           "id": "d4_c7",
-          "label": "Add secure-office365-portal.com to proxy blocking rules",
-          "is_correct": true,
-          "domain_id": "domain3",
-          "points": 5,
-          "explanation": "Blocks further link clicks across the organization."
+          "label": "Reply to admin@secure-office365-portal.com from WS-HR-11 requesting removal of kwilliams from their mailing list",
+          "is_correct": false,
+          "domain_id": "domain4",
+          "points": -3,
+          "explanation": "Tips off the threat actor at 192.0.2.14 without containing the compromised credentials or backdoor account."
         }
       ],
       "eradication": [
         {
           "id": "d4_e4",
-          "label": "Search mail gateway and delete copies of this email from other mailboxes",
+          "label": "Purge all emails from secure-office365-portal.com across corporate mailboxes, remove adm_backdoor from DC-01, and scan WS-HR-11 for persistence",
           "is_correct": true,
           "domain_id": "domain4",
           "points": 5,
-          "explanation": "Prevents other users from falling victim."
+          "explanation": "Eliminates remaining phishing lures, removes the unauthorized admin account, and verifies endpoint cleanliness."
         },
         {
           "id": "d4_e5",
-          "label": "Quarantine the domain controller 'DC-01'",
+          "label": "Quarantine and format domain controller DC-01 without resetting kwilliams's password or purging the phishing email",
           "is_correct": false,
           "domain_id": "domain3",
           "points": -5,
-          "explanation": "Isolating the primary DC breaks the entire domain authentication services."
+          "explanation": "Formatting the primary DC breaks enterprise authentication while leaving the harvested credentials valid."
+        },
+        {
+          "id": "d4_e6",
+          "label": "Delete proxy logs for 10.0.2.77 on WS-HR-11 while leaving the 'adm_backdoor' account enabled in Active Directory",
+          "is_correct": false,
+          "domain_id": "domain4",
+          "points": -3,
+          "explanation": "Erases evidentiary proxy logs while preserving the attacker's administrative persistence."
         }
       ],
       "recovery": [
         {
           "id": "d4_r3",
-          "label": "Deploy anti-phishing training to user kwilliams",
+          "label": "Re-enable kwilliams with a new password and phishing-resistant MFA, audit DC-01 group memberships, and assign targeted phishing training",
           "is_correct": true,
           "domain_id": "domain5",
           "points": 5,
-          "explanation": "Educates the user to prevent recurrence."
+          "explanation": "Safely restores user access with stronger authentication controls and addresses human-factor risk."
+        },
+        {
+          "id": "d4_r4",
+          "label": "Whitelist secure-office365-portal.com (192.0.2.14) on the email gateway so legitimate Microsoft notifications are not delayed",
+          "is_correct": false,
+          "domain_id": "domain2",
+          "points": -3,
+          "explanation": "secure-office365-portal.com is an external lookalike phishing domain, not a legitimate Microsoft service."
+        },
+        {
+          "id": "d4_r5",
+          "label": "Grant WS-HR-11 local administrator privileges on DC-01 so kwilliams can self-manage MFA resets in the future",
+          "is_correct": false,
+          "domain_id": "domain1",
+          "points": -3,
+          "explanation": "Violates least privilege and creates a severe privilege escalation path."
         }
       ]
     }
@@ -4868,47 +5260,79 @@
       "containment": [
         {
           "id": "d5_c1",
-          "label": "Suspend rharper's Active Directory and CRM accounts immediately",
+          "label": "Suspend rharper's Active Directory and CRM accounts immediately and isolate workstation WS-SALES-15 (10.0.1.18) to preserve forensic evidence",
           "is_correct": true,
           "domain_id": "domain5",
           "points": 5,
-          "explanation": "Stops ongoing data exfiltration."
+          "explanation": "Halts ongoing insider data exfiltration and preserves volatile and disk evidence on WS-SALES-15."
         },
         {
           "id": "d5_c2",
-          "label": "Disable sales host PC WS-SALES-15 network access",
-          "is_correct": true,
+          "label": "Wipe and reformat workstation WS-SALES-15 immediately to erase all traces of Customer_Billing_Details_All.csv",
+          "is_correct": false,
+          "domain_id": "domain5",
+          "points": -3,
+          "explanation": "Destroys critical forensic evidence needed by Legal and HR to prove intentional insider exfiltration."
+        },
+        {
+          "id": "d5_c3",
+          "label": "Shut down the production CRM application for all sales staff while leaving rharper's account active on 10.0.1.18",
+          "is_correct": false,
           "domain_id": "domain4",
-          "points": 5,
-          "explanation": "Secures local forensic evidence."
+          "points": -3,
+          "explanation": "Disrupts enterprise sales operations while leaving the insider threat actor's account active."
         }
       ],
       "eradication": [
         {
           "id": "d5_e1",
-          "label": "Initiate forensic acquisition of workstation hard drive",
+          "label": "Perform a chain-of-custody forensic image of WS-SALES-15, revoke all API tokens for rharper, and block unauthorized personal webmail uploads via DLP",
           "is_correct": true,
           "domain_id": "domain5",
           "points": 5,
-          "explanation": "Ensures evidence is preserved for potential legal actions."
+          "explanation": "Secures legally admissible forensic evidence, revokes residual access, and blocks personal webmail exfiltration vectors."
+        },
+        {
+          "id": "d5_e2",
+          "label": "Delete the CRM database audit logs and proxy records for 10.0.1.18 to keep the rharper investigation confidential",
+          "is_correct": false,
+          "domain_id": "domain5",
+          "points": -3,
+          "explanation": "Destroys primary audit evidence required for regulatory compliance and legal proceedings."
+        },
+        {
+          "id": "d5_e3",
+          "label": "Allow rharper to log back into WS-SALES-15 unmonitored to see if they delete additional files from the desktop",
+          "is_correct": false,
+          "domain_id": "domain1",
+          "points": -3,
+          "explanation": "Permits the insider to destroy remaining evidence or exfiltrate additional customer records."
         }
       ],
       "recovery": [
         {
           "id": "d5_r1",
-          "label": "Report security breach to Legal & HR departments",
+          "label": "Coordinate with Legal and HR on insider incident handling, file GDPR/PDPA breach notifications within 72 hours, and enforce CRM bulk-export DLP limits",
           "is_correct": true,
           "domain_id": "domain5",
           "points": 5,
-          "explanation": "Required by policy for employee policy breaches."
+          "explanation": "Fulfills legal and regulatory PII breach mandates and implements preventive DLP controls on bulk CRM exports."
         },
         {
           "id": "d5_r2",
-          "label": "File GDPR/PDPA compliance breach notifications within 72 hours",
-          "is_correct": true,
+          "label": "Conceal the exfiltration of Customer_Billing_Details_All.csv from the Data Protection Officer to avoid regulatory fines",
+          "is_correct": false,
           "domain_id": "domain5",
-          "points": 5,
-          "explanation": "Necessary due to exfiltration of customer PII data."
+          "points": -3,
+          "explanation": "Violates mandatory GDPR/PDPA breach notification laws and corporate governance policies."
+        },
+        {
+          "id": "d5_r3",
+          "label": "Grant all sales representatives unrestricted CRM bulk-export permissions so they can back up customer lists locally on their workstations",
+          "is_correct": false,
+          "domain_id": "domain5",
+          "points": -3,
+          "explanation": "Increases data exfiltration risk across the entire sales department."
         }
       ]
     }
@@ -5206,39 +5630,79 @@
       "containment": [
         {
           "id": "d5_c3",
-          "label": "Revoke AWS IAM permissions of backup_agent_04",
+          "label": "Revoke AWS IAM permissions for service principal backup_agent_04 and abort the Glacier transfer immediately",
           "is_correct": false,
           "domain_id": "domain5",
           "points": -3,
-          "explanation": "Breaks automated data compliance retention pipeline."
+          "explanation": "Disrupts the pre-approved monthly compliance archiving job (CR-9022)."
         },
         {
           "id": "d5_c4",
-          "label": "Acknowledge alert as benign and confirm backup job completion",
+          "label": "Verify Change Request CR-9022 for backup_agent_04 and acknowledge the S3-to-Glacier transfer alert as a benign False Positive",
           "is_correct": true,
           "domain_id": "domain5",
           "points": 5,
-          "explanation": "Standard action for authorized scheduled tasks."
+          "explanation": "Correctly validates the authorized monthly compliance archive without interrupting retention workflows."
+        },
+        {
+          "id": "d5_c5",
+          "label": "Delete the 'audit-logs-archive' S3 bucket to prevent further data migration to Amazon Glacier storage",
+          "is_correct": false,
+          "domain_id": "domain3",
+          "points": -3,
+          "explanation": "Destroys mandatory compliance audit logs during an authorized archiving task."
         }
       ],
       "eradication": [
         {
           "id": "d5_e2",
-          "label": "Verify cloud retention policy limits match configuration",
+          "label": "Verify that the S3 lifecycle policy on 'audit-logs-archive' matches the retention parameters approved in CR-9022",
           "is_correct": true,
           "domain_id": "domain5",
           "points": 5,
-          "explanation": "Confirms data lifecycle operates correctly."
+          "explanation": "Confirms automated cloud data lifecycle governance is operating within approved compliance bounds."
+        },
+        {
+          "id": "d5_e3",
+          "label": "Delete the Glacier vault containing the 45.2 GB archive and lock the compliance_lead user account",
+          "is_correct": false,
+          "domain_id": "domain5",
+          "points": -3,
+          "explanation": "Destroys archived compliance records and locks out the authorizing compliance lead for a benign event."
+        },
+        {
+          "id": "d5_e4",
+          "label": "Disable AWS CloudTrail logging for all S3 and Glacier API calls made by service principals",
+          "is_correct": false,
+          "domain_id": "domain4",
+          "points": -3,
+          "explanation": "Removes essential cloud audit visibility across all storage buckets."
         }
       ],
       "recovery": [
         {
           "id": "d5_r3",
-          "label": "Update compliance schedule record to reduce monitoring alarms",
+          "label": "Link the recurring monthly CR-9022 schedule for backup_agent_04 to the SIEM suppression ruleset and close the incident ticket",
           "is_correct": true,
           "domain_id": "domain5",
           "points": 5,
-          "explanation": "Prevents future security alert triggers."
+          "explanation": "Prevents recurring false positive alarms during future scheduled monthly compliance archives."
+        },
+        {
+          "id": "d5_r4",
+          "label": "Download the 45.2 GB Glacier archive to an unencrypted local workstation to manually inspect every audit log file",
+          "is_correct": false,
+          "domain_id": "domain5",
+          "points": -3,
+          "explanation": "Incurs unnecessary retrieval costs and exposes sensitive audit logs on an unencrypted endpoint."
+        },
+        {
+          "id": "d5_r5",
+          "label": "Configure 'audit-logs-archive' with public read permissions so external auditors can verify the CR-9022 backup directly",
+          "is_correct": false,
+          "domain_id": "domain3",
+          "points": -3,
+          "explanation": "Exposes sensitive internal security audit logs to the public internet."
         }
       ]
     }
@@ -5555,39 +6019,79 @@
       "containment": [
         {
           "id": "d5_c5",
-          "label": "Shut down switch interface Gi1/0/22 immediately via CLI",
+          "label": "Administratively shut down switch interface Gi1/0/22 on SW-HQ-02 immediately and dispatch physical security to confiscate the rogue AP (00:e0:4c:00:a1:05)",
           "is_correct": true,
           "domain_id": "domain3",
           "points": 5,
-          "explanation": "Isolates rogue device from physical network."
+          "explanation": "Immediately severs the rogue access point's physical LAN uplink and removes the unauthorized hardware."
         },
         {
           "id": "d5_c6",
-          "label": "Notify physical security teams to locate and retrieve the rogue access point",
-          "is_correct": true,
-          "domain_id": "domain5",
-          "points": 5,
-          "explanation": "Required since hardware must be confiscated physically."
+          "label": "Increase the Port Security maximum MAC limit on SW-HQ-02 interface Gi1/0/22 from 1 to 50 so violation alerts stop firing",
+          "is_correct": false,
+          "domain_id": "domain3",
+          "points": -3,
+          "explanation": "Permits all unauthorized wireless clients on 'CORP-GUEST-FAST' to access the internal LAN."
+        },
+        {
+          "id": "d5_c7",
+          "label": "Power off core switch SW-HQ-02 completely, disconnecting all headquarters wired workstations and legitimate W-AP-3 access points",
+          "is_correct": false,
+          "domain_id": "domain3",
+          "points": -3,
+          "explanation": "Causes a building-wide network outage when shutting down interface Gi1/0/22 alone contains the rogue device."
         }
       ],
       "eradication": [
         {
           "id": "d5_e3",
-          "label": "Enforce MAC filtering and 802.1X authentication on all access switch ports",
+          "label": "Enforce 802.1X port-based authentication with sticky MAC filtering on SW-HQ-02 access ports and revoke DHCP leases issued via Gi1/0/22",
           "is_correct": true,
           "domain_id": "domain3",
           "points": 5,
-          "explanation": "Prevents unauthorized hardware from connecting in the future."
+          "explanation": "Prevents unauthorized hardware from bridging onto the LAN and evicts rogue DHCP clients."
+        },
+        {
+          "id": "d5_e4",
+          "label": "Leave switch port Gi1/0/22 enabled on SW-HQ-02 while broadcasting a stronger signal on channel 6 from W-AP-3",
+          "is_correct": false,
+          "domain_id": "domain3",
+          "points": -3,
+          "explanation": "Leaves the physical LAN bridge active for any client connected to the rogue hardware."
+        },
+        {
+          "id": "d5_e5",
+          "label": "Clear Port Security violation counters on SW-HQ-02 without disconnecting MAC 00:e0:4c:00:a1:05 or auditing connected clients",
+          "is_correct": false,
+          "domain_id": "domain4",
+          "points": -3,
+          "explanation": "Resets the switch alarm while leaving the rogue wireless access point operating on the network."
         }
       ],
       "recovery": [
         {
           "id": "d5_r4",
-          "label": "Verify DHCP logs to list all devices that associated with rogue IP pool",
+          "label": "Audit DHCP and proxy logs for all 12 MAC addresses seen on Gi1/0/22, rotate credentials for affected corporate users, and conduct a wireless site survey",
           "is_correct": true,
           "domain_id": "domain4",
           "points": 5,
-          "explanation": "Identifies potentially compromised corporate endpoints."
+          "explanation": "Identifies any corporate devices that associated with 'CORP-GUEST-FAST' and verifies no other rogue APs remain."
+        },
+        {
+          "id": "d5_r5",
+          "label": "Adopt the rogue SSID 'CORP-GUEST-FAST' into the official corporate wireless controller configuration without inspecting the hardware",
+          "is_correct": false,
+          "domain_id": "domain5",
+          "points": -3,
+          "explanation": "Legitimizes an untrusted, potentially backdoored consumer device on the corporate LAN."
+        },
+        {
+          "id": "d5_r6",
+          "label": "Disable wireless IDS rogue SSID detection on W-AP-3 and Port Security logging on SW-HQ-02 to reduce SOC ticket volume",
+          "is_correct": false,
+          "domain_id": "domain4",
+          "points": -3,
+          "explanation": "Removes both physical port security and wireless intrusion detection controls."
         }
       ]
     }

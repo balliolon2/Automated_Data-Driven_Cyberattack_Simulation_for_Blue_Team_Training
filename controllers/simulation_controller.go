@@ -4,8 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"hash/fnv"
 	"log"
 	"math"
+	"math/rand"
 	"net/http"
 	"os"
 	"time"
@@ -37,8 +39,18 @@ type SimulationController struct {
 func NewSimulationController(db *gorm.DB) *SimulationController {
 	if db != nil {
 		_ = db.AutoMigrate(&models.SimulationSession{}, &models.ScenarioSnapshot{})
+		_ = services.EnsureScenarioPlaybookQuality(db, "scenarios_seed.json")
 	}
 	return &SimulationController{DB: db}
+}
+
+func (sc *SimulationController) ensureScenarioRemediated(scenario *models.Scenario) {
+	if scenario == nil {
+		return
+	}
+	if services.UpgradeScenarioPlaybookSteps(scenario) && sc.DB != nil && scenario.ScenarioID != "" {
+		_ = sc.DB.Model(&models.Scenario{}).Where("scenario_id = ?", scenario.ScenarioID).Update("playbook_steps", scenario.PlaybookSteps).Error
+	}
 }
 
 // --- DTO Aliases ---
@@ -150,9 +162,10 @@ func (sc *SimulationController) StartScenario(c *gin.Context) {
 		// Return existing active session with scenario data
 		var scenario models.Scenario
 		sc.DB.Where("scenario_id = ?", activeSession.ScenarioID).First(&scenario)
+		sc.ensureScenarioRemediated(&scenario)
 		c.JSON(http.StatusOK, gin.H{
 			"session":  activeSession,
-			"scenario": sanitizeScenario(scenario),
+			"scenario": sanitizeScenario(scenario, activeSession.SessionID),
 		})
 		return
 	}
@@ -323,6 +336,8 @@ func (sc *SimulationController) StartScenario(c *gin.Context) {
 		return
 	}
 
+	sc.ensureScenarioRemediated(&scenario)
+
 	// Create simulation session with full audit fields
 	session := models.SimulationSession{
 		UserID:             userID.(string),
@@ -375,7 +390,7 @@ func (sc *SimulationController) StartScenario(c *gin.Context) {
 
 	c.JSON(http.StatusCreated, gin.H{
 		"session":  session,
-		"scenario": sanitizeScenario(scenario),
+		"scenario": sanitizeScenario(scenario, session.SessionID),
 	})
 }
 
@@ -404,10 +419,11 @@ func (sc *SimulationController) GetActiveSession(c *gin.Context) {
 	if err == nil {
 		var scenario models.Scenario
 		sc.DB.Where("scenario_id = ?", activeSession.ScenarioID).First(&scenario)
+		sc.ensureScenarioRemediated(&scenario)
 		c.JSON(http.StatusOK, gin.H{
 			"type":     "in_progress",
 			"session":  activeSession,
-			"scenario": sanitizeScenario(scenario),
+			"scenario": sanitizeScenario(scenario, activeSession.SessionID),
 		})
 		return
 	}
@@ -755,10 +771,14 @@ func (sc *SimulationController) GetResult(c *gin.Context) {
 	})
 }
 
-// sanitizeScenario removes answer data before sending to the frontend
-func sanitizeScenario(s models.Scenario) ScenarioResponse {
-	// Strip is_correct and explanation from playbook_steps
-	sanitizedSteps := sanitizePlaybookSteps(s.PlaybookSteps)
+// sanitizeScenario removes answer data and deterministically shuffles Response Actions using sessionID
+func sanitizeScenario(s models.Scenario, sessionID string) ScenarioResponse {
+	seedBase := sessionID
+	if seedBase == "" {
+		seedBase = s.ScenarioID
+	}
+	// Strip is_correct and explanation from playbook_steps and deterministically shuffle per phase
+	sanitizedSteps := sanitizePlaybookSteps(s.PlaybookSteps, seedBase)
 
 	// Extract only IDs and evidence log indices from expected_outcomes
 	var sanitizedFindings []map[string]interface{}
@@ -771,10 +791,10 @@ func sanitizeScenario(s models.Scenario) ScenarioResponse {
 				if !ok {
 					continue
 				}
-				
+
 				fID, _ := finding["id"].(string)
 				indices, _ := finding["evidence_log_indices"].([]interface{})
-				
+
 				sanitizedFindings = append(sanitizedFindings, map[string]interface{}{
 					"id":                   fID,
 					"evidence_log_indices": indices,
@@ -795,8 +815,8 @@ func sanitizeScenario(s models.Scenario) ScenarioResponse {
 	}
 }
 
-// sanitizePlaybookSteps removes is_correct, explanation, and points from playbook step options
-func sanitizePlaybookSteps(steps any) any {
+// sanitizePlaybookSteps strips evaluation keys and deterministically shuffles Response Actions per phase using sessionID
+func sanitizePlaybookSteps(steps any, sessionID string) any {
 	stepsMap, ok := steps.(map[string]interface{})
 	if !ok {
 		return steps
@@ -829,6 +849,16 @@ func sanitizePlaybookSteps(steps any) any {
 				})
 			}
 		}
+
+		if len(sanitizedActions) > 1 && sessionID != "" {
+			h := fnv.New64a()
+			_, _ = h.Write([]byte(fmt.Sprintf("%s:%s", sessionID, phase)))
+			rng := rand.New(rand.NewSource(int64(h.Sum64())))
+			rng.Shuffle(len(sanitizedActions), func(i, j int) {
+				sanitizedActions[i], sanitizedActions[j] = sanitizedActions[j], sanitizedActions[i]
+			})
+		}
+
 		sanitized[phase] = sanitizedActions
 	}
 
