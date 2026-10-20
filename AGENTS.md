@@ -87,6 +87,7 @@ Before submitting any code changes, verify your work against the test harness.
 Raw questions are parsed from markdown and loaded into the database:
 - `scripts/parse_exams.py`: Parses files inside `/examination` to generate `parsed_questions.json`.
 - `scripts/load_exams_to_db.py`: Connects to PostgreSQL, seeds the `security_domains` table, and inserts parsed questions.
+- **Register New Content Sources First**: Every new content source must be registered in [`docs/REFERENCES.md`](docs/REFERENCES.md) with a stable `R-ID` **before** parsing or ingestion. The registry entry must include provenance (chapter/range/file mapping), usage constraints and copyright status, and a matching BibTeX entry in `docs/references.bib`. Unregistered sources must not enter the parse or ingest pipeline.
 
 ### 2. Integration Verification Suite
 `scripts/test_integration.py` verifies the following end-to-end user flows:

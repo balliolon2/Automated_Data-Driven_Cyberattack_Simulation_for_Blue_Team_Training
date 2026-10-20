@@ -3,6 +3,20 @@ import re
 import json
 import glob
 import sys
+from collections import Counter
+
+
+SOURCE_REF = "R1"
+
+DOMAIN_CHAPTER = {f"domain{i}": i for i in range(1, 6)}
+
+EXPECTED_R1_COUNTS = {
+    "domain1": 110,
+    "domain2": 110,
+    "domain3": 90,
+    "domain4": 150,
+    "domain5": 80,
+}
 
 
 def normalize_text(text):
@@ -24,20 +38,22 @@ def parse_markdown_file(filepath):
 
     questions = []
 
-    blocks = re.split(r"\*\*Question \d+\.\*\*", content)
+    blocks = re.split(r"\*\*Question (\d+)\.\*\*", content)
 
     filename = os.path.basename(filepath)
     match = re.search(r"domain(\d+)", filename)
     domain_id = match.group(1) if match else "1"
+    domain_key = f"domain{domain_id}"
 
-    for block in blocks[1:]:
-        block = block.strip()
+    for i in range(1, len(blocks) - 1, 2):
+        question_no = int(blocks[i])
+        block = blocks[i + 1].strip()
         if not block:
             continue
 
         parts = re.split(r"\*?\*?\([A-D]\)\*?\*?", block)
         if len(parts) < 5:
-            print(f"Skipping malformed block in {filename}...")
+            print(f"Skipping malformed block in {filename} (question {question_no})...")
             continue
 
         question_text = normalize_text(parts[0])
@@ -67,18 +83,64 @@ def parse_markdown_file(filepath):
         score = calculate_complexity(question_text, options_dict, explanation_block)
 
         question_data = {
-            "domain_id": f"domain{domain_id}",
+            "domain_id": domain_key,
             "type": "multiple_choice",
             "question_text": question_text,
             "options": options_dict,
             "correct_answer": correct_answer,
             "explanation": explanation_block,
             "complexity_score": score,
+            "source_ref": SOURCE_REF,
+            "source_chapter": DOMAIN_CHAPTER[domain_key],
+            "source_question_no": question_no,
         }
 
         questions.append(question_data)
 
     return questions
+
+
+def validate_questions(questions):
+    print("=" * 60)
+    print(f"Post-parse validation (source {SOURCE_REF}): {len(questions)} questions")
+
+    domain_stats = {}
+    for q in questions:
+        domain = q["domain_id"]
+        number = q["source_question_no"]
+        stats = domain_stats.setdefault(domain, {"count": 0, "min": number, "max": number})
+        stats["count"] += 1
+        stats["min"] = min(stats["min"], number)
+        stats["max"] = max(stats["max"], number)
+
+    for domain in sorted(domain_stats):
+        stats = domain_stats[domain]
+        expected = EXPECTED_R1_COUNTS.get(domain)
+        expected_label = f"expected {expected}" if expected is not None else "no expected count"
+        warning = ""
+        if expected is not None and stats["count"] != expected:
+            warning = "  WARNING: unexpected count"
+        print(
+            f"  {domain}: count={stats['count']} ({expected_label}), "
+            f"source_question_no={stats['min']}-{stats['max']}{warning}"
+        )
+
+    for domain in sorted(set(EXPECTED_R1_COUNTS) - set(domain_stats)):
+        print(f"  WARNING: {domain} has no parsed questions (expected {EXPECTED_R1_COUNTS[domain]})")
+
+    number_counts = Counter(q["source_question_no"] for q in questions)
+    duplicates = sorted(number for number, count in number_counts.items() if count > 1)
+    if duplicates:
+        print(f"  WARNING: duplicate source_question_no values: {duplicates}")
+    else:
+        print("  duplicate source_question_no values: none")
+
+    out_of_range = sorted(number for number in number_counts if not 1 <= number <= 540)
+    if out_of_range:
+        print(f"  WARNING: source_question_no outside 1-540: {out_of_range}")
+    else:
+        print("  source_question_no outside 1-540: none")
+    print("=" * 60)
 
 
 def main():
@@ -87,9 +149,10 @@ def main():
     output_file = "parsed_questions.json"
     all_questions = []
 
-    source_files = glob.glob(os.path.join(target_dir, "*.md"))
+    source_files = glob.glob(os.path.join(target_dir, "domain*.md"))
+    source_files.sort()
     if not source_files:
-        print(f"No examination source files found in {target_dir}; refusing to seed an empty pool.", file=sys.stderr)
+        print(f"No examination source files found in {target_dir} matching domain*.md; refusing to seed an empty pool.", file=sys.stderr)
         sys.exit(1)
 
     print("Starting deterministic parser (1-5 difficulty distribution)...")
@@ -101,6 +164,8 @@ def main():
     if not all_questions:
         print("Parsed zero questions from examination sources; refusing to seed an empty pool.", file=sys.stderr)
         sys.exit(1)
+
+    validate_questions(all_questions)
 
     all_questions.sort(key=lambda x: x["complexity_score"])
 

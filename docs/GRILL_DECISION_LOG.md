@@ -181,3 +181,27 @@ Real-time LLM Generation เป็นเส้นทางหลักในร�
 - Deployment/Operations
 - Timeline
 
+---
+
+## Round 6 — Reference Provenance (2026-10-20)
+
+| ประเด็น | ข้อตัดสินใจ |
+|---|---|
+| Location | `docs/REFERENCES.md` เป็นทะเบียนกลาง (canonical registry) ควบคู่กับ `examination/README.md` และลิงก์จาก `README.md` |
+| Style | APA 7th เป็นรูปแบบหลัก และมี BibTeX สำหรับงานที่ผลิตด้วย LaTeX |
+| Granularity | แมประดับบท → Domain → ช่วงข้อสอบ → ไฟล์ต้นทาง |
+| Chapter 3 title | หนังสือใช้ชื่อบทว่า **"Implementation"** แต่โครงการแมปบทนี้เป็น domain3 **"Security Architecture"** และต้องบันทึกความต่างของชื่อนี้ไว้ในเอกสาร |
+| Pipeline | เพิ่ม `source_ref`, `source_chapter`, `source_question_no` ใน JSON โดยไม่เปลี่ยน Schema ฐานข้อมูล |
+| Copyright | บันทึกข้อจำกัดการใช้งานและ Open Risk ไว้ ไม่ลบไฟล์ข้อสอบ และรอข้อสรุปจากอาจารย์ที่ปรึกษา |
+| Registry scope | ใช้ `R-ID` แบบถาวร และมีแม่แบบสำหรับแหล่งข้อมูลใหม่ในอนาคต |
+| Language | คำบรรยายเป็นภาษาไทย ส่วนข้อมูลบรรณานุกรมและชื่อเรื่องเป็นภาษาอังกฤษ |
+| JSON schema | เพิ่มฟิลด์แบบ Flat จำนวน 3 คีย์ |
+| 539 vs 540 | Normalize หัวข้อ Question 444 ด้วยการเพิ่มจุด แล้วสร้าง Artifact ใหม่เป็น 540 ข้อ |
+| Duplicate JSON | ลบ `examination/questions.json` ที่ไม่ถูกอ้างอิง |
+| BibTeX location | `docs/references.bib` |
+| Notice placement | ประกาศข้อจำกัดการใช้งานใน `docs/REFERENCES.md` และ `examination/README.md` |
+| AGENTS.md rule | กำหนดให้ลงทะเบียนแหล่งข้อมูลใหม่ในทะเบียนก่อน Parse หรือ Ingest |
+| In-text citation | ใช้ทั้ง `[R1]` และ `(Gorgotsias, 2024)` |
+
+เจ้าของโครงการยืนยันแผนนี้เมื่อวันที่ **2026-10-20**
+

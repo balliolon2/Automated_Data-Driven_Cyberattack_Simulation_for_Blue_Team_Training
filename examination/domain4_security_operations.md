@@ -4422,7 +4422,7 @@ security events. While Alex is reviewing logs, which is part of
 monitoring, the manual and proactive deep dive he is taking is
 more in line with threat hunting.
 
-**Question 444** OmegaTech’s security team noticed an increase
+**Question 444.** OmegaTech’s security team noticed an increase
 in account compromises. An internal investigation revealed that
 many employees have been using the same passwords across
 different company systems and applications. Which password

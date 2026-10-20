@@ -135,3 +135,10 @@ The project includes an enterprise-grade automated CI/CD pipeline on GitHub Acti
 | `VITE_API_URL` | Production Backend API URL for frontend build |
 | `CLOUDFLARE_API_TOKEN` | (Optional) Cloudflare API token if using Wrangler Action |
 | `CLOUDFLARE_ACCOUNT_ID` | (Optional) Cloudflare Account ID if using Wrangler Action |
+
+---
+
+## 📚 References
+
+- [docs/REFERENCES.md](docs/REFERENCES.md) — ทะเบียนแหล่งอ้างอิงกลาง (R-ID), การอ้างอิง APA 7th / BibTeX, provenance ของคลังข้อสอบ และข้อจำกัดด้านลิขสิทธิ์
+- [examination/README.md](examination/README.md) — คำอธิบายไฟล์ข้อสอบต้นทาง, การแมปบท → Domain และนโยบายไฟล์ที่ Parser สร้าง
