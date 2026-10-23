@@ -133,8 +133,73 @@
     - The Postgres port is **not** published to the host; the backend and the one-shot `seed` container reach it over `backend_net`. The API (`8080`) and pgAdmin (`5050`) bind to `127.0.0.1` only; only the frontend (`80`) is exposed on all interfaces.
 
 25. **Automated One-Shot Seeding & Health Gates**:
-    - A `seed` service (Python 3.11-slim) runs `parse_exams.py` -> `load_exams_to_db.py` -> `generate_scenarios.py` -> `load_scenarios_to_db.py`, mounting the repo read-only (`./:/app:ro`) and writing ephemeral artifacts to `/work`.
-    - Start order is gated by health/completion: `db (healthy)` -> `seed (completed successfully)` -> `backend (healthy)` -> `frontend`. pgAdmin is opt-in via `--profile tools`.
+   - A `seed` service (Python 3.11-slim) runs `parse_exams.py` -> `load_exams_to_db.py` -> `generate_scenarios.py` -> `load_scenarios_to_db.py`, mounting the repo read-only (`./:/app:ro`) and writing ephemeral artifacts to `/work`.
+   - Start order is gated by health/completion: `db (healthy)` -> `seed (completed successfully)` -> `backend (healthy)` -> `frontend`. pgAdmin is opt-in via `--profile tools`.
+
+## Canonical Terms (Issue #11)
+
+- **Evidence log (log หลักฐาน)**: a row in a scenario's `initial_logs` that proves one key finding; identified by its 0-based index in the original array.
+- **Selected log (log ที่ถูกเลือก)**: a log the learner explicitly toggled on. It is a claim of relevance, not a TP/FP verdict.
+- **Noise log (log ขยะ/ไม่เกี่ยว)**: a log not present in any key finding's evidence set. Selecting one is a false lead.
+- **Finding credit (คะแนน finding)**: full finding points awarded when the selected set intersects that finding's authored evidence set. No partial credit inside a finding.
+- **Evidence penalty (โทษเลือกผิด)**: `−2` per unique selected noise log.
+- **Benign context log (log ยืนยันว่า benign)**: a change ticket, HR travel confirmation, scheduled maintenance, or authorized scanner range that proves a False Positive verdict.
+- **Evidence mapping report (รายงาน mapping)**: the compact human-review brief produced during scenario evidence authoring.
+- **Evidence selection (การเลือกหลักฐาน)**: the learner's click-to-select action in Detect & Analyze, persisted as `select_evidence` session actions.
+
+## Settled Decisions (Issue #11: Detect & Analyze Findings Cannot Get Score)
+
+26. **Root Cause**:
+   - Findings were credited only when the learner's transient KQL-filtered view contained **all** of a finding's evidence indices. Seeing the right log but not querying every index produced 0.
+   - `assign_evidence_indices()` distributed indices by positional chunking (`15..N-16`), not by what each log proves.
+
+27. **New Scoring Unit**:
+   - A finding is credited in full when the learner selects **any one** of its authored evidence logs.
+   - Selecting multiple logs from the same finding does not double-credit.
+   - No partial credit within a finding.
+
+28. **Noise Penalty**:
+   - `−2` per unique selected log that belongs to no finding's evidence set.
+   - Deducted from the findings component only, floored at 0.
+   - Attributed to `scenario.domain_id`; finding credit remains attributed to each `finding.domain_id`.
+
+29. **Evidence Authoring**:
+   - `evidence_log_indices` is authored, never positionally chunked.
+   - No per-finding count cap; the count depends on the scenario. False Positive findings may need several logs to establish the benign explanation.
+   - The union of all evidence sets must be ≤ 50% of `initial_logs`.
+   - Overlap between findings is allowed freely; a shared log credits every finding it supports.
+   - True Positive scenarios require at least one `malicious` verdict-supporting finding; False Positive scenarios require at least one `benign` verdict-supporting finding with a benign context log.
+
+30. **Authoring Workflow**:
+   - Static seeds: LLM drafts mappings → deterministic validation → one blocking user approval of a compact report → apply and seed.
+   - Runtime AI scenarios: 1–4 findings; exact `evidence_log_messages`; backend maps messages to indices; False Positive cases get a synthesized benign context log if the LLM omits one.
+   - Mapping JSON, report, and seed are committed; CI validates both mapping and seed.
+   - See `workflows/scenario_evidence_authoring.md`.
+
+31. **Selection Persistence & Audit**:
+   - New `select_evidence` action type with `toggle` and `clear` payloads.
+   - `POST /api/simulation/select-log` and `POST /api/simulation/select-log/clear`.
+   - `GET /api/simulation/session` returns `selected_log_indices`; selections survive refresh and filter changes.
+   - Submit replays server-recorded actions as the source of truth; client/server mismatch is logged, and the server wins.
+   - Step-order allocation is serialized per session to avoid `(session_id, step_order)` collisions.
+
+32. **Feedback & Payload Hygiene**:
+   - No correctness feedback during selection; only selected state and count.
+   - Learner payload exposes only `total_findings`; all evidence indices, finding IDs, and descriptions are removed.
+   - KQL query history and query count are audit-only and never scored.
+
+33. **TP/FP Independence**:
+   - TP/FP classification remains a separate 20-point component.
+   - Finding credit does not require a correct verdict; evidence identification and classification are measured separately.
+
+34. **Result & Specialist Review**:
+   - Result page shows found/missed findings, matched evidence rows, missed acceptable evidence, noise picks, and the `−2` penalty.
+   - Specialist review shows selected logs, matched/missed findings, noise picks, and net findings points.
+   - Completed sessions are immutable and retain their original rubric version (`rubric-v1`); new sessions use `rubric-v2-evidence-click`.
+
+## Proposed / Deferred Loops
+
+- **Missed-Finding Remediation Loop**: after a scenario, use the missed finding (not only the weakest domain) to select or generate the next scenario targeting that specific technique. Deferred; revisit after Issue #11 ships.
 
 
 

@@ -1,0 +1,352 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-10-22T09:06:13Z",
+  "model": "z-ai/glm-5.3-flash",
+  "prompt_version": "evidence-mapping-v1",
+  "drafted_by": "llm",
+  "approval": {
+    "approved": false,
+    "approved_by": null,
+    "approved_at": null,
+    "mapping_sha256": null
+  },
+  "scenarios": [
+    {
+      "scenario_title": "Multi-Factor Authentication Bypass (Push Fatigue)",
+      "is_true_positive": true,
+      "findings": [
+        {
+          "finding_id": "d1_f1",
+          "evidence_log_indices": [
+            15,
+            16,
+            17
+          ],
+          "rationale": "Three consecutive MFA push notifications were rejected by the user within 30 seconds, indicating a classic push fatigue or brute-force attempt against the user 'ajones'.",
+          "verdict_support": "malicious"
+        },
+        {
+          "finding_id": "d1_f2",
+          "evidence_log_indices": [
+            18,
+            19
+          ],
+          "rationale": "The MFA push was successfully approved from the external IP 198.51.100.42, immediately followed by an admin session establishment using a hijacked token from the same suspicious source.",
+          "verdict_support": "malicious"
+        }
+      ]
+    },
+    {
+      "scenario_title": "Atypical Travel VPN Connection Alert",
+      "is_true_positive": false,
+      "findings": [
+        {
+          "finding_id": "d1_f3",
+          "evidence_log_indices": [
+            18
+          ],
+          "rationale": "The HR portal log confirms that user mroberts is traveling to Paris for a corporate summit, justifying the atypical location alert.",
+          "verdict_support": "benign"
+        },
+        {
+          "finding_id": "d1_f4",
+          "evidence_log_indices": [
+            16,
+            17
+          ],
+          "rationale": "The VPN gateway logs confirm that the user successfully completed SMS MFA and connected using a verified corporate asset.",
+          "verdict_support": "benign"
+        }
+      ]
+    },
+    {
+      "scenario_title": "Unauthorized Privileged Access / DACL Abuse",
+      "is_true_positive": true,
+      "findings": [
+        {
+          "finding_id": "d1_f5",
+          "evidence_log_indices": [
+            16
+          ],
+          "rationale": "The AD controller log shows the backup service account 'svc_backup' modifying the DACL on the restricted Payroll_Confidential object, an unauthorized permission change by a non-administrative service account.",
+          "verdict_support": "malicious"
+        },
+        {
+          "finding_id": "d1_f6",
+          "evidence_log_indices": [
+            16,
+            17,
+            18
+          ],
+          "rationale": "The DACL change by 'svc_backup' at 08:03:10 is immediately followed by 'jsmith' being granted access to Payroll_Confidential and reading salary_matrix_2026.xlsx, directly correlating the change with its exploitation.",
+          "verdict_support": "malicious"
+        }
+      ]
+    },
+    {
+      "scenario_title": "SQL Injection & Database Exfiltration",
+      "is_true_positive": true,
+      "findings": [
+        {
+          "finding_id": "d2_f1",
+          "evidence_log_indices": [
+            15,
+            16
+          ],
+          "rationale": "The nginx log shows external client 198.51.100.77 submitting a UNION SELECT injection targeting username and password_hash, and the PostgreSQL log confirms the injected query executed against the users table.",
+          "verdict_support": "malicious"
+        },
+        {
+          "finding_id": "d2_f2",
+          "evidence_log_indices": [
+            17,
+            18
+          ],
+          "rationale": "The database returned a 1.2MB payload and nginx logged a 1,205,300-byte response delivered to external IP 198.51.100.77, directly evidencing anomalous data volume exfiltration immediately after the injection.",
+          "verdict_support": "malicious"
+        }
+      ]
+    },
+    {
+      "scenario_title": "Internal Port Scan and SYN Flood Alarm",
+      "is_true_positive": false,
+      "findings": [
+        {
+          "finding_id": "d2_f3",
+          "evidence_log_indices": [
+            26
+          ],
+          "rationale": "Change management log CR-4099 confirms an approved internal vulnerability scan from 10.0.99.0/24 during this window, providing the authorized benign explanation for the alerts.",
+          "verdict_support": "benign"
+        },
+        {
+          "finding_id": "d2_f4",
+          "evidence_log_indices": [
+            0,
+            25
+          ],
+          "rationale": "NIDS alerts show scanning originates only from internal host 10.0.99.12 toward internal targets, matching the authorized scanner subnet and supporting the false positive determination.",
+          "verdict_support": "supporting"
+        }
+      ]
+    },
+    {
+      "scenario_title": "Ransomware Execution & Volume Shadow Copy Deletion",
+      "is_true_positive": true,
+      "findings": [
+        {
+          "finding_id": "d2_f5",
+          "evidence_log_indices": [
+            15,
+            16
+          ],
+          "rationale": "Commands 'vssadmin.exe delete shadows /all /quiet' and 'wmic shadowcopy delete' executed by user mclark are hallmark ransomware anti-recovery actions that directly identify shadow copy deletion.",
+          "verdict_support": "malicious"
+        },
+        {
+          "finding_id": "d2_f6",
+          "evidence_log_indices": [
+            17,
+            18
+          ],
+          "rationale": "The rapid renaming of 145 files to the '.locked' extension plus creation of 'ransom_decrypt_instruction.txt' demonstrates ransomware file encryption and signature modification on WS-FIN-08.",
+          "verdict_support": "malicious"
+        }
+      ]
+    },
+    {
+      "scenario_title": "VLAN Segmentation Failure / Guest Network Bypass",
+      "is_true_positive": true,
+      "findings": [
+        {
+          "finding_id": "d3_f1",
+          "evidence_log_indices": [
+            15
+          ],
+          "rationale": "The firewall log confirms that an inbound TCP connection was allowed from the Guest VLAN IP (192.168.10.145) directly to the production database server (10.0.50.12).",
+          "verdict_support": "malicious"
+        },
+        {
+          "finding_id": "d3_f2",
+          "evidence_log_indices": [
+            16,
+            17
+          ],
+          "rationale": "Multiple consecutive database login failures for common users ('sa' and 'admin') originating from the guest network IP indicate a brute-force attack attempt.",
+          "verdict_support": "malicious"
+        }
+      ]
+    },
+    {
+      "scenario_title": "Exorbitant Bandwidth Consumption on Guest Network",
+      "is_true_positive": false,
+      "findings": [
+        {
+          "finding_id": "d3_f3",
+          "evidence_log_indices": [
+            0,
+            26,
+            25
+          ],
+          "rationale": "Proxy logs show the high-volume 443 traffic from 192.168.10.12 is CONNECT requests to youtube.com and netflix.com, confirming the NIDS bandwidth alert is legitimate guest video streaming, not malicious exfiltration.",
+          "verdict_support": "benign"
+        }
+      ]
+    },
+    {
+      "scenario_title": "AWS S3 Cloud Storage Misconfiguration",
+      "is_true_positive": true,
+      "findings": [
+        {
+          "finding_id": "d3_f4",
+          "evidence_log_indices": [
+            15
+          ],
+          "rationale": "This log shows the S3 bucket ACL was modified to allow public read access, enabling the subsequent data exfiltration.",
+          "verdict_support": "malicious"
+        },
+        {
+          "finding_id": "d3_f5",
+          "evidence_log_indices": [
+            16,
+            17,
+            18
+          ],
+          "rationale": "These logs confirm that an anonymous external IP address (198.51.100.99) accessed and downloaded sensitive contract files from the publicly exposed bucket.",
+          "verdict_support": "malicious"
+        }
+      ]
+    },
+    {
+      "scenario_title": "DNS Tunneling / Data Exfiltration via DNS TXT Queries",
+      "is_true_positive": true,
+      "findings": [
+        {
+          "finding_id": "d4_f1",
+          "evidence_log_indices": [
+            15,
+            16,
+            17,
+            18
+          ],
+          "rationale": "The burst of TXT queries with long base64-encoded subdomains from 10.0.1.44 is the anomalous DNS pattern characteristic of tunneling-based data exfiltration.",
+          "verdict_support": "malicious"
+        },
+        {
+          "finding_id": "d4_f2",
+          "evidence_log_indices": [
+            15,
+            18
+          ],
+          "rationale": "The encoded TXT queries explicitly target the external domain malicious-tunnel.com, identifying the rogue exfiltration domain receiving the tunneled data.",
+          "verdict_support": "malicious"
+        }
+      ]
+    },
+    {
+      "scenario_title": "Anomalous Volume of NTP Network Requests",
+      "is_true_positive": false,
+      "findings": [
+        {
+          "finding_id": "d4_f3",
+          "evidence_log_indices": [
+            0,
+            1,
+            34,
+            35,
+            36
+          ],
+          "rationale": "Consecutive firewall logs show a one-second NTP cadence matching CR-3212's authorized 1s sync interval, while the w32time sync loop and the sysadmin's approved change record confirm the traffic is a benign clock-drift fix.",
+          "verdict_support": "benign"
+        }
+      ]
+    },
+    {
+      "scenario_title": "Spear Phishing leading to Credential Harvesting",
+      "is_true_positive": true,
+      "findings": [
+        {
+          "finding_id": "d4_f4",
+          "evidence_log_indices": [
+            15,
+            16,
+            17
+          ],
+          "rationale": "The lookalike sender domain delivered the MFA reset lure, the user's proxy connection to that domain, and the EDR credential theft alert together prove the phishing and harvesting chain.",
+          "verdict_support": "malicious"
+        },
+        {
+          "finding_id": "d4_f5",
+          "evidence_log_indices": [
+            18
+          ],
+          "rationale": "The domain controller log records creation of the unauthorized 'adm_backdoor' admin account originating from the compromised host WS-HR-11, directly evidencing attacker persistence.",
+          "verdict_support": "malicious"
+        }
+      ]
+    },
+    {
+      "scenario_title": "Insider Threat: Customer Database Exfiltration",
+      "is_true_positive": true,
+      "findings": [
+        {
+          "finding_id": "d5_f1",
+          "evidence_log_indices": [
+            15,
+            17
+          ],
+          "rationale": "rharper bulk-exported the entire customer billing database outside normal operations and then deleted the local CSV from WS-SALES-15, showing deliberate concealment of the anomalous export.",
+          "verdict_support": "malicious"
+        },
+        {
+          "finding_id": "d5_f2",
+          "evidence_log_indices": [
+            15,
+            16
+          ],
+          "rationale": "The bulk CRM export is immediately followed by a 4.5MB HTTP POST to a personal webmail domain from rharper's host, directly correlating the export with exfiltration of customer data.",
+          "verdict_support": "malicious"
+        }
+      ]
+    },
+    {
+      "scenario_title": "Anomalous Cloud Data Archiving Alert",
+      "is_true_positive": false,
+      "findings": [
+        {
+          "finding_id": "d5_f3",
+          "evidence_log_indices": [
+            15,
+            16,
+            17
+          ],
+          "rationale": "The high-volume Glacier transfer by backup_agent_04 is directly correlated with the approved CR-9022 monthly compliance archiving change record, establishing the authorized benign explanation.",
+          "verdict_support": "benign"
+        }
+      ]
+    },
+    {
+      "scenario_title": "Rogue Wireless Access Point Detection",
+      "is_true_positive": true,
+      "findings": [
+        {
+          "finding_id": "d5_f4",
+          "evidence_log_indices": [
+            15,
+            18
+          ],
+          "rationale": "The switch logs confirm a Port Security violation due to multiple MAC addresses on Gi1/0/22, which is further corroborated by MAC spoofing signatures.",
+          "verdict_support": "malicious"
+        },
+        {
+          "finding_id": "d5_f5",
+          "evidence_log_indices": [
+            17
+          ],
+          "rationale": "The wireless IDS detected an unauthorized SSID named 'CORP-GUEST-FAST' broadcasting from the compromised device.",
+          "verdict_support": "malicious"
+        }
+      ]
+    }
+  ]
+}

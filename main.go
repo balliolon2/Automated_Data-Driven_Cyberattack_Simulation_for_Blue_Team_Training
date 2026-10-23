@@ -19,6 +19,7 @@ package main
 //go:generate swag init -g main.go --parseDependency --parseInternal
 
 import (
+	"errors"
 	"log"
 	"os"
 
@@ -50,6 +51,9 @@ func main() {
 
 	// Run migrations for Spec 1 (nickname, specialist role, specialist_applications table)
 	if err := models.RunMigrations(db); err != nil {
+		if errors.Is(err, models.ErrSelectionEnumUnavailable) {
+			log.Fatalf("Failed to run database migrations: %v", err)
+		}
 		log.Printf("Migration warning: %v", err)
 	}
 
@@ -173,6 +177,8 @@ func main() {
 			simulation.POST("/start", simController.StartScenario)
 			simulation.GET("/session", simController.GetActiveSession)
 			simulation.POST("/log-query", simController.LogQuery)
+			simulation.POST("/select-log", simController.SelectLog)
+			simulation.POST("/select-log/clear", simController.ClearLogSelection)
 			simulation.POST("/submit", simController.SubmitScenario)
 			simulation.GET("/result/:sessionId", simController.GetResult)
 		}

@@ -1,7 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
-import { Terminal, Shield, Eye, CheckCircle2, ChevronRight, Loader2, AlertCircle, Sparkles, Search } from "lucide-react";
+import { Terminal, Shield, Eye, CheckCircle2, ChevronRight, Loader2, AlertCircle, Sparkles, Search, X, Trash2 } from "lucide-react";
 import KqlSearchBar from "../components/KqlSearchBar";
 import LogTable from "../components/LogTable";
 import ResponsePanel from "../components/ResponsePanel";
@@ -44,15 +44,37 @@ interface SimulationSession {
   fallback_reason?: string;
 }
 
+const hydrateLogs = (logs: any[]): any[] =>
+  Array.isArray(logs)
+    ? logs.map((log, index) => ({ ...log, __log_index: index }))
+    : [];
+
+const normalizeIndices = (indices: number[] | undefined | null): number[] =>
+  Array.from(new Set(Array.isArray(indices) ? indices : [])).sort((a, b) => a - b);
+
 export default function SimulationPage() {
   const [session, setSession] = useState<SimulationSession | null>(null);
   const [scenario, setScenario] = useState<Scenario | null>(null);
   const [filteredLogs, setFilteredLogs] = useState<any[]>([]);
-  
+
   // User answers
   const [isTruePositive, setIsTruePositive] = useState<boolean | null>(null);
   const [selectedActions, setSelectedActions] = useState<string[]>([]);
   const [discoveredFindings, setDiscoveredFindings] = useState<string[]>([]);
+  const [selectedLogIndices, setSelectedLogIndices] = useState<number[]>([]);
+  const [selectionError, setSelectionError] = useState<string | null>(null);
+  const selectionRef = useRef<number[]>([]);
+
+  // Evidence mutations run through a per-session promise queue so optimistic
+  // toggles cannot overwrite one another out of order. The final state is always
+  // reconciled from the server once the queue drains.
+  const selectionQueueRef = useRef<Promise<void>>(Promise.resolve());
+  const pendingSelectionMutationsRef = useRef(0);
+  const selectionMutationSeqRef = useRef(0);
+  const lastConfirmedSelectionRef = useRef<number[]>([]);
+  const selectionFailureRef = useRef(false);
+  const activeSessionIdRef = useRef<string | null>(null);
+  const submissionInFlightRef = useRef(false);
 
   // Navigation and UI state
   const [activeTab, setActiveTab] = useState<"scenario" | "detect" | "response">("scenario");
@@ -60,6 +82,126 @@ export default function SimulationPage() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  const applySelection = (indices: number[] | undefined | null) => {
+    const normalized = normalizeIndices(indices);
+    selectionRef.current = normalized;
+    setSelectedLogIndices(normalized);
+  };
+
+  const adoptServerSelection = (indices: number[] | undefined | null) => {
+    const normalized = normalizeIndices(indices);
+    lastConfirmedSelectionRef.current = normalized;
+    applySelection(normalized);
+  };
+
+  const fetchServerSelection = async (sessionID: string): Promise<number[]> => {
+    const token = localStorage.getItem("token");
+    const res = await axios.get("/api/simulation/session", {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    if (res.data?.type !== "in_progress" || res.data?.session?.session_id !== sessionID) {
+      throw new Error("Simulation session changed while reconciling evidence");
+    }
+    return normalizeIndices(res.data.selected_log_indices);
+  };
+
+  const enqueueSelectionMutation = (task: () => Promise<void>) => {
+    pendingSelectionMutationsRef.current += 1;
+    const run = selectionQueueRef.current.then(task, task);
+    selectionQueueRef.current = run.catch(() => undefined);
+    return run;
+  };
+
+  const finalizeSelection = async (sessionID: string, seq: number) => {
+    if (activeSessionIdRef.current !== sessionID) return;
+    if (seq !== selectionMutationSeqRef.current) return;
+    if (pendingSelectionMutationsRef.current !== 0) return;
+
+    if (selectionFailureRef.current) {
+      selectionFailureRef.current = false;
+      try {
+        const reconciled = await fetchServerSelection(sessionID);
+        if (
+          activeSessionIdRef.current !== sessionID ||
+          seq !== selectionMutationSeqRef.current ||
+          pendingSelectionMutationsRef.current !== 0
+        ) {
+          return;
+        }
+        adoptServerSelection(reconciled);
+      } catch (err) {
+        console.error("Failed to reconcile evidence selection:", err);
+        applySelection(lastConfirmedSelectionRef.current);
+      }
+      setSelectionError("Could not save some evidence changes. Your selection was restored from the server.");
+      return;
+    }
+
+    // Reconcile the optimistic UI with the last server-confirmed selection.
+    applySelection(lastConfirmedSelectionRef.current);
+  };
+
+  const handleToggleEvidence = (logIndex: number) => {
+    if (!session || submissionInFlightRef.current) return;
+
+    const sessionID = session.session_id;
+    const wasSelected = selectionRef.current.includes(logIndex);
+    applySelection(
+      wasSelected
+        ? selectionRef.current.filter((index) => index !== logIndex)
+        : [...selectionRef.current, logIndex]
+    );
+    setSelectionError(null);
+
+    const seq = ++selectionMutationSeqRef.current;
+    void enqueueSelectionMutation(async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const res = await axios.post("/api/simulation/select-log", {
+          session_id: sessionID,
+          log_index: logIndex,
+          selected: !wasSelected
+        }, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        lastConfirmedSelectionRef.current = normalizeIndices(res.data.selected_log_indices);
+      } catch (err) {
+        selectionFailureRef.current = true;
+        console.error("Failed to persist evidence selection:", err);
+      } finally {
+        pendingSelectionMutationsRef.current -= 1;
+        await finalizeSelection(sessionID, seq);
+      }
+    });
+  };
+
+  const handleClearEvidence = () => {
+    if (!session || submissionInFlightRef.current || selectionRef.current.length === 0) return;
+
+    const sessionID = session.session_id;
+    applySelection([]);
+    setSelectionError(null);
+
+    const seq = ++selectionMutationSeqRef.current;
+    void enqueueSelectionMutation(async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const res = await axios.post("/api/simulation/select-log/clear", {
+          session_id: sessionID
+        }, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        lastConfirmedSelectionRef.current = normalizeIndices(res.data.selected_log_indices);
+      } catch (err) {
+        selectionFailureRef.current = true;
+        console.error("Failed to clear evidence selection:", err);
+      } finally {
+        pendingSelectionMutationsRef.current -= 1;
+        await finalizeSelection(sessionID, seq);
+      }
+    });
+  };
 
   const handleQuickSiemSearch = (queryStr: string) => {
     setSiemQuery(queryStr);
@@ -81,7 +223,7 @@ export default function SimulationPage() {
           const activeRes = await axios.get("/api/simulation/session", {
             headers: { Authorization: `Bearer ${token}` }
           });
-          
+
           if (activeRes.data.type === "completed") {
             const isAck = localStorage.getItem(`ack_session_${activeRes.data.session_id}`);
             if (isAck !== "true") {
@@ -90,11 +232,17 @@ export default function SimulationPage() {
               return;
             }
           }
-          
+
           if (activeRes.data.type === "in_progress") {
+            const hydratedLogs = hydrateLogs(activeRes.data.scenario.initial_logs);
+            const restoredSelection = normalizeIndices(activeRes.data.selected_log_indices);
+            activeSessionIdRef.current = activeRes.data.session.session_id;
+            lastConfirmedSelectionRef.current = restoredSelection;
+            selectionRef.current = restoredSelection;
             setSession(activeRes.data.session);
-            setScenario(activeRes.data.scenario);
-            setFilteredLogs(activeRes.data.scenario.initial_logs);
+            setScenario({ ...activeRes.data.scenario, initial_logs: hydratedLogs });
+            setFilteredLogs(hydratedLogs);
+            setSelectedLogIndices(restoredSelection);
             setLoading(false);
             return;
           }
@@ -134,9 +282,15 @@ export default function SimulationPage() {
           return;
         }
 
+        const hydratedLogs = hydrateLogs(startRes.data.scenario.initial_logs);
+        const restoredSelection = normalizeIndices(startRes.data.selected_log_indices);
+        activeSessionIdRef.current = startRes.data.session.session_id;
+        lastConfirmedSelectionRef.current = restoredSelection;
+        selectionRef.current = restoredSelection;
         setSession(startRes.data.session);
-        setScenario(startRes.data.scenario);
-        setFilteredLogs(startRes.data.scenario.initial_logs);
+        setScenario({ ...startRes.data.scenario, initial_logs: hydratedLogs });
+        setFilteredLogs(hydratedLogs);
+        setSelectedLogIndices(restoredSelection);
       } catch (err: any) {
         console.error("Failed to initialize simulation:", err);
         setErrorMessage("An error occurred while loading the simulation. Please ensure your pre-test is completed.");
@@ -155,12 +309,15 @@ export default function SimulationPage() {
     // A finding is discovered if the filtered logs contain ALL of its evidence log indices.
     // To do this, we need to map the current filtered logs back to their original indexes in scenario.initial_logs.
     const filteredOriginalIndices = new Set<number>();
-    
+
     filteredLogs.forEach(log => {
-      // Find the index of this log entry in the original logs array
-      const origIndex = scenario.initial_logs.findIndex(origLog => 
-        JSON.stringify(origLog) === JSON.stringify(log)
-      );
+      // Identity is the stable original array index attached during hydration.
+      // Fall back to structural equality for any log object that predates it.
+      const origIndex = typeof log.__log_index === "number"
+        ? log.__log_index
+        : scenario.initial_logs.findIndex(origLog =>
+            JSON.stringify(origLog) === JSON.stringify(log)
+          );
       if (origIndex !== -1) {
         filteredOriginalIndices.add(origIndex);
       }
@@ -171,8 +328,8 @@ export default function SimulationPage() {
     scenario.sanitized_findings.forEach(finding => {
       // Guard: skip findings with no evidence indices defined
       if (!finding.evidence_log_indices || finding.evidence_log_indices.length === 0) return;
-      
-      const allEvidencePresent = finding.evidence_log_indices.every(idx => 
+
+      const allEvidencePresent = finding.evidence_log_indices.every(idx =>
         filteredOriginalIndices.has(idx)
       );
       if (allEvidencePresent) {
@@ -196,28 +353,55 @@ export default function SimulationPage() {
       return;
     }
 
+    submissionInFlightRef.current = true;
     setSubmitting(true);
     const token = localStorage.getItem("token");
+    const sessionID = session.session_id;
 
     try {
+      // Wait for every queued toggle/clear to commit before submitting.
+      await selectionQueueRef.current;
+      if (pendingSelectionMutationsRef.current > 0) {
+        await selectionQueueRef.current;
+      }
+
+      // Reconcile from the server so the submitted evidence set is
+      // server-authoritative even if a mutation failed or arrived out of order.
+      let finalSelection = selectionRef.current;
+      try {
+        finalSelection = await fetchServerSelection(sessionID);
+        adoptServerSelection(finalSelection);
+      } catch (reconcileErr) {
+        console.error("Failed to reconcile evidence before submit:", reconcileErr);
+        finalSelection = lastConfirmedSelectionRef.current;
+      }
+
       await axios.post("/api/simulation/submit", {
-        session_id: session.session_id,
+        session_id: sessionID,
         is_true_positive: isTruePositive,
         tp_fp_selected: true,
         selected_actions: selectedActions,
-        discovered_findings: discoveredFindings
+        discovered_findings: discoveredFindings,
+        selected_log_indices: finalSelection
       }, {
         headers: { Authorization: `Bearer ${token}` }
       });
 
-      navigate(`/simulation/result/${session.session_id}`);
+      navigate(`/simulation/result/${sessionID}`);
     } catch (err) {
       console.error("Failed to submit scenario:", err);
       alert("Failed to submit scenario. Please try again.");
     } finally {
+      submissionInFlightRef.current = false;
       setSubmitting(false);
     }
   };
+
+  const selectedLogs = scenario
+    ? selectedLogIndices
+        .map(index => scenario.initial_logs.find((log: any) => log.__log_index === index))
+        .filter(Boolean)
+    : [];
 
   if (loading) {
     return <ScenarioLoadingState />;
@@ -354,7 +538,7 @@ export default function SimulationPage() {
                   </h3>
                   <span className="text-[10px] font-mono text-graphite-400">Click to query SIEM Terminal</span>
                 </div>
-                
+
                 <p className="text-xs text-graphite-400 font-light">
                   Use these identified indicators to filter and audit the telemetry logs in the SIEM terminal:
                 </p>
@@ -406,7 +590,7 @@ export default function SimulationPage() {
                 <p className="text-[11px] text-graphite-400 font-light">
                   Assess the alert. Is this activity malicious (True Positive) or is there a legitimate business explanation (False Positive)?
                 </p>
-                
+
                 <div className="space-y-3 pt-2">
                   <button
                     onClick={() => setIsTruePositive(true)}
@@ -467,10 +651,13 @@ export default function SimulationPage() {
                 <h3 className="text-sm font-semibold text-white">SIEM Log Terminal</h3>
               </div>
               <div className="text-[10px] font-mono text-graphite-400 bg-graphite-900 px-3 py-1 rounded border border-graphite-800/80 select-none">
-                Evidence Discovered: <span className="text-emerald-400 font-bold">{discoveredFindings.length}</span>
-                <span className="text-graphite-600"> / {scenario.sanitized_findings?.length ?? 0}</span>
+                Selected evidence: <span className="text-cyan-400 font-bold">{selectedLogIndices.length}</span> logs
               </div>
             </div>
+
+            <p className="text-[11px] font-mono text-graphite-400 leading-relaxed">
+              Select the logs that prove each finding. Each unrelated log costs 2 points. Correctness is revealed after submission.
+            </p>
 
             <KqlSearchBar
               sessionId={session.session_id}
@@ -480,7 +667,70 @@ export default function SimulationPage() {
               onSearchQueryChange={setSiemQuery}
             />
 
-            <LogTable logs={filteredLogs} />
+            <LogTable
+              logs={filteredLogs}
+              selectedIndices={selectedLogIndices}
+              onToggle={handleToggleEvidence}
+            />
+
+            {selectionError && (
+              <div className="flex items-center gap-2 text-amber-400 text-xs font-mono bg-amber-950/20 px-3 py-2 rounded-lg border border-amber-500/20">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span>{selectionError}</span>
+              </div>
+            )}
+
+            <div className="bg-graphite-900 border border-cyan-500/25 rounded-xl overflow-hidden">
+              <div className="px-5 py-3 bg-cyan-950/20 border-b border-cyan-500/20 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-semibold text-cyan-200">Selected Evidence</span>
+                  <span className="text-[10px] font-mono text-cyan-400/80 bg-cyan-500/10 border border-cyan-500/20 rounded px-1.5 py-0.5">
+                    {selectedLogIndices.length}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleClearEvidence}
+                  disabled={selectedLogIndices.length === 0}
+                  className="flex items-center gap-1.5 px-2.5 py-1 rounded border border-cyan-500/30 text-[10px] font-mono font-bold uppercase tracking-wider text-cyan-300 hover:bg-cyan-500/10 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                >
+                  <Trash2 className="w-3 h-3" />
+                  Clear All
+                </button>
+              </div>
+
+              {selectedLogs.length === 0 ? (
+                <p className="px-5 py-4 text-[11px] font-mono text-graphite-500">
+                  No evidence selected. Click a log row to mark it as evidence.
+                </p>
+              ) : (
+                <ul className="divide-y divide-graphite-800/60 max-h-64 overflow-y-auto">
+                  {selectedLogs.map((log: any) => (
+                    <li key={log.__log_index} className="flex items-start gap-3 px-5 py-2.5">
+                      <div className="min-w-0 flex-1 font-mono">
+                        <div className="flex flex-wrap items-center gap-2 text-[10px] text-graphite-400">
+                          <span className="text-graphite-500">#{log.__log_index}</span>
+                          <span>{log.timestamp}</span>
+                          <span className="text-cyan-300/80">{log.source}</span>
+                          <span className="uppercase font-bold text-amber-400/90">{log.severity}</span>
+                        </div>
+                        <p className="text-[11px] text-graphite-200 truncate" title={String(log.message ?? "")}>
+                          {String(log.message ?? "")}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleToggleEvidence(log.__log_index)}
+                        aria-label={`Remove log ${log.__log_index} from selected evidence`}
+                        className="shrink-0 p-1 rounded border border-graphite-800 text-graphite-400 hover:text-cyan-300 hover:border-cyan-500/40 hover:bg-cyan-500/10 transition-colors"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
           </div>
         )}
 
@@ -522,12 +772,18 @@ export default function SimulationPage() {
                     </span>
                   </div>
                   <div className="flex justify-between text-[10px] font-mono border-b border-graphite-850 pb-2">
-                    <span className="text-graphite-400">Evidence Found:</span>
+                    <span className="text-graphite-400">Evidence Selected:</span>
                     <span className="text-white font-bold">
-                      {discoveredFindings.length} indicators
+                      {selectedLogIndices.length} logs
                     </span>
                   </div>
                 </div>
+
+                {selectedLogIndices.length === 0 && (
+                  <p className="text-[10px] font-mono text-amber-400 bg-amber-950/20 border border-amber-500/20 rounded px-3 py-2">
+                    No evidence selected — Detect &amp; Analysis will score 0.
+                  </p>
+                )}
 
                 <button
                   onClick={handleSubmit}

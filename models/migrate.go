@@ -1,6 +1,8 @@
 package models
 
 import (
+	"errors"
+	"fmt"
 	"log"
 	"os"
 
@@ -8,9 +10,57 @@ import (
 	"gorm.io/gorm"
 )
 
+// ErrSelectionEnumUnavailable indicates that the action_type enum does not
+// contain select_evidence. Startup must fail rather than serve selection
+// endpoints that would return 500 at runtime.
+var ErrSelectionEnumUnavailable = errors.New("action_type enum is missing select_evidence")
+
+// ensureSelectionActionEnum adds select_evidence if needed and verifies the
+// value afterwards. Fresh databases already have it via init.sql, so the ALTER
+// is a no-op there.
+func ensureSelectionActionEnum(db *gorm.DB) error {
+	// This must run outside table migrations: PostgreSQL does not allow a newly
+	// added enum value to be used in the same transaction that added it.
+	alterErr := db.Exec(`ALTER TYPE action_type ADD VALUE IF NOT EXISTS 'select_evidence'`).Error
+
+	exists, verifyErr := actionTypeEnumValueExists(db, "select_evidence")
+	if verifyErr != nil {
+		return fmt.Errorf("%w: verification failed: %v (alter error: %v)", ErrSelectionEnumUnavailable, verifyErr, alterErr)
+	}
+	if !exists {
+		return fmt.Errorf("%w (alter error: %v)", ErrSelectionEnumUnavailable, alterErr)
+	}
+	if alterErr != nil {
+		log.Printf("select_evidence action type is present despite ALTER error: %v", alterErr)
+	}
+	return nil
+}
+
+func actionTypeEnumValueExists(db *gorm.DB, value string) (bool, error) {
+	var exists bool
+	err := db.Raw(`
+		SELECT EXISTS (
+			SELECT 1
+			FROM pg_enum e
+			JOIN pg_type t ON t.oid = e.enumtypid
+			WHERE t.typname = 'action_type' AND e.enumlabel = ?
+		)
+	`, value).Scan(&exists).Error
+	if err != nil {
+		return false, err
+	}
+	return exists, nil
+}
+
 func RunMigrations(db *gorm.DB) error {
 	// 1. Safely ensure 'specialist' value exists in PostgreSQL enum 'role'
 	_ = db.Exec(`ALTER TYPE role ADD VALUE IF NOT EXISTS 'specialist'`).Error
+
+	// 1b. Ensure 'select_evidence' exists and is usable. Returning an error here
+	// lets startup refuse to serve selection endpoints when the enum is missing.
+	if err := ensureSelectionActionEnum(db); err != nil {
+		return err
+	}
 
 	// 2. Add nickname column if missing
 	var columnExists bool

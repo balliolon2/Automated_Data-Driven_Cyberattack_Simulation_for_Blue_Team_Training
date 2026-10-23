@@ -125,6 +125,76 @@ def run_tests():
         sys.exit(1)
     rec_data = rec_res.json()
     print(f"Recovery successful. Type: {rec_data['type']}. Recovered session ID: {rec_data['session']['session_id']}")
+    if rec_data.get("selected_log_indices") not in ([], None):
+        print("Error: New session should recover an empty evidence selection, got:", rec_data.get("selected_log_indices"))
+        sys.exit(1)
+
+    # 9b. Evidence selection persistence: select -> recover -> clear
+    print("Testing evidence selection persistence...")
+    total_logs = len(scenario.get("initial_logs") or [])
+    if total_logs == 0:
+        print("Error: Scenario has no initial logs to select")
+        sys.exit(1)
+
+    select_res = requests.post(f"{BASE_URL}/simulation/select-log", headers=headers, json={
+        "session_id": sim_session['session_id'],
+        "log_index": 0,  # index zero must be accepted
+        "selected": True
+    })
+    if select_res.status_code != 200:
+        print("Failed to select evidence log", select_res.status_code, select_res.text)
+        sys.exit(1)
+    select_data = select_res.json()
+    if select_data.get("selected_log_indices") != [0] or select_data.get("selected_count") != 1:
+        print("Error: Unexpected selection after toggle:", select_data)
+        sys.exit(1)
+    print("Selected log index 0:", select_data)
+
+    recovered_selection_res = requests.get(f"{BASE_URL}/simulation/session", headers=headers)
+    recovered_selection = recovered_selection_res.json()
+    if recovered_selection.get("selected_log_indices") != [0]:
+        print("Error: Evidence selection did not survive recovery:", recovered_selection.get("selected_log_indices"))
+        sys.exit(1)
+    print("Selection recovered after refresh:", recovered_selection.get("selected_log_indices"))
+
+    invalid_res = requests.post(f"{BASE_URL}/simulation/select-log", headers=headers, json={
+        "session_id": sim_session['session_id'],
+        "log_index": total_logs,
+        "selected": True
+    })
+    if invalid_res.status_code != 400:
+        print(f"Error: Expected 400 for out-of-range log index, got {invalid_res.status_code}: {invalid_res.text}")
+        sys.exit(1)
+    print("Out-of-range log index correctly rejected with 400")
+
+    clear_res = requests.post(f"{BASE_URL}/simulation/select-log/clear", headers=headers, json={
+        "session_id": sim_session['session_id']
+    })
+    if clear_res.status_code != 200:
+        print("Failed to clear evidence selection", clear_res.status_code, clear_res.text)
+        sys.exit(1)
+    clear_data = clear_res.json()
+    if clear_data.get("selected_log_indices") != [] or clear_data.get("selected_count") != 0:
+        print("Error: Unexpected result after clear:", clear_data)
+        sys.exit(1)
+
+    recovered_after_clear = requests.get(f"{BASE_URL}/simulation/session", headers=headers).json()
+    if recovered_after_clear.get("selected_log_indices") != []:
+        print("Error: Clear did not persist after recovery:", recovered_after_clear.get("selected_log_indices"))
+        sys.exit(1)
+    print("Clear action persisted; recovered selection is empty")
+
+    # Leave a valid selection in place before submitting.
+    reselect_res = requests.post(f"{BASE_URL}/simulation/select-log", headers=headers, json={
+        "session_id": sim_session['session_id'],
+        "log_index": 0,
+        "selected": True
+    })
+    if reselect_res.status_code != 200:
+        print("Failed to re-select evidence log", reselect_res.status_code, reselect_res.text)
+        sys.exit(1)
+    selected_log_indices = reselect_res.json().get("selected_log_indices", [])
+    print("Selection left before submit:", selected_log_indices)
 
     # 10. Submit Scenario Solution
     print("Submitting scenario solution...")
@@ -141,7 +211,8 @@ def run_tests():
         "is_true_positive": True,
         "tp_fp_selected": True,
         "selected_actions": selected_actions,
-        "discovered_findings": []
+        "discovered_findings": [],
+        "selected_log_indices": selected_log_indices
       })
     if submit_res.status_code != 200:
         print("Failed to submit scenario solution", submit_res.json())
@@ -150,6 +221,17 @@ def run_tests():
     submit_data = submit_res.json()
     result = submit_data["result"]
     print(f"Scenario submitted successfully! Total score: {result['total_score']}%. Triage Correct: {result['tp_fp_correct']}")
+
+    # Verify a completed session can no longer change its evidence selection.
+    completed_toggle = requests.post(f"{BASE_URL}/simulation/select-log", headers=headers, json={
+        "session_id": sim_session['session_id'],
+        "log_index": 0,
+        "selected": False
+    })
+    if completed_toggle.status_code != 403:
+        print(f"Error: Expected 403 when toggling evidence after completion, got {completed_toggle.status_code}: {completed_toggle.text}")
+        sys.exit(1)
+    print("Completed session correctly rejects evidence toggles with 403")
 
     # 12. Verify Research Protocol Analytics Summary
     print("Testing Research Analytics Summary endpoint...")

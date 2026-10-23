@@ -7,7 +7,7 @@ CREATE TYPE test_type AS ENUM ('pre', 'post');
 CREATE TYPE question_type AS ENUM ('multiple_choice', 'true_false', 'scenario_based', 'drag_drop');
 CREATE TYPE scenario_status AS ENUM ('draft', 'active', 'archived');
 CREATE TYPE session_status AS ENUM ('in_progress', 'completed', 'abandoned');
-CREATE TYPE action_type AS ENUM ('view_log', 'triage_alert', 'query_rag', 'escalate', 'respond', 'help_click', 'submit_decision');
+CREATE TYPE action_type AS ENUM ('view_log', 'triage_alert', 'query_rag', 'escalate', 'respond', 'help_click', 'submit_decision', 'select_evidence');
 CREATE TYPE feedback_source AS ENUM ('rag', 'rule_based', 'expert');
 
 -- 1.3 Add core tables

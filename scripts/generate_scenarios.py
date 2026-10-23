@@ -1,6 +1,8 @@
 import json
 import random
+import sys
 from datetime import datetime, timedelta
+from pathlib import Path
 
 def create_scenarios():
     scenarios = []
@@ -966,6 +968,72 @@ def create_scenarios():
     return scenarios
 
 
+def load_evidence_mapping(mapping_path):
+    """Load an authored evidence mapping from JSON."""
+    with open(mapping_path, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+
+def apply_evidence_mapping(scenarios, mapping):
+    """
+    Validate and overlay authored evidence on scenarios that have a mapping entry.
+
+    Scenarios and findings without an entry keep whatever evidence they already
+    have, which preserves the existing fallback during the expand phase.
+    Unknown scenario titles or finding IDs, and partial coverage of a mapped
+    scenario's findings, are structural errors and raise ``ValueError`` instead
+    of being silently ignored.
+    """
+    scripts_dir = str(Path(__file__).resolve().parent)
+    if scripts_dir not in sys.path:
+        sys.path.insert(0, scripts_dir)
+    import validate_evidence_mapping as validator
+
+    warnings = []
+    errors = validator.validate_mapping(
+        mapping,
+        scenarios,
+        require_complete=False,
+        warnings=warnings,
+    )
+    for warning in warnings:
+        print(f"Warning: {warning}", file=sys.stderr)
+    if errors:
+        details = "\n".join(f"  - {error}" for error in errors)
+        raise ValueError(
+            f"Evidence mapping is invalid ({len(errors)} error(s)):\n{details}"
+        )
+
+    entries = mapping.get("scenarios", []) if isinstance(mapping, dict) else []
+    entries_by_title = {
+        entry.get("scenario_title"): entry
+        for entry in entries
+        if isinstance(entry, dict) and entry.get("scenario_title")
+    }
+
+    for scenario in scenarios:
+        entry = entries_by_title.get(scenario.get("title"))
+        if entry is None:
+            continue
+
+        authored_by_id = {
+            finding.get("finding_id"): finding
+            for finding in entry.get("findings", [])
+            if isinstance(finding, dict) and finding.get("finding_id")
+        }
+
+        for finding in scenario.get("expected_outcomes", {}).get("key_findings", []):
+            authored = authored_by_id.get(finding.get("id"))
+            if authored is None:
+                continue
+            if "evidence_log_indices" in authored:
+                finding["evidence_log_indices"] = list(authored["evidence_log_indices"])
+            if "verdict_support" in authored:
+                finding["verdict_support"] = authored["verdict_support"]
+
+    return scenarios
+
+
 def assign_evidence_indices(scenarios):
     """
     Post-process scenarios to add evidence_log_indices to each key finding.
@@ -1019,6 +1087,21 @@ def assign_evidence_indices(scenarios):
 if __name__ == "__main__":
     scs = create_scenarios()
     scs = assign_evidence_indices(scs)
+
+    mapping_path = Path(__file__).resolve().parent / "evidence_mapping.json"
+    authored_count = 0
+    if mapping_path.is_file():
+        mapping = load_evidence_mapping(str(mapping_path))
+        try:
+            scs = apply_evidence_mapping(scs, mapping)
+        except ValueError as exc:
+            print(str(exc), file=sys.stderr)
+            sys.exit(1)
+        authored_count = len(mapping.get("scenarios", [])) if isinstance(mapping, dict) else 0
+
     with open("scenarios_seed.json", "w", encoding="utf-8") as f:
         json.dump(scs, f, indent=2, ensure_ascii=False)
-    print("Successfully generated scenarios_seed.json containing 15 scenarios!")
+    print(
+        "Successfully generated scenarios_seed.json containing "
+        f"{len(scs)} scenarios ({authored_count} with authored evidence)!"
+    )

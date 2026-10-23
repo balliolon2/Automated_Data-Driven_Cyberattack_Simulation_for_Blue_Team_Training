@@ -381,7 +381,8 @@
             16,
             17,
             18
-          ]
+          ],
+          "verdict_support": "malicious"
         },
         {
           "id": "d1_f2",
@@ -391,9 +392,9 @@
           "explanation": "The login originated from external IP 198.51.100.42 which is not standard for ajones.",
           "evidence_log_indices": [
             18,
-            19,
-            20
-          ]
+            19
+          ],
+          "verdict_support": "malicious"
         }
       ]
     },

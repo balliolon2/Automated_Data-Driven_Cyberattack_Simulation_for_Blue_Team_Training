@@ -3,6 +3,7 @@ package controllers
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"hash/fnv"
 	"log"
@@ -10,6 +11,8 @@ import (
 	"math/rand"
 	"net/http"
 	"os"
+	"reflect"
+	"strings"
 	"time"
 
 	"cybersim/dto"
@@ -18,18 +21,19 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 // Configuration constants
 const (
-	ProficiencyThreshold = 70.0  // Uniform threshold across all domains
-	MaxScenarios         = 10    // Maximum scenarios per training session (configurable cap)
-	MinScenarios         = 1     // Minimum scenarios before allowing completion
-	WeightOld            = 0.4   // Weight for existing proficiency score
-	WeightNew            = 0.6   // Weight for new scenario score
-	ScoreWeightTPFP      = 0.20  // 20% of scenario score
-	ScoreWeightFindings  = 0.40  // 40% of scenario score
-	ScoreWeightResponse  = 0.40  // 40% of scenario score
+	ProficiencyThreshold = 70.0 // Uniform threshold across all domains
+	MaxScenarios         = 10   // Maximum scenarios per training session (configurable cap)
+	MinScenarios         = 1    // Minimum scenarios before allowing completion
+	WeightOld            = 0.4  // Weight for existing proficiency score
+	WeightNew            = 0.6  // Weight for new scenario score
+	ScoreWeightTPFP      = 0.20 // 20% of scenario score
+	ScoreWeightFindings  = 0.40 // 40% of scenario score
+	ScoreWeightResponse  = 0.40 // 40% of scenario score
 )
 
 type SimulationController struct {
@@ -42,6 +46,274 @@ func NewSimulationController(db *gorm.DB) *SimulationController {
 		_ = services.EnsureScenarioPlaybookQuality(db, "scenarios_seed.json")
 	}
 	return &SimulationController{DB: db}
+}
+
+var (
+	errSelectionSessionNotFound    = errors.New("simulation session not found")
+	errSelectionSessionForbidden   = errors.New("simulation session is not owned by caller")
+	errSelectionSessionInactive    = errors.New("simulation session is not in progress")
+	errSelectionLogsUnavailable    = errors.New("scenario telemetry logs are unavailable")
+	errSelectionLogIndexOutOfRange = errors.New("log_index is out of range")
+)
+
+// sessionActionSpec describes one append-only session action.
+type sessionActionSpec struct {
+	ActionType string
+	Payload    any
+	IsCorrect  *bool
+	Points     int
+}
+
+// selectedLogIndices replays the session's select_evidence actions into the
+// current evidence set. A read failure degrades to an empty selection so that
+// session recovery still works.
+func (sc *SimulationController) selectedLogIndices(sessionID string) []int {
+	var actions []models.SessionAction
+	if err := sc.DB.
+		Where("session_id = ? AND action_type = ?", sessionID, services.SelectEvidenceActionType).
+		Order("step_order asc").
+		Find(&actions).Error; err != nil {
+		log.Printf("Failed to replay evidence selection for session %s: %v", sessionID, err)
+		return []int{}
+	}
+	return services.ReplaySelectedLogIndices(actions)
+}
+
+// lockSessionRow loads a simulation session under a FOR UPDATE row lock and
+// re-checks ownership and in-progress status on the locked row. Every session
+// action writer takes this lock before allocating MAX(step_order)+1.
+func lockSessionRow(tx *gorm.DB, sessionID, userID string) (models.SimulationSession, error) {
+	var session models.SimulationSession
+	if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
+		Where("session_id = ?", sessionID).
+		First(&session).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return session, errSelectionSessionNotFound
+		}
+		return session, err
+	}
+	if session.UserID != userID {
+		return session, errSelectionSessionForbidden
+	}
+	if session.Status != "in_progress" {
+		return session, errSelectionSessionInactive
+	}
+	return session, nil
+}
+
+// nextStepOrder allocates the next step order for a session. Callers must hold
+// the session row lock so the MAX+1 read cannot race another append.
+func nextStepOrder(tx *gorm.DB, sessionID string) (int, error) {
+	var maxStep int
+	if err := tx.Model(&models.SessionAction{}).
+		Where("session_id = ?", sessionID).
+		Select("COALESCE(MAX(step_order), 0)").
+		Scan(&maxStep).Error; err != nil {
+		return 0, err
+	}
+	return maxStep + 1, nil
+}
+
+// appendSessionActionTx inserts one action using the caller's transaction. The
+// caller must already hold the session row lock.
+func appendSessionActionTx(tx *gorm.DB, sessionID string, spec sessionActionSpec) (models.SessionAction, error) {
+	step, err := nextStepOrder(tx, sessionID)
+	if err != nil {
+		return models.SessionAction{}, err
+	}
+
+	action := models.SessionAction{
+		SessionID:  sessionID,
+		StepOrder:  step,
+		ActionType: spec.ActionType,
+		Payload:    spec.Payload,
+		IsCorrect:  spec.IsCorrect,
+		Points:     spec.Points,
+		Timestamp:  time.Now(),
+	}
+	if err := tx.Create(&action).Error; err != nil {
+		return models.SessionAction{}, err
+	}
+	return action, nil
+}
+
+// appendSessionAction appends one session action in its own transaction. The
+// simulation session row is locked FOR UPDATE, ownership/status are re-checked,
+// step order is allocated as MAX+1, and a unique violation is retried once.
+func (sc *SimulationController) appendSessionAction(sessionID, userID string, spec sessionActionSpec) (models.SessionAction, error) {
+	const maxAttempts = 2
+
+	for attempt := 0; attempt < maxAttempts; attempt++ {
+		var created models.SessionAction
+		err := sc.DB.Transaction(func(tx *gorm.DB) error {
+			if _, err := lockSessionRow(tx, sessionID, userID); err != nil {
+				return err
+			}
+			action, err := appendSessionActionTx(tx, sessionID, spec)
+			if err != nil {
+				return err
+			}
+			created = action
+			return nil
+		})
+
+		if err == nil {
+			return created, nil
+		}
+		if attempt == 0 && isUniqueViolation(err) {
+			continue
+		}
+		return models.SessionAction{}, err
+	}
+
+	return models.SessionAction{}, fmt.Errorf("failed to allocate step order after retry")
+}
+
+func isUniqueViolation(err error) bool {
+	if err == nil {
+		return false
+	}
+	message := strings.ToLower(err.Error())
+	return strings.Contains(message, "23505") ||
+		strings.Contains(message, "duplicate key") ||
+		strings.Contains(message, "unique constraint")
+}
+
+// scenarioLogCount reports the number of initial logs and whether the payload
+// is an array. JSONB decodes to []interface{}, but tests and cached scenarios
+// may hand over other slice shapes.
+func scenarioLogCount(logs interface{}) (int, bool) {
+	if logs == nil {
+		return 0, false
+	}
+	switch value := logs.(type) {
+	case []interface{}:
+		return len(value), true
+	case []map[string]interface{}:
+		return len(value), true
+	}
+
+	reflected := reflect.ValueOf(logs)
+	if reflected.Kind() != reflect.Slice {
+		return 0, false
+	}
+	return reflected.Len(), true
+}
+
+// validateSelectionLogIndex validates an evidence index against the log array
+// that defines the session's index space.
+func validateSelectionLogIndex(logs any, index int) error {
+	if index < 0 {
+		return errSelectionLogIndexOutOfRange
+	}
+	count, ok := scenarioLogCount(logs)
+	if !ok {
+		return errSelectionLogsUnavailable
+	}
+	if index >= count {
+		return errSelectionLogIndexOutOfRange
+	}
+	return nil
+}
+
+// snapshotInitialLogs extracts the initial telemetry logs captured in a
+// ScenarioSnapshot. JSONB decodes to a map; a freshly-built snapshot may carry
+// a typed Scenario.
+func snapshotInitialLogs(data any) (any, bool) {
+	switch value := data.(type) {
+	case nil:
+		return nil, false
+	case map[string]interface{}:
+		logs, ok := value["initial_logs"]
+		if !ok || logs == nil {
+			return nil, false
+		}
+		return logs, true
+	case models.Scenario:
+		if value.InitialLogs == nil {
+			return nil, false
+		}
+		return value.InitialLogs, true
+	case *models.Scenario:
+		if value == nil || value.InitialLogs == nil {
+			return nil, false
+		}
+		return value.InitialLogs, true
+	case []byte:
+		var decoded struct {
+			InitialLogs any `json:"initial_logs"`
+		}
+		if err := json.Unmarshal(value, &decoded); err != nil || decoded.InitialLogs == nil {
+			return nil, false
+		}
+		return decoded.InitialLogs, true
+	case json.RawMessage:
+		var decoded struct {
+			InitialLogs any `json:"initial_logs"`
+		}
+		if err := json.Unmarshal(value, &decoded); err != nil || decoded.InitialLogs == nil {
+			return nil, false
+		}
+		return decoded.InitialLogs, true
+	default:
+		return nil, false
+	}
+}
+
+// sessionScenario returns the scenario captured in the session's immutable
+// snapshot. The bool reports whether the snapshot was used. Legacy sessions
+// without a snapshot fall back to the live scenario row so old attempts remain
+// recoverable.
+func (sc *SimulationController) sessionScenario(session models.SimulationSession) (models.Scenario, bool, error) {
+	var snapshot models.ScenarioSnapshot
+	err := sc.DB.Where("session_id = ?", session.SessionID).First(&snapshot).Error
+	if err == nil {
+		var scenario models.Scenario
+		encoded, marshalErr := json.Marshal(snapshot.ScenarioData)
+		if marshalErr != nil {
+			return scenario, true, marshalErr
+		}
+		if unmarshalErr := json.Unmarshal(encoded, &scenario); unmarshalErr != nil {
+			return scenario, true, unmarshalErr
+		}
+		if scenario.ScenarioID == "" {
+			scenario.ScenarioID = snapshot.ScenarioID
+		}
+		return scenario, true, nil
+	}
+	if !errors.Is(err, gorm.ErrRecordNotFound) {
+		return models.Scenario{}, false, err
+	}
+
+	var scenario models.Scenario
+	if err := sc.DB.Where("scenario_id = ?", session.ScenarioID).First(&scenario).Error; err != nil {
+		return scenario, false, err
+	}
+	return scenario, false, nil
+}
+
+// sessionScenarioLogs returns the telemetry log array that defines the
+// evidence index space for a session. It prefers the ScenarioSnapshot captured
+// at session start so indices cannot drift if the scenario row is edited.
+func (sc *SimulationController) sessionScenarioLogs(session models.SimulationSession) (any, error) {
+	var snapshot models.ScenarioSnapshot
+	err := sc.DB.Where("session_id = ?", session.SessionID).First(&snapshot).Error
+	if err == nil {
+		logs, ok := snapshotInitialLogs(snapshot.ScenarioData)
+		if !ok {
+			return nil, errSelectionLogsUnavailable
+		}
+		return logs, nil
+	}
+	if !errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, err
+	}
+
+	var scenario models.Scenario
+	if err := sc.DB.Where("scenario_id = ?", session.ScenarioID).First(&scenario).Error; err != nil {
+		return nil, err
+	}
+	return scenario.InitialLogs, nil
 }
 
 func (sc *SimulationController) ensureScenarioRemediated(scenario *models.Scenario) {
@@ -160,12 +432,19 @@ func (sc *SimulationController) StartScenario(c *gin.Context) {
 	err := sc.DB.Where("user_id = ? AND status = 'in_progress'", userID).First(&activeSession).Error
 	if err == nil {
 		// Return existing active session with scenario data
-		var scenario models.Scenario
-		sc.DB.Where("scenario_id = ?", activeSession.ScenarioID).First(&scenario)
-		sc.ensureScenarioRemediated(&scenario)
+		scenario, fromSnapshot, scenarioErr := sc.sessionScenario(activeSession)
+		if scenarioErr != nil {
+			log.Printf("Failed to load scenario for session %s: %v", activeSession.SessionID, scenarioErr)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to load scenario"})
+			return
+		}
+		if !fromSnapshot {
+			sc.ensureScenarioRemediated(&scenario)
+		}
 		c.JSON(http.StatusOK, gin.H{
-			"session":  activeSession,
-			"scenario": sanitizeScenario(scenario, activeSession.SessionID),
+			"session":              activeSession,
+			"scenario":             sanitizeScenario(scenario, activeSession.SessionID),
+			"selected_log_indices": sc.selectedLogIndices(activeSession.SessionID),
 		})
 		return
 	}
@@ -386,11 +665,14 @@ func (sc *SimulationController) StartScenario(c *gin.Context) {
 		SelectionReason:  selectionReason,
 		RenderedAt:       time.Now(),
 	}
-	_ = sc.DB.Create(&snapshot)
+	if err := sc.DB.Create(&snapshot).Error; err != nil {
+		log.Printf("Failed to persist scenario snapshot for session %s: %v", session.SessionID, err)
+	}
 
 	c.JSON(http.StatusCreated, gin.H{
-		"session":  session,
-		"scenario": sanitizeScenario(scenario, session.SessionID),
+		"session":              session,
+		"scenario":             sanitizeScenario(scenario, session.SessionID),
+		"selected_log_indices": []int{},
 	})
 }
 
@@ -417,13 +699,20 @@ func (sc *SimulationController) GetActiveSession(c *gin.Context) {
 	var activeSession models.SimulationSession
 	err := sc.DB.Where("user_id = ? AND status = 'in_progress'", userID).First(&activeSession).Error
 	if err == nil {
-		var scenario models.Scenario
-		sc.DB.Where("scenario_id = ?", activeSession.ScenarioID).First(&scenario)
-		sc.ensureScenarioRemediated(&scenario)
+		scenario, fromSnapshot, scenarioErr := sc.sessionScenario(activeSession)
+		if scenarioErr != nil {
+			log.Printf("Failed to load scenario for session %s: %v", activeSession.SessionID, scenarioErr)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to load scenario"})
+			return
+		}
+		if !fromSnapshot {
+			sc.ensureScenarioRemediated(&scenario)
+		}
 		c.JSON(http.StatusOK, gin.H{
-			"type":     "in_progress",
-			"session":  activeSession,
-			"scenario": sanitizeScenario(scenario, activeSession.SessionID),
+			"type":                 "in_progress",
+			"session":              activeSession,
+			"scenario":             sanitizeScenario(scenario, activeSession.SessionID),
+			"selected_log_indices": sc.selectedLogIndices(activeSession.SessionID),
 		})
 		return
 	}
@@ -475,40 +764,190 @@ func (sc *SimulationController) LogQuery(c *gin.Context) {
 		return
 	}
 
-	// Verify session ownership
-	var session models.SimulationSession
-	if err := sc.DB.Where("session_id = ? AND user_id = ? AND status = 'in_progress'", input.SessionID, userID).First(&session).Error; err != nil {
-		c.JSON(http.StatusForbidden, gin.H{"error": "Invalid or inactive session"})
-		return
-	}
-
-	// Get the next step order
-	var maxStep int
-	sc.DB.Model(&models.SessionAction{}).
-		Where("session_id = ?", input.SessionID).
-		Select("COALESCE(MAX(step_order), 0)").
-		Scan(&maxStep)
-
-	// Record the query as a session action
-	action := models.SessionAction{
-		SessionID:  input.SessionID,
-		StepOrder:  maxStep + 1,
+	// Record the query as a session action. The helper locks the session row,
+	// re-checks ownership/status, and allocates the step order atomically.
+	action, err := sc.appendSessionAction(input.SessionID, userID.(string), sessionActionSpec{
 		ActionType: "view_log",
 		Payload: map[string]interface{}{
 			"query": input.Query,
 		},
-		Timestamp: time.Now(),
-	}
-
-	if err := sc.DB.Create(&action).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to log query"})
+	})
+	if err != nil {
+		writeSessionActionError(c, err)
 		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"recorded": true,
+		"recorded":  true,
 		"action_id": action.ActionID,
 	})
+}
+
+// SelectLog godoc
+// @Summary Toggle one telemetry log as selected evidence
+// @Description Records a select_evidence toggle action for an in-progress simulation session and returns the replayed selection.
+// @Tags Simulation
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param request body dto.SelectLogRequest true "Evidence selection toggle"
+// @Success 200 {object} dto.EvidenceSelectionResponse
+// @Failure 400 {object} dto.ErrorResponse
+// @Failure 401 {object} dto.ErrorResponse
+// @Failure 403 {object} dto.ErrorResponse
+// @Failure 404 {object} dto.ErrorResponse
+// @Failure 500 {object} dto.ErrorResponse
+// @Router /simulation/select-log [post]
+func (sc *SimulationController) SelectLog(c *gin.Context) {
+	userID, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	var input dto.SelectLogRequest
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	if input.LogIndex == nil || input.Selected == nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "log_index and selected are required"})
+		return
+	}
+
+	var session models.SimulationSession
+	if err := sc.DB.Where("session_id = ?", input.SessionID).First(&session).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Simulation session not found"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to load simulation session"})
+		return
+	}
+	if session.UserID != userID.(string) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Simulation session is not owned by caller"})
+		return
+	}
+	if session.Status != "in_progress" {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Simulation session is not in progress"})
+		return
+	}
+
+	// Validate against the session's immutable snapshot, not the live scenario
+	// row, so reseeding or editing a scenario cannot shift evidence indices.
+	logs, err := sc.sessionScenarioLogs(session)
+	if err != nil {
+		switch {
+		case errors.Is(err, errSelectionLogsUnavailable):
+			c.JSON(http.StatusBadRequest, gin.H{"error": errSelectionLogsUnavailable.Error()})
+		case errors.Is(err, gorm.ErrRecordNotFound):
+			c.JSON(http.StatusNotFound, gin.H{"error": "Scenario not found"})
+		default:
+			log.Printf("Failed to load scenario logs for session %s: %v", session.SessionID, err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to load scenario logs"})
+		}
+		return
+	}
+	if err := validateSelectionLogIndex(logs, *input.LogIndex); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	payload := map[string]interface{}{
+		"operation": "toggle",
+		"log_index": *input.LogIndex,
+		"selected":  *input.Selected,
+	}
+	if _, err := sc.appendSessionAction(session.SessionID, userID.(string), sessionActionSpec{
+		ActionType: services.SelectEvidenceActionType,
+		Payload:    payload,
+	}); err != nil {
+		writeSessionActionError(c, err)
+		return
+	}
+
+	indices := sc.selectedLogIndices(session.SessionID)
+	c.JSON(http.StatusOK, dto.EvidenceSelectionResponse{
+		SelectedLogIndices: indices,
+		SelectedCount:      len(indices),
+	})
+}
+
+// ClearLogSelection godoc
+// @Summary Clear all selected evidence logs
+// @Description Records one select_evidence clear action for an in-progress simulation session.
+// @Tags Simulation
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param request body dto.ClearLogSelectionRequest true "Clear evidence selection"
+// @Success 200 {object} dto.EvidenceSelectionResponse
+// @Failure 400 {object} dto.ErrorResponse
+// @Failure 401 {object} dto.ErrorResponse
+// @Failure 403 {object} dto.ErrorResponse
+// @Failure 404 {object} dto.ErrorResponse
+// @Failure 500 {object} dto.ErrorResponse
+// @Router /simulation/select-log/clear [post]
+func (sc *SimulationController) ClearLogSelection(c *gin.Context) {
+	userID, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	var input dto.ClearLogSelectionRequest
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	var session models.SimulationSession
+	if err := sc.DB.Where("session_id = ?", input.SessionID).First(&session).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Simulation session not found"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to load simulation session"})
+		return
+	}
+	if session.UserID != userID.(string) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Simulation session is not owned by caller"})
+		return
+	}
+	if session.Status != "in_progress" {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Simulation session is not in progress"})
+		return
+	}
+
+	if _, err := sc.appendSessionAction(session.SessionID, userID.(string), sessionActionSpec{
+		ActionType: services.SelectEvidenceActionType,
+		Payload:    map[string]interface{}{"operation": "clear"},
+	}); err != nil {
+		writeSessionActionError(c, err)
+		return
+	}
+
+	// Replay instead of assuming an empty set so the response stays
+	// server-authoritative if a toggle committed immediately after the clear.
+	indices := sc.selectedLogIndices(session.SessionID)
+	c.JSON(http.StatusOK, dto.EvidenceSelectionResponse{
+		SelectedLogIndices: indices,
+		SelectedCount:      len(indices),
+	})
+}
+
+func writeSessionActionError(c *gin.Context, err error) {
+	switch {
+	case errors.Is(err, errSelectionSessionNotFound):
+		c.JSON(http.StatusNotFound, gin.H{"error": "Simulation session not found"})
+	case errors.Is(err, errSelectionSessionForbidden):
+		c.JSON(http.StatusForbidden, gin.H{"error": "Simulation session is not owned by caller"})
+	case errors.Is(err, errSelectionSessionInactive):
+		c.JSON(http.StatusForbidden, gin.H{"error": "Simulation session is not in progress"})
+	default:
+		log.Printf("Failed to record session action: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to record session action"})
+	}
 }
 
 // SubmitScenario godoc
@@ -538,41 +977,43 @@ func (sc *SimulationController) SubmitScenario(c *gin.Context) {
 		return
 	}
 
-	// Verify session ownership and status
-	var session models.SimulationSession
-	if err := sc.DB.Where("session_id = ? AND user_id = ? AND status = 'in_progress'", input.SessionID, userID).First(&session).Error; err != nil {
-		c.JSON(http.StatusForbidden, gin.H{"error": "Invalid or inactive session"})
+	tx := sc.DB.Begin()
+	if tx.Error != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to start submission"})
+		return
+	}
+
+	// Acquire the session row lock before reading or scoring anything so an
+	// evidence toggle cannot commit between scoring and lock acquisition. The
+	// lock also re-checks ownership and status on the locked row.
+	session, err := lockSessionRow(tx, input.SessionID, userID.(string))
+	if err != nil {
+		tx.Rollback()
+		writeSessionActionError(c, err)
 		return
 	}
 
 	// Get the scenario
 	var scenario models.Scenario
-	if err := sc.DB.Where("scenario_id = ?", session.ScenarioID).First(&scenario).Error; err != nil {
+	if err := tx.Where("scenario_id = ?", session.ScenarioID).First(&scenario).Error; err != nil {
+		tx.Rollback()
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Scenario not found"})
 		return
 	}
 
-	// Score the submission using the deep evaluator module
+	// Score the submission using the deep evaluator module. The scoring formula
+	// is intentionally unchanged; only the transaction/lock ordering is tighter.
 	result := services.ScoreSubmission(scenario, models.SubmitScenarioInput{
 		SessionID:          input.SessionID,
 		IsTruePositive:     input.IsTruePositive,
 		TPFPSelected:       input.TPFPSelected,
 		SelectedActions:    input.SelectedActions,
 		DiscoveredFindings: input.DiscoveredFindings,
+		SelectedLogIndices: input.SelectedLogIndices,
 	})
 
-	tx := sc.DB.Begin()
-
 	// Record the TP/FP decision action
-	var maxStep int
-	tx.Model(&models.SessionAction{}).
-		Where("session_id = ?", input.SessionID).
-		Select("COALESCE(MAX(step_order), 0)").
-		Scan(&maxStep)
-
-	tpfpAction := models.SessionAction{
-		SessionID:  input.SessionID,
-		StepOrder:  maxStep + 1,
+	if _, err := appendSessionActionTx(tx, input.SessionID, sessionActionSpec{
 		ActionType: "triage_alert",
 		Payload: map[string]interface{}{
 			"user_choice":    input.IsTruePositive,
@@ -580,35 +1021,38 @@ func (sc *SimulationController) SubmitScenario(c *gin.Context) {
 		},
 		IsCorrect: &result.TPFPCorrect,
 		Points:    int(result.TPFPPoints),
-		Timestamp: time.Now(),
+	}); err != nil {
+		tx.Rollback()
+		writeSessionActionError(c, err)
+		return
 	}
-	tx.Create(&tpfpAction)
 
 	// Record the response action
-	responseAction := models.SessionAction{
-		SessionID:  input.SessionID,
-		StepOrder:  maxStep + 2,
+	if _, err := appendSessionActionTx(tx, input.SessionID, sessionActionSpec{
 		ActionType: "respond",
 		Payload: map[string]interface{}{
 			"selected_actions": input.SelectedActions,
 		},
-		Points:    int(result.ResponsePoints),
-		Timestamp: time.Now(),
+		Points: int(result.ResponsePoints),
+	}); err != nil {
+		tx.Rollback()
+		writeSessionActionError(c, err)
+		return
 	}
-	tx.Create(&responseAction)
 
 	// Record findings submission
-	findingsAction := models.SessionAction{
-		SessionID:  input.SessionID,
-		StepOrder:  maxStep + 3,
+	findingsAction, err := appendSessionActionTx(tx, input.SessionID, sessionActionSpec{
 		ActionType: "submit_decision",
 		Payload: map[string]interface{}{
 			"discovered_findings": input.DiscoveredFindings,
 		},
-		Points:    int(result.FindingsPoints),
-		Timestamp: time.Now(),
+		Points: int(result.FindingsPoints),
+	})
+	if err != nil {
+		tx.Rollback()
+		writeSessionActionError(c, err)
+		return
 	}
-	tx.Create(&findingsAction)
 
 	// Update simulation session with complete evaluation result snapshot
 	now := time.Now()
@@ -619,7 +1063,7 @@ func (sc *SimulationController) SubmitScenario(c *gin.Context) {
 	session.FinalScore = &result.TotalScore
 	session.CompletedAt = &now
 	session.SkillGap = result
-	session.TotalActions = maxStep + 3
+	session.TotalActions = findingsAction.StepOrder
 	session.ElapsedSeconds = int(time.Since(session.StartedAt).Seconds())
 
 	// Update user_skill_profiles with weighted average
@@ -637,7 +1081,11 @@ func (sc *SimulationController) SubmitScenario(c *gin.Context) {
 			}
 			now := time.Now()
 			profile.LastPracticed = &now
-			tx.Create(&profile)
+			if err := tx.Create(&profile).Error; err != nil {
+				tx.Rollback()
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update skill profile"})
+				return
+			}
 			if newScore < ProficiencyThreshold {
 				allDomainsAboveThreshold = false
 			}
@@ -647,7 +1095,11 @@ func (sc *SimulationController) SubmitScenario(c *gin.Context) {
 			profile.ScenariosCompleted++
 			now := time.Now()
 			profile.LastPracticed = &now
-			tx.Save(&profile)
+			if err := tx.Save(&profile).Error; err != nil {
+				tx.Rollback()
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update skill profile"})
+				return
+			}
 			if profile.ProficiencyScore < ProficiencyThreshold {
 				allDomainsAboveThreshold = false
 			}
@@ -656,14 +1108,22 @@ func (sc *SimulationController) SubmitScenario(c *gin.Context) {
 
 	// Check total profiles count across all 5 domains
 	var totalProfilesCount int64
-	tx.Model(&models.UserSkillProfile{}).Where("user_id = ?", userID).Count(&totalProfilesCount)
+	if err := tx.Model(&models.UserSkillProfile{}).Where("user_id = ?", userID).Count(&totalProfilesCount).Error; err != nil {
+		tx.Rollback()
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update skill profile"})
+		return
+	}
 	if totalProfilesCount < 5 {
 		allDomainsAboveThreshold = false
 	}
 
 	// Determine completion reason based on stopping rules
 	var totalCompletedCount int64
-	tx.Model(&models.SimulationSession{}).Where("user_id = ? AND status = 'completed'", userID).Count(&totalCompletedCount)
+	if err := tx.Model(&models.SimulationSession{}).Where("user_id = ? AND status = 'completed'", userID).Count(&totalCompletedCount).Error; err != nil {
+		tx.Rollback()
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update session"})
+		return
+	}
 	// Add current session (which is about to be saved as completed)
 	totalCompletedCount++
 
@@ -683,7 +1143,10 @@ func (sc *SimulationController) SubmitScenario(c *gin.Context) {
 		return
 	}
 
-	tx.Commit()
+	if err := tx.Commit().Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to submit scenario"})
+		return
+	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"result":            result,
@@ -930,7 +1393,7 @@ func (sc *SimulationController) GetResearchSummary(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"protocol_version":    "protocol-v1",
 		"calculation_version": services.CalculationVersion,
-		"rubric_version":       services.RubricVersion,
+		"rubric_version":      services.RubricVersion,
 		"participant_id":      userID,
 		"has_pre_test":        hasPre,
 		"pre_test_score":      preExam.Score,

@@ -128,4 +128,5 @@ type SubmitScenarioInput struct {
 	TPFPSelected       bool     `json:"tp_fp_selected" binding:"required"`
 	SelectedActions    []string `json:"selected_actions" binding:"required"`
 	DiscoveredFindings []string `json:"discovered_findings"`
+	SelectedLogIndices []int    `json:"selected_log_indices"`
 }

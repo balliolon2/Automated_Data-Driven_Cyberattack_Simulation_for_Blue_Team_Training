@@ -60,6 +60,26 @@ type SubmitScenarioRequest struct {
 	TPFPSelected       bool     `json:"tp_fp_selected" binding:"required" example:"true"`
 	SelectedActions    []string `json:"selected_actions" binding:"required" example:"[\"act-contain-01\"]"`
 	DiscoveredFindings []string `json:"discovered_findings" example:"[\"find-auth-fail\"]"`
+	SelectedLogIndices []int    `json:"selected_log_indices" example:"[0,3]"`
+}
+
+// SelectLogRequest toggles one log in the learner's selected evidence set.
+// LogIndex is a pointer so index zero is accepted as a present value.
+type SelectLogRequest struct {
+	SessionID string `json:"session_id" binding:"required" example:"123e4567-e89b-12d3-a456-426614174000"`
+	LogIndex  *int   `json:"log_index" binding:"required" example:"0"`
+	Selected  *bool  `json:"selected" binding:"required" example:"true"`
+}
+
+// ClearLogSelectionRequest clears every selected log for a simulation session.
+type ClearLogSelectionRequest struct {
+	SessionID string `json:"session_id" binding:"required" example:"123e4567-e89b-12d3-a456-426614174000"`
+}
+
+// EvidenceSelectionResponse is the server-replayed selected evidence set.
+type EvidenceSelectionResponse struct {
+	SelectedLogIndices []int `json:"selected_log_indices" example:"[0,3]"`
+	SelectedCount      int   `json:"selected_count" example:"2"`
 }
 
 // SubmitScenarioResponse represents the evaluation summary returned after finishing a scenario

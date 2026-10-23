@@ -149,7 +149,7 @@ function evaluateQuery(log: any, queryStr: string): boolean {
   // Simple check for plain text search
   if (!queryStr.includes("==") && !queryStr.includes("!=") && !queryStr.includes("contains") && !queryStr.includes("startswith") && !queryStr.includes("endswith") && !queryStr.includes(">") && !queryStr.includes("<")) {
     const term = queryStr.replace(/"/g, "").toLowerCase();
-    return JSON.stringify(log).toLowerCase().includes(term);
+    return JSON.stringify(stripInternalMetadata(log)).toLowerCase().includes(term);
   }
 
   // Pre-tokenize: normalize whitespace, uppercase logical operators to standard
@@ -179,6 +179,16 @@ function evaluateQuery(log: any, queryStr: string): boolean {
 
   // Evaluate single condition
   return evaluateCondition(log, normalized);
+}
+
+function stripInternalMetadata(log: any): Record<string, any> {
+  const sanitized: Record<string, any> = {};
+  Object.keys(log || {}).forEach((key) => {
+    if (!key.startsWith("__")) {
+      sanitized[key] = log[key];
+    }
+  });
+  return sanitized;
 }
 
 function splitRespectingQuotes(str: string, delimiter: string): string[] {
