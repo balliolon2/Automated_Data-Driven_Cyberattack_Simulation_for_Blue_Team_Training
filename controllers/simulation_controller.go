@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"os"
 	"reflect"
+	"sort"
 	"strings"
 	"time"
 
@@ -68,8 +69,26 @@ type sessionActionSpec struct {
 // current evidence set. A read failure degrades to an empty selection so that
 // session recovery still works.
 func (sc *SimulationController) selectedLogIndices(sessionID string) []int {
+	return selectedLogIndicesFromDB(sc.DB, sessionID)
+}
+
+// selectedLogIndicesTx replays the session's selection inside the caller's
+// transaction, so submission scores the exact set that a concurrent toggle
+// cannot slip past.
+func selectedLogIndicesTx(tx *gorm.DB, sessionID string) ([]int, error) {
 	var actions []models.SessionAction
-	if err := sc.DB.
+	if err := tx.
+		Where("session_id = ? AND action_type = ?", sessionID, services.SelectEvidenceActionType).
+		Order("step_order asc").
+		Find(&actions).Error; err != nil {
+		return nil, err
+	}
+	return services.ReplaySelectedLogIndices(actions), nil
+}
+
+func selectedLogIndicesFromDB(db *gorm.DB, sessionID string) []int {
+	var actions []models.SessionAction
+	if err := db.
 		Where("session_id = ? AND action_type = ?", sessionID, services.SelectEvidenceActionType).
 		Order("step_order asc").
 		Find(&actions).Error; err != nil {
@@ -77,6 +96,33 @@ func (sc *SimulationController) selectedLogIndices(sessionID string) []int {
 		return []int{}
 	}
 	return services.ReplaySelectedLogIndices(actions)
+}
+
+// normalizeSelectionIndices sorts and de-duplicates a selection for comparison.
+func normalizeSelectionIndices(indices []int) []int {
+	seen := make(map[int]struct{}, len(indices))
+	normalized := make([]int, 0, len(indices))
+	for _, index := range indices {
+		if _, exists := seen[index]; exists {
+			continue
+		}
+		seen[index] = struct{}{}
+		normalized = append(normalized, index)
+	}
+	sort.Ints(normalized)
+	return normalized
+}
+
+func equalIntSlices(a, b []int) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i := range a {
+		if a[i] != b[i] {
+			return false
+		}
+	}
+	return true
 }
 
 // lockSessionRow loads a simulation session under a FOR UPDATE row lock and
@@ -265,8 +311,18 @@ func snapshotInitialLogs(data any) (any, bool) {
 // without a snapshot fall back to the live scenario row so old attempts remain
 // recoverable.
 func (sc *SimulationController) sessionScenario(session models.SimulationSession) (models.Scenario, bool, error) {
+	return sessionScenarioFromDB(sc.DB, session)
+}
+
+// sessionScenarioTx is sessionScenario bound to the caller's transaction so
+// submission reads the exact snapshot it locked.
+func sessionScenarioTx(tx *gorm.DB, session models.SimulationSession) (models.Scenario, bool, error) {
+	return sessionScenarioFromDB(tx, session)
+}
+
+func sessionScenarioFromDB(db *gorm.DB, session models.SimulationSession) (models.Scenario, bool, error) {
 	var snapshot models.ScenarioSnapshot
-	err := sc.DB.Where("session_id = ?", session.SessionID).First(&snapshot).Error
+	err := db.Where("session_id = ?", session.SessionID).First(&snapshot).Error
 	if err == nil {
 		var scenario models.Scenario
 		encoded, marshalErr := json.Marshal(snapshot.ScenarioData)
@@ -286,7 +342,7 @@ func (sc *SimulationController) sessionScenario(session models.SimulationSession
 	}
 
 	var scenario models.Scenario
-	if err := sc.DB.Where("scenario_id = ?", session.ScenarioID).First(&scenario).Error; err != nil {
+	if err := db.Where("scenario_id = ?", session.ScenarioID).First(&scenario).Error; err != nil {
 		return scenario, false, err
 	}
 	return scenario, false, nil
@@ -993,23 +1049,44 @@ func (sc *SimulationController) SubmitScenario(c *gin.Context) {
 		return
 	}
 
-	// Get the scenario
-	var scenario models.Scenario
-	if err := tx.Where("scenario_id = ?", session.ScenarioID).First(&scenario).Error; err != nil {
+	// Load the scenario from the immutable session snapshot. Legacy sessions
+	// created before snapshots existed fall back to the live scenario row.
+	scenario, _, scenarioErr := sessionScenarioTx(tx, session)
+	if scenarioErr != nil {
 		tx.Rollback()
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Scenario not found"})
 		return
 	}
 
-	// Score the submission using the deep evaluator module. The scoring formula
-	// is intentionally unchanged; only the transaction/lock ordering is tighter.
+	// Replay the server-recorded evidence actions under the session lock. The
+	// client selection is reconciliation-only: a mismatch is logged and the
+	// server set wins.
+	serverSelection, err := selectedLogIndicesTx(tx, input.SessionID)
+	if err != nil {
+		tx.Rollback()
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to replay evidence selection"})
+		return
+	}
+	clientSelection := []int{}
+	selectionMismatch := false
+	if input.SelectedLogIndices != nil {
+		clientSelection = normalizeSelectionIndices(input.SelectedLogIndices)
+		selectionMismatch = !equalIntSlices(serverSelection, clientSelection)
+		if selectionMismatch {
+			log.Printf(
+				"Evidence selection mismatch for session %s: server=%v client=%v; scoring the server set",
+				input.SessionID, serverSelection, clientSelection,
+			)
+		}
+	}
+
+	// Score the submission from the replayed server selection.
 	result := services.ScoreSubmission(scenario, models.SubmitScenarioInput{
 		SessionID:          input.SessionID,
 		IsTruePositive:     input.IsTruePositive,
 		TPFPSelected:       input.TPFPSelected,
 		SelectedActions:    input.SelectedActions,
-		DiscoveredFindings: input.DiscoveredFindings,
-		SelectedLogIndices: input.SelectedLogIndices,
+		SelectedLogIndices: serverSelection,
 	})
 
 	// Record the TP/FP decision action
@@ -1040,11 +1117,16 @@ func (sc *SimulationController) SubmitScenario(c *gin.Context) {
 		return
 	}
 
-	// Record findings submission
+	// Record the scored evidence selection for audit. The legacy findings list
+	// is no longer part of the submit contract.
 	findingsAction, err := appendSessionActionTx(tx, input.SessionID, sessionActionSpec{
 		ActionType: "submit_decision",
 		Payload: map[string]interface{}{
-			"discovered_findings": input.DiscoveredFindings,
+			"selected_log_indices":        serverSelection,
+			"client_selected_log_indices": clientSelection,
+			"selection_mismatch":          selectionMismatch,
+			"findings_points":             result.FindingsPoints,
+			"evidence_penalty":            result.EvidencePenalty,
 		},
 		Points: int(result.FindingsPoints),
 	})
@@ -1188,9 +1270,12 @@ func (sc *SimulationController) GetResult(c *gin.Context) {
 		return
 	}
 
-	// Get the scenario (full details for review)
-	var scenario models.Scenario
-	sc.DB.Where("scenario_id = ?", session.ScenarioID).First(&scenario)
+	// Prefer the immutable session snapshot so the result page shows the same
+	// telemetry and evidence indices the learner investigated.
+	scenario, _, scenarioErr := sc.sessionScenario(session)
+	if scenarioErr != nil {
+		log.Printf("Failed to load scenario for result session %s: %v", sessionID, scenarioErr)
+	}
 
 	// Get all actions for this session
 	var actions []models.SessionAction
@@ -1243,38 +1328,47 @@ func sanitizeScenario(s models.Scenario, sessionID string) ScenarioResponse {
 	// Strip is_correct and explanation from playbook_steps and deterministically shuffle per phase
 	sanitizedSteps := sanitizePlaybookSteps(s.PlaybookSteps, seedBase)
 
-	// Extract only IDs and evidence log indices from expected_outcomes
-	var sanitizedFindings []map[string]interface{}
-	outcomesMap, ok := s.ExpectedOutcomes.(map[string]interface{})
-	if ok {
-		keyFindings, ok := outcomesMap["key_findings"].([]interface{})
-		if ok {
-			for _, kf := range keyFindings {
-				finding, ok := kf.(map[string]interface{})
-				if !ok {
-					continue
-				}
+	// The learner payload exposes only how many Key Findings exist. Evidence
+	// indices, descriptions, and verdict markers stay server-side.
+	return ScenarioResponse{
+		ScenarioID:    s.ScenarioID,
+		Title:         s.Title,
+		Description:   s.Description,
+		DomainID:      s.DomainID,
+		Difficulty:    s.Difficulty,
+		InitialLogs:   s.InitialLogs,
+		PlaybookSteps: sanitizedSteps,
+		TotalFindings: countKeyFindings(s.ExpectedOutcomes),
+	}
+}
 
-				fID, _ := finding["id"].(string)
-				indices, _ := finding["evidence_log_indices"].([]interface{})
+// countKeyFindings counts the scenario's authored Key Findings regardless of
+// whether the JSONB payload decoded to a generic or typed map slice.
+func countKeyFindings(expectedOutcomes any) int {
+	switch outcomes := expectedOutcomes.(type) {
+	case map[string]interface{}:
+		return len(findingsFromOutcomes(outcomes["key_findings"]))
+	case []interface{}:
+		return len(outcomes)
+	default:
+		return 0
+	}
+}
 
-				sanitizedFindings = append(sanitizedFindings, map[string]interface{}{
-					"id":                   fID,
-					"evidence_log_indices": indices,
-				})
+func findingsFromOutcomes(value any) []map[string]interface{} {
+	switch findings := value.(type) {
+	case []interface{}:
+		out := make([]map[string]interface{}, 0, len(findings))
+		for _, item := range findings {
+			if finding, ok := item.(map[string]interface{}); ok {
+				out = append(out, finding)
 			}
 		}
-	}
-
-	return ScenarioResponse{
-		ScenarioID:        s.ScenarioID,
-		Title:             s.Title,
-		Description:       s.Description,
-		DomainID:          s.DomainID,
-		Difficulty:        s.Difficulty,
-		InitialLogs:       s.InitialLogs,
-		PlaybookSteps:     sanitizedSteps,
-		SanitizedFindings: sanitizedFindings,
+		return out
+	case []map[string]interface{}:
+		return findings
+	default:
+		return nil
 	}
 }
 

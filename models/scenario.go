@@ -5,19 +5,19 @@ import (
 )
 
 type Scenario struct {
-	ScenarioID       string    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"scenario_id"`
-	Title            string    `gorm:"type:varchar;not null" json:"title"`
-	Description      string    `gorm:"type:text" json:"description"`
-	MitreTechnique   *string   `gorm:"type:varchar" json:"mitre_technique"`
-	DomainID         string    `gorm:"type:varchar" json:"domain_id"`
-	Difficulty       int       `gorm:"default:3" json:"difficulty"`
-	InitialLogs      any       `gorm:"type:jsonb;serializer:json;not null" json:"initial_logs"`
-	PlaybookSteps    any       `gorm:"type:jsonb;serializer:json" json:"playbook_steps"`
-	ExpectedOutcomes any       `gorm:"type:jsonb;serializer:json" json:"expected_outcomes"`
-	IsTruePositive   bool      `gorm:"not null;default:true" json:"is_true_positive"`
-	TpFpExplanation  string    `gorm:"type:text" json:"tp_fp_explanation"`
-	Status           string    `gorm:"type:scenario_status;default:'active'" json:"status"`
-	CreatedAt        time.Time `gorm:"default:now()" json:"created_at"`
+	ScenarioID       string     `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"scenario_id"`
+	Title            string     `gorm:"type:varchar;not null" json:"title"`
+	Description      string     `gorm:"type:text" json:"description"`
+	MitreTechnique   *string    `gorm:"type:varchar" json:"mitre_technique"`
+	DomainID         string     `gorm:"type:varchar" json:"domain_id"`
+	Difficulty       int        `gorm:"default:3" json:"difficulty"`
+	InitialLogs      any        `gorm:"type:jsonb;serializer:json;not null" json:"initial_logs"`
+	PlaybookSteps    any        `gorm:"type:jsonb;serializer:json" json:"playbook_steps"`
+	ExpectedOutcomes any        `gorm:"type:jsonb;serializer:json" json:"expected_outcomes"`
+	IsTruePositive   bool       `gorm:"not null;default:true" json:"is_true_positive"`
+	TpFpExplanation  string     `gorm:"type:text" json:"tp_fp_explanation"`
+	Status           string     `gorm:"type:scenario_status;default:'active'" json:"status"`
+	CreatedAt        time.Time  `gorm:"default:now()" json:"created_at"`
 	UpdatedAt        *time.Time `json:"updated_at"`
 }
 
@@ -83,12 +83,15 @@ type UserSkillProfile struct {
 }
 
 type FindingResult struct {
-	ID          string `json:"id"`
-	Description string `json:"description"`
-	DomainID    string `json:"domain_id"`
-	Found       bool   `json:"found"`
-	Points      int    `json:"points"`
-	Explanation string `json:"explanation"`
+	ID                 string `json:"id"`
+	Description        string `json:"description"`
+	DomainID           string `json:"domain_id"`
+	Found              bool   `json:"found"`
+	Points             int    `json:"points"`
+	Earned             int    `json:"earned"`
+	EvidenceLogIndices []int  `json:"evidence_log_indices"`
+	MatchedLogIndices  []int  `json:"matched_log_indices"`
+	Explanation        string `json:"explanation"`
 }
 
 type ResponseActionResult struct {
@@ -110,16 +113,19 @@ type DomainScoreDetail struct {
 }
 
 type ScenarioResult struct {
-	TotalScore      float64                      `json:"total_score"`
-	TPFPCorrect     bool                         `json:"tp_fp_correct"`
-	TPFPPoints      float64                      `json:"tp_fp_points"`
-	FindingsPoints  float64                      `json:"findings_points"`
-	ResponsePoints  float64                      `json:"response_points"`
-	DomainScores    map[string]DomainScoreDetail `json:"domain_scores"`
-	DomainScoreMap  map[string]float64           `json:"-"` // internal use for proficiency updates
-	FindingsDetail  []FindingResult              `json:"findings_detail"`
-	ResponseDetail  []ResponseActionResult       `json:"response_detail"`
-	TPFPExplanation string                       `json:"tp_fp_explanation"`
+	TotalScore         float64                      `json:"total_score"`
+	TPFPCorrect        bool                         `json:"tp_fp_correct"`
+	TPFPPoints         float64                      `json:"tp_fp_points"`
+	FindingsPoints     float64                      `json:"findings_points"`
+	ResponsePoints     float64                      `json:"response_points"`
+	EvidencePenalty    float64                      `json:"evidence_penalty"`
+	NoiseLogIndices    []int                        `json:"noise_log_indices"`
+	SelectedLogIndices []int                        `json:"selected_log_indices"`
+	DomainScores       map[string]DomainScoreDetail `json:"domain_scores"`
+	DomainScoreMap     map[string]float64           `json:"-"` // internal use for proficiency updates
+	FindingsDetail     []FindingResult              `json:"findings_detail"`
+	ResponseDetail     []ResponseActionResult       `json:"response_detail"`
+	TPFPExplanation    string                       `json:"tp_fp_explanation"`
 }
 
 type SubmitScenarioInput struct {

@@ -48,6 +48,13 @@ func TestSanitizeScenario_DeterministicSessionScopedShuffleAndScoringInvariance(
 		}
 	})
 
+	t.Run("exposes only total_findings from expected outcomes", func(t *testing.T) {
+		sanitized := sanitizeScenario(scenario, "sess-total-findings")
+		if sanitized.TotalFindings != 1 {
+			t.Fatalf("TotalFindings = %d, want 1", sanitized.TotalFindings)
+		}
+	})
+
 	t.Run("produces identical option order across repeated calls for the same session_id (refresh stability)", func(t *testing.T) {
 		sessionID := "sess-refresh-stability-99"
 		first := sanitizeScenario(scenario, sessionID)
@@ -101,7 +108,7 @@ func TestSanitizeScenario_DeterministicSessionScopedShuffleAndScoringInvariance(
 			IsTruePositive:     true,
 			TPFPSelected:       true,
 			SelectedActions:    []string{"c1", "e1", "r1"},
-			DiscoveredFindings: []string{"f1"},
+			SelectedLogIndices: []int{15},
 		})
 
 		if baselineResult.TotalScore != 100.0 {
@@ -117,7 +124,7 @@ func TestSanitizeScenario_DeterministicSessionScopedShuffleAndScoringInvariance(
 				IsTruePositive:     true,
 				TPFPSelected:       true,
 				SelectedActions:    []string{"r1", "c1", "e1"},
-				DiscoveredFindings: []string{"f1"},
+				SelectedLogIndices: []int{15},
 			})
 
 			if res.TotalScore != baselineResult.TotalScore || res.ResponsePoints != baselineResult.ResponsePoints {

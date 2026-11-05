@@ -1,8 +1,33 @@
-import requests
+import json
+import os
 import random
 import sys
 
+import requests
+
 BASE_URL = "http://localhost:8080/api"
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+SCENARIOS_SEED_PATH = os.path.join(SCRIPT_DIR, "..", "scenarios_seed.json")
+
+
+def load_seed_scenarios():
+    try:
+        with open(SCENARIOS_SEED_PATH, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        return data if isinstance(data, list) else []
+    except (OSError, ValueError) as err:
+        print(f"Warning: could not load scenarios_seed.json: {err}")
+        return []
+
+
+def authored_evidence_indices(seed_scenario):
+    indices = set()
+    expected = (seed_scenario or {}).get("expected_outcomes") or {}
+    for finding in expected.get("key_findings") or []:
+        for index in finding.get("evidence_log_indices") or []:
+            if isinstance(index, int):
+                indices.add(index)
+    return sorted(indices)
 
 def run_tests():
     # 1. Register a test user
@@ -105,6 +130,14 @@ def run_tests():
     scenario = start_data["scenario"]
     print(f"Simulation started. Session ID: {sim_session['session_id']}. Scenario Title: '{scenario['title']}'")
     print(f"Scenario domain: {scenario['domain_id']}. Initial logs count: {len(scenario['initial_logs'])}")
+
+    if "sanitized_findings" in scenario:
+        print("Error: learner payload must not include sanitized_findings")
+        sys.exit(1)
+    if not isinstance(scenario.get("total_findings"), int) or scenario["total_findings"] < 1:
+        print("Error: learner payload must expose total_findings:", scenario.get("total_findings"))
+        sys.exit(1)
+    print(f"Learner payload exposes only total_findings={scenario['total_findings']}")
     
     # 8. Test Log Query
     print("Logging query action...")
@@ -184,16 +217,33 @@ def run_tests():
         sys.exit(1)
     print("Clear action persisted; recovered selection is empty")
 
-    # Leave a valid selection in place before submitting.
+    # Leave a valid selection in place before submitting. When this run uses a
+    # static seed scenario, select one authored Evidence Log so the scoring
+    # result is deterministic and expected to earn credit.
+    seed_scenario = next(
+        (seed for seed in load_seed_scenarios() if seed.get("title") == scenario.get("title")),
+        None,
+    )
+    static_evidence_indices = authored_evidence_indices(seed_scenario)
+    submit_log_index = static_evidence_indices[0] if static_evidence_indices else 0
+    print(
+        "Submitting with evidence index:",
+        submit_log_index,
+        "(static seed scenario)" if seed_scenario else "(non-static scenario; credit not assumed)",
+    )
+
     reselect_res = requests.post(f"{BASE_URL}/simulation/select-log", headers=headers, json={
         "session_id": sim_session['session_id'],
-        "log_index": 0,
+        "log_index": submit_log_index,
         "selected": True
     })
     if reselect_res.status_code != 200:
         print("Failed to re-select evidence log", reselect_res.status_code, reselect_res.text)
         sys.exit(1)
     selected_log_indices = reselect_res.json().get("selected_log_indices", [])
+    if selected_log_indices != [submit_log_index]:
+        print("Error: expected the authored evidence selection to persist:", selected_log_indices)
+        sys.exit(1)
     print("Selection left before submit:", selected_log_indices)
 
     # 10. Submit Scenario Solution
@@ -211,7 +261,6 @@ def run_tests():
         "is_true_positive": True,
         "tp_fp_selected": True,
         "selected_actions": selected_actions,
-        "discovered_findings": [],
         "selected_log_indices": selected_log_indices
       })
     if submit_res.status_code != 200:
@@ -221,6 +270,53 @@ def run_tests():
     submit_data = submit_res.json()
     result = submit_data["result"]
     print(f"Scenario submitted successfully! Total score: {result['total_score']}%. Triage Correct: {result['tp_fp_correct']}")
+
+    # The result must always expose the new evidence review fields, even when
+    # the selection was not expected to earn credit.
+    if result.get("selected_log_indices") != selected_log_indices:
+        print("Error: result did not record the replayed selection:", result.get("selected_log_indices"))
+        sys.exit(1)
+    for field in ("noise_log_indices", "evidence_penalty", "findings_points"):
+        if field not in result:
+            print(f"Error: result is missing evidence field {field}:", result)
+            sys.exit(1)
+    for finding in result.get("findings_detail") or []:
+        for field in ("earned", "evidence_log_indices", "matched_log_indices"):
+            if field not in finding:
+                print(f"Error: finding {finding.get('id')} is missing {field}")
+                sys.exit(1)
+
+    if seed_scenario:
+        found_findings = [f for f in result.get("findings_detail") or [] if f.get("found")]
+        if not found_findings:
+            print("Error: selecting an authored evidence index did not credit any finding:", result.get("findings_detail"))
+            sys.exit(1)
+        if result.get("evidence_penalty") != 0:
+            print("Error: an authored evidence selection should not incur a noise penalty:", result.get("evidence_penalty"))
+            sys.exit(1)
+        print(
+            "Authored evidence credited",
+            len(found_findings),
+            "finding(s); findings_points=",
+            result.get("findings_points"),
+        )
+    else:
+        print("Non-static scenario: selection persisted and result shape verified without assuming credit")
+
+    # The result endpoint must return the same new fields and the snapshot scenario.
+    result_res = requests.get(f"{BASE_URL}/simulation/result/{sim_session['session_id']}", headers=headers)
+    if result_res.status_code != 200:
+        print("Failed to fetch simulation result", result_res.status_code, result_res.text)
+        sys.exit(1)
+    fetched_result = result_res.json().get("result") or {}
+    if fetched_result.get("selected_log_indices") != selected_log_indices:
+        print("Error: result endpoint lost the selected evidence:", fetched_result.get("selected_log_indices"))
+        sys.exit(1)
+    for field in ("noise_log_indices", "evidence_penalty"):
+        if field not in fetched_result:
+            print(f"Error: result endpoint is missing evidence field {field}")
+            sys.exit(1)
+    print("Result endpoint exposes selected evidence, noise, and penalty")
 
     # Verify a completed session can no longer change its evidence selection.
     completed_toggle = requests.post(f"{BASE_URL}/simulation/select-log", headers=headers, json={

@@ -19,11 +19,6 @@ interface PlaybookSteps {
   recovery: ActionOption[];
 }
 
-interface SanitizedFinding {
-  id: string;
-  evidence_log_indices: number[];
-}
-
 interface Scenario {
   scenario_id: string;
   title: string;
@@ -32,7 +27,7 @@ interface Scenario {
   difficulty: number;
   initial_logs: any[];
   playbook_steps: PlaybookSteps;
-  sanitized_findings: SanitizedFinding[];
+  total_findings?: number;
 }
 
 interface SimulationSession {
@@ -60,7 +55,6 @@ export default function SimulationPage() {
   // User answers
   const [isTruePositive, setIsTruePositive] = useState<boolean | null>(null);
   const [selectedActions, setSelectedActions] = useState<string[]>([]);
-  const [discoveredFindings, setDiscoveredFindings] = useState<string[]>([]);
   const [selectedLogIndices, setSelectedLogIndices] = useState<number[]>([]);
   const [selectionError, setSelectionError] = useState<string | null>(null);
   const selectionRef = useRef<number[]>([]);
@@ -302,49 +296,6 @@ export default function SimulationPage() {
     initSimulation();
   }, [navigate]);
 
-  // Evaluate matching key findings whenever filtered logs change
-  useEffect(() => {
-    if (!scenario || !scenario.sanitized_findings || scenario.sanitized_findings.length === 0) return;
-
-    // A finding is discovered if the filtered logs contain ALL of its evidence log indices.
-    // To do this, we need to map the current filtered logs back to their original indexes in scenario.initial_logs.
-    const filteredOriginalIndices = new Set<number>();
-
-    filteredLogs.forEach(log => {
-      // Identity is the stable original array index attached during hydration.
-      // Fall back to structural equality for any log object that predates it.
-      const origIndex = typeof log.__log_index === "number"
-        ? log.__log_index
-        : scenario.initial_logs.findIndex(origLog =>
-            JSON.stringify(origLog) === JSON.stringify(log)
-          );
-      if (origIndex !== -1) {
-        filteredOriginalIndices.add(origIndex);
-      }
-    });
-
-    const newlyDiscovered: string[] = [];
-
-    scenario.sanitized_findings.forEach(finding => {
-      // Guard: skip findings with no evidence indices defined
-      if (!finding.evidence_log_indices || finding.evidence_log_indices.length === 0) return;
-
-      const allEvidencePresent = finding.evidence_log_indices.every(idx =>
-        filteredOriginalIndices.has(idx)
-      );
-      if (allEvidencePresent) {
-        newlyDiscovered.push(finding.id);
-      }
-    });
-
-    // Merge with previously discovered findings so we don't lose progress if user runs a different query
-    setDiscoveredFindings(prev => {
-      const merged = new Set([...prev, ...newlyDiscovered]);
-      return Array.from(merged);
-    });
-
-  }, [filteredLogs, scenario]);
-
   const handleSubmit = async () => {
     if (!session || !scenario) return;
     if (isTruePositive === null) {
@@ -381,7 +332,6 @@ export default function SimulationPage() {
         is_true_positive: isTruePositive,
         tp_fp_selected: true,
         selected_actions: selectedActions,
-        discovered_findings: discoveredFindings,
         selected_log_indices: finalSelection
       }, {
         headers: { Authorization: `Bearer ${token}` }

@@ -11,6 +11,9 @@ interface FindingResult {
   domain_id: string;
   found: boolean;
   points: number;
+  earned?: number;
+  evidence_log_indices?: number[];
+  matched_log_indices?: number[];
   explanation: string;
 }
 
@@ -53,6 +56,9 @@ interface ResultData {
   tp_fp_points: number;
   findings_points: number;
   response_points: number;
+  evidence_penalty?: number;
+  noise_log_indices?: number[];
+  selected_log_indices?: number[];
   domain_scores: Record<string, any>;
   findings_detail: FindingResult[];
   response_detail: ResponseActionResult[];
@@ -268,6 +274,9 @@ export default function ScenarioResultPage() {
                       <span className="font-semibold text-white">{finding.description}</span>
                       <span className="px-1.5 py-0.5 rounded bg-graphite-950 border border-graphite-800 text-[8px] font-mono text-graphite-400 uppercase">
                         {finding.domain_id}
+                      </span>
+                      <span className="text-[9px] font-mono text-graphite-500">
+                        {finding.earned ?? (finding.found ? finding.points : 0)} / {finding.points} pts
                       </span>
                     </div>
                     <p className="text-graphite-400 leading-relaxed">

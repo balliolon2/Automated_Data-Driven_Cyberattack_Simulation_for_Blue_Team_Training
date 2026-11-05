@@ -21,17 +21,19 @@ type SimulationStatusResponse struct {
 
 // ScenarioResponse represents the sanitized scenario presented to the learner
 type ScenarioResponse struct {
-	ScenarioID        string `json:"scenario_id" example:"sc-chiller-dos-01"`
-	Title             string `json:"title" example:"Industrial Chiller DoS Attack"`
-	Description       string `json:"description" example:"Anomalous telemetry detected in OT cooling network."`
-	DomainID          string `json:"domain_id" example:"domain4"`
-	Difficulty        int    `json:"difficulty" example:"2"`
-	InitialLogs       any    `json:"initial_logs"`
+	ScenarioID  string `json:"scenario_id" example:"sc-chiller-dos-01"`
+	Title       string `json:"title" example:"Industrial Chiller DoS Attack"`
+	Description string `json:"description" example:"Anomalous telemetry detected in OT cooling network."`
+	DomainID    string `json:"domain_id" example:"domain4"`
+	Difficulty  int    `json:"difficulty" example:"2"`
+	InitialLogs any    `json:"initial_logs"`
 	// PlaybookSteps is retained for frontend JSON contract compatibility
-	PlaybookSteps     any    `json:"playbook_steps"`
+	PlaybookSteps any `json:"playbook_steps"`
 	// ResponseActions is the canonical domain model representation
-	ResponseActions   any    `json:"response_actions,omitempty"`
-	SanitizedFindings any    `json:"sanitized_findings"`
+	ResponseActions any `json:"response_actions,omitempty"`
+	// TotalFindings is the only pre-submission finding disclosure. Evidence
+	// indices, finding descriptions, and verdict markers stay server-side.
+	TotalFindings int `json:"total_findings" example:"2"`
 }
 
 // ActiveSimulationResponse contains the active session and corresponding scenario
@@ -59,7 +61,6 @@ type SubmitScenarioRequest struct {
 	IsTruePositive     bool     `json:"is_true_positive" example:"true"`
 	TPFPSelected       bool     `json:"tp_fp_selected" binding:"required" example:"true"`
 	SelectedActions    []string `json:"selected_actions" binding:"required" example:"[\"act-contain-01\"]"`
-	DiscoveredFindings []string `json:"discovered_findings" example:"[\"find-auth-fail\"]"`
 	SelectedLogIndices []int    `json:"selected_log_indices" example:"[0,3]"`
 }
 
