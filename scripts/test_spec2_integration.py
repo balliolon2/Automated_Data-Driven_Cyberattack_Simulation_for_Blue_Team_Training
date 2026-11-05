@@ -90,7 +90,17 @@ def run_spec2_tests():
         if "learner_tier" not in sub:
             print(f"FAILED: Missing learner_tier in submission summary: {sub}")
             sys.exit(1)
-    print("PASSED: All submission records properly anonymized with learner nicknames and tier only")
+        for field in (
+            "findings_found_count",
+            "total_findings_count",
+            "evidence_selected_count",
+            "noise_selected_count",
+            "evidence_penalty",
+        ):
+            if field not in sub:
+                print(f"FAILED: Missing evidence review summary field {field}: {sub}")
+                sys.exit(1)
+    print("PASSED: All submission records properly anonymized with learner nicknames, tier, and evidence review counters")
 
     # -------------------------------------------------------------
     # Test 4: RBAC & Auth on Analysis Threads

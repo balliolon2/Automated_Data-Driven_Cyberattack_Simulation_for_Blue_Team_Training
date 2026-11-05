@@ -23,6 +23,100 @@ interface ScenarioOption {
   domain_id: string;
 }
 
+interface EvidenceLog {
+  index: number;
+  timestamp: string;
+  source: string;
+  severity: string;
+  message: string;
+}
+
+interface EvidenceFinding {
+  id: string;
+  description: string;
+  domain_id: string;
+  found: boolean;
+  points: number;
+  earned: number;
+  evidence_log_indices: number[];
+  matched_log_indices: number[];
+  evidence_logs: EvidenceLog[];
+  explanation: string;
+}
+
+interface EvidenceReviewSubmission {
+  session_id: string;
+  learner_nickname: string;
+  evidence_review_available: boolean;
+  selected_log_indices: number[] | null;
+  evidence_findings: EvidenceFinding[] | null;
+  noise_selections: EvidenceLog[] | null;
+  gross_findings_points: number;
+  findings_points: number;
+  evidence_penalty: number;
+}
+
+function markdownCell(value: string): string {
+  return value.replace(/\|/g, "\\|").replace(/\r?\n/g, " ").trim();
+}
+
+function buildEvidenceReviewMarkdown(detail: EvidenceReviewSubmission): string {
+  const findings = detail.evidence_findings || [];
+  const noise = detail.noise_selections || [];
+  const selectedCount = detail.selected_log_indices?.length ?? 0;
+  const lines: string[] = [
+    "### Evidence Review",
+    "",
+    `> Learner: **${markdownCell(detail.learner_nickname)}** · Selected logs: ${selectedCount} · Noise: ${noise.length} · Net findings: ${detail.findings_points} pts`,
+    "",
+    "| Finding | Result | Points | Matched evidence |",
+    "|---|---|---|---|",
+  ];
+
+  findings.forEach((finding) => {
+    const matched = finding.matched_log_indices.length
+      ? finding.matched_log_indices.map((index) => `#${index}`).join(", ")
+      : "—";
+    lines.push(
+      `| ${markdownCell(finding.description)} (${markdownCell(finding.id)}) | ${
+        finding.found ? "Found" : "Missed"
+      } | ${finding.earned}/${finding.points} | ${matched} |`
+    );
+  });
+
+  const missed = findings.filter((finding) => !finding.found);
+  if (missed.length > 0) {
+    lines.push("", "**Acceptable evidence for missed findings**", "");
+    missed.forEach((finding) => {
+      finding.evidence_logs.forEach((log) => {
+        lines.push(
+          `- \`${finding.id}\` #${log.index} [${markdownCell(log.source)} · ${markdownCell(
+            log.severity
+          )}] ${markdownCell(log.message)}`
+        );
+      });
+    });
+  }
+
+  if (noise.length > 0) {
+    lines.push("", "**Noise picks (-2 each)**", "");
+    noise.forEach((log) => {
+      lines.push(
+        `- #${log.index} [${markdownCell(log.source)} · ${markdownCell(log.severity)}] ${markdownCell(
+          log.message
+        )}`
+      );
+    });
+  }
+
+  lines.push(
+    "",
+    `**Gross credit:** ${detail.gross_findings_points} pts · **Evidence penalty:** -${detail.evidence_penalty} pts · **Net findings:** ${detail.findings_points} pts`
+  );
+
+  return lines.join("\n");
+}
+
 export default function ThreadEditorPage() {
   const { id } = useParams<{ id: string }>();
   const isEditing = Boolean(id);
@@ -44,6 +138,20 @@ export default function ThreadEditorPage() {
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(isEditing);
   const [errorMsg, setErrorMsg] = useState("");
+  const [evidenceReview, setEvidenceReview] = useState<EvidenceReviewSubmission | null>(null);
+  const reviewSessionId = searchParams.get("session_id");
+
+  const loadEvidenceReview = async (sessionId: string) => {
+    if (!isSpecialistOrAdmin) return;
+    try {
+      const res = await axios.get(`/api/specialist/submissions/${sessionId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setEvidenceReview(res.data);
+    } catch (err) {
+      console.error("Failed to load evidence review:", err);
+    }
+  };
 
   useEffect(() => {
     if (!token) {
@@ -56,6 +164,10 @@ export default function ThreadEditorPage() {
     }
 
     loadScenarios();
+
+    if (reviewSessionId) {
+      loadEvidenceReview(reviewSessionId);
+    }
 
     if (isEditing && id) {
       loadExistingThread(id);
@@ -386,6 +498,17 @@ export default function ThreadEditorPage() {
               <Lightbulb className="w-3.5 h-3.5 text-amber-400" />
               <span>Key Takeaways</span>
             </button>
+
+            {evidenceReview?.evidence_review_available && (
+              <button
+                type="button"
+                onClick={() => insertSnippet(buildEvidenceReviewMarkdown(evidenceReview))}
+                className="px-2.5 py-1.5 rounded bg-cyan-950/40 hover:bg-cyan-900/50 border border-cyan-500/30 text-cyan-200 hover:text-white flex items-center gap-1.5 text-xs transition-colors cursor-pointer"
+              >
+                <Search className="w-3.5 h-3.5 text-cyan-400" />
+                <span>Evidence Review</span>
+              </button>
+            )}
           </div>
         </div>
 

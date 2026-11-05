@@ -13,6 +13,7 @@ import (
 
 	"cybersim/dto"
 	"cybersim/models"
+	"cybersim/services"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -35,8 +36,8 @@ func NewSpecialistController(db *gorm.DB) *SpecialistController {
 }
 
 const (
-	MaxFileSize     = 10 * 1024 * 1024 // 10MB
-	UploadBaseDir   = "./uploads/applications"
+	MaxFileSize   = 10 * 1024 * 1024 // 10MB
+	UploadBaseDir = "./uploads/applications"
 )
 
 var allowedExtensions = map[string]bool{
@@ -209,7 +210,6 @@ func (sc *SpecialistController) GetApplicationStatus(c *gin.Context) {
 	c.JSON(http.StatusOK, app.ToDTO(user.Nickname, user.Email))
 }
 
-
 // GetSubmissions retrieves completed simulation sessions with anonymized learner nicknames
 func (sc *SpecialistController) GetSubmissions(c *gin.Context) {
 	scenarioID := strings.TrimSpace(c.Query("scenario_id"))
@@ -227,7 +227,7 @@ func (sc *SpecialistController) GetSubmissions(c *gin.Context) {
 	offset := (page - 1) * pageSize
 
 	query := sc.DB.Table("simulation_sessions").
-		Select("simulation_sessions.session_id, simulation_sessions.scenario_id, simulation_sessions.final_score, simulation_sessions.completed_at, simulation_sessions.total_actions, scenarios.title as scenario_title, scenarios.domain_id, users.nickname as learner_nickname, users.current_tier as learner_tier").
+		Select("simulation_sessions.session_id, simulation_sessions.scenario_id, simulation_sessions.final_score, simulation_sessions.completed_at, simulation_sessions.total_actions, simulation_sessions.rubric_version, simulation_sessions.skill_gap, scenarios.title as scenario_title, scenarios.domain_id, users.nickname as learner_nickname, users.current_tier as learner_tier").
 		Joins("JOIN scenarios ON scenarios.scenario_id = simulation_sessions.scenario_id").
 		Joins("JOIN users ON users.user_id = simulation_sessions.user_id").
 		Where("simulation_sessions.status = 'completed'")
@@ -254,6 +254,8 @@ func (sc *SpecialistController) GetSubmissions(c *gin.Context) {
 		LearnerTier     int        `json:"learner_tier"`
 		FinalScore      *float64   `json:"final_score"`
 		TotalActions    int        `json:"total_actions"`
+		RubricVersion   string     `json:"rubric_version"`
+		SkillGap        any        `json:"skill_gap"`
 		CompletedAt     *time.Time `json:"completed_at"`
 	}
 
@@ -274,30 +276,45 @@ func (sc *SpecialistController) GetSubmissions(c *gin.Context) {
 			completedStr = r.CompletedAt.Format(time.RFC3339)
 		}
 
-		// Count TP/FP correctness and findings for this session
+		// Count TP/FP correctness and rehearse the evidence selection for this
+		// session. The immutable ScenarioSnapshot is authoritative; when it is
+		// absent, the recorded SkillGap counters are used. Only legacy sessions
+		// that have neither fall back to the live scenarios row.
 		var tpfpCorrect bool
-		var findingsFoundCount int
-		var totalFindingsCount int
 
 		var triageAction models.SessionAction
 		if err := sc.DB.Where("session_id = ? AND action_type = 'triage_alert'", r.SessionID).First(&triageAction).Error; err == nil && triageAction.IsCorrect != nil {
 			tpfpCorrect = *triageAction.IsCorrect
 		}
 
-		var findingsAction models.SessionAction
-		if err := sc.DB.Where("session_id = ? AND action_type = 'submit_decision'", r.SessionID).First(&findingsAction).Error; err == nil && findingsAction.Payload != nil {
-			if payloadMap, ok := findingsAction.Payload.(map[string]interface{}); ok {
-				if fList, ok := payloadMap["discovered_findings"].([]interface{}); ok {
-					findingsFoundCount = len(fList)
-				}
-			}
+		var actions []models.SessionAction
+		if err := sc.DB.Where("session_id = ?", r.SessionID).Order("step_order asc").Find(&actions).Error; err != nil {
+			log.Printf("Failed to load actions for session %s: %v", r.SessionID, err)
 		}
 
-		// Calculate total findings from scenario
-		var scn models.Scenario
-		if err := sc.DB.Select("expected_outcomes").Where("scenario_id = ?", r.ScenarioID).First(&scn).Error; err == nil && scn.ExpectedOutcomes != nil {
-			if outList, ok := scn.ExpectedOutcomes.([]interface{}); ok {
-				totalFindingsCount = len(outList)
+		session := models.SimulationSession{
+			SessionID:     r.SessionID,
+			ScenarioID:    r.ScenarioID,
+			RubricVersion: r.RubricVersion,
+			SkillGap:      r.SkillGap,
+		}
+
+		var review services.EvidenceReview
+		scenario, hasSnapshot, scenarioErr := sessionScenarioFromDB(sc.DB, session)
+		switch {
+		case scenarioErr == nil && hasSnapshot:
+			review = services.BuildEvidenceReviewForSession(scenario, session, actions)
+		case scenarioErr == nil:
+			if recorded, ok := services.ScenarioResultFromRecorded(r.SkillGap); ok {
+				review = services.EvidenceReviewFromResult(recorded)
+			} else {
+				review = services.BuildEvidenceReviewForSession(scenario, session, actions)
+			}
+		default:
+			if recorded, ok := services.ScenarioResultFromRecorded(r.SkillGap); ok {
+				review = services.EvidenceReviewFromResult(recorded)
+			} else {
+				log.Printf("Failed to load scenario for session %s: %v", r.SessionID, scenarioErr)
 			}
 		}
 
@@ -307,19 +324,22 @@ func (sc *SpecialistController) GetSubmissions(c *gin.Context) {
 		}
 
 		result = append(result, dto.SpecialistSubmissionSummary{
-			SessionID:          r.SessionID,
-			LearnerNickname:    r.LearnerNickname,
-			LearnerTier:        r.LearnerTier,
-			ScenarioID:         r.ScenarioID,
-			ScenarioTitle:      r.ScenarioTitle,
-			DomainID:           r.DomainID,
-			DomainName:         domainName,
-			FinalScore:         score,
-			TPFPCorrect:        tpfpCorrect,
-			FindingsFoundCount: findingsFoundCount,
-			TotalFindingsCount: totalFindingsCount,
-			ActionsCount:       r.TotalActions,
-			CompletedAt:        completedStr,
+			SessionID:             r.SessionID,
+			LearnerNickname:       r.LearnerNickname,
+			LearnerTier:           r.LearnerTier,
+			ScenarioID:            r.ScenarioID,
+			ScenarioTitle:         r.ScenarioTitle,
+			DomainID:              r.DomainID,
+			DomainName:            domainName,
+			FinalScore:            score,
+			TPFPCorrect:           tpfpCorrect,
+			FindingsFoundCount:    review.FindingsFoundCount,
+			TotalFindingsCount:    review.TotalFindingsCount,
+			EvidenceSelectedCount: review.EvidenceSelectedCount,
+			NoiseSelectedCount:    review.NoiseSelectedCount,
+			EvidencePenalty:       review.EvidencePenalty,
+			ActionsCount:          r.TotalActions,
+			CompletedAt:           completedStr,
 		})
 	}
 
@@ -336,8 +356,11 @@ func (sc *SpecialistController) GetSubmissionDetail(c *gin.Context) {
 		return
 	}
 
-	var scenario models.Scenario
-	if err := sc.DB.Where("scenario_id = ?", session.ScenarioID).First(&scenario).Error; err != nil {
+	// The session snapshot is the immutable evidence index space the learner
+	// was scored against. Legacy sessions without a snapshot fall back to the
+	// live scenario row inside sessionScenarioFromDB.
+	scenario, _, err := sessionScenarioFromDB(sc.DB, session)
+	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Scenario not found"})
 		return
 	}
@@ -402,6 +425,8 @@ func (sc *SpecialistController) GetSubmissionDetail(c *gin.Context) {
 		}
 	}
 
+	review := services.BuildEvidenceReviewForSession(scenario, session, actions)
+
 	score := 0.0
 	if session.FinalScore != nil {
 		score = *session.FinalScore
@@ -412,26 +437,72 @@ func (sc *SpecialistController) GetSubmissionDetail(c *gin.Context) {
 	}
 
 	detail := dto.SpecialistSubmissionDetail{
-		SessionID:           session.SessionID,
-		LearnerNickname:     user.Nickname,
-		LearnerTier:         user.CurrentTier,
-		ScenarioID:          scenario.ScenarioID,
-		ScenarioTitle:       scenario.Title,
-		ScenarioDescription: scenario.Description,
-		DomainID:            scenario.DomainID,
-		IsTruePositive:      scenario.IsTruePositive,
-		TpFpExplanation:     scenario.TpFpExplanation,
-		LearnerChoice:       learnerChoice,
-		TPFPCorrect:         tpfpCorrect,
-		TPFPPoints:          tpfpPoints,
-		DiscoveredFindings:  discoveredFindings,
-		ExpectedFindings:    scenario.ExpectedOutcomes,
-		SelectedActions:     selectedActions,
-		ExpectedActions:     scenario.PlaybookSteps,
-		FinalScore:          score,
-		Timeline:            timeline,
-		CompletedAt:         completedStr,
+		SessionID:               session.SessionID,
+		LearnerNickname:         user.Nickname,
+		LearnerTier:             user.CurrentTier,
+		ScenarioID:              scenario.ScenarioID,
+		ScenarioTitle:           scenario.Title,
+		ScenarioDescription:     scenario.Description,
+		DomainID:                scenario.DomainID,
+		IsTruePositive:          scenario.IsTruePositive,
+		TpFpExplanation:         scenario.TpFpExplanation,
+		LearnerChoice:           learnerChoice,
+		TPFPCorrect:             tpfpCorrect,
+		TPFPPoints:              tpfpPoints,
+		DiscoveredFindings:      discoveredFindings,
+		ExpectedFindings:        scenario.ExpectedOutcomes,
+		SelectedActions:         selectedActions,
+		ExpectedActions:         scenario.PlaybookSteps,
+		FinalScore:              score,
+		SelectedLogIndices:      review.SelectedLogIndices,
+		EvidenceFindings:        evidenceFindingDTOs(review.EvidenceFindings),
+		NoiseSelections:         evidenceLogDTOs(review.NoiseSelections),
+		GrossFindingsPoints:     review.GrossFindingsPoints,
+		FindingsPoints:          review.FindingsPoints,
+		EvidencePenalty:         review.EvidencePenalty,
+		EvidenceReviewAvailable: !review.Legacy,
+		Timeline:                timeline,
+		CompletedAt:             completedStr,
 	}
 
 	c.JSON(http.StatusOK, detail)
+}
+
+func evidenceLogDTOs(snippets []services.EvidenceLogSnippet) []dto.EvidenceLogDTO {
+	if snippets == nil {
+		return nil
+	}
+	logs := make([]dto.EvidenceLogDTO, 0, len(snippets))
+	for _, snippet := range snippets {
+		logs = append(logs, dto.EvidenceLogDTO{
+			Index:     snippet.Index,
+			Timestamp: snippet.Timestamp,
+			Source:    snippet.Source,
+			Severity:  snippet.Severity,
+			Message:   snippet.Message,
+		})
+	}
+	return logs
+}
+
+func evidenceFindingDTOs(findings []services.EvidenceFindingReview) []dto.EvidenceFindingDTO {
+	if findings == nil {
+		return nil
+	}
+	items := make([]dto.EvidenceFindingDTO, 0, len(findings))
+	for _, finding := range findings {
+		items = append(items, dto.EvidenceFindingDTO{
+			ID:                 finding.ID,
+			Description:        finding.Description,
+			DomainID:           finding.DomainID,
+			Found:              finding.Found,
+			Points:             finding.Points,
+			Earned:             finding.Earned,
+			EvidenceLogIndices: finding.EvidenceLogIndices,
+			MatchedLogIndices:  finding.MatchedLogIndices,
+			EvidenceLogs:       evidenceLogDTOs(finding.EvidenceLogs),
+			Explanation:        finding.Explanation,
+		})
+	}
+	return items
 }

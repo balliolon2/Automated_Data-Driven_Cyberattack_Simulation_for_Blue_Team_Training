@@ -324,16 +324,9 @@ func sessionScenarioFromDB(db *gorm.DB, session models.SimulationSession) (model
 	var snapshot models.ScenarioSnapshot
 	err := db.Where("session_id = ?", session.SessionID).First(&snapshot).Error
 	if err == nil {
-		var scenario models.Scenario
-		encoded, marshalErr := json.Marshal(snapshot.ScenarioData)
-		if marshalErr != nil {
-			return scenario, true, marshalErr
-		}
-		if unmarshalErr := json.Unmarshal(encoded, &scenario); unmarshalErr != nil {
-			return scenario, true, unmarshalErr
-		}
-		if scenario.ScenarioID == "" {
-			scenario.ScenarioID = snapshot.ScenarioID
+		scenario, decodeErr := decodeScenarioSnapshot(snapshot)
+		if decodeErr != nil {
+			return scenario, true, decodeErr
 		}
 		return scenario, true, nil
 	}
@@ -346,6 +339,24 @@ func sessionScenarioFromDB(db *gorm.DB, session models.SimulationSession) (model
 		return scenario, false, err
 	}
 	return scenario, false, nil
+}
+
+// decodeScenarioSnapshot decodes the JSONB ScenarioData payload into the
+// Scenario shape used by scoring and review. The snapshot, not the live
+// scenarios row, defines the evidence index space for a session.
+func decodeScenarioSnapshot(snapshot models.ScenarioSnapshot) (models.Scenario, error) {
+	var scenario models.Scenario
+	encoded, err := json.Marshal(snapshot.ScenarioData)
+	if err != nil {
+		return scenario, err
+	}
+	if err := json.Unmarshal(encoded, &scenario); err != nil {
+		return scenario, err
+	}
+	if scenario.ScenarioID == "" {
+		scenario.ScenarioID = snapshot.ScenarioID
+	}
+	return scenario, nil
 }
 
 // sessionScenarioLogs returns the telemetry log array that defines the

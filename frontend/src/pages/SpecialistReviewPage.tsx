@@ -29,8 +29,32 @@ interface SubmissionSummary {
   tp_fp_correct: boolean;
   findings_found_count: number;
   total_findings_count: number;
+  evidence_selected_count: number;
+  noise_selected_count: number;
+  evidence_penalty: number;
   actions_count: number;
   completed_at: string;
+}
+
+interface EvidenceLog {
+  index: number;
+  timestamp: string;
+  source: string;
+  severity: string;
+  message: string;
+}
+
+interface EvidenceFinding {
+  id: string;
+  description: string;
+  domain_id: string;
+  found: boolean;
+  points: number;
+  earned: number;
+  evidence_log_indices: number[];
+  matched_log_indices: number[];
+  evidence_logs: EvidenceLog[];
+  explanation: string;
 }
 
 interface TimelineAction {
@@ -60,8 +84,61 @@ interface SubmissionDetail {
   selected_actions: string[];
   expected_actions: any;
   final_score: number;
+  selected_log_indices: number[] | null;
+  evidence_findings: EvidenceFinding[] | null;
+  noise_selections: EvidenceLog[] | null;
+  gross_findings_points: number;
+  findings_points: number;
+  evidence_penalty: number;
+  evidence_review_available: boolean;
   timeline: TimelineAction[];
   completed_at: string;
+}
+
+interface SelectedLogRow {
+  log: EvidenceLog;
+  findingIds: string[];
+  isNoise: boolean;
+}
+
+function buildSelectedLogRows(detail: SubmissionDetail): SelectedLogRow[] {
+  const snippets = new Map<number, EvidenceLog>();
+  const matchedFindings = new Map<number, string[]>();
+
+  (detail.evidence_findings || []).forEach((finding) => {
+    finding.evidence_logs.forEach((log) => snippets.set(log.index, log));
+    finding.matched_log_indices.forEach((index) => {
+      const ids = matchedFindings.get(index) || [];
+      ids.push(finding.id);
+      matchedFindings.set(index, ids);
+    });
+  });
+  (detail.noise_selections || []).forEach((log) => snippets.set(log.index, log));
+
+  return (detail.selected_log_indices || [])
+    .map((index) => {
+      const findingIds = matchedFindings.get(index) || [];
+      const log = snippets.get(index) || {
+        index,
+        timestamp: "",
+        source: "",
+        severity: "",
+        message: "(log not available)",
+      };
+      return { log, findingIds, isNoise: findingIds.length === 0 };
+    })
+    .sort((a, b) => a.log.index - b.log.index);
+}
+
+function describeEvidenceAction(payload: unknown): string | null {
+  if (!payload || typeof payload !== "object") return null;
+  const data = payload as Record<string, unknown>;
+  if (data.operation === "clear") return "clear all selected evidence";
+  if (data.operation === "toggle") {
+    const selected = data.selected ? "selected" : "deselected";
+    return `${selected} log #${String(data.log_index)}`;
+  }
+  return null;
 }
 
 export default function SpecialistReviewPage() {
@@ -254,6 +331,9 @@ export default function SpecialistReviewPage() {
                 <th className="p-3 font-semibold">SCORE</th>
                 <th className="p-3 font-semibold">TRIAGE (TP/FP)</th>
                 <th className="p-3 font-semibold">FINDINGS</th>
+                <th className="p-3 font-semibold">EVIDENCE</th>
+                <th className="p-3 font-semibold">NOISE</th>
+                <th className="p-3 font-semibold">PENALTY</th>
                 <th className="p-3 font-semibold">COMPLETED</th>
                 <th className="p-3 text-right font-semibold">ACTION</th>
               </tr>
@@ -295,7 +375,16 @@ export default function SpecialistReviewPage() {
                       )}
                     </td>
                     <td className="p-3 font-mono text-graphite-300">
-                      {sub.findings_found_count} discovered
+                      {sub.findings_found_count}/{sub.total_findings_count}
+                    </td>
+                    <td className="p-3 font-mono text-cyan-300">
+                      {sub.evidence_selected_count ?? 0}
+                    </td>
+                    <td className="p-3 font-mono text-amber-300">
+                      {sub.noise_selected_count ?? 0}
+                    </td>
+                    <td className="p-3 font-mono text-red-300">
+                      {sub.evidence_penalty ? `-${sub.evidence_penalty}` : "0"}
                     </td>
                     <td className="p-3 text-graphite-400 font-mono text-[11px]">
                       {sub.completed_at ? new Date(sub.completed_at).toLocaleDateString() : "In progress"}
@@ -400,27 +489,254 @@ export default function SpecialistReviewPage() {
                     </p>
                   </div>
 
-                  {/* Findings Breakdown */}
-                  <div className="space-y-2">
-                    <h4 className="font-semibold text-white flex items-center gap-1.5">
-                      <Search className="w-3.5 h-3.5 text-amber-400" />
-                      <span>Artifact Findings Discovered</span>
-                    </h4>
-                    {detail.discovered_findings && detail.discovered_findings.length > 0 ? (
-                      <div className="flex flex-wrap gap-1.5">
-                        {detail.discovered_findings.map((finding, idx) => (
-                          <span
-                            key={idx}
-                            className="px-2 py-1 rounded bg-graphite-900 border border-graphite-800 text-graphite-200 font-mono text-[11px]"
-                          >
-                            ✓ {finding}
-                          </span>
-                        ))}
-                      </div>
-                    ) : (
-                      <p className="text-graphite-500 italic">No artifact findings discovered during simulation.</p>
-                    )}
-                  </div>
+                  {/* Legacy Findings Breakdown (hidden for evidence-review sessions) */}
+                  {!detail.evidence_review_available && (
+                    <div className="space-y-2">
+                      <h4 className="font-semibold text-white flex items-center gap-1.5">
+                        <Search className="w-3.5 h-3.5 text-amber-400" />
+                        <span>Artifact Findings Discovered</span>
+                      </h4>
+                      {detail.discovered_findings && detail.discovered_findings.length > 0 ? (
+                        <div className="flex flex-wrap gap-1.5">
+                          {detail.discovered_findings.map((finding, idx) => (
+                            <span
+                              key={idx}
+                              className="px-2 py-1 rounded bg-graphite-900 border border-graphite-800 text-graphite-200 font-mono text-[11px]"
+                            >
+                              ✓ {finding}
+                            </span>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-graphite-500 italic">No artifact findings discovered during simulation.</p>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Evidence Review (Specialist only) */}
+                  {detail.evidence_review_available &&
+                    (() => {
+                      const selectedLogs = buildSelectedLogRows(detail);
+                      return (
+                        <div className="space-y-3 rounded-lg border border-cyan-500/20 bg-cyan-950/10 p-4">
+                          <div className="flex flex-wrap items-center justify-between gap-2">
+                            <h4 className="font-semibold text-white flex items-center gap-1.5">
+                              <Search className="w-3.5 h-3.5 text-cyan-400" />
+                              <span>Evidence Review</span>
+                            </h4>
+                            <span className="px-2 py-0.5 rounded text-[10px] font-mono font-semibold bg-cyan-500/10 text-cyan-300 border border-cyan-500/20">
+                              SPECIALIST ONLY
+                            </span>
+                          </div>
+
+                          <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 font-mono">
+                            <div className="p-2.5 rounded bg-graphite-950/70 border border-graphite-800">
+                              <div className="text-[9px] uppercase text-graphite-500">Selected</div>
+                              <div className="text-sm font-bold text-cyan-300">
+                                {detail.selected_log_indices?.length ?? 0}
+                              </div>
+                            </div>
+                            <div className="p-2.5 rounded bg-graphite-950/70 border border-graphite-800">
+                              <div className="text-[9px] uppercase text-graphite-500">Findings</div>
+                              <div className="text-sm font-bold text-white">
+                                {(detail.evidence_findings || []).filter((f) => f.found).length}/
+                                {(detail.evidence_findings || []).length}
+                              </div>
+                            </div>
+                            <div className="p-2.5 rounded bg-graphite-950/70 border border-graphite-800">
+                              <div className="text-[9px] uppercase text-graphite-500">Noise</div>
+                              <div className="text-sm font-bold text-amber-300">
+                                {detail.noise_selections?.length ?? 0}
+                              </div>
+                            </div>
+                            <div className="p-2.5 rounded bg-graphite-950/70 border border-graphite-800">
+                              <div className="text-[9px] uppercase text-graphite-500">Gross</div>
+                              <div className="text-sm font-bold text-emerald-300">
+                                {detail.gross_findings_points}
+                              </div>
+                            </div>
+                            <div className="p-2.5 rounded bg-graphite-950/70 border border-graphite-800">
+                              <div className="text-[9px] uppercase text-graphite-500">Net / Penalty</div>
+                              <div className="text-sm font-bold text-white">
+                                {detail.findings_points}
+                                <span className="text-red-300 text-xs"> / -{detail.evidence_penalty}</span>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Selected logs */}
+                          <div className="space-y-1.5">
+                            <h5 className="text-[11px] font-semibold uppercase tracking-wide text-graphite-300">
+                              Selected Logs
+                            </h5>
+                            {selectedLogs.length === 0 ? (
+                              <p className="text-graphite-500 italic">
+                                No evidence logs were selected for this attempt.
+                              </p>
+                            ) : (
+                              <div className="space-y-1.5">
+                                {selectedLogs.map((row) => (
+                                  <div
+                                    key={row.log.index}
+                                    className="flex flex-wrap items-start justify-between gap-2 p-2.5 rounded bg-graphite-950/70 border border-graphite-800"
+                                  >
+                                    <div className="min-w-0 flex-1">
+                                      <div className="flex flex-wrap items-center gap-2 font-mono text-[10px] text-graphite-400">
+                                        <span className="text-cyan-300 font-semibold">
+                                          #{row.log.index}
+                                        </span>
+                                        {row.log.timestamp && <span>{row.log.timestamp}</span>}
+                                        {row.log.source && <span>{row.log.source}</span>}
+                                        {row.log.severity && (
+                                          <span className="uppercase text-amber-300">
+                                            {row.log.severity}
+                                          </span>
+                                        )}
+                                      </div>
+                                      <div className="text-graphite-200 text-xs mt-0.5 break-words">
+                                        {row.log.message}
+                                      </div>
+                                    </div>
+                                    {row.isNoise ? (
+                                      <span className="px-2 py-0.5 rounded bg-red-950/40 border border-red-500/20 text-red-300 text-[10px] font-mono font-semibold shrink-0">
+                                        NOT EVIDENCE -2
+                                      </span>
+                                    ) : (
+                                      <span className="px-2 py-0.5 rounded bg-emerald-950/40 border border-emerald-500/20 text-emerald-300 text-[10px] font-mono font-semibold shrink-0">
+                                        MATCHED {row.findingIds.join(", ")}
+                                      </span>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Per-finding matched / missed */}
+                          <div className="space-y-1.5">
+                            <h5 className="text-[11px] font-semibold uppercase tracking-wide text-graphite-300">
+                              Key Findings
+                            </h5>
+                            <div className="space-y-2">
+                              {(detail.evidence_findings || []).map((finding) => (
+                                <div
+                                  key={finding.id}
+                                  className="rounded bg-graphite-950/70 border border-graphite-800 p-2.5 space-y-1.5"
+                                >
+                                  <div className="flex flex-wrap items-center justify-between gap-2">
+                                    <div className="flex items-center gap-1.5">
+                                      {finding.found ? (
+                                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                                      ) : (
+                                        <XCircle className="w-3.5 h-3.5 text-red-400 shrink-0" />
+                                      )}
+                                      <span className="font-medium text-white text-xs">
+                                        {finding.description}
+                                      </span>
+                                      <span className="font-mono text-[10px] text-graphite-500">
+                                        {finding.id} · {finding.domain_id}
+                                      </span>
+                                    </div>
+                                    <span
+                                      className={cn(
+                                        "font-mono text-[10px] font-semibold",
+                                        finding.found ? "text-emerald-300" : "text-red-300"
+                                      )}
+                                    >
+                                      {finding.found ? "FOUND" : "MISSED"} · {finding.earned}/
+                                      {finding.points} pts
+                                    </span>
+                                  </div>
+
+                                  <div className="space-y-1">
+                                    <div className="text-[10px] font-mono uppercase text-graphite-500">
+                                      {finding.found
+                                        ? "Matched evidence"
+                                        : "Acceptable evidence (not selected)"}
+                                    </div>
+                                    {finding.evidence_logs.length === 0 ? (
+                                      <p className="text-graphite-500 italic text-[11px]">
+                                        No authored evidence logs.
+                                      </p>
+                                    ) : (
+                                      finding.evidence_logs.map((log) => {
+                                        const matched = finding.matched_log_indices.includes(log.index);
+                                        return (
+                                          <div
+                                            key={`${finding.id}-${log.index}`}
+                                            className={cn(
+                                              "p-2 rounded border font-mono text-[10px]",
+                                              matched
+                                                ? "bg-emerald-950/30 border-emerald-500/25 text-emerald-100"
+                                                : "bg-graphite-900/60 border-graphite-800 text-graphite-300"
+                                            )}
+                                          >
+                                            <span className="text-cyan-300">#{log.index}</span>{" "}
+                                            <span className="text-graphite-500">
+                                              [{log.source} · {log.severity}]
+                                            </span>{" "}
+                                            {log.message}
+                                            {matched && (
+                                              <span className="ml-1 text-emerald-400 font-semibold">
+                                                ✓ selected
+                                              </span>
+                                            )}
+                                          </div>
+                                        );
+                                      })
+                                    )}
+                                  </div>
+
+                                  {finding.explanation && (
+                                    <p className="text-graphite-400 text-[11px] leading-relaxed">
+                                      {finding.explanation}
+                                    </p>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* Noise picks */}
+                          {(detail.noise_selections || []).length > 0 && (
+                            <div className="space-y-1.5">
+                              <h5 className="text-[11px] font-semibold uppercase tracking-wide text-red-300">
+                                Noise Picks (-2 each)
+                              </h5>
+                              <div className="space-y-1">
+                                {(detail.noise_selections || []).map((log) => (
+                                  <div
+                                    key={log.index}
+                                    className="flex items-start justify-between gap-2 p-2 rounded bg-red-950/20 border border-red-500/20 font-mono text-[10px]"
+                                  >
+                                    <div className="min-w-0">
+                                      <span className="text-cyan-300">#{log.index}</span>{" "}
+                                      <span className="text-graphite-400">
+                                        [{log.source} · {log.severity}]
+                                      </span>{" "}
+                                      <span className="text-graphite-200">{log.message}</span>
+                                    </div>
+                                    <span className="text-red-300 font-semibold shrink-0">-2 pts</span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          <div className="flex flex-wrap items-center justify-end gap-3 border-t border-graphite-800 pt-2 font-mono text-[11px]">
+                            <span className="text-graphite-400">
+                              Gross: <span className="text-emerald-300">{detail.gross_findings_points} pts</span>
+                            </span>
+                            <span className="text-graphite-400">
+                              Penalty: <span className="text-red-300">-{detail.evidence_penalty} pts</span>
+                            </span>
+                            <span className="text-graphite-400">
+                              Net findings: <span className="text-white">{detail.findings_points} pts</span>
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })()}
 
                   {/* Actions Taken */}
                   <div className="space-y-2">
@@ -468,6 +784,12 @@ export default function SpecialistReviewPage() {
                                 <div className="text-[10px] text-graphite-500 font-mono">
                                   {new Date(item.timestamp).toLocaleTimeString()}
                                 </div>
+                                {item.action_type === "select_evidence" &&
+                                  describeEvidenceAction(item.payload) && (
+                                    <div className="text-[10px] text-cyan-300 font-mono">
+                                      {describeEvidenceAction(item.payload)}
+                                    </div>
+                                  )}
                               </div>
                             </div>
 
@@ -507,7 +829,7 @@ export default function SpecialistReviewPage() {
                     navigate(
                       `/discussions/new?scenario_id=${detail.scenario_id}&scenario_title=${encodeURIComponent(
                         detail.scenario_title
-                      )}`
+                      )}&session_id=${detail.session_id}`
                     );
                   }}
                   className="flex items-center gap-2 px-4 py-1.5 rounded-md bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs transition-all shadow-sm cursor-pointer"
