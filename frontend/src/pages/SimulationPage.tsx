@@ -609,6 +609,13 @@ export default function SimulationPage() {
               Select the logs that prove each finding. Each unrelated log costs 2 points. Correctness is revealed after submission.
             </p>
 
+            {typeof scenario.total_findings === "number" && (
+              <p className="text-[10px] font-mono text-graphite-500">
+                Key Findings in this Scenario:{" "}
+                <span className="text-graphite-300 font-semibold">{scenario.total_findings}</span>
+              </p>
+            )}
+
             <KqlSearchBar
               sessionId={session.session_id}
               logs={scenario.initial_logs}

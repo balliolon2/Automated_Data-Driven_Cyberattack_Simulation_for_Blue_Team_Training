@@ -122,12 +122,12 @@ These are both prompt instructions and validator rules.
 1. **Pick the minimum decisive set.** Choose the smallest set of logs that would convince a SOC analyst of the finding. One log is acceptable; several are acceptable when the finding needs corroboration.
 2. **No positional chunking.** Never select a contiguous range merely because it sits between noise blocks.
 3. **True Positive evidence** must directly support the malicious conclusion: the malicious command, the unauthorized access, the exfiltration connection, the persistence mechanism, the policy change, etc.
-4. **False Positive evidence** must establish the benign/authorized explanation: approved change ticket, HR travel confirmation, scheduled maintenance window, authorized scanner range, known service account, etc. Do not select only the high-severity alert that opened the case.
+4. **False Positive evidence** must establish the benign/authorized explanation: approved change ticket, HR travel confirmation, scheduled maintenance window, authorized scanner range, known service account, etc. When no such record exists, an observed benign activity pattern that explains the alert (for example, known streaming traffic to video domains) is an acceptable benign context log, provided it is not merely the high-severity alert that opened the case. Do not select only the alert.
 5. **Do not select a log just because it is high severity.** Severity is a triage hint, not proof.
-6. **Do not select generic noise.** Baseline Kerberos tickets, routine proxy traffic, and unrelated DHCP events are not evidence.
+6. **Do not select generic noise.** Baseline Kerberos tickets, unexplained routine proxy traffic, and unrelated DHCP events are not evidence.
 7. **Overlap is allowed.** A log may support more than one finding if it genuinely proves both. The report flags shared logs for the reviewer.
 8. **Union cap.** The union of all findings' evidence indices must be **≤ 50% of `initial_logs`** (floor). This keeps click-everything from earning full credit.
-9. **Verdict support is mandatory.** A True Positive scenario must have at least one finding marked `malicious`; a False Positive scenario must have at least one finding marked `benign`.
+9. **Verdict support is mandatory.** A True Positive scenario must have at least one finding marked `malicious`; a False Positive scenario must have at least one finding marked `benign` whose evidence includes a benign context log (a change/HR/scheduled record or an observed benign activity pattern).
 10. **Every finding gets evidence.** A finding with no decisive log is not scorable and must be rewritten or removed.
 11. **Rationale is mandatory.** One sentence (≤ 300 characters) citing the log message and why it proves the finding.
 
@@ -218,6 +218,7 @@ The validator is shared by the drafting script, `generate_scenarios.py`, and CI.
 
 - A log is evidence for more than one finding.
 - A False Positive finding's evidence is entirely `high`/`critical` severity (possible alert-only mapping).
+- A False Positive has no change/HR/scheduled/approved record in its evidence, even when its benign context is an observed benign activity pattern. This remains a warning, not an error, so the reviewer sees the exception explicitly.
 - A True Positive finding's evidence is entirely `info`/`low` severity (unlikely to prove malice).
 - A finding's evidence spans unrelated log sources without a rationale that explains the correlation.
 - Union is between 40% and 50% (close to the cap).
@@ -270,7 +271,7 @@ Rules:
 - Include index, timestamp, source, severity, and a truncated message (≤ 140 characters) for each chosen log.
 - Show the rationale and verdict support.
 - Show all warnings.
-- For False Positive scenarios, explicitly label the benign context log so the reviewer can verify it is not just the alert.
+- For False Positive scenarios, explicitly label the benign context log so the reviewer can verify it is not just the alert. When the benign context is an observed activity pattern rather than a change/HR/scheduled record, keep the warning visible and label that pattern as the benign context.
 - Keep the raw mapping out of the brief; link to the JSON path instead.
 
 ### 7.1 Approval
@@ -355,7 +356,7 @@ Keep the legacy `KeyFinding` field for backward compatibility. If `Findings` is 
 - Return **1–4 findings**.
 - Every finding must include `evidence_log_messages` copied **exactly** from the generated log messages.
 - True Positive: at least one finding is `malicious`.
-- False Positive: at least one finding is `benign` and points to a benign context log (approved change, HR travel, scheduled maintenance, authorized scan).
+- False Positive: at least one finding is `benign` and points to a benign context log — an approved change, HR travel, scheduled maintenance, authorized scan, or an observed benign activity pattern such as known streaming traffic when no such record exists.
 - Do not invent log messages.
 - Prefer the minimum decisive set; union must stay ≤ 50% of logs.
 
@@ -421,7 +422,7 @@ Extend `ValidateScenarioCandidate` to reject:
 
 1. All 15 static scenarios pass mapping and seed validation.
 2. Every scenario has at least one finding with evidence.
-3. Every False Positive scenario has a benign context log in a `benign` finding.
+3. Every False Positive scenario has a benign context log in a `benign` finding (a change/HR/scheduled record or an observed benign activity pattern).
 4. `load_scenarios_to_db.py` succeeds; `expected_outcomes` is updated.
 5. CI fails on an intentionally broken fixture.
 

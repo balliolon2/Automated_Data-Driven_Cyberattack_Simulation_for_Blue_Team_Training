@@ -351,7 +351,7 @@ const docTemplate = `{
         },
         "/register": {
             "post": {
-                "description": "Creates a new learner account with email and password",
+                "description": "Creates a new learner account with email, password, and nickname",
                 "consumes": [
                     "application/json"
                 ],
@@ -489,7 +489,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.SimulationResultResponse"
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/dto.SimulationResultResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "result": {
+                                            "$ref": "#/definitions/models.ScenarioResult"
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     },
                     "400": {
@@ -506,6 +518,144 @@ const docTemplate = `{
                     },
                     "404": {
                         "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/simulation/select-log": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Records a select_evidence toggle action for an in-progress simulation session and returns the replayed selection.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Simulation"
+                ],
+                "summary": "Toggle one telemetry log as selected evidence",
+                "parameters": [
+                    {
+                        "description": "Evidence selection toggle",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.SelectLogRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.EvidenceSelectionResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/simulation/select-log/clear": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Records one select_evidence clear action for an in-progress simulation session.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Simulation"
+                ],
+                "summary": "Clear all selected evidence logs",
+                "parameters": [
+                    {
+                        "description": "Clear evidence selection",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.ClearLogSelectionRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.EvidenceSelectionResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
                         "schema": {
                             "$ref": "#/definitions/dto.ErrorResponse"
                         }
@@ -672,7 +822,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.SubmitScenarioResponse"
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/dto.SubmitScenarioResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "result": {
+                                            "$ref": "#/definitions/models.ScenarioResult"
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     },
                     "400": {
@@ -701,6 +863,138 @@ const docTemplate = `{
                     }
                 }
             }
+        },
+        "/specialist/submissions": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns completed simulation sessions with evidence review counters for specialist triage.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Specialist"
+                ],
+                "summary": "List anonymized learner submissions",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Filter by scenario ID",
+                        "name": "scenario_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by security domain ID",
+                        "name": "domain_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "number",
+                        "description": "Only include submissions at or below this final score",
+                        "name": "max_score",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 1,
+                        "description": "Page number",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 20,
+                        "description": "Page size (1-100)",
+                        "name": "page_size",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/dto.SpecialistSubmissionSummary"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/specialist/submissions/{session_id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns the full investigation timeline plus the evidence review for one completed simulation session.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Specialist"
+                ],
+                "summary": "Get specialist submission detail",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Simulation Session UUID",
+                        "name": "session_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.SpecialistSubmissionDetail"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
@@ -710,6 +1004,16 @@ const docTemplate = `{
                 "actions": {},
                 "scenario": {
                     "$ref": "#/definitions/dto.ScenarioResponse"
+                },
+                "selected_log_indices": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    },
+                    "example": [
+                        0,
+                        3
+                    ]
                 },
                 "session": {}
             }
@@ -721,9 +1025,33 @@ const docTemplate = `{
                     "type": "string",
                     "example": "analyst@soc.local"
                 },
+                "nickname": {
+                    "type": "string",
+                    "example": "cyber_defender"
+                },
+                "role": {
+                    "type": "string",
+                    "example": "learner"
+                },
                 "token": {
                     "type": "string",
                     "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                },
+                "user_id": {
+                    "type": "string",
+                    "example": "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11"
+                }
+            }
+        },
+        "dto.ClearLogSelectionRequest": {
+            "type": "object",
+            "required": [
+                "session_id"
+            ],
+            "properties": {
+                "session_id": {
+                    "type": "string",
+                    "example": "123e4567-e89b-12d3-a456-426614174000"
                 }
             }
         },
@@ -825,6 +1153,89 @@ const docTemplate = `{
                 "message": {
                     "type": "string",
                     "example": "Detailed error description"
+                }
+            }
+        },
+        "dto.EvidenceFindingDTO": {
+            "type": "object",
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "domain_id": {
+                    "type": "string"
+                },
+                "earned": {
+                    "type": "integer"
+                },
+                "evidence_log_indices": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "evidence_logs": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.EvidenceLogDTO"
+                    }
+                },
+                "explanation": {
+                    "type": "string"
+                },
+                "found": {
+                    "type": "boolean"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "matched_log_indices": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "points": {
+                    "type": "integer"
+                }
+            }
+        },
+        "dto.EvidenceLogDTO": {
+            "type": "object",
+            "properties": {
+                "index": {
+                    "type": "integer"
+                },
+                "message": {
+                    "type": "string"
+                },
+                "severity": {
+                    "type": "string"
+                },
+                "source": {
+                    "type": "string"
+                },
+                "timestamp": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.EvidenceSelectionResponse": {
+            "type": "object",
+            "properties": {
+                "selected_count": {
+                    "type": "integer",
+                    "example": 2
+                },
+                "selected_log_indices": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    },
+                    "example": [
+                        0,
+                        3
+                    ]
                 }
             }
         },
@@ -937,6 +1348,10 @@ const docTemplate = `{
                     "type": "string",
                     "example": "analyst@soc.local"
                 },
+                "nickname": {
+                    "type": "string",
+                    "example": "cyber_defender"
+                },
                 "password": {
                     "type": "string",
                     "minLength": 6,
@@ -957,7 +1372,7 @@ const docTemplate = `{
                 },
                 "calculation_version": {
                     "type": "string",
-                    "example": "v1.0-weighted-0.4-0.6"
+                    "example": "proficiency-v1"
                 },
                 "completed_scenarios": {
                     "type": "integer",
@@ -1004,7 +1419,7 @@ const docTemplate = `{
                 },
                 "rubric_version": {
                     "type": "string",
-                    "example": "v1.0-20-40-40"
+                    "example": "rubric-v2-evidence-click"
                 },
                 "total_actions": {
                     "type": "integer",
@@ -1038,7 +1453,6 @@ const docTemplate = `{
                 "response_actions": {
                     "description": "ResponseActions is the canonical domain model representation"
                 },
-                "sanitized_findings": {},
                 "scenario_id": {
                     "type": "string",
                     "example": "sc-chiller-dos-01"
@@ -1046,6 +1460,33 @@ const docTemplate = `{
                 "title": {
                     "type": "string",
                     "example": "Industrial Chiller DoS Attack"
+                },
+                "total_findings": {
+                    "description": "TotalFindings is the only pre-submission finding disclosure. Evidence\nindices, finding descriptions, and verdict markers stay server-side.",
+                    "type": "integer",
+                    "example": 2
+                }
+            }
+        },
+        "dto.SelectLogRequest": {
+            "type": "object",
+            "required": [
+                "log_index",
+                "selected",
+                "session_id"
+            ],
+            "properties": {
+                "log_index": {
+                    "type": "integer",
+                    "example": 0
+                },
+                "selected": {
+                    "type": "boolean",
+                    "example": true
+                },
+                "session_id": {
+                    "type": "string",
+                    "example": "123e4567-e89b-12d3-a456-426614174000"
                 }
             }
         },
@@ -1092,6 +1533,180 @@ const docTemplate = `{
                 "needs_training": {
                     "type": "boolean",
                     "example": true
+                }
+            }
+        },
+        "dto.SpecialistSubmissionDetail": {
+            "type": "object",
+            "properties": {
+                "completed_at": {
+                    "type": "string"
+                },
+                "discovered_findings": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "domain_id": {
+                    "type": "string"
+                },
+                "evidence_findings": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.EvidenceFindingDTO"
+                    }
+                },
+                "evidence_penalty": {
+                    "type": "number"
+                },
+                "evidence_review_available": {
+                    "type": "boolean"
+                },
+                "expected_actions": {},
+                "expected_findings": {},
+                "final_score": {
+                    "type": "number"
+                },
+                "findings_points": {
+                    "type": "number"
+                },
+                "gross_findings_points": {
+                    "type": "number"
+                },
+                "is_true_positive": {
+                    "type": "boolean"
+                },
+                "learner_choice": {
+                    "type": "boolean"
+                },
+                "learner_nickname": {
+                    "type": "string"
+                },
+                "learner_tier": {
+                    "type": "integer"
+                },
+                "noise_selections": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.EvidenceLogDTO"
+                    }
+                },
+                "scenario_description": {
+                    "type": "string"
+                },
+                "scenario_id": {
+                    "type": "string"
+                },
+                "scenario_title": {
+                    "type": "string"
+                },
+                "selected_actions": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "selected_log_indices": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "session_id": {
+                    "type": "string"
+                },
+                "timeline": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.SubmissionTimelineAction"
+                    }
+                },
+                "tp_fp_correct": {
+                    "type": "boolean"
+                },
+                "tp_fp_explanation": {
+                    "type": "string"
+                },
+                "tp_fp_points": {
+                    "type": "number"
+                }
+            }
+        },
+        "dto.SpecialistSubmissionSummary": {
+            "type": "object",
+            "properties": {
+                "actions_count": {
+                    "type": "integer"
+                },
+                "completed_at": {
+                    "type": "string"
+                },
+                "domain_id": {
+                    "type": "string"
+                },
+                "domain_name": {
+                    "type": "string"
+                },
+                "evidence_penalty": {
+                    "type": "number"
+                },
+                "evidence_selected_count": {
+                    "type": "integer"
+                },
+                "final_score": {
+                    "type": "number"
+                },
+                "findings_found_count": {
+                    "type": "integer"
+                },
+                "learner_nickname": {
+                    "type": "string"
+                },
+                "learner_tier": {
+                    "type": "integer"
+                },
+                "noise_selected_count": {
+                    "type": "integer"
+                },
+                "scenario_id": {
+                    "type": "string"
+                },
+                "scenario_title": {
+                    "type": "string"
+                },
+                "session_id": {
+                    "type": "string"
+                },
+                "total_findings_count": {
+                    "type": "integer"
+                },
+                "tp_fp_correct": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "dto.SubmissionTimelineAction": {
+            "type": "object",
+            "properties": {
+                "action_id": {
+                    "type": "integer"
+                },
+                "action_type": {
+                    "type": "string"
+                },
+                "is_correct": {
+                    "type": "boolean"
+                },
+                "payload": {},
+                "points": {
+                    "type": "integer"
+                },
+                "step_order": {
+                    "type": "integer"
+                },
+                "timestamp": {
+                    "type": "string"
                 }
             }
         },
@@ -1162,15 +1777,6 @@ const docTemplate = `{
                 "tp_fp_selected"
             ],
             "properties": {
-                "discovered_findings": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    },
-                    "example": [
-                        "[\"find-auth-fail\"]"
-                    ]
-                },
                 "is_true_positive": {
                     "type": "boolean",
                     "example": true
@@ -1181,7 +1787,17 @@ const docTemplate = `{
                         "type": "string"
                     },
                     "example": [
-                        "[\"act-contain-01\"]"
+                        "act-contain-01"
+                    ]
+                },
+                "selected_log_indices": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    },
+                    "example": [
+                        0,
+                        3
                     ]
                 },
                 "session_id": {
@@ -1206,6 +1822,149 @@ const docTemplate = `{
                     "example": false
                 },
                 "result": {}
+            }
+        },
+        "models.DomainScoreDetail": {
+            "type": "object",
+            "properties": {
+                "earned": {
+                    "type": "number"
+                },
+                "max_points": {
+                    "type": "number"
+                },
+                "percentage": {
+                    "type": "number"
+                }
+            }
+        },
+        "models.FindingResult": {
+            "type": "object",
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "domain_id": {
+                    "type": "string"
+                },
+                "earned": {
+                    "type": "integer"
+                },
+                "evidence_log_indices": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "explanation": {
+                    "type": "string"
+                },
+                "found": {
+                    "type": "boolean"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "matched_log_indices": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "points": {
+                    "type": "integer"
+                }
+            }
+        },
+        "models.ResponseActionResult": {
+            "type": "object",
+            "properties": {
+                "domain_id": {
+                    "type": "string"
+                },
+                "earned": {
+                    "type": "integer"
+                },
+                "explanation": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "is_correct": {
+                    "type": "boolean"
+                },
+                "label": {
+                    "type": "string"
+                },
+                "phase": {
+                    "type": "string"
+                },
+                "points": {
+                    "type": "integer"
+                },
+                "selected": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "models.ScenarioResult": {
+            "type": "object",
+            "properties": {
+                "domain_scores": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "$ref": "#/definitions/models.DomainScoreDetail"
+                    }
+                },
+                "evidence_penalty": {
+                    "type": "number"
+                },
+                "findings_detail": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.FindingResult"
+                    }
+                },
+                "findings_points": {
+                    "type": "number"
+                },
+                "gross_findings_points": {
+                    "type": "number"
+                },
+                "noise_log_indices": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "response_detail": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.ResponseActionResult"
+                    }
+                },
+                "response_points": {
+                    "type": "number"
+                },
+                "selected_log_indices": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "total_score": {
+                    "type": "number"
+                },
+                "tp_fp_correct": {
+                    "type": "boolean"
+                },
+                "tp_fp_explanation": {
+                    "type": "string"
+                },
+                "tp_fp_points": {
+                    "type": "number"
+                }
             }
         }
     },

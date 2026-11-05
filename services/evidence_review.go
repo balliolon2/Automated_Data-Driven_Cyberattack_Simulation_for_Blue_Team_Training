@@ -3,8 +3,6 @@ package services
 import (
 	"encoding/json"
 	"fmt"
-	"math"
-	"sort"
 	"time"
 
 	"cybersim/models"
@@ -60,82 +58,56 @@ type EvidenceReview struct {
 }
 
 // BuildEvidenceReview computes the per-finding evidence trail for a selected
-// evidence set. A finding is credited in full when the selection intersects its
-// authored evidence indices; shared indices credit every finding that lists
-// them and are never noise. Every selected index outside every evidence set is
-// noise and costs EvidencePenaltyPerLog points.
+// evidence set. Credit, matches, noise, penalty and points all come from the
+// shared EvaluateEvidence calculation so the review cannot drift from scoring.
 func BuildEvidenceReview(scenario models.Scenario, selectedLogIndices []int) EvidenceReview {
-	selected := normalizeIndices(selectedLogIndices)
-	selectedSet := make(map[int]struct{}, len(selected))
-	for _, index := range selected {
-		selectedSet[index] = struct{}{}
-	}
-
-	findings, totalFindings := expectedReviewFindings(scenario)
+	evidence := EvaluateEvidence(scenario, selectedLogIndices)
 	logs := mapSlice(scenario.InitialLogs)
+	_, totalFindings := expectedReviewFindings(scenario)
 
-	review := EvidenceReview{
-		SelectedLogIndices:    selected,
-		EvidenceFindings:      make([]EvidenceFindingReview, 0, len(findings)),
-		NoiseSelections:       make([]EvidenceLogSnippet, 0),
-		TotalFindingsCount:    totalFindings,
-		EvidenceSelectedCount: len(selected),
-	}
+	findings := make([]EvidenceFindingReview, 0, len(evidence.Findings))
+	foundCount := 0
+	for _, finding := range evidence.Findings {
+		if finding.Found {
+			foundCount++
+		}
 
-	evidenceUnion := make(map[int]struct{})
-
-	for _, finding := range findings {
-		findingID, _ := finding["id"].(string)
-		description, _ := finding["description"].(string)
-		domainID, _ := finding["domain_id"].(string)
-		explanation, _ := finding["explanation"].(string)
-		points := findingPoints(finding)
-		evidenceIndices := decodeEvidenceLogIndices(finding["evidence_log_indices"], findingID)
-
-		evidenceLogs := make([]EvidenceLogSnippet, 0, len(evidenceIndices))
-		matched := make([]int, 0, len(evidenceIndices))
-		for _, index := range evidenceIndices {
-			evidenceUnion[index] = struct{}{}
+		evidenceLogs := make([]EvidenceLogSnippet, 0, len(finding.EvidenceLogIndices))
+		for _, index := range finding.EvidenceLogIndices {
 			evidenceLogs = append(evidenceLogs, buildEvidenceLogSnippet(logs, index))
-			if _, selectedHere := selectedSet[index]; selectedHere {
-				matched = append(matched, index)
-			}
 		}
-		sort.Ints(matched)
 
-		found := len(matched) > 0
-		earned := 0
-		if found {
-			earned = points
-			review.FindingsFoundCount++
-		}
-		review.GrossFindingsPoints += float64(earned)
-
-		review.EvidenceFindings = append(review.EvidenceFindings, EvidenceFindingReview{
-			ID:                 findingID,
-			Description:        description,
-			DomainID:           domainID,
-			Found:              found,
-			Points:             points,
-			Earned:             earned,
-			EvidenceLogIndices: evidenceIndices,
-			MatchedLogIndices:  matched,
+		findings = append(findings, EvidenceFindingReview{
+			ID:                 finding.ID,
+			Description:        finding.Description,
+			DomainID:           finding.DomainID,
+			Found:              finding.Found,
+			Points:             finding.Points,
+			Earned:             finding.Earned,
+			EvidenceLogIndices: finding.EvidenceLogIndices,
+			MatchedLogIndices:  finding.MatchedLogIndices,
 			EvidenceLogs:       evidenceLogs,
-			Explanation:        explanation,
+			Explanation:        finding.Explanation,
 		})
 	}
 
-	for _, index := range selected {
-		if _, isEvidence := evidenceUnion[index]; isEvidence {
-			continue
-		}
-		review.NoiseSelections = append(review.NoiseSelections, buildEvidenceLogSnippet(logs, index))
+	noise := make([]EvidenceLogSnippet, 0, len(evidence.NoiseLogIndices))
+	for _, index := range evidence.NoiseLogIndices {
+		noise = append(noise, buildEvidenceLogSnippet(logs, index))
 	}
-	review.NoiseSelectedCount = len(review.NoiseSelections)
-	review.EvidencePenalty = float64(EvidencePenaltyPerLog * review.NoiseSelectedCount)
-	review.FindingsPoints = math.Max(0, review.GrossFindingsPoints-review.EvidencePenalty)
 
-	return review
+	return EvidenceReview{
+		SelectedLogIndices:    evidence.SelectedLogIndices,
+		EvidenceFindings:      findings,
+		NoiseSelections:       noise,
+		FindingsFoundCount:    foundCount,
+		TotalFindingsCount:    totalFindings,
+		EvidenceSelectedCount: len(evidence.SelectedLogIndices),
+		NoiseSelectedCount:    len(evidence.NoiseLogIndices),
+		GrossFindingsPoints:   evidence.GrossFindingsPoints,
+		FindingsPoints:        evidence.FindingsPoints,
+		EvidencePenalty:       evidence.EvidencePenalty,
+	}
 }
 
 // BuildEvidenceReviewFromActions replays a session's select_evidence actions.
@@ -251,17 +223,15 @@ func ScenarioResultFromRecorded(value any) (models.ScenarioResult, bool) {
 // EvidenceReviewFromResult exposes the recorded ScenarioResult as read-only
 // review counters. It never re-scores an attempt.
 func EvidenceReviewFromResult(result models.ScenarioResult) EvidenceReview {
-	selected := normalizeIndices(result.SelectedLogIndices)
-	noise := normalizeIndices(result.NoiseLogIndices)
+	selected := NormalizeIndices(result.SelectedLogIndices)
+	noise := NormalizeIndices(result.NoiseLogIndices)
 
 	findings := make([]EvidenceFindingReview, 0, len(result.FindingsDetail))
 	foundCount := 0
-	grossPoints := 0.0
 	for _, detail := range result.FindingsDetail {
 		if detail.Found {
 			foundCount++
 		}
-		grossPoints += float64(detail.Earned)
 		findings = append(findings, EvidenceFindingReview{
 			ID:                 detail.ID,
 			Description:        detail.Description,
@@ -269,8 +239,8 @@ func EvidenceReviewFromResult(result models.ScenarioResult) EvidenceReview {
 			Found:              detail.Found,
 			Points:             detail.Points,
 			Earned:             detail.Earned,
-			EvidenceLogIndices: normalizeIndices(detail.EvidenceLogIndices),
-			MatchedLogIndices:  normalizeIndices(detail.MatchedLogIndices),
+			EvidenceLogIndices: NormalizeIndices(detail.EvidenceLogIndices),
+			MatchedLogIndices:  NormalizeIndices(detail.MatchedLogIndices),
 			Explanation:        detail.Explanation,
 		})
 	}
@@ -282,7 +252,7 @@ func EvidenceReviewFromResult(result models.ScenarioResult) EvidenceReview {
 		TotalFindingsCount:    len(result.FindingsDetail),
 		EvidenceSelectedCount: len(selected),
 		NoiseSelectedCount:    len(noise),
-		GrossFindingsPoints:   grossPoints,
+		GrossFindingsPoints:   result.GrossFindingsPoints,
 		FindingsPoints:        result.FindingsPoints,
 		EvidencePenalty:       result.EvidencePenalty,
 	}

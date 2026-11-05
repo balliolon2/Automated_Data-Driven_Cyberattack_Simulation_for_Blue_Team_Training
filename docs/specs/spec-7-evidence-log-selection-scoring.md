@@ -10,7 +10,7 @@ status: "ready-for-agent"
 
 A Learner investigates a Scenario, finds the log that clearly proves the incident, and still receives zero points for the Detect & Analyze Key Findings. The current implementation only credits a Key Finding when one transient KQL-filtered result set happens to contain every evidence index assigned to that finding. Seeing the right log is not enough; the Learner must also construct a query that returns the entire assigned range at once. The evidence indices themselves were assigned by positional chunking rather than by what each log proves, so the requirement is both invisible and arbitrary.
 
-The Learner has no way to show their reasoning by marking a specific log as evidence. They cannot tell which selected rows earned credit or why they lost points, and a Specialist reviewing the attempt cannot see what the Learner considered important. False Positive Scenarios are especially unfair: the benign explanation (an approved change, HR travel, a scheduled maintenance window) may sit in a different query result than the alert, so a correct investigation can score nothing.
+The Learner has no way to show their reasoning by marking a specific log as evidence. They cannot tell which selected rows earned credit or why they lost points, and a Specialist reviewing the attempt cannot see what the Learner considered important. False Positive Scenarios are especially unfair: the benign explanation — an approved change, HR travel, a scheduled maintenance window, or an observed benign activity pattern such as known streaming traffic — may sit in a different query result than the alert, so a correct investigation can score nothing.
 
 The result is an Evaluation Result that does not reflect investigation skill, a Detect & Analyze component that feels broken, and a review console that cannot coach the exact mistake.
 
@@ -21,7 +21,7 @@ Make evidence selection an explicit Learner action in Detect & Analyze:
 1. Every log row is clickable. Clicking toggles it into a visible **Selected Evidence** set; clicking again removes it.
 2. A Key Finding is credited in full when the Learner selects any one of that finding's authored Evidence Logs. There is no partial credit inside a finding, and selecting several logs from the same finding does not double-credit.
 3. Selecting a log that proves no Key Finding is a false lead and costs 2 points. The findings component floors at 0.
-4. Evidence Logs are authored per Key Finding, including the benign context logs that prove a False Positive. Positional chunking is removed.
+4. Evidence Logs are authored per Key Finding, including the benign context logs that prove a False Positive (a change/HR/scheduled record or an observed benign activity pattern). Positional chunking is removed.
 5. Selections persist server-side across refresh and filter changes. Submission uses the server-recorded selection, not a client-supplied answer.
 6. Correctness is revealed only on the result page. During the Scenario the Learner sees selected state and a count, never green/red validation.
 7. The Learner-facing Scenario payload no longer ships evidence indices. Only the number of Key Findings is exposed.
@@ -70,7 +70,7 @@ Make evidence selection an explicit Learner action in Detect & Analyze:
 
 37. As a Scenario Author, I want every Key Finding to have authored Evidence Logs, so that a Learner is never asked to find proof that does not exist.
 38. As a Scenario Author, I want the number of Evidence Logs to vary by Scenario, so that a complex False Positive can require several corroborating logs without a rigid cap.
-39. As a Scenario Author, I want a False Positive finding to include a benign context log, so that the verdict is provable from telemetry.
+39. As a Scenario Author, I want a False Positive finding to include a benign context log — a change/HR/scheduled record or an observed benign activity pattern — so that the verdict is provable from telemetry.
 40. As a Scenario Author, I want an LLM to draft the mappings from the actual log messages, so that authoring 15 Scenarios does not become manual indexing.
 41. As a Scenario Author, I want the LLM to return log messages rather than invented array positions, so that mappings cannot silently drift when the log set changes.
 42. As a Scenario Author, I want a validator to reject empty, duplicated, out-of-range, or over-broad evidence, so that an invalid Scenario never reaches a Learner.
@@ -112,7 +112,7 @@ Make evidence selection an explicit Learner action in Detect & Analyze:
 
 - Each Key Finding carries an authored `evidence_log_indices` array and a `verdict_support` marker (`malicious`, `benign`, or `supporting`).
 - Evidence counts are Scenario-dependent. There is no per-finding cap, but the union of all findings' evidence indices must not exceed 50% of the Scenario's log count.
-- A True Positive Scenario must have at least one `malicious` verdict-supporting finding. A False Positive Scenario must have at least one `benign` verdict-supporting finding whose evidence includes a benign context log, not merely the alert that opened the case.
+- A True Positive Scenario must have at least one `malicious` verdict-supporting finding. A False Positive Scenario must have at least one `benign` verdict-supporting finding whose evidence includes a benign context log, not merely the alert that opened the case. A benign context log is either a change/HR/scheduled-maintenance/authorization record or an observed benign activity pattern (for example, known streaming traffic) that explains the alert when no such record exists. Either form must establish the benign/authorized explanation.
 - Points are positive integers. Missing points default to 10; fractional or non-positive points are an authoring error.
 - JSONB evidence arrays arrive as generic numeric arrays and must be decoded defensively into integer indices. Invalid indices are logged and treated as unusable, never silently truncated.
 - The Learner-facing Scenario payload exposes only `total_findings`; it removes the previous sanitized findings array and all evidence indices, finding descriptions, and verdict markers.
@@ -160,6 +160,7 @@ Make evidence selection an explicit Learner action in Detect & Analyze:
 - Positional chunking of evidence indices is removed. Every Evidence Log is authored against the finding it actually proves.
 - Static seed authoring uses an LLM drafting step, a deterministic validator, and one blocking human approval of a compact report. The mapping JSON, report, and final seed are committed together.
 - The validator rejects missing or extra scenarios/findings, empty or duplicate or out-of-range indices, empty rationales, invalid verdict support, a union above 50%, non-positive points, missing approval, and an approval hash mismatch. It treats a shared log and an alert-only False Positive evidence set as warnings.
+- Scenario 8 (Exorbitant Bandwidth Consumption on Guest Network) is an accepted exception: its benign context is the observed streaming traffic (proxy CONNECT requests to video domains), not a change/HR/scheduled record. The authoring report must still warn that no change/HR/scheduled/approved record exists in its evidence, so the reviewer sees the exception explicitly.
 - The approval records the approver, timestamp, and a hash of the mapping. Any mapping edit invalidates the hash and blocks seeding.
 - The seed pipeline applies the approved mapping, copies both evidence indices and verdict support into the Scenario's expected outcomes, and writes the seed. There is no positional fallback.
 - CI validates the mapping and the final seed.
@@ -210,7 +211,7 @@ Make evidence selection an explicit Learner action in Detect & Analyze:
 
 - **Root cause evidence.** The Learner page inferred discovery from the transient filtered result set, so a finding was credited only when every assigned index appeared together. The seed generator distributed evidence indices by splitting the block between the noise sections, not by reading the log messages. This is why a Learner can see the answer and still score zero.
 - **Workflow source of truth.** The grilling produced detailed workflow specs: the Learner scoring loop and the Scenario evidence authoring loop. The Specialist analysis workflow was updated to expose the evidence review. This spec is the implementation-facing synthesis of those decisions.
-- **Glossary additions.** Add Evidence Log, Evidence Penalty, and Benign Context Log to the project glossary, and clarify that a Key Finding is proven by one or more Evidence Logs rather than discovered through a query window.
+- **Glossary additions.** Add Evidence Log, Evidence Penalty, and Benign Context Log (a change/HR/scheduled record or an observed benign activity pattern such as known streaming traffic) to the project glossary, and clarify that a Key Finding is proven by one or more Evidence Logs rather than discovered through a query window.
 - **Scoring contract alignment.** The existing Scoring and Proficiency Contract defines the findings component as found points over total points. This spec refines that component to binary per-finding credit plus a noise penalty, recorded under a new rubric version. Old sessions are not recalculated.
 - **ADR alignment.** ADR-0004 is respected: scoring stays in the pure evaluator and the frontend renders the server's Evaluation Result. ADR-0003 is respected and refined: scenarios remain LLM-generated with static fallback, while evidence is now returned as exact log messages mapped server-side rather than as LLM-invented array positions.
 - **Originating issue:** #11, “Detect & Analysis Findings can not get score”.

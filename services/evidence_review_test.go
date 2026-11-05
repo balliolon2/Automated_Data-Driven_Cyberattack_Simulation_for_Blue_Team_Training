@@ -351,10 +351,11 @@ func TestBuildEvidenceReviewForSession_UsesRubricVersionForZeroSelection(t *test
 
 func TestEvidenceReviewFromResult_UsesRecordedCounters(t *testing.T) {
 	result := models.ScenarioResult{
-		SelectedLogIndices: []int{1, 4},
-		NoiseLogIndices:    []int{4},
-		FindingsPoints:     10,
-		EvidencePenalty:    2,
+		SelectedLogIndices:  []int{1, 4},
+		NoiseLogIndices:     []int{4},
+		GrossFindingsPoints: 10,
+		FindingsPoints:      10,
+		EvidencePenalty:     2,
 		FindingsDetail: []models.FindingResult{
 			{ID: "f1", Found: true, Points: 10, Earned: 10, EvidenceLogIndices: []int{1}, MatchedLogIndices: []int{1}},
 			{ID: "f2", Found: false, Points: 10, Earned: 0, EvidenceLogIndices: []int{5}},

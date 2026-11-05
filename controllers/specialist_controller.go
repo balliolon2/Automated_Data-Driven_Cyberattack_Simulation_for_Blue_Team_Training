@@ -210,7 +210,22 @@ func (sc *SpecialistController) GetApplicationStatus(c *gin.Context) {
 	c.JSON(http.StatusOK, app.ToDTO(user.Nickname, user.Email))
 }
 
-// GetSubmissions retrieves completed simulation sessions with anonymized learner nicknames
+// GetSubmissions godoc
+// @Summary List anonymized learner submissions
+// @Description Returns completed simulation sessions with evidence review counters for specialist triage.
+// @Tags Specialist
+// @Produce json
+// @Security BearerAuth
+// @Param scenario_id query string false "Filter by scenario ID"
+// @Param domain_id query string false "Filter by security domain ID"
+// @Param max_score query number false "Only include submissions at or below this final score"
+// @Param page query int false "Page number" default(1)
+// @Param page_size query int false "Page size (1-100)" default(20)
+// @Success 200 {array} dto.SpecialistSubmissionSummary
+// @Failure 401 {object} dto.ErrorResponse
+// @Failure 403 {object} dto.ErrorResponse
+// @Failure 500 {object} dto.ErrorResponse
+// @Router /specialist/submissions [get]
 func (sc *SpecialistController) GetSubmissions(c *gin.Context) {
 	scenarioID := strings.TrimSpace(c.Query("scenario_id"))
 	domainID := strings.TrimSpace(c.Query("domain_id"))
@@ -346,7 +361,18 @@ func (sc *SpecialistController) GetSubmissions(c *gin.Context) {
 	c.JSON(http.StatusOK, result)
 }
 
-// GetSubmissionDetail provides deep-dive investigation trace for an attempt
+// GetSubmissionDetail godoc
+// @Summary Get specialist submission detail
+// @Description Returns the full investigation timeline plus the evidence review for one completed simulation session.
+// @Tags Specialist
+// @Produce json
+// @Security BearerAuth
+// @Param session_id path string true "Simulation Session UUID"
+// @Success 200 {object} dto.SpecialistSubmissionDetail
+// @Failure 401 {object} dto.ErrorResponse
+// @Failure 403 {object} dto.ErrorResponse
+// @Failure 404 {object} dto.ErrorResponse
+// @Router /specialist/submissions/{session_id} [get]
 func (sc *SpecialistController) GetSubmissionDetail(c *gin.Context) {
 	sessionID := c.Param("session_id")
 

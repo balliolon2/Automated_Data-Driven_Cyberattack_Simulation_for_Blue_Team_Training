@@ -113,19 +113,20 @@ type DomainScoreDetail struct {
 }
 
 type ScenarioResult struct {
-	TotalScore         float64                      `json:"total_score"`
-	TPFPCorrect        bool                         `json:"tp_fp_correct"`
-	TPFPPoints         float64                      `json:"tp_fp_points"`
-	FindingsPoints     float64                      `json:"findings_points"`
-	ResponsePoints     float64                      `json:"response_points"`
-	EvidencePenalty    float64                      `json:"evidence_penalty"`
-	NoiseLogIndices    []int                        `json:"noise_log_indices"`
-	SelectedLogIndices []int                        `json:"selected_log_indices"`
-	DomainScores       map[string]DomainScoreDetail `json:"domain_scores"`
-	DomainScoreMap     map[string]float64           `json:"-"` // internal use for proficiency updates
-	FindingsDetail     []FindingResult              `json:"findings_detail"`
-	ResponseDetail     []ResponseActionResult       `json:"response_detail"`
-	TPFPExplanation    string                       `json:"tp_fp_explanation"`
+	TotalScore          float64                      `json:"total_score"`
+	TPFPCorrect         bool                         `json:"tp_fp_correct"`
+	TPFPPoints          float64                      `json:"tp_fp_points"`
+	GrossFindingsPoints float64                      `json:"gross_findings_points"`
+	FindingsPoints      float64                      `json:"findings_points"`
+	ResponsePoints      float64                      `json:"response_points"`
+	EvidencePenalty     float64                      `json:"evidence_penalty"`
+	NoiseLogIndices     []int                        `json:"noise_log_indices"`
+	SelectedLogIndices  []int                        `json:"selected_log_indices"`
+	DomainScores        map[string]DomainScoreDetail `json:"domain_scores"`
+	DomainScoreMap      map[string]float64           `json:"-"` // internal use for proficiency updates
+	FindingsDetail      []FindingResult              `json:"findings_detail"`
+	ResponseDetail      []ResponseActionResult       `json:"response_detail"`
+	TPFPExplanation     string                       `json:"tp_fp_explanation"`
 }
 
 type SubmitScenarioInput struct {

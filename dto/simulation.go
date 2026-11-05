@@ -38,9 +38,10 @@ type ScenarioResponse struct {
 
 // ActiveSimulationResponse contains the active session and corresponding scenario
 type ActiveSimulationResponse struct {
-	Session  any              `json:"session"`
-	Scenario ScenarioResponse `json:"scenario"`
-	Actions  any              `json:"actions,omitempty"`
+	Session            any              `json:"session"`
+	Scenario           ScenarioResponse `json:"scenario"`
+	Actions            any              `json:"actions,omitempty"`
+	SelectedLogIndices []int            `json:"selected_log_indices" example:"0,3"`
 }
 
 // LogQueryRequest defines the query string executed by the learner against telemetry logs
@@ -60,8 +61,8 @@ type SubmitScenarioRequest struct {
 	SessionID          string   `json:"session_id" binding:"required" example:"123e4567-e89b-12d3-a456-426614174000"`
 	IsTruePositive     bool     `json:"is_true_positive" example:"true"`
 	TPFPSelected       bool     `json:"tp_fp_selected" binding:"required" example:"true"`
-	SelectedActions    []string `json:"selected_actions" binding:"required" example:"[\"act-contain-01\"]"`
-	SelectedLogIndices []int    `json:"selected_log_indices" example:"[0,3]"`
+	SelectedActions    []string `json:"selected_actions" binding:"required" example:"act-contain-01"`
+	SelectedLogIndices []int    `json:"selected_log_indices" example:"0,3"`
 }
 
 // SelectLogRequest toggles one log in the learner's selected evidence set.
@@ -79,7 +80,7 @@ type ClearLogSelectionRequest struct {
 
 // EvidenceSelectionResponse is the server-replayed selected evidence set.
 type EvidenceSelectionResponse struct {
-	SelectedLogIndices []int `json:"selected_log_indices" example:"[0,3]"`
+	SelectedLogIndices []int `json:"selected_log_indices" example:"0,3"`
 	SelectedCount      int   `json:"selected_count" example:"2"`
 }
 
@@ -102,8 +103,8 @@ type SimulationResultResponse struct {
 // ResearchSummaryResponse provides experimental analytics across pre-test, scenarios, and post-test
 type ResearchSummaryResponse struct {
 	ProtocolVersion    string            `json:"protocol_version" example:"protocol-v1"`
-	CalculationVersion string            `json:"calculation_version" example:"v1.0-weighted-0.4-0.6"`
-	RubricVersion      string            `json:"rubric_version" example:"v1.0-20-40-40"`
+	CalculationVersion string            `json:"calculation_version" example:"proficiency-v1"`
+	RubricVersion      string            `json:"rubric_version" example:"rubric-v2-evidence-click"`
 	ParticipantID      any               `json:"participant_id"`
 	HasPreTest         bool              `json:"has_pre_test" example:"true"`
 	PreTestScore       *float64          `json:"pre_test_score" example:"65.0"`

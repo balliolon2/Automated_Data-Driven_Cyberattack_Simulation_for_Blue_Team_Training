@@ -75,6 +75,35 @@ def approve(mapping, approved_by="balliolon2", approved_at="2026-11-05T07:34:36Z
     return mapping
 
 
+def make_seed_fixture(is_true_positive=True, findings=None, title="Scenario One"):
+    scenario = make_base_scenario(title=title, is_true_positive=is_true_positive)
+    scenario["expected_outcomes"]["key_findings"] = findings or [
+        {"id": "f1", "points": 10, "evidence_log_indices": [0, 1], "verdict_support": "malicious"},
+        {"id": "f2", "points": 10, "evidence_log_indices": [2, 3], "verdict_support": "supporting"},
+    ]
+    return scenario
+
+
+def mapping_from_seed(seed):
+    entries = []
+    for scenario in seed:
+        entries.append(
+            {
+                "scenario_title": scenario["title"],
+                "findings": [
+                    {
+                        "finding_id": finding["id"],
+                        "evidence_log_indices": list(finding.get("evidence_log_indices", [])),
+                        "rationale": "Approved evidence for the test fixture.",
+                        "verdict_support": finding.get("verdict_support"),
+                    }
+                    for finding in scenario["expected_outcomes"]["key_findings"]
+                ],
+            }
+        )
+    return approve({"schema_version": 1, "scenarios": entries})
+
+
 class ValidatorTestCase(unittest.TestCase):
     def assert_valid(self, errors):
         self.assertEqual([], errors)
@@ -364,7 +393,7 @@ class SeedValidationTests(ValidatorTestCase):
         ]
         return scenario
 
-    def validate(self, seed, base=None, **kwargs):
+    def validate(self, seed, base=None, mapping=None, **kwargs):
         if base is None:
             first = seed[0]
             base = [
@@ -374,7 +403,16 @@ class SeedValidationTests(ValidatorTestCase):
                     log_count=len(first.get("initial_logs", [])),
                 )
             ]
-        return validator.validate_seed(seed, base, **kwargs)
+        if mapping is None:
+            canonical = [
+                make_seed_fixture(
+                    title=scenario.get("title"),
+                    is_true_positive=scenario.get("is_true_positive"),
+                )
+                for scenario in base
+            ]
+            mapping = mapping_from_seed(canonical)
+        return validator.validate_seed(seed, base, mapping=mapping, **kwargs)
 
     def test_valid_seed_passes(self):
         self.assert_valid(self.validate([self.make_seed_scenario()]))
@@ -467,6 +505,81 @@ class SeedValidationTests(ValidatorTestCase):
         self.assert_invalid(self.validate([scenario]), "Scenario One", "expected_outcomes")
 
 
+class SeedMappingBindingTests(ValidatorTestCase):
+    def setUp(self):
+        self.base = [make_base_scenario()]
+        self.seed = [make_seed_fixture()]
+        self.mapping = mapping_from_seed(self.seed)
+
+    def test_seed_matching_approved_mapping_passes(self):
+        self.assert_valid(
+            validator.validate_seed(self.seed, self.base, mapping=self.mapping)
+        )
+
+    def test_seed_with_hand_edited_evidence_fails(self):
+        self.seed[0]["expected_outcomes"]["key_findings"][0]["evidence_log_indices"] = [4, 5]
+        self.assert_invalid(
+            validator.validate_seed(self.seed, self.base, mapping=self.mapping),
+            "Scenario One",
+            "f1",
+            "do not match the approved mapping",
+        )
+
+    def test_seed_with_reordered_approved_indices_passes(self):
+        self.seed[0]["expected_outcomes"]["key_findings"][0]["evidence_log_indices"] = [1, 0]
+        self.assert_valid(
+            validator.validate_seed(self.seed, self.base, mapping=self.mapping)
+        )
+
+    def test_seed_with_hand_edited_verdict_support_fails(self):
+        self.seed[0]["expected_outcomes"]["key_findings"][1]["verdict_support"] = "benign"
+        self.assert_invalid(
+            validator.validate_seed(self.seed, self.base, mapping=self.mapping),
+            "Scenario One",
+            "f2",
+            "verdict_support",
+            "does not match the approved mapping",
+        )
+
+    def test_seed_without_approved_mapping_block_fails(self):
+        unapproved = copy.deepcopy(self.mapping)
+        del unapproved["approval"]
+        self.assert_invalid(
+            validator.validate_seed(self.seed, self.base, mapping=unapproved),
+            "approval block is missing",
+        )
+
+    def test_seed_with_unapproved_mapping_fails(self):
+        self.mapping["approval"]["approved"] = False
+        self.assert_invalid(
+            validator.validate_seed(self.seed, self.base, mapping=self.mapping),
+            "not approved",
+        )
+
+    def test_seed_with_hash_mismatched_mapping_fails(self):
+        self.mapping["scenarios"][0]["findings"][0]["evidence_log_indices"] = [4, 5]
+        self.assert_invalid(
+            validator.validate_seed(self.seed, self.base, mapping=self.mapping),
+            "hash mismatch",
+        )
+
+    def test_seed_with_missing_mapping_file_fails(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "missing_mapping.json"
+            errors = validator.validate_seed(
+                self.seed, self.base, mapping_path=str(path)
+            )
+        self.assert_invalid(errors, "Could not load approved evidence mapping")
+
+    def test_explicit_approved_mapping_path_passes(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "approved_mapping.json"
+            path.write_text(json.dumps(self.mapping), encoding="utf-8")
+            self.assert_valid(
+                validator.validate_seed(self.seed, self.base, mapping_path=str(path))
+            )
+
+
 class SeedCliTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -478,6 +591,11 @@ class SeedCliTests(unittest.TestCase):
     def write_seed(self, directory, seed):
         path = Path(directory) / "scenarios_seed.json"
         path.write_text(json.dumps(seed), encoding="utf-8")
+        return path
+
+    def write_mapping(self, directory, mapping):
+        path = Path(directory) / "evidence_mapping.json"
+        path.write_text(json.dumps(mapping), encoding="utf-8")
         return path
 
     def test_cli_rejects_truncated_seed(self):
@@ -499,6 +617,61 @@ class SeedCliTests(unittest.TestCase):
                 return_code = validator.main(["--seed", str(path)])
 
         self.assertEqual(0, return_code, stderr.getvalue())
+
+    def test_cli_accepts_explicit_approved_mapping_path(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            seed_path = self.write_seed(tmp, self.full_seed)
+            mapping_path = self.write_mapping(tmp, self.mapping)
+            stderr = io.StringIO()
+            with redirect_stderr(stderr):
+                return_code = validator.main(
+                    ["--seed", str(seed_path), "--mapping", str(mapping_path)]
+                )
+
+        self.assertEqual(0, return_code, stderr.getvalue())
+
+    def test_cli_rejects_hand_edited_seed(self):
+        seed = copy.deepcopy(self.full_seed)
+        seed[0]["expected_outcomes"]["key_findings"][0]["evidence_log_indices"] = [0]
+        with tempfile.TemporaryDirectory() as tmp:
+            path = self.write_seed(tmp, seed)
+            stderr = io.StringIO()
+            with redirect_stderr(stderr):
+                return_code = validator.main(["--seed", str(path)])
+
+        self.assertEqual(1, return_code)
+        self.assertIn("do not match the approved mapping", stderr.getvalue())
+        self.assertNotIn("Traceback", stderr.getvalue())
+
+    def test_cli_rejects_unapproved_mapping_in_seed_mode(self):
+        mapping = copy.deepcopy(self.mapping)
+        mapping["approval"]["approved"] = False
+        with tempfile.TemporaryDirectory() as tmp:
+            seed_path = self.write_seed(tmp, self.full_seed)
+            mapping_path = self.write_mapping(tmp, mapping)
+            stderr = io.StringIO()
+            with redirect_stderr(stderr):
+                return_code = validator.main(
+                    ["--seed", str(seed_path), "--mapping", str(mapping_path)]
+                )
+
+        self.assertEqual(1, return_code)
+        self.assertIn("not approved", stderr.getvalue())
+        self.assertNotIn("Traceback", stderr.getvalue())
+
+    def test_cli_rejects_missing_mapping_in_seed_mode(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            seed_path = self.write_seed(tmp, self.full_seed)
+            mapping_path = Path(tmp) / "missing_mapping.json"
+            stderr = io.StringIO()
+            with redirect_stderr(stderr):
+                return_code = validator.main(
+                    ["--seed", str(seed_path), "--mapping", str(mapping_path)]
+                )
+
+        self.assertEqual(1, return_code)
+        self.assertIn("Could not read mapping", stderr.getvalue())
+        self.assertNotIn("Traceback", stderr.getvalue())
 
 
 class WarningTests(ValidatorTestCase):
@@ -569,7 +742,12 @@ class WarningTests(ValidatorTestCase):
             {"id": "f2", "points": 10, "evidence_log_indices": [1, 2], "verdict_support": "supporting"},
         ]
         warnings = []
-        errors = validator.validate_seed([scenario], [scenario], warnings=warnings)
+        errors = validator.validate_seed(
+            [scenario],
+            [scenario],
+            mapping=mapping_from_seed([scenario]),
+            warnings=warnings,
+        )
         self.assert_valid(errors)
         self.assertTrue(any("shared" in warning for warning in warnings), warnings)
         self.assertTrue(any("finding 'f1'" in warning for warning in warnings), warnings)

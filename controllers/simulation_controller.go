@@ -1025,7 +1025,7 @@ func writeSessionActionError(c *gin.Context, err error) {
 // @Produce json
 // @Security BearerAuth
 // @Param request body dto.SubmitScenarioRequest true "Scenario Submission"
-// @Success 200 {object} dto.SubmitScenarioResponse
+// @Success 200 {object} dto.SubmitScenarioResponse{result=models.ScenarioResult}
 // @Failure 400 {object} dto.ErrorResponse
 // @Failure 401 {object} dto.ErrorResponse
 // @Failure 403 {object} dto.ErrorResponse
@@ -1256,7 +1256,7 @@ func (sc *SimulationController) SubmitScenario(c *gin.Context) {
 // @Produce json
 // @Security BearerAuth
 // @Param sessionId path string true "Simulation Session UUID"
-// @Success 200 {object} dto.SimulationResultResponse
+// @Success 200 {object} dto.SimulationResultResponse{result=models.ScenarioResult}
 // @Failure 400 {object} dto.ErrorResponse
 // @Failure 401 {object} dto.ErrorResponse
 // @Failure 404 {object} dto.ErrorResponse

@@ -2,7 +2,6 @@ package services
 
 import (
 	"encoding/json"
-	"math"
 	"sort"
 
 	"cybersim/models"
@@ -125,14 +124,4 @@ func selectionLogIndex(value any) (int, bool) {
 	default:
 		return 0, false
 	}
-}
-
-func integralFloatToInt(value float64) (int, bool) {
-	if math.IsNaN(value) || math.IsInf(value, 0) || value != math.Trunc(value) {
-		return 0, false
-	}
-	if value < -9.007199254740992e15 || value > 9.007199254740992e15 {
-		return 0, false
-	}
-	return int(value), true
 }

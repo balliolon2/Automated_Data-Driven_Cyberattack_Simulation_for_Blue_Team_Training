@@ -9,8 +9,13 @@ canonical ``scenarios`` array. Any later edit to the mapping invalidates that
 hash and blocks seeding.
 
 Seed mode always compares the seed against the base Scenario set from
-``generate_scenarios.create_scenarios()`` and requires authored evidence plus
-valid verdict support for every finding. There is no legacy tolerance.
+``generate_scenarios.create_scenarios()``, requires authored evidence plus
+valid verdict support for every finding, and binds every seed scenario/finding
+to the approved evidence mapping (``scripts/evidence_mapping.json`` by default,
+or an explicit ``--mapping`` path). The seed's ``evidence_log_indices`` and
+``verdict_support`` must match the approved mapping exactly, so a hand-edited
+seed is rejected even when it remains structurally valid. There is no legacy
+tolerance.
 """
 
 from __future__ import annotations
@@ -30,6 +35,7 @@ UNION_CAP_RATIO = 0.5
 UNION_WARNING_MIN_RATIO = 0.4
 HIGH_SEVERITIES = {"high", "critical"}
 LOW_SEVERITIES = {"info", "low"}
+DEFAULT_MAPPING_PATH = Path(__file__).resolve().parent / "evidence_mapping.json"
 
 
 def _is_integer(value):
@@ -488,20 +494,88 @@ def validate_mapping(
     return errors
 
 
-def validate_seed(seed_scenarios, base_scenarios, *, warnings=None):
-    """Validate a seed against the base Scenario set and finding IDs.
+def _indices_match(seed_indices, approved_indices):
+    """Compare evidence indices exactly, ignoring list order."""
+    if not isinstance(seed_indices, list) or not isinstance(approved_indices, list):
+        return seed_indices == approved_indices
+    if not all(_is_integer(value) for value in seed_indices):
+        return seed_indices == approved_indices
+    if not all(_is_integer(value) for value in approved_indices):
+        return seed_indices == approved_indices
+    return sorted(seed_indices) == sorted(approved_indices)
+
+
+def _load_approved_mapping(mapping, mapping_path):
+    """Return ``(mapping, error)`` for an approved-mapping argument.
+
+    ``mapping`` wins when supplied; otherwise ``mapping_path`` (or the bundled
+    default mapping) is loaded. Read/parse failures become a single error.
+    """
+    if mapping is not None:
+        return mapping, None
+
+    path = Path(mapping_path) if mapping_path else DEFAULT_MAPPING_PATH
+    try:
+        return _load_json(path), None
+    except (OSError, json.JSONDecodeError) as exc:
+        return None, f"Could not load approved evidence mapping {path}: {exc}"
+
+
+def validate_seed(
+    seed_scenarios,
+    base_scenarios,
+    *,
+    mapping=None,
+    mapping_path=None,
+    warnings=None,
+):
+    """Validate a seed against the base Scenarios and the approved mapping.
 
     ``base_scenarios`` is the authoritative set from
-    ``generate_scenarios.create_scenarios()``. Missing, extra, and duplicate
-    scenarios or findings are errors, so truncating or hand-editing the seed
-    cannot bypass the gate. Every finding must carry non-empty, in-range, unique
-    evidence, a positive point value, and valid verdict support; every Scenario's
-    evidence union must stay at or below 50% of its logs.
+    ``generate_scenarios.create_scenarios()``. The seed is first checked
+    structurally (missing, extra, and duplicate scenarios or findings; evidence
+    range/uniqueness; points; verdict support; TP/FP rules; union cap) and is
+    then bound to the approved evidence mapping. ``mapping`` may be supplied
+    directly; otherwise ``mapping_path`` (default
+    ``scripts/evidence_mapping.json``) is loaded. The mapping must be fully
+    approved (``approved``, ``approved_by``, ``approved_at``, and a matching
+    ``mapping_sha256``) and complete for every base Scenario.
+
+    Every seed finding's ``evidence_log_indices`` (order-insensitive) and
+    ``verdict_support`` must equal the approved mapping exactly. Hand-edited
+    seeds, unapproved mappings, hash mismatches, and missing/extra
+    scenarios or findings are all errors.
     """
     errors = []
 
     if not isinstance(seed_scenarios, list):
         return ["Seed root must be a JSON array of scenarios"]
+
+    approved_mapping, load_error = _load_approved_mapping(mapping, mapping_path)
+    if load_error is not None:
+        return [load_error]
+
+    mapping_errors = validate_mapping(
+        approved_mapping,
+        base_scenarios,
+        require_complete=True,
+        require_approval=True,
+    )
+    if mapping_errors:
+        return [
+            f"Approved evidence mapping is not usable: {error}"
+            for error in mapping_errors
+        ]
+
+    approved_by_title = {}
+    for entry in approved_mapping.get("scenarios", []):
+        if not isinstance(entry, dict):
+            continue
+        approved_by_title[entry.get("scenario_title")] = {
+            finding.get("finding_id"): finding
+            for finding in entry.get("findings", [])
+            if isinstance(finding, dict)
+        }
 
     base_by_title = {}
     for base_scenario in base_scenarios if isinstance(base_scenarios, list) else []:
@@ -527,6 +601,13 @@ def validate_seed(seed_scenarios, base_scenarios, *, warnings=None):
         base_scenario = base_by_title.get(title)
         if base_scenario is None:
             errors.append(f"{_scenario_prefix(title)}: scenario is not in base; extra scenario")
+            continue
+
+        approved_findings = approved_by_title.get(title)
+        if approved_findings is None:
+            errors.append(
+                f"{_scenario_prefix(title)}: scenario is missing from the approved evidence mapping"
+            )
             continue
 
         expected = scenario.get("expected_outcomes")
@@ -580,6 +661,13 @@ def validate_seed(seed_scenarios, base_scenarios, *, warnings=None):
                 )
                 continue
 
+            authored = approved_findings.get(finding_id)
+            if authored is None:
+                errors.append(
+                    f"{_finding_prefix(title, finding_id)}: finding is missing from the approved evidence mapping"
+                )
+                continue
+
             indices = finding.get("evidence_log_indices")
             errors.extend(_validate_indices(indices, log_count, title, finding_id))
             if isinstance(indices, list):
@@ -588,6 +676,20 @@ def validate_seed(seed_scenarios, base_scenarios, *, warnings=None):
                         union.add(index)
                         index_to_findings.setdefault(index, set()).add(finding_id)
                 errors.extend(_validate_all_logs_rule(indices, log_count, title, finding_id))
+
+            approved_indices = authored.get("evidence_log_indices")
+            if not _indices_match(indices, approved_indices):
+                errors.append(
+                    f"{_finding_prefix(title, finding_id)}: evidence_log_indices "
+                    f"{indices!r} do not match the approved mapping {approved_indices!r}"
+                )
+
+            if finding.get("verdict_support") != authored.get("verdict_support"):
+                errors.append(
+                    f"{_finding_prefix(title, finding_id)}: verdict_support "
+                    f"{finding.get('verdict_support')!r} does not match the approved "
+                    f"mapping {authored.get('verdict_support')!r}"
+                )
 
             errors.extend(
                 _validate_points(finding.get("points", DEFAULT_POINTS), title, finding_id)
@@ -601,6 +703,12 @@ def validate_seed(seed_scenarios, base_scenarios, *, warnings=None):
             if base_id not in seen_ids:
                 errors.append(
                     f"{_finding_prefix(title, base_id)}: missing finding in seed"
+                )
+
+        for approved_id in approved_findings:
+            if approved_id not in seen_ids and approved_id in base_by_id:
+                errors.append(
+                    f"{_finding_prefix(title, approved_id)}: missing finding in seed"
                 )
 
         errors.extend(_validate_union(union, log_count, title))
@@ -646,9 +754,15 @@ def _print_warnings(warnings):
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description="Validate an evidence mapping or a generated scenario seed.")
-    mode = parser.add_mutually_exclusive_group(required=True)
-    mode.add_argument("--mapping", help="Path to evidence_mapping.json")
-    mode.add_argument("--seed", help="Path to scenarios_seed.json")
+    parser.add_argument(
+        "--mapping",
+        help=(
+            "Path to evidence_mapping.json. In mapping mode this is the file to "
+            "validate; in seed mode it is the approved mapping to bind (default: "
+            "scripts/evidence_mapping.json)."
+        ),
+    )
+    parser.add_argument("--seed", help="Path to scenarios_seed.json")
     parser.add_argument(
         "--require-complete",
         action="store_true",
@@ -656,11 +770,35 @@ def main(argv=None):
     )
     args = parser.parse_args(argv)
 
-    label = args.mapping or args.seed
+    if not args.mapping and not args.seed:
+        parser.error("one of --mapping or --seed is required")
+
+    label = args.seed or args.mapping
     warnings = []
 
     try:
-        if args.mapping:
+        if args.seed:
+            try:
+                seed = _load_json(args.seed)
+            except (OSError, json.JSONDecodeError) as exc:
+                print(f"Could not read seed {args.seed}: {exc}", file=sys.stderr)
+                return 1
+
+            mapping_path = args.mapping or str(DEFAULT_MAPPING_PATH)
+            try:
+                mapping = _load_json(mapping_path)
+            except (OSError, json.JSONDecodeError) as exc:
+                print(f"Could not read mapping {mapping_path}: {exc}", file=sys.stderr)
+                return 1
+
+            base_scenarios = _load_base_scenarios()
+            errors = validate_seed(
+                seed,
+                base_scenarios,
+                mapping=mapping,
+                warnings=warnings,
+            )
+        else:
             try:
                 mapping = _load_json(args.mapping)
             except (OSError, json.JSONDecodeError) as exc:
@@ -672,18 +810,6 @@ def main(argv=None):
                 base_scenarios,
                 require_complete=True,
                 require_approval=True,
-                warnings=warnings,
-            )
-        else:
-            try:
-                seed = _load_json(args.seed)
-            except (OSError, json.JSONDecodeError) as exc:
-                print(f"Could not read seed {args.seed}: {exc}", file=sys.stderr)
-                return 1
-            base_scenarios = _load_base_scenarios()
-            errors = validate_seed(
-                seed,
-                base_scenarios,
                 warnings=warnings,
             )
     except (TypeError, ValueError, AttributeError, KeyError, IndexError) as exc:

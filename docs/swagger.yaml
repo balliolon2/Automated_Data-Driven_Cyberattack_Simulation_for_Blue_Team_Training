@@ -5,6 +5,13 @@ definitions:
       actions: {}
       scenario:
         $ref: '#/definitions/dto.ScenarioResponse'
+      selected_log_indices:
+        example:
+        - 0
+        - 3
+        items:
+          type: integer
+        type: array
       session: {}
     type: object
   dto.AuthResponse:
@@ -12,9 +19,26 @@ definitions:
       email:
         example: analyst@soc.local
         type: string
+      nickname:
+        example: cyber_defender
+        type: string
+      role:
+        example: learner
+        type: string
       token:
         example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
         type: string
+      user_id:
+        example: a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11
+        type: string
+    type: object
+  dto.ClearLogSelectionRequest:
+    properties:
+      session_id:
+        example: 123e4567-e89b-12d3-a456-426614174000
+        type: string
+    required:
+    - session_id
     type: object
   dto.DetailedExamResultDTO:
     properties:
@@ -88,6 +112,61 @@ definitions:
       message:
         example: Detailed error description
         type: string
+    type: object
+  dto.EvidenceFindingDTO:
+    properties:
+      description:
+        type: string
+      domain_id:
+        type: string
+      earned:
+        type: integer
+      evidence_log_indices:
+        items:
+          type: integer
+        type: array
+      evidence_logs:
+        items:
+          $ref: '#/definitions/dto.EvidenceLogDTO'
+        type: array
+      explanation:
+        type: string
+      found:
+        type: boolean
+      id:
+        type: string
+      matched_log_indices:
+        items:
+          type: integer
+        type: array
+      points:
+        type: integer
+    type: object
+  dto.EvidenceLogDTO:
+    properties:
+      index:
+        type: integer
+      message:
+        type: string
+      severity:
+        type: string
+      source:
+        type: string
+      timestamp:
+        type: string
+    type: object
+  dto.EvidenceSelectionResponse:
+    properties:
+      selected_count:
+        example: 2
+        type: integer
+      selected_log_indices:
+        example:
+        - 0
+        - 3
+        items:
+          type: integer
+        type: array
     type: object
   dto.ExamSessionResponse:
     properties:
@@ -163,6 +242,9 @@ definitions:
       email:
         example: analyst@soc.local
         type: string
+      nickname:
+        example: cyber_defender
+        type: string
       password:
         example: Secret123!
         minLength: 6
@@ -180,7 +262,7 @@ definitions:
         example: 78.5
         type: number
       calculation_version:
-        example: v1.0-weighted-0.4-0.6
+        example: proficiency-v1
         type: string
       completed_scenarios:
         example: 3
@@ -215,7 +297,7 @@ definitions:
         example: protocol-v1
         type: string
       rubric_version:
-        example: v1.0-20-40-40
+        example: rubric-v2-evidence-click
         type: string
       total_actions:
         example: 18
@@ -240,13 +322,34 @@ definitions:
         description: PlaybookSteps is retained for frontend JSON contract compatibility
       response_actions:
         description: ResponseActions is the canonical domain model representation
-      sanitized_findings: {}
       scenario_id:
         example: sc-chiller-dos-01
         type: string
       title:
         example: Industrial Chiller DoS Attack
         type: string
+      total_findings:
+        description: |-
+          TotalFindings is the only pre-submission finding disclosure. Evidence
+          indices, finding descriptions, and verdict markers stay server-side.
+        example: 2
+        type: integer
+    type: object
+  dto.SelectLogRequest:
+    properties:
+      log_index:
+        example: 0
+        type: integer
+      selected:
+        example: true
+        type: boolean
+      session_id:
+        example: 123e4567-e89b-12d3-a456-426614174000
+        type: string
+    required:
+    - log_index
+    - selected
+    - session_id
     type: object
   dto.SimulationResultResponse:
     properties:
@@ -280,6 +383,122 @@ definitions:
       needs_training:
         example: true
         type: boolean
+    type: object
+  dto.SpecialistSubmissionDetail:
+    properties:
+      completed_at:
+        type: string
+      discovered_findings:
+        items:
+          type: string
+        type: array
+      domain_id:
+        type: string
+      evidence_findings:
+        items:
+          $ref: '#/definitions/dto.EvidenceFindingDTO'
+        type: array
+      evidence_penalty:
+        type: number
+      evidence_review_available:
+        type: boolean
+      expected_actions: {}
+      expected_findings: {}
+      final_score:
+        type: number
+      findings_points:
+        type: number
+      gross_findings_points:
+        type: number
+      is_true_positive:
+        type: boolean
+      learner_choice:
+        type: boolean
+      learner_nickname:
+        type: string
+      learner_tier:
+        type: integer
+      noise_selections:
+        items:
+          $ref: '#/definitions/dto.EvidenceLogDTO'
+        type: array
+      scenario_description:
+        type: string
+      scenario_id:
+        type: string
+      scenario_title:
+        type: string
+      selected_actions:
+        items:
+          type: string
+        type: array
+      selected_log_indices:
+        items:
+          type: integer
+        type: array
+      session_id:
+        type: string
+      timeline:
+        items:
+          $ref: '#/definitions/dto.SubmissionTimelineAction'
+        type: array
+      tp_fp_correct:
+        type: boolean
+      tp_fp_explanation:
+        type: string
+      tp_fp_points:
+        type: number
+    type: object
+  dto.SpecialistSubmissionSummary:
+    properties:
+      actions_count:
+        type: integer
+      completed_at:
+        type: string
+      domain_id:
+        type: string
+      domain_name:
+        type: string
+      evidence_penalty:
+        type: number
+      evidence_selected_count:
+        type: integer
+      final_score:
+        type: number
+      findings_found_count:
+        type: integer
+      learner_nickname:
+        type: string
+      learner_tier:
+        type: integer
+      noise_selected_count:
+        type: integer
+      scenario_id:
+        type: string
+      scenario_title:
+        type: string
+      session_id:
+        type: string
+      total_findings_count:
+        type: integer
+      tp_fp_correct:
+        type: boolean
+    type: object
+  dto.SubmissionTimelineAction:
+    properties:
+      action_id:
+        type: integer
+      action_type:
+        type: string
+      is_correct:
+        type: boolean
+      payload: {}
+      points:
+        type: integer
+      step_order:
+        type: integer
+      timestamp:
+        type: string
     type: object
   dto.SubmitAnswerRequest:
     properties:
@@ -325,20 +544,21 @@ definitions:
     type: object
   dto.SubmitScenarioRequest:
     properties:
-      discovered_findings:
-        example:
-        - '["find-auth-fail"]'
-        items:
-          type: string
-        type: array
       is_true_positive:
         example: true
         type: boolean
       selected_actions:
         example:
-        - '["act-contain-01"]'
+        - act-contain-01
         items:
           type: string
+        type: array
+      selected_log_indices:
+        example:
+        - 0
+        - 3
+        items:
+          type: integer
         type: array
       session_id:
         example: 123e4567-e89b-12d3-a456-426614174000
@@ -360,6 +580,100 @@ definitions:
         example: false
         type: boolean
       result: {}
+    type: object
+  models.DomainScoreDetail:
+    properties:
+      earned:
+        type: number
+      max_points:
+        type: number
+      percentage:
+        type: number
+    type: object
+  models.FindingResult:
+    properties:
+      description:
+        type: string
+      domain_id:
+        type: string
+      earned:
+        type: integer
+      evidence_log_indices:
+        items:
+          type: integer
+        type: array
+      explanation:
+        type: string
+      found:
+        type: boolean
+      id:
+        type: string
+      matched_log_indices:
+        items:
+          type: integer
+        type: array
+      points:
+        type: integer
+    type: object
+  models.ResponseActionResult:
+    properties:
+      domain_id:
+        type: string
+      earned:
+        type: integer
+      explanation:
+        type: string
+      id:
+        type: string
+      is_correct:
+        type: boolean
+      label:
+        type: string
+      phase:
+        type: string
+      points:
+        type: integer
+      selected:
+        type: boolean
+    type: object
+  models.ScenarioResult:
+    properties:
+      domain_scores:
+        additionalProperties:
+          $ref: '#/definitions/models.DomainScoreDetail'
+        type: object
+      evidence_penalty:
+        type: number
+      findings_detail:
+        items:
+          $ref: '#/definitions/models.FindingResult'
+        type: array
+      findings_points:
+        type: number
+      gross_findings_points:
+        type: number
+      noise_log_indices:
+        items:
+          type: integer
+        type: array
+      response_detail:
+        items:
+          $ref: '#/definitions/models.ResponseActionResult'
+        type: array
+      response_points:
+        type: number
+      selected_log_indices:
+        items:
+          type: integer
+        type: array
+      total_score:
+        type: number
+      tp_fp_correct:
+        type: boolean
+      tp_fp_explanation:
+        type: string
+      tp_fp_points:
+        type: number
     type: object
 host: localhost:8080
 info:
@@ -593,7 +907,7 @@ paths:
     post:
       consumes:
       - application/json
-      description: Creates a new learner account with email and password
+      description: Creates a new learner account with email, password, and nickname
       parameters:
       - description: User Registration Info
         in: body
@@ -678,7 +992,12 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/dto.SimulationResultResponse'
+            allOf:
+            - $ref: '#/definitions/dto.SimulationResultResponse'
+            - properties:
+                result:
+                  $ref: '#/definitions/models.ScenarioResult'
+              type: object
         "400":
           description: Bad Request
           schema:
@@ -694,6 +1013,96 @@ paths:
       security:
       - BearerAuth: []
       summary: Get detailed retrospective result of a simulation session
+      tags:
+      - Simulation
+  /simulation/select-log:
+    post:
+      consumes:
+      - application/json
+      description: Records a select_evidence toggle action for an in-progress simulation
+        session and returns the replayed selection.
+      parameters:
+      - description: Evidence selection toggle
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.SelectLogRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.EvidenceSelectionResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Toggle one telemetry log as selected evidence
+      tags:
+      - Simulation
+  /simulation/select-log/clear:
+    post:
+      consumes:
+      - application/json
+      description: Records one select_evidence clear action for an in-progress simulation
+        session.
+      parameters:
+      - description: Clear evidence selection
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.ClearLogSelectionRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.EvidenceSelectionResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Clear all selected evidence logs
       tags:
       - Simulation
   /simulation/session:
@@ -796,7 +1205,12 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/dto.SubmitScenarioResponse'
+            allOf:
+            - $ref: '#/definitions/dto.SubmitScenarioResponse'
+            - properties:
+                result:
+                  $ref: '#/definitions/models.ScenarioResult'
+              type: object
         "400":
           description: Bad Request
           schema:
@@ -818,6 +1232,93 @@ paths:
       summary: Submit scenario response actions and triage decision
       tags:
       - Simulation
+  /specialist/submissions:
+    get:
+      description: Returns completed simulation sessions with evidence review counters
+        for specialist triage.
+      parameters:
+      - description: Filter by scenario ID
+        in: query
+        name: scenario_id
+        type: string
+      - description: Filter by security domain ID
+        in: query
+        name: domain_id
+        type: string
+      - description: Only include submissions at or below this final score
+        in: query
+        name: max_score
+        type: number
+      - default: 1
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      - default: 20
+        description: Page size (1-100)
+        in: query
+        name: page_size
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/dto.SpecialistSubmissionSummary'
+            type: array
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List anonymized learner submissions
+      tags:
+      - Specialist
+  /specialist/submissions/{session_id}:
+    get:
+      description: Returns the full investigation timeline plus the evidence review
+        for one completed simulation session.
+      parameters:
+      - description: Simulation Session UUID
+        in: path
+        name: session_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.SpecialistSubmissionDetail'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get specialist submission detail
+      tags:
+      - Specialist
 securityDefinitions:
   BearerAuth:
     description: 'Type "Bearer" followed by a space and JWT token. Example: "Bearer

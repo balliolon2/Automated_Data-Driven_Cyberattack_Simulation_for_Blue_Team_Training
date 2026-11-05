@@ -38,19 +38,18 @@ const (
 // Every unique selected log outside every evidence set costs two points; the
 // findings component floors at zero.
 func ScoreSubmission(scenario models.Scenario, input models.SubmitScenarioInput) models.ScenarioResult {
-	selected := normalizeIndices(input.SelectedLogIndices)
-	selectedSet := make(map[int]struct{}, len(selected))
-	for _, index := range selected {
-		selectedSet[index] = struct{}{}
-	}
+	evidence := EvaluateEvidence(scenario, input.SelectedLogIndices)
 
 	result := models.ScenarioResult{
-		DomainScores:       make(map[string]models.DomainScoreDetail),
-		DomainScoreMap:     make(map[string]float64),
-		FindingsDetail:     make([]models.FindingResult, 0),
-		ResponseDetail:     make([]models.ResponseActionResult, 0),
-		SelectedLogIndices: selected,
-		NoiseLogIndices:    make([]int, 0),
+		DomainScores:        make(map[string]models.DomainScoreDetail),
+		DomainScoreMap:      make(map[string]float64),
+		FindingsDetail:      make([]models.FindingResult, 0, len(evidence.Findings)),
+		ResponseDetail:      make([]models.ResponseActionResult, 0),
+		SelectedLogIndices:  evidence.SelectedLogIndices,
+		NoiseLogIndices:     evidence.NoiseLogIndices,
+		GrossFindingsPoints: evidence.GrossFindingsPoints,
+		FindingsPoints:      evidence.FindingsPoints,
+		EvidencePenalty:     evidence.EvidencePenalty,
 	}
 
 	// Track raw points per domain
@@ -67,68 +66,28 @@ func ScoreSubmission(scenario models.Scenario, input models.SubmitScenarioInput)
 	}
 	domainMaxPoints[scenario.DomainID] += tpfpMaxPoints
 
-	// --- 2. Score Key Findings from the selected evidence set ---
-	evidenceUnion := make(map[int]struct{})
-	expectedOutcomes, ok := scenario.ExpectedOutcomes.(map[string]interface{})
-	if ok {
-		for _, finding := range mapSlice(expectedOutcomes["key_findings"]) {
-			fID, _ := finding["id"].(string)
-			fDesc, _ := finding["description"].(string)
-			fDomain, _ := finding["domain_id"].(string)
-			fExplanation, _ := finding["explanation"].(string)
-			fPoints := findingPoints(finding)
-			evidenceIndices := decodeEvidenceLogIndices(finding["evidence_log_indices"], fID)
-
-			for _, index := range evidenceIndices {
-				evidenceUnion[index] = struct{}{}
-			}
-
-			matched := make([]int, 0)
-			for _, index := range evidenceIndices {
-				if _, selectedHere := selectedSet[index]; selectedHere {
-					matched = append(matched, index)
-				}
-			}
-			sort.Ints(matched)
-
-			earned := 0
-			if len(matched) > 0 {
-				earned = fPoints
-			}
-
-			if earned > 0 {
-				domainEarned[fDomain] += float64(earned)
-			}
-			domainMaxPoints[fDomain] += float64(fPoints)
-
-			result.FindingsDetail = append(result.FindingsDetail, models.FindingResult{
-				ID:                 fID,
-				Description:        fDesc,
-				DomainID:           fDomain,
-				Found:              earned > 0,
-				Points:             fPoints,
-				Earned:             earned,
-				EvidenceLogIndices: evidenceIndices,
-				MatchedLogIndices:  matched,
-				Explanation:        fExplanation,
-			})
-			result.FindingsPoints += float64(earned)
+	// --- 2. Credit Key Findings from the shared evidence evaluation ---
+	for _, finding := range evidence.Findings {
+		if finding.Earned > 0 {
+			domainEarned[finding.DomainID] += float64(finding.Earned)
 		}
-	}
+		domainMaxPoints[finding.DomainID] += float64(finding.Points)
 
-	// Noise is any selected index outside the union of every evidence set.
-	noise := make([]int, 0)
-	for _, index := range selected {
-		if _, isEvidence := evidenceUnion[index]; !isEvidence {
-			noise = append(noise, index)
-		}
+		result.FindingsDetail = append(result.FindingsDetail, models.FindingResult{
+			ID:                 finding.ID,
+			Description:        finding.Description,
+			DomainID:           finding.DomainID,
+			Found:              finding.Found,
+			Points:             finding.Points,
+			Earned:             finding.Earned,
+			EvidenceLogIndices: finding.EvidenceLogIndices,
+			MatchedLogIndices:  finding.MatchedLogIndices,
+			Explanation:        finding.Explanation,
+		})
 	}
-	result.NoiseLogIndices = noise
-	result.EvidencePenalty = float64(EvidencePenaltyPerLog * len(noise))
-	result.FindingsPoints = math.Max(0, result.FindingsPoints-result.EvidencePenalty)
 
 	// The evidence penalty is attributed to the scenario's primary domain.
-	domainEarned[scenario.DomainID] -= result.EvidencePenalty
+	domainEarned[scenario.DomainID] -= evidence.EvidencePenalty
 
 	// --- 3. Score Response Actions ---
 	playbookSteps, ok := scenario.PlaybookSteps.(map[string]interface{})
@@ -222,6 +181,103 @@ func ScoreSubmission(scenario models.Scenario, input models.SubmitScenarioInput)
 	}
 
 	return result
+}
+
+// EvidenceFindingEvaluation is the pure credit result for one Key Finding. Earned
+// is gross credit before the evidence penalty is applied to the component total.
+type EvidenceFindingEvaluation struct {
+	ID                 string
+	Description        string
+	DomainID           string
+	Found              bool
+	Points             int
+	Earned             int
+	EvidenceLogIndices []int
+	MatchedLogIndices  []int
+	Explanation        string
+}
+
+// EvidenceEvaluation is the pure, reusable result of scoring a selected evidence
+// set against a Scenario's authored Key Findings. Both the learner score and the
+// Specialist review are derived from this single calculation so they cannot drift.
+type EvidenceEvaluation struct {
+	SelectedLogIndices  []int
+	Findings            []EvidenceFindingEvaluation
+	NoiseLogIndices     []int
+	GrossFindingsPoints float64
+	EvidencePenalty     float64
+	FindingsPoints      float64
+}
+
+// EvaluateEvidence scores a selected evidence set against the Scenario's Key
+// Findings. A finding earns its full points when the selection intersects its
+// authored evidence indices; selecting several logs from the same finding does
+// not stack, and a log shared by findings credits each. Every unique selected
+// log outside every evidence set is noise and costs EvidencePenaltyPerLog
+// points. The findings component floors at zero but gross credit is preserved.
+func EvaluateEvidence(scenario models.Scenario, selectedLogIndices []int) EvidenceEvaluation {
+	selected := NormalizeIndices(selectedLogIndices)
+	selectedSet := make(map[int]struct{}, len(selected))
+	for _, index := range selected {
+		selectedSet[index] = struct{}{}
+	}
+
+	findings, _ := expectedReviewFindings(scenario)
+
+	evaluation := EvidenceEvaluation{
+		SelectedLogIndices: selected,
+		Findings:           make([]EvidenceFindingEvaluation, 0, len(findings)),
+		NoiseLogIndices:    make([]int, 0),
+	}
+
+	evidenceUnion := make(map[int]struct{})
+
+	for _, finding := range findings {
+		fID, _ := finding["id"].(string)
+		fDesc, _ := finding["description"].(string)
+		fDomain, _ := finding["domain_id"].(string)
+		fExplanation, _ := finding["explanation"].(string)
+		fPoints := findingPoints(finding)
+		evidenceIndices := decodeEvidenceLogIndices(finding["evidence_log_indices"], fID)
+
+		matched := make([]int, 0, len(evidenceIndices))
+		for _, index := range evidenceIndices {
+			evidenceUnion[index] = struct{}{}
+			if _, selectedHere := selectedSet[index]; selectedHere {
+				matched = append(matched, index)
+			}
+		}
+		sort.Ints(matched)
+
+		earned := 0
+		if len(matched) > 0 {
+			earned = fPoints
+		}
+		evaluation.GrossFindingsPoints += float64(earned)
+
+		evaluation.Findings = append(evaluation.Findings, EvidenceFindingEvaluation{
+			ID:                 fID,
+			Description:        fDesc,
+			DomainID:           fDomain,
+			Found:              earned > 0,
+			Points:             fPoints,
+			Earned:             earned,
+			EvidenceLogIndices: evidenceIndices,
+			MatchedLogIndices:  matched,
+			Explanation:        fExplanation,
+		})
+	}
+
+	// Noise is any selected index outside the union of every evidence set.
+	for _, index := range selected {
+		if _, isEvidence := evidenceUnion[index]; !isEvidence {
+			evaluation.NoiseLogIndices = append(evaluation.NoiseLogIndices, index)
+		}
+	}
+	evaluation.EvidencePenalty = float64(EvidencePenaltyPerLog * len(evaluation.NoiseLogIndices))
+	evaluation.FindingsPoints = math.Max(0, evaluation.GrossFindingsPoints-evaluation.EvidencePenalty)
+
+	return evaluation
 }
 
 // ReconstructFromActions reconstructs the complete ScenarioResult from historical SessionActions.
@@ -324,8 +380,8 @@ func ToFloat64(v interface{}) float64 {
 	}
 }
 
-// normalizeIndices sorts and de-duplicates an evidence selection.
-func normalizeIndices(indices []int) []int {
+// NormalizeIndices sorts and de-duplicates an evidence selection.
+func NormalizeIndices(indices []int) []int {
 	normalized := make([]int, 0, len(indices))
 	seen := make(map[int]struct{}, len(indices))
 	for _, index := range indices {
@@ -407,7 +463,7 @@ func decodeEvidenceLogIndices(raw any, findingID string) []int {
 		return []int{}
 	}
 
-	return normalizeIndices(indices)
+	return NormalizeIndices(indices)
 }
 
 func evidenceIndexFromAny(value any) (int, bool) {
@@ -453,14 +509,26 @@ func evidenceIndexFromAny(value any) (int, bool) {
 	}
 }
 
-func integralIndex(value float64) (int, bool) {
+// integralFloatToInt converts a finite, integral float to int without silently
+// truncating. It is the shared primitive behind evidence index decoding and
+// selection replay.
+func integralFloatToInt(value float64) (int, bool) {
 	if math.IsNaN(value) || math.IsInf(value, 0) || value != math.Trunc(value) {
 		return 0, false
 	}
-	if value < 0 || value > float64(math.MaxInt32) {
+	if value < -9.007199254740992e15 || value > 9.007199254740992e15 {
 		return 0, false
 	}
 	return int(value), true
+}
+
+// integralIndex accepts an integral, non-negative index within the int32 range.
+func integralIndex(value float64) (int, bool) {
+	index, ok := integralFloatToInt(value)
+	if !ok || index < 0 || index > math.MaxInt32 {
+		return 0, false
+	}
+	return index, true
 }
 
 // findingPoints returns the configured points for a Key Finding. Missing or
@@ -502,5 +570,5 @@ func firstEvidenceIndicesForFindings(scenario models.Scenario, findingIDs []stri
 		}
 		indices = append(indices, evidence[0])
 	}
-	return normalizeIndices(indices)
+	return NormalizeIndices(indices)
 }

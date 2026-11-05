@@ -66,6 +66,7 @@ interface ResultData {
   tp_fp_points: number;
   findings_points: number;
   response_points: number;
+  gross_findings_points?: number;
   evidence_penalty?: number;
   noise_log_indices?: number[] | null;
   selected_log_indices?: number[] | null;
@@ -261,10 +262,16 @@ export default function ScenarioResultPage() {
   const selectedLogIndices = showEvidenceReview ? result.selected_log_indices ?? [] : [];
   const noiseLogIndices = showEvidenceReview ? result.noise_log_indices ?? [] : [];
   const findingsDetail = result.findings_detail ?? [];
-  const grossFindingCredit = findingsDetail.reduce(
-    (sum, finding) => sum + (finding.earned ?? 0),
-    0,
-  );
+  // Gross credit is server-owned. Older responses without the field fall back
+  // to the server's net findings points plus its evidence penalty; the client
+  // never re-derives scoring from per-finding earned values.
+  const grossFindingCredit =
+    typeof result.gross_findings_points === "number"
+      ? result.gross_findings_points
+      : typeof result.findings_points === "number" &&
+          typeof result.evidence_penalty === "number"
+        ? result.findings_points + result.evidence_penalty
+        : null;
 
   return (
     <div className="space-y-8 animate-fade-in">
@@ -386,60 +393,74 @@ export default function ScenarioResultPage() {
                     ) : (
                       <XCircle className="w-4 h-4 text-graphite-600 shrink-0 mt-0.5" />
                     )}
-                    <div className="space-y-2 min-w-0 flex-1">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="font-semibold text-white">{finding.description}</span>
-                        <span className="px-1.5 py-0.5 rounded bg-graphite-950 border border-graphite-800 text-[8px] font-mono text-graphite-400 uppercase">
-                          {finding.domain_id}
-                        </span>
-                        <span
-                          className={cn(
-                            "text-[8px] font-mono font-bold uppercase tracking-wider",
-                            finding.found ? "text-emerald-400" : "text-graphite-500"
-                          )}
-                        >
-                          {finding.found ? "Found" : "Missed"}
-                        </span>
-                        <span className="text-[9px] font-mono text-graphite-400">
-                          {earned} / {finding.points} pts
-                        </span>
+                    {showEvidenceReview ? (
+                      <div className="min-w-0 flex-1 space-y-2">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="font-semibold text-white">{finding.description}</span>
+                          <span className="px-1.5 py-0.5 rounded bg-graphite-950 border border-graphite-800 text-[8px] font-mono text-graphite-400 uppercase">
+                            {finding.domain_id}
+                          </span>
+                          <span
+                            className={cn(
+                              "text-[8px] font-mono font-bold uppercase tracking-wider",
+                              finding.found ? "text-emerald-400" : "text-graphite-500"
+                            )}
+                          >
+                            {finding.found ? "Found" : "Missed"}
+                          </span>
+                          <span className="text-[9px] font-mono text-graphite-400">
+                            {earned} / {finding.points} pts
+                          </span>
+                        </div>
+                        <p className="text-graphite-400 leading-relaxed">
+                          {finding.explanation}
+                        </p>
+
+                        {finding.found && matched.length > 0 && (
+                          <div className="space-y-1.5 pt-1">
+                            <div className="text-[9px] font-mono uppercase tracking-wider text-emerald-400/80">
+                              Matched evidence
+                            </div>
+                            {matched.map((index) => (
+                              <EvidenceLogRow
+                                key={`matched-${finding.id}-${index}`}
+                                index={index}
+                                log={logAt(index)}
+                                tone="matched"
+                              />
+                            ))}
+                          </div>
+                        )}
+
+                        {!finding.found && acceptable.length > 0 && (
+                          <div className="space-y-1.5 pt-1">
+                            <div className="text-[9px] font-mono uppercase tracking-wider text-graphite-500">
+                              Acceptable evidence that would have proven this finding
+                            </div>
+                            {acceptable.map((index) => (
+                              <EvidenceLogRow
+                                key={`acceptable-${finding.id}-${index}`}
+                                index={index}
+                                log={logAt(index)}
+                                tone="missed"
+                              />
+                            ))}
+                          </div>
+                        )}
                       </div>
-                      <p className="text-graphite-400 leading-relaxed">
-                        {finding.explanation}
-                      </p>
-
-                      {showEvidenceReview && finding.found && matched.length > 0 && (
-                        <div className="space-y-1.5 pt-1">
-                          <div className="text-[9px] font-mono uppercase tracking-wider text-emerald-400/80">
-                            Matched evidence
-                          </div>
-                          {matched.map((index) => (
-                            <EvidenceLogRow
-                              key={`matched-${finding.id}-${index}`}
-                              index={index}
-                              log={logAt(index)}
-                              tone="matched"
-                            />
-                          ))}
+                    ) : (
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold text-white">{finding.description}</span>
+                          <span className="px-1.5 py-0.5 rounded bg-graphite-950 border border-graphite-800 text-[8px] font-mono text-graphite-400 uppercase">
+                            {finding.domain_id}
+                          </span>
                         </div>
-                      )}
-
-                      {showEvidenceReview && !finding.found && acceptable.length > 0 && (
-                        <div className="space-y-1.5 pt-1">
-                          <div className="text-[9px] font-mono uppercase tracking-wider text-graphite-500">
-                            Acceptable evidence that would have proven this finding
-                          </div>
-                          {acceptable.map((index) => (
-                            <EvidenceLogRow
-                              key={`acceptable-${finding.id}-${index}`}
-                              index={index}
-                              log={logAt(index)}
-                              tone="missed"
-                            />
-                          ))}
-                        </div>
-                      )}
-                    </div>
+                        <p className="text-graphite-400 leading-relaxed">
+                          {finding.explanation}
+                        </p>
+                      </div>
+                    )}
                   </div>
                 );
               })}
@@ -466,7 +487,7 @@ export default function ScenarioResultPage() {
                     Gross finding credit
                   </div>
                   <div className="mt-1 text-lg font-mono font-bold text-white">
-                    {grossFindingCredit} pts
+                    {grossFindingCredit ?? "—"} pts
                   </div>
                 </div>
                 <div className="rounded border border-graphite-800/80 bg-graphite-950/40 p-3">
