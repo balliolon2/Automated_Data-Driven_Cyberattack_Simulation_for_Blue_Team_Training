@@ -19,6 +19,7 @@ package main
 //go:generate swag init -g main.go --parseDependency --parseInternal
 
 import (
+	_ "embed"
 	"errors"
 	"log"
 	"os"
@@ -27,6 +28,7 @@ import (
 	_ "cybersim/docs"
 	"cybersim/middlewares"
 	"cybersim/models"
+	"cybersim/services"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -36,6 +38,13 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
+
+// scenarioSeedJSON embeds the static Scenario seed so the startup evidence
+// remediation works in every deployment mode, including the runtime image that
+// copies only the compiled binary.
+//
+//go:embed scenarios_seed.json
+var scenarioSeedJSON []byte
 
 func main() {
 	dsn := os.Getenv("DATABASE_URL")
@@ -55,6 +64,13 @@ func main() {
 			log.Fatalf("Failed to run database migrations: %v", err)
 		}
 		log.Printf("Migration warning: %v", err)
+	}
+
+	// Archive legacy False Positive Scenarios that do not satisfy the evidence
+	// contract. Seed-authored static Scenarios and completed Simulation Sessions
+	// are never modified.
+	if err := services.EnsureScenarioEvidenceQualityFromSeed(db, scenarioSeedJSON); err != nil {
+		log.Fatalf("Scenario evidence quality gate failed: %v", err)
 	}
 
 	// Initialize Gin

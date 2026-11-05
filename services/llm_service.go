@@ -43,6 +43,15 @@ type aiResponseActionOption struct {
 	Explanation string `json:"explanation"`
 }
 
+type aiFinding struct {
+	Description         string   `json:"description"`
+	DomainID            string   `json:"domain_id"`
+	Points              float64  `json:"points"`
+	EvidenceLogMessages []string `json:"evidence_log_messages"`
+	VerdictSupport      string   `json:"verdict_support"` // malicious | benign | supporting
+	Explanation         string   `json:"explanation"`
+}
+
 type aiMicroScenario struct {
 	Title             string                   `json:"title"`
 	Description       string                   `json:"description"`
@@ -52,6 +61,7 @@ type aiMicroScenario struct {
 	TargetHost        string                   `json:"target_host"`
 	AttackLogMessage  string                   `json:"attack_log_message"`
 	KeyFinding        string                   `json:"key_finding"`
+	Findings          []aiFinding              `json:"findings,omitempty"`
 	ContainmentAction string                   `json:"containment_action,omitempty"`
 	EradicationAction string                   `json:"eradication_action,omitempty"`
 	RecoveryAction    string                   `json:"recovery_action,omitempty"`
@@ -113,6 +123,19 @@ func GenerateLLMScenario(ctx context.Context, weakestDomain string, domainName s
 Learner Profile:
 %s
 
+Rules for Key Findings (findings):
+1. Return 1 to 4 findings.
+2. Each finding must contain: description, domain_id (one of domain1..domain5), points (positive integer), evidence_log_messages (one or more exact log message strings), verdict_support (malicious, benign, or supporting), and explanation.
+3. evidence_log_messages MUST be copied exactly from the generated log messages. The backend always creates these exact messages:
+   - EDR: the exact "attack_log_message" string you return.
+   - Firewall: "Perimeter Firewall: Connection request initiated from <target_host> to <attacker_ip>:443 [ACTION: ALLOWED]"
+   - IDS: "IDS Alert: Malicious attack payload signature matched on incoming traffic from <attacker_ip> targeting host <target_host>"
+   - Web: "HTTP 500 Internal Server Error - Anomaly detected on <target_host> via POST payload from <attacker_ip>"
+   - SIEM: "SIEM Alert Rule [CORR-9901]: Multi-stage incident correlation triggered on host <target_host> involving IP <attacker_ip>"
+4. If "is_true_positive" is true, at least one finding MUST have "verdict_support": "malicious".
+5. If "is_true_positive" is false, at least one finding MUST have "verdict_support": "benign" and must point to a benign context log: an approved change ticket, HR travel approval, scheduled maintenance window, or authorized security scan. If you do not have such a message, provide a clear benign context message in evidence_log_messages and the backend will add it to the logs.
+6. Prefer the minimum decisive set of evidence logs. Never invent a log message. Keep the union of all evidence_log_messages at or below 50%% of the 45 generated logs.
+
 Rules for Playbook Options (containment_steps, eradication_steps, recovery_steps):
 1. Provide 3 options per phase: 1 option with "is_correct": true and 2 options with "is_correct": false.
 2. Length & Specificity Parity: ALL options (both correct and false distractors) MUST be 15-30 words long, written in realistic SOC operational language, and explicitly reference the scenario's target_host, attacker_ip, affected accounts, or services.
@@ -129,6 +152,16 @@ Output ONLY valid JSON matching this exact structure:
   "target_host": "SRV-WEB01",
   "attack_log_message": "Descriptive technical SIEM/EDR log message showing the malicious exploit/traffic",
   "key_finding": "Detailed description of the primary security finding discovered in telemetry",
+  "findings": [
+    {
+      "description": "Decisive finding supported by the evidence",
+      "domain_id": "domain4",
+      "points": 10,
+      "evidence_log_messages": ["exact log message copied from the generated log set"],
+      "verdict_support": "malicious",
+      "explanation": "Why this evidence proves the finding"
+    }
+  ],
   "containment_steps": [
     {"label": "Detailed correct containment procedure referencing SRV-WEB01 and 185.220.101.45...", "is_correct": true, "explanation": "Why this containment action is effective"},
     {"label": "Plausible but flawed containment procedure referencing SRV-WEB01 and 185.220.101.45...", "is_correct": false, "explanation": "Why this distractor is flawed"},
@@ -146,18 +179,65 @@ Output ONLY valid JSON matching this exact structure:
   ]
 }`, weakestDomain, domainName, proficiency, profileSummary.String())
 
+	messages := []chatMessage{
+		{Role: "system", Content: systemPrompt},
+		{Role: "user", Content: userPrompt},
+	}
+
+	rawJSON, err := callChatCompletion(ctx, url, cleanKey, model, messages, 0.3)
+	if err != nil {
+		return nil, err
+	}
+
+	micro, err := parseAIMicroScenario(rawJSON)
+	if err != nil {
+		return nil, err
+	}
+
+	// Synthesize the full SIEM environment, validate the evidence contract once
+	// more with the LLM, then fall back to a deterministic single finding.
+	scenario, evidenceErrs := synthesizeWithEvidenceRetry(*micro, weakestDomain, domainName, func(validationErrors []string, availableMessages []string) (aiMicroScenario, error) {
+		retryMessages := make([]chatMessage, 0, len(messages)+1)
+		retryMessages = append(retryMessages, messages...)
+		retryMessages = append(retryMessages, chatMessage{
+			Role:    "user",
+			Content: buildEvidenceRetryPrompt(validationErrors, availableMessages),
+		})
+
+		retryRaw, retryErr := callChatCompletion(ctx, url, cleanKey, model, retryMessages, 0.1)
+		if retryErr != nil {
+			return aiMicroScenario{}, retryErr
+		}
+		revised, parseErr := parseAIMicroScenario(retryRaw)
+		if parseErr != nil {
+			return aiMicroScenario{}, parseErr
+		}
+		return *revised, nil
+	})
+	if len(evidenceErrs) > 0 {
+		log.Printf("[LLM] Evidence contract not satisfied after retry; using deterministic fallback: %v", evidenceErrs)
+	}
+
+	// Validate candidate scenario against schema & referential contracts
+	if valErr := ValidateScenarioCandidate(scenario); valErr != nil {
+		return nil, fmt.Errorf("scenario_validation_failed: %w", valErr)
+	}
+
+	return scenario, nil
+}
+
+// callChatCompletion performs one OpenAI-compatible chat completion with network
+// retries and returns the raw message content.
+func callChatCompletion(ctx context.Context, url string, apiKey string, model string, messages []chatMessage, temperature float64) (string, error) {
 	reqBody := chatCompletionRequest{
-		Model: model,
-		Messages: []chatMessage{
-			{Role: "system", Content: systemPrompt},
-			{Role: "user", Content: userPrompt},
-		},
-		Temperature: 0.3,
+		Model:       model,
+		Messages:    messages,
+		Temperature: temperature,
 	}
 
 	jsonBytes, err := json.Marshal(reqBody)
 	if err != nil {
-		return nil, fmt.Errorf("failed to marshal LLM request: %w", err)
+		return "", fmt.Errorf("failed to marshal LLM request: %w", err)
 	}
 
 	client := &http.Client{Timeout: 120 * time.Second}
@@ -168,10 +248,10 @@ Output ONLY valid JSON matching this exact structure:
 		// Rebuild request for each attempt (body is consumed after first read)
 		retryReq, reqErr := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewBuffer(jsonBytes))
 		if reqErr != nil {
-			return nil, fmt.Errorf("failed to create HTTP request (attempt %d): %w", attempt, reqErr)
+			return "", fmt.Errorf("failed to create HTTP request (attempt %d): %w", attempt, reqErr)
 		}
 		retryReq.Header.Set("Content-Type", "application/json")
-		retryReq.Header.Set("Authorization", fmt.Sprintf("Bearer %s", cleanKey))
+		retryReq.Header.Set("Authorization", fmt.Sprintf("Bearer %s", apiKey))
 
 		resp, err = client.Do(retryReq)
 		if err == nil {
@@ -183,52 +263,46 @@ Output ONLY valid JSON matching this exact structure:
 		}
 	}
 	if err != nil {
-		return nil, fmt.Errorf("LLM request failed after %d attempts: %w", maxRetries, err)
+		return "", fmt.Errorf("LLM request failed after %d attempts: %w", maxRetries, err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
 		bodyBytes, _ := io.ReadAll(resp.Body)
 		log.Printf("[LLM Error Details] URL: %s, Status: %d, Response: %s", url, resp.StatusCode, string(bodyBytes))
-		return nil, fmt.Errorf("LLM API error (status %d): %s", resp.StatusCode, string(bodyBytes))
+		return "", fmt.Errorf("LLM API error (status %d): %s", resp.StatusCode, string(bodyBytes))
 	}
 
 	var chatResp chatCompletionResponse
 	if err := json.NewDecoder(resp.Body).Decode(&chatResp); err != nil {
-		return nil, fmt.Errorf("failed to decode LLM response: %w", err)
+		return "", fmt.Errorf("failed to decode LLM response: %w", err)
 	}
-
 	if len(chatResp.Choices) == 0 {
-		return nil, fmt.Errorf("LLM returned empty choices")
+		return "", fmt.Errorf("LLM returned empty choices")
 	}
 
-	rawJSON := strings.TrimSpace(chatResp.Choices[0].Message.Content)
+	return stripJSONFences(strings.TrimSpace(chatResp.Choices[0].Message.Content)), nil
+}
 
-	// Clean codeblock markdown wrappers if model includes them
-	if strings.HasPrefix(rawJSON, "```json") {
-		rawJSON = strings.TrimPrefix(rawJSON, "```json")
-		rawJSON = strings.TrimSuffix(rawJSON, "```")
-		rawJSON = strings.TrimSpace(rawJSON)
-	} else if strings.HasPrefix(rawJSON, "```") {
-		rawJSON = strings.TrimPrefix(rawJSON, "```")
-		rawJSON = strings.TrimSuffix(rawJSON, "```")
-		rawJSON = strings.TrimSpace(rawJSON)
+func stripJSONFences(raw string) string {
+	trimmed := strings.TrimSpace(raw)
+	if strings.HasPrefix(trimmed, "```json") {
+		trimmed = strings.TrimPrefix(trimmed, "```json")
+		return strings.TrimSpace(strings.TrimSuffix(trimmed, "```"))
 	}
+	if strings.HasPrefix(trimmed, "```") {
+		trimmed = strings.TrimPrefix(trimmed, "```")
+		return strings.TrimSpace(strings.TrimSuffix(trimmed, "```"))
+	}
+	return trimmed
+}
 
+func parseAIMicroScenario(rawJSON string) (*aiMicroScenario, error) {
 	var micro aiMicroScenario
-	if err := json.Unmarshal([]byte(rawJSON), &micro); err != nil {
+	if err := json.Unmarshal([]byte(strings.TrimSpace(rawJSON)), &micro); err != nil {
 		return nil, fmt.Errorf("invalid_json: failed to parse AI micro scenario JSON: %w", err)
 	}
-
-	// Synthesize full 45-log SIEM environment and scenario object around the AI-generated incident core
-	scenario := synthesizeFullScenario(micro, weakestDomain, domainName)
-
-	// Validate candidate scenario against schema & referential contracts
-	if valErr := ValidateScenarioCandidate(scenario); valErr != nil {
-		return nil, fmt.Errorf("scenario_validation_failed: %w", valErr)
-	}
-
-	return scenario, nil
+	return &micro, nil
 }
 
 // ValidateScenarioCandidate validates scenario structure, bounds, anti-predictability rules, and referential integrity
@@ -248,33 +322,17 @@ func ValidateScenarioCandidate(s *models.Scenario) error {
 	}
 
 	// Validate Logs length
-	logCount := 0
-	if logsList, ok := s.InitialLogs.([]map[string]interface{}); ok {
-		logCount = len(logsList)
-	} else if rawSlice, ok := s.InitialLogs.([]interface{}); ok {
-		logCount = len(rawSlice)
-	}
+	logCount := len(normalizePhaseStepSlice(s.InitialLogs))
 	if logCount < 10 {
 		return fmt.Errorf("content_validation_failed: insufficient logs count (%d)", logCount)
 	}
 
-	// Validate Expected Outcomes
-	outcomes, ok := s.ExpectedOutcomes.(map[string]interface{})
-	if !ok {
+	// Validate Expected Outcomes and the evidence contract
+	if _, ok := s.ExpectedOutcomes.(map[string]interface{}); !ok {
 		return fmt.Errorf("schema_validation_failed: expected_outcomes must be an object")
 	}
-	rawFindings, exists := outcomes["key_findings"]
-	if !exists {
-		return fmt.Errorf("schema_validation_failed: key_findings missing from expected_outcomes")
-	}
-	findingsCount := 0
-	if fList, ok := rawFindings.([]map[string]interface{}); ok {
-		findingsCount = len(fList)
-	} else if fSlice, ok := rawFindings.([]interface{}); ok {
-		findingsCount = len(fSlice)
-	}
-	if findingsCount == 0 {
-		return fmt.Errorf("content_validation_failed: at least 1 key finding is required")
+	if err := validateScenarioEvidenceContract(s); err != nil {
+		return err
 	}
 
 	// Validate Playbook Phases & Anti-Predictability Contract
@@ -349,174 +407,12 @@ func normalizePhaseStepSlice(rawPhase interface{}) []map[string]interface{} {
 	}
 }
 
-// synthesizeFullScenario constructs a rich SIEM environment around the AI-generated attack core
+// synthesizeFullScenario constructs the complete SIEM environment and returns
+// the deterministic single-finding fallback when the generated findings fail the
+// evidence contract.
 func synthesizeFullScenario(ai aiMicroScenario, weakestDomain string, domainName string) *models.Scenario {
-	if weakestDomain == "" {
-		weakestDomain = "domain4"
-	}
-	if ai.Title == "" {
-		ai.Title = fmt.Sprintf("AI-Generated Incident (%s)", domainName)
-	}
-	if ai.AttackerIP == "" {
-		ai.AttackerIP = "185.220.101.45"
-	}
-	if ai.TargetHost == "" {
-		ai.TargetHost = "SRV-WEB01"
-	}
-	if ai.AttackLogMessage == "" {
-		ai.AttackLogMessage = fmt.Sprintf("Suspicious outbound network connection detected from %s to %s", ai.TargetHost, ai.AttackerIP)
-	}
-	if ai.KeyFinding == "" {
-		ai.KeyFinding = fmt.Sprintf("Identified malicious activity originating from %s targeting %s", ai.AttackerIP, ai.TargetHost)
-	}
-
-	// Ensure description includes explicit Investigation Clues for learner
-	if !strings.Contains(ai.Description, "Target Host:") && !strings.Contains(ai.Description, "INVESTIGATION CLUES") {
-		ai.Description = fmt.Sprintf("%s\n\nINVESTIGATION CLUES:\n- Target Host: %s\n- Suspected Attacker IP: %s\n- Alert Vector: %s", ai.Description, ai.TargetHost, ai.AttackerIP, ai.Title)
-	}
-
-	now := time.Now().UTC()
-
-	// Generate 45 telemetry logs (15 baseline + 5 evidence logs + 25 surrounding logs)
-	logs := make([]map[string]interface{}, 0, 45)
-
-	// Baseline noise logs (indices 0..14)
-	for i := 0; i < 15; i++ {
-		t := now.Add(time.Duration(i*20) * time.Second).Format(time.RFC3339)
-		logs = append(logs, map[string]interface{}{
-			"timestamp":      t,
-			"source":         "ad_controller",
-			"severity":       "info",
-			"severity_level": 1,
-			"message":        fmt.Sprintf("Kerberos ticket TGT requested for user account user%d@corp.local", i),
-			"src_ip":         fmt.Sprintf("10.0.1.%d", 10+i),
-			"user":           fmt.Sprintf("user%d", i),
-			"host":           fmt.Sprintf("WS-WORKSTATION%d", i+1),
-		})
-	}
-
-	// Attack evidence logs (indices 15..19)
-	t15 := now.Add(time.Duration(310) * time.Second).Format(time.RFC3339)
-	logs = append(logs, map[string]interface{}{
-		"timestamp":      t15,
-		"source":         "firewall",
-		"severity":       "warning",
-		"severity_level": 3,
-		"message":        fmt.Sprintf("Perimeter Firewall: Connection request initiated from %s to %s:443 [ACTION: ALLOWED]", ai.TargetHost, ai.AttackerIP),
-		"src_ip":         "10.0.1.55",
-		"dst_ip":         ai.AttackerIP,
-		"user":           "sys_admin",
-		"host":           ai.TargetHost,
-	})
-
-	t16 := now.Add(time.Duration(320) * time.Second).Format(time.RFC3339)
-	logs = append(logs, map[string]interface{}{
-		"timestamp":      t16,
-		"source":         "edr",
-		"severity":       "high",
-		"severity_level": 4,
-		"message":        ai.AttackLogMessage,
-		"src_ip":         "10.0.1.55",
-		"dst_ip":         ai.AttackerIP,
-		"user":           "sys_admin",
-		"host":           ai.TargetHost,
-	})
-
-	t17 := now.Add(time.Duration(330) * time.Second).Format(time.RFC3339)
-	logs = append(logs, map[string]interface{}{
-		"timestamp":      t17,
-		"source":         "ids",
-		"severity":       "critical",
-		"severity_level": 4,
-		"message":        fmt.Sprintf("IDS Alert: Malicious attack payload signature matched on incoming traffic from %s targeting host %s", ai.AttackerIP, ai.TargetHost),
-		"src_ip":         ai.AttackerIP,
-		"dst_ip":         "10.0.1.55",
-		"user":           "sys_admin",
-		"host":           ai.TargetHost,
-	})
-
-	t18 := now.Add(time.Duration(340) * time.Second).Format(time.RFC3339)
-	logs = append(logs, map[string]interface{}{
-		"timestamp":      t18,
-		"source":         "web_app",
-		"severity":       "high",
-		"severity_level": 4,
-		"message":        fmt.Sprintf("HTTP 500 Internal Server Error - Anomaly detected on %s via POST payload from %s", ai.TargetHost, ai.AttackerIP),
-		"src_ip":         ai.AttackerIP,
-		"dst_ip":         "10.0.1.55",
-		"user":           "www-data",
-		"host":           ai.TargetHost,
-	})
-
-	t19 := now.Add(time.Duration(350) * time.Second).Format(time.RFC3339)
-	logs = append(logs, map[string]interface{}{
-		"timestamp":      t19,
-		"source":         "siem_correlator",
-		"severity":       "critical",
-		"severity_level": 4,
-		"message":        fmt.Sprintf("SIEM Alert Rule [CORR-9901]: Multi-stage incident correlation triggered on host %s involving IP %s", ai.TargetHost, ai.AttackerIP),
-		"src_ip":         ai.AttackerIP,
-		"dst_ip":         "10.0.1.55",
-		"user":           "sys_admin",
-		"host":           ai.TargetHost,
-	})
-
-	// Trailing noise logs (indices 20..44)
-	for i := 20; i < 45; i++ {
-		t := now.Add(time.Duration(i*25) * time.Second).Format(time.RFC3339)
-		source := "proxy_gateway"
-		if i%2 == 0 {
-			source = "dns_server"
-		} else if i%3 == 0 {
-			source = "dhcp_server"
-		}
-		logs = append(logs, map[string]interface{}{
-			"timestamp":      t,
-			"source":         source,
-			"severity":       "info",
-			"severity_level": 1,
-			"message":        fmt.Sprintf("Routine network telemetry event %d logged for internal-service-%d.corp.local", i, i),
-			"src_ip":         fmt.Sprintf("10.0.2.%d", i),
-			"user":           "service_acct",
-			"host":           fmt.Sprintf("SRV-NODE%d", i),
-		})
-	}
-
-	containmentSteps := buildPhaseStepsWithDistractors("containment", "c", weakestDomain, ai.ContainmentAction, ai.ContainmentSteps, ai)
-	eradicationSteps := buildPhaseStepsWithDistractors("eradication", "e", weakestDomain, ai.EradicationAction, ai.EradicationSteps, ai)
-	recoverySteps := buildPhaseStepsWithDistractors("recovery", "r", weakestDomain, ai.RecoveryAction, ai.RecoverySteps, ai)
-
-	expectedOutcomes := map[string]interface{}{
-		"key_findings": []map[string]interface{}{
-			{
-				"id":                   "f1",
-				"description":          ai.KeyFinding,
-				"domain_id":            weakestDomain,
-				"points":               10,
-				"evidence_log_indices": []int{15, 16, 17, 18, 19},
-				"explanation":          ai.TpFpExplanation,
-			},
-		},
-	}
-
-	playbookSteps := map[string]interface{}{
-		"containment": containmentSteps,
-		"eradication": eradicationSteps,
-		"recovery":    recoverySteps,
-	}
-
-	return &models.Scenario{
-		Title:            ai.Title,
-		Description:      ai.Description,
-		DomainID:         weakestDomain,
-		Difficulty:       3,
-		IsTruePositive:   ai.IsTruePositive,
-		TpFpExplanation:  ai.TpFpExplanation,
-		InitialLogs:      logs,
-		ExpectedOutcomes: expectedOutcomes,
-		PlaybookSteps:    playbookSteps,
-		Status:           "active",
-	}
+	scenario, _ := synthesizeFullScenarioWithErrors(ai, weakestDomain, domainName)
+	return scenario
 }
 
 func buildPhaseStepsWithDistractors(phase string, idPrefix string, domainID string, legacyCorrectAction string, providedSteps []aiResponseActionOption, ai aiMicroScenario) []map[string]interface{} {
@@ -1229,6 +1125,9 @@ func EnsureScenarioPlaybookQuality(db *gorm.DB, seedPath string) error {
 	upgradedCount := 0
 	for i := range stored {
 		sc := &stored[i]
+		if strings.EqualFold(strings.TrimSpace(sc.Status), "archived") {
+			continue
+		}
 		if ValidateScenarioCandidate(sc) == nil {
 			continue
 		}
@@ -1253,4 +1152,3 @@ func EnsureScenarioPlaybookQuality(db *gorm.DB, seedPath string) error {
 	}
 	return nil
 }
-

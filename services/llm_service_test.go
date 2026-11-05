@@ -247,7 +247,7 @@ func TestUpgradeScenarioPlaybookSteps_RemediatesLegacyScenarios(t *testing.T) {
 		InitialLogs:     make([]map[string]interface{}, 15),
 		ExpectedOutcomes: map[string]interface{}{
 			"key_findings": []map[string]interface{}{
-				{"id": "f1", "description": "Web shell found", "domain_id": "domain2", "points": 10},
+				{"id": "f1", "description": "Web shell found", "domain_id": "domain2", "points": 10, "evidence_log_indices": []int{0}, "verdict_support": "malicious"},
 			},
 		},
 		PlaybookSteps: map[string]interface{}{
@@ -347,6 +347,9 @@ func TestEnsureScenarioPlaybookQuality_DatabaseIntegration(t *testing.T) {
 	}
 
 	for i := range stored {
+		if strings.EqualFold(strings.TrimSpace(stored[i].Status), "archived") {
+			continue
+		}
 		if err := ValidateScenarioCandidate(&stored[i]); err != nil {
 			t.Errorf("stored scenario %q (%s) failed validation after EnsureScenarioPlaybookQuality: %v", stored[i].Title, stored[i].ScenarioID, err)
 		}
