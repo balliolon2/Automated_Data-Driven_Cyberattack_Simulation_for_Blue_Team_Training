@@ -1,8 +1,35 @@
+import os
 import requests
 import random
 import sys
 
 BASE_URL = "http://localhost:8080/api"
+
+
+def load_repo_env(path=None):
+    """Load repo-root .env keys without printing values."""
+    if path is None:
+        path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), ".env")
+    try:
+        with open(path, "r", encoding="utf-8") as env_file:
+            for raw_line in env_file:
+                line = raw_line.strip()
+                if not line or line.startswith("#"):
+                    continue
+                if line.startswith("export "):
+                    line = line[len("export "):].lstrip()
+                if "=" not in line:
+                    continue
+                key, value = line.split("=", 1)
+                key = key.strip()
+                if not key:
+                    continue
+                value = value.strip()
+                if len(value) >= 2 and value[0] == value[-1] and value[0] in ("'", '"'):
+                    value = value[1:-1]
+                os.environ.setdefault(key, value)
+    except OSError:
+        pass
 
 def run_spec3_tests():
     print("=== Running Spec 3 Integration Tests ===")
@@ -39,6 +66,7 @@ def run_spec3_tests():
     )
     app_id = app_res.json().get("application_id")
 
+    load_repo_env()
     admin_email = os.environ.get("ADMIN_EMAIL", "admin@soc.local")
     admin_password = os.environ.get("ADMIN_PASSWORD", "password")
     admin_login = requests.post(f"{BASE_URL}/login", json={"email": admin_email, "password": admin_password})
