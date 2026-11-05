@@ -9,8 +9,8 @@ positional-chunking fallback.
 
 ``--offline`` is a separate, explicit authoring path. It matches each finding's
 keyword/entity rules against the actual log message text and records the
-matched log indices. It never reads a fixed index range and never calls
-``generate_scenarios.assign_evidence_indices``.
+matched log indices. It never reads a fixed index range and never chunks
+indices positionally.
 """
 
 from __future__ import annotations
@@ -852,7 +852,7 @@ def _evidence_cell(indices, logs, support):
 
 
 def render_report(scenarios, results, model, prompt_version, drafted_by,
-                  generated_at=None, notes=None):
+                  generated_at=None, notes=None, approval=None, mapping_hash=None):
     """Render the compact human review brief required by the workflow."""
     notes = notes or {}
     results_by_title = {result.scenario.get("title"): result for result in results}
@@ -871,16 +871,28 @@ def render_report(scenarios, results, model, prompt_version, drafted_by,
         warnings_by_title[scenario.get("title")] = warnings
         all_warnings.extend(warnings)
 
-    status = "PENDING APPROVAL"
     if failed:
         status = f"FAILED — {len(failed)} scenario(s) need manual mapping"
+    elif isinstance(approval, dict) and approval.get("approved") is True:
+        status = (
+            f"APPROVED by {approval.get('approved_by')} "
+            f"at {approval.get('approved_at')}"
+        )
+    else:
+        status = "PENDING APPROVAL"
+
+    hash_line = (
+        f"Mapping SHA-256: {mapping_hash}"
+        if mapping_hash
+        else "Mapping SHA-256: not computed (unapproved draft)"
+    )
 
     lines = [
         "# Evidence Mapping Review",
         "",
         f"Batch: {len(scenarios)} scenarios · Model: {model} · Prompt: {prompt_version}",
         f"Drafted by: {drafted_by} · Generated: {generated_at or _utc_now()}",
-        "Mapping SHA-256: not computed (unapproved draft)",
+        hash_line,
         f"Status: {status}",
         "",
         "## Coverage summary",
@@ -944,9 +956,14 @@ def render_report(scenarios, results, model, prompt_version, drafted_by,
         logs = logs if isinstance(logs, list) else []
         union = _union(entry)
         percentage = (100.0 * len(union) / len(logs)) if logs else 0.0
+        status_line = (
+            f"Status: DRAFTED ({result.drafted_by}, {result.attempts} attempt(s))"
+            if result.attempts
+            else f"Status: FINAL MAPPING ({result.drafted_by})"
+        )
         lines.extend(
             [
-                f"Status: DRAFTED ({result.drafted_by}, {result.attempts} attempt(s))",
+                status_line,
                 f"TP/FP Decision: {verdict}",
                 f"Evidence union: {len(union)} / {len(logs)} logs ({percentage:.0f}%)",
                 "",
@@ -996,6 +1013,38 @@ def render_report(scenarios, results, model, prompt_version, drafted_by,
         lines.append("")
 
     return "\n".join(lines).rstrip() + "\n"
+
+
+def render_report_from_mapping(mapping, scenarios):
+    """Render the review brief from a final mapping without redrafting."""
+    entries_by_title = {
+        entry.get("scenario_title"): entry
+        for entry in mapping.get("scenarios", [])
+        if isinstance(entry, dict) and isinstance(entry.get("scenario_title"), str)
+    }
+    results = []
+    for scenario in scenarios:
+        entry = entries_by_title.get(scenario.get("title"))
+        results.append(
+            ScenarioResult(
+                scenario=scenario,
+                entry=entry,
+                errors=[] if entry is not None else ["no mapping entry"],
+                attempts=0,
+                drafted_by=mapping.get("drafted_by") or "existing",
+            )
+        )
+
+    return render_report(
+        scenarios,
+        results,
+        model=mapping.get("model") or "unknown",
+        prompt_version=mapping.get("prompt_version") or PROMPT_VERSION,
+        drafted_by=mapping.get("drafted_by") or "existing",
+        generated_at=mapping.get("generated_at"),
+        approval=mapping.get("approval"),
+        mapping_hash=validator.mapping_sha256(mapping),
+    )
 
 
 def write_artifacts(mapping, report, output_path, report_path):
@@ -1076,12 +1125,31 @@ def main(argv=None, client=None, scenarios=None):
             "LLM. This path never chunks indices positionally."
         ),
     )
+    parser.add_argument(
+        "--refresh-report",
+        action="store_true",
+        help=(
+            "Re-render the review brief from the existing --output mapping, "
+            "including approval metadata and the canonical hash, without redrafting."
+        ),
+    )
     args = parser.parse_args(argv)
 
     all_scenarios = scenarios if scenarios is not None else _load_base_scenarios()
     if not all_scenarios:
         print("No base scenarios were loaded.", file=sys.stderr)
         return 2
+
+    if args.refresh_report:
+        try:
+            mapping = json.loads(Path(args.output).read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as exc:
+            print(f"Could not read mapping {args.output}: {exc}", file=sys.stderr)
+            return 1
+        report = render_report_from_mapping(mapping, all_scenarios)
+        Path(args.report).write_text(report, encoding="utf-8")
+        print(f"Refreshed {args.report} from {args.output}.")
+        return 0
 
     selected = all_scenarios
     if args.scenario:

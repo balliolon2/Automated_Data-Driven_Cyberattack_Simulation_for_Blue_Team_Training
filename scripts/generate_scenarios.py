@@ -975,14 +975,13 @@ def load_evidence_mapping(mapping_path):
 
 
 def apply_evidence_mapping(scenarios, mapping):
-    """
-    Validate and overlay authored evidence on scenarios that have a mapping entry.
+    """Validate an approved mapping and overlay its evidence on every finding.
 
-    Scenarios and findings without an entry keep whatever evidence they already
-    have, which preserves the existing fallback during the expand phase.
-    Unknown scenario titles or finding IDs, and partial coverage of a mapped
-    scenario's findings, are structural errors and raise ``ValueError`` instead
-    of being silently ignored.
+    The mapping must be complete and approved. Every base finding receives the
+    authored ``evidence_log_indices`` and ``verdict_support``; there is no
+    positional chunking and no partial-mapping fallback. Missing or extra
+    scenarios/findings, unapproved mappings, and hash mismatches raise
+    ``ValueError`` rather than silently producing an unauthored seed.
     """
     scripts_dir = str(Path(__file__).resolve().parent)
     if scripts_dir not in sys.path:
@@ -993,7 +992,8 @@ def apply_evidence_mapping(scenarios, mapping):
     errors = validator.validate_mapping(
         mapping,
         scenarios,
-        require_complete=False,
+        require_complete=True,
+        require_approval=True,
         warnings=warnings,
     )
     for warning in warnings:
@@ -1004,7 +1004,7 @@ def apply_evidence_mapping(scenarios, mapping):
             f"Evidence mapping is invalid ({len(errors)} error(s)):\n{details}"
         )
 
-    entries = mapping.get("scenarios", []) if isinstance(mapping, dict) else []
+    entries = mapping.get("scenarios", [])
     entries_by_title = {
         entry.get("scenario_title"): entry
         for entry in entries
@@ -1012,10 +1012,7 @@ def apply_evidence_mapping(scenarios, mapping):
     }
 
     for scenario in scenarios:
-        entry = entries_by_title.get(scenario.get("title"))
-        if entry is None:
-            continue
-
+        entry = entries_by_title[scenario.get("title")]
         authored_by_id = {
             finding.get("finding_id"): finding
             for finding in entry.get("findings", [])
@@ -1023,85 +1020,34 @@ def apply_evidence_mapping(scenarios, mapping):
         }
 
         for finding in scenario.get("expected_outcomes", {}).get("key_findings", []):
-            authored = authored_by_id.get(finding.get("id"))
-            if authored is None:
-                continue
-            if "evidence_log_indices" in authored:
-                finding["evidence_log_indices"] = list(authored["evidence_log_indices"])
-            if "verdict_support" in authored:
-                finding["verdict_support"] = authored["verdict_support"]
+            authored = authored_by_id[finding.get("id")]
+            finding["evidence_log_indices"] = list(authored["evidence_log_indices"])
+            finding["verdict_support"] = authored["verdict_support"]
 
-    return scenarios
-
-
-def assign_evidence_indices(scenarios):
-    """
-    Post-process scenarios to add evidence_log_indices to each key finding.
-    
-    All scenarios follow the structure:
-      - 15 noise logs (indices 0-14)
-      - N evidence logs (indices 15 through len(logs)-16)
-      - 15 noise logs (indices len(logs)-15 through len(logs)-1)
-    
-    This function distributes the evidence indices across findings so
-    the frontend's KQL discovery mechanic works correctly.
-    """
-    for scenario in scenarios:
-        logs = scenario.get("initial_logs", [])
-        total_logs = len(logs)
-        
-        # Evidence entries are between the two noise blocks of 15 each
-        evidence_start = 15
-        evidence_end = total_logs - 16  # inclusive
-        
-        if evidence_end < evidence_start:
-            continue
-        
-        evidence_indices = list(range(evidence_start, evidence_end + 1))
-        
-        key_findings = scenario.get("expected_outcomes", {}).get("key_findings", [])
-        if not key_findings:
-            continue
-        
-        num_findings = len(key_findings)
-        num_evidence = len(evidence_indices)
-        
-        # Distribute evidence indices across findings
-        # Each finding gets a roughly equal slice, with overlap on boundaries
-        chunk_size = max(1, num_evidence // num_findings)
-        
-        for i, finding in enumerate(key_findings):
-            start = i * chunk_size
-            # Last finding gets all remaining indices
-            if i == num_findings - 1:
-                end = num_evidence
-            else:
-                # Include one overlapping index with next finding for realism
-                end = min(start + chunk_size + 1, num_evidence)
-            
-            finding["evidence_log_indices"] = evidence_indices[start:end]
-    
     return scenarios
 
 
 if __name__ == "__main__":
-    scs = create_scenarios()
-    scs = assign_evidence_indices(scs)
-
     mapping_path = Path(__file__).resolve().parent / "evidence_mapping.json"
-    authored_count = 0
-    if mapping_path.is_file():
-        mapping = load_evidence_mapping(str(mapping_path))
-        try:
-            scs = apply_evidence_mapping(scs, mapping)
-        except ValueError as exc:
-            print(str(exc), file=sys.stderr)
-            sys.exit(1)
-        authored_count = len(mapping.get("scenarios", [])) if isinstance(mapping, dict) else 0
+    if not mapping_path.is_file():
+        print(
+            f"Required evidence mapping not found: {mapping_path}. "
+            "There is no positional-chunking fallback.",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
+    scs = create_scenarios()
+    mapping = load_evidence_mapping(str(mapping_path))
+    try:
+        scs = apply_evidence_mapping(scs, mapping)
+    except ValueError as exc:
+        print(str(exc), file=sys.stderr)
+        sys.exit(1)
 
     with open("scenarios_seed.json", "w", encoding="utf-8") as f:
         json.dump(scs, f, indent=2, ensure_ascii=False)
     print(
         "Successfully generated scenarios_seed.json containing "
-        f"{len(scs)} scenarios ({authored_count} with authored evidence)!"
+        f"{len(scs)} scenarios, all with authored evidence."
     )

@@ -239,10 +239,13 @@ class ReportTests(unittest.TestCase):
 
 
 class OfflineTests(unittest.TestCase):
-    def test_drafting_module_never_chunks_positionally(self):
-        source = Path(drafting.__file__).read_text(encoding="utf-8")
-        self.assertNotIn("assign_evidence_indices(", source)
-        self.assertNotIn("evidence_start", source)
+    def test_drafting_and_generator_never_chunk_positionally(self):
+        drafting_source = Path(drafting.__file__).read_text(encoding="utf-8")
+        generator_source = Path(generate_scenarios.__file__).read_text(encoding="utf-8")
+        self.assertNotIn("assign_evidence_indices", drafting_source)
+        self.assertNotIn("assign_evidence_indices", generator_source)
+        self.assertNotIn("evidence_start", drafting_source)
+        self.assertNotIn("chunk_size", generator_source)
 
     def test_offline_mode_produces_complete_mapping_without_chunking(self):
         scenarios = generate_scenarios.create_scenarios()
@@ -277,23 +280,6 @@ class OfflineTests(unittest.TestCase):
         by_id = {finding["finding_id"]: finding for finding in travel["findings"]}
         self.assertEqual([18], by_id["d1_f3"]["evidence_log_indices"])
         self.assertEqual([16, 17], by_id["d1_f4"]["evidence_log_indices"])
-
-        chunked = generate_scenarios.assign_evidence_indices(
-            generate_scenarios.create_scenarios()
-        )
-        chunked_travel = next(
-            scenario
-            for scenario in chunked
-            if scenario["title"] == "Atypical Travel VPN Connection Alert"
-        )
-        chunked_by_id = {
-            finding["id"]: finding
-            for finding in chunked_travel["expected_outcomes"]["key_findings"]
-        }
-        self.assertNotEqual(
-            chunked_by_id["d1_f3"]["evidence_log_indices"],
-            by_id["d1_f3"]["evidence_log_indices"],
-        )
 
 
 if __name__ == "__main__":

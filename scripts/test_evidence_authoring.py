@@ -65,6 +65,16 @@ def make_finding(finding_id="f1", indices=None, rationale="Logs prove the findin
     }
 
 
+def approve(mapping, approved_by="balliolon2", approved_at="2026-11-05T07:34:36Z"):
+    mapping["approval"] = {
+        "approved": True,
+        "approved_by": approved_by,
+        "approved_at": approved_at,
+        "mapping_sha256": validator.mapping_sha256(mapping),
+    }
+    return mapping
+
+
 class ValidatorTestCase(unittest.TestCase):
     def assert_valid(self, errors):
         self.assertEqual([], errors)
@@ -95,6 +105,79 @@ class MappingSchemaTests(ValidatorTestCase):
         base = [make_base_scenario()]
         mapping = make_mapping([make_finding()], schema_version=2)
         self.assert_invalid(self.validate(mapping, base), "schema_version", "2")
+
+
+class ApprovalTests(ValidatorTestCase):
+    def approved_mapping(self):
+        mapping = make_mapping([make_finding(), make_finding("f2", [2, 3])])
+        return approve(mapping)
+
+    def test_approved_mapping_with_matching_hash_passes(self):
+        base = [make_base_scenario()]
+        self.assert_valid(
+            self.validate(self.approved_mapping(), base, require_approval=True)
+        )
+
+    def test_unapproved_mapping_fails(self):
+        base = [make_base_scenario()]
+        mapping = make_mapping([make_finding(), make_finding("f2", [2, 3])])
+        self.assert_invalid(
+            self.validate(mapping, base, require_approval=True),
+            "approval",
+            "missing",
+        )
+
+    def test_explicitly_unapproved_mapping_fails(self):
+        base = [make_base_scenario()]
+        mapping = approve(make_mapping([make_finding(), make_finding("f2", [2, 3])]))
+        mapping["approval"]["approved"] = False
+        self.assert_invalid(
+            self.validate(mapping, base, require_approval=True),
+            "not approved",
+        )
+
+    def test_scenarios_edit_invalidates_approved_hash(self):
+        base = [make_base_scenario()]
+        mapping = self.approved_mapping()
+        mapping["scenarios"][0]["findings"][0]["evidence_log_indices"] = [4, 5]
+        self.assert_invalid(
+            self.validate(mapping, base, require_approval=True),
+            "hash mismatch",
+        )
+
+    def test_reordering_scenarios_does_not_invalidate_hash(self):
+        base = [
+            make_base_scenario(),
+            make_base_scenario(title="Scenario Two"),
+        ]
+        mapping = approve(
+            {
+                "schema_version": 1,
+                "scenarios": [
+                    {
+                        "scenario_title": "Scenario Two",
+                        "findings": [
+                            make_finding("f1", [0, 1]),
+                            make_finding("f2", [2, 3]),
+                        ],
+                    },
+                    {
+                        "scenario_title": "Scenario One",
+                        "findings": [
+                            make_finding("f1", [0, 1]),
+                            make_finding("f2", [2, 3]),
+                        ],
+                    },
+                ],
+            }
+        )
+        mapping["scenarios"].reverse()
+        self.assert_valid(self.validate(mapping, base, require_approval=True))
+
+    def test_approval_is_optional_for_unapproved_draft_validation(self):
+        base = [make_base_scenario()]
+        mapping = make_mapping([make_finding(), make_finding("f2", [2, 3])])
+        self.assert_valid(self.validate(mapping, base))
 
 
 class MalformedInputTests(ValidatorTestCase):
@@ -135,11 +218,6 @@ class ScenarioSetTests(ValidatorTestCase):
             "Scenario Two",
             "missing scenario",
         )
-
-    def test_missing_scenario_is_allowed_in_expand_phase(self):
-        base = [make_base_scenario(), make_base_scenario(title="Scenario Two")]
-        mapping = make_mapping([make_finding(), make_finding("f2", [2, 3])])
-        self.assert_valid(self.validate(mapping, base, require_complete=False))
 
     def test_extra_scenario_fails(self):
         base = [make_base_scenario()]
@@ -288,7 +366,14 @@ class SeedValidationTests(ValidatorTestCase):
 
     def validate(self, seed, base=None, **kwargs):
         if base is None:
-            base = [make_base_scenario()]
+            first = seed[0]
+            base = [
+                make_base_scenario(
+                    title=first.get("title"),
+                    is_true_positive=first.get("is_true_positive"),
+                    log_count=len(first.get("initial_logs", [])),
+                )
+            ]
         return validator.validate_seed(seed, base, **kwargs)
 
     def test_valid_seed_passes(self):
@@ -309,22 +394,11 @@ class SeedValidationTests(ValidatorTestCase):
         scenario["expected_outcomes"]["key_findings"][0]["evidence_log_indices"] = [0, 99]
         self.assert_invalid(self.validate([scenario]), "Scenario One", "f1", "out of range")
 
-    def test_legacy_seed_without_verdict_support_is_tolerated_for_unmapped_fallback(self):
+    def test_seed_without_verdict_support_fails(self):
         scenario = self.make_seed_scenario()
         for finding in scenario["expected_outcomes"]["key_findings"]:
             del finding["verdict_support"]
-        self.assert_valid(self.validate([scenario], mapped_titles=set()))
-
-    def test_mapped_scenario_cannot_delete_all_verdict_support(self):
-        scenario = self.make_seed_scenario()
-        for finding in scenario["expected_outcomes"]["key_findings"]:
-            del finding["verdict_support"]
-        self.assert_invalid(
-            self.validate([scenario], mapped_titles={"Scenario One"}),
-            "Scenario One",
-            "f1",
-            "verdict_support",
-        )
+        self.assert_invalid(self.validate([scenario]), "Scenario One", "f1", "verdict_support")
 
     def test_seed_with_partial_verdict_support_fails(self):
         scenario = self.make_seed_scenario()
@@ -397,8 +471,9 @@ class SeedCliTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.mapping = generate_scenarios.load_evidence_mapping(str(MAPPING_PATH))
-        seeded = generate_scenarios.assign_evidence_indices(generate_scenarios.create_scenarios())
-        cls.full_seed = generate_scenarios.apply_evidence_mapping(seeded, cls.mapping)
+        cls.full_seed = generate_scenarios.apply_evidence_mapping(
+            generate_scenarios.create_scenarios(), cls.mapping
+        )
 
     def write_seed(self, directory, seed):
         path = Path(directory) / "scenarios_seed.json"
@@ -504,17 +579,26 @@ class ApplyGuardTests(unittest.TestCase):
     def setUp(self):
         self.mapping = generate_scenarios.load_evidence_mapping(str(MAPPING_PATH))
 
-    def seeded(self):
-        return generate_scenarios.assign_evidence_indices(generate_scenarios.create_scenarios())
+    def base(self):
+        return generate_scenarios.create_scenarios()
+
+    def reapprove(self, mapping):
+        mapping["approval"]["mapping_sha256"] = validator.mapping_sha256(mapping)
+        return mapping
 
     def test_unknown_scenario_is_rejected(self):
-        mapping = {"schema_version": 1, "scenarios": [{"scenario_title": "Unknown", "findings": []}]}
+        mapping = copy.deepcopy(self.mapping)
+        mapping["scenarios"].append(
+            {"scenario_title": "Unknown", "findings": []}
+        )
+        self.reapprove(mapping)
         with self.assertRaises(ValueError) as caught:
-            generate_scenarios.apply_evidence_mapping(self.seeded(), mapping)
+            generate_scenarios.apply_evidence_mapping(self.base(), mapping)
         self.assertIn("Unknown", str(caught.exception))
 
     def test_unknown_finding_id_is_rejected(self):
-        entry = copy.deepcopy(self.mapping["scenarios"][0])
+        mapping = copy.deepcopy(self.mapping)
+        entry = mapping["scenarios"][0]
         entry["findings"].append(
             {
                 "finding_id": "not_a_real_finding",
@@ -523,23 +607,37 @@ class ApplyGuardTests(unittest.TestCase):
                 "verdict_support": "malicious",
             }
         )
-        mapping = {"schema_version": 1, "scenarios": [entry]}
+        self.reapprove(mapping)
         with self.assertRaises(ValueError) as caught:
-            generate_scenarios.apply_evidence_mapping(self.seeded(), mapping)
+            generate_scenarios.apply_evidence_mapping(self.base(), mapping)
         self.assertIn("not_a_real_finding", str(caught.exception))
 
     def test_partial_finding_coverage_is_rejected(self):
-        entry = copy.deepcopy(self.mapping["scenarios"][0])
-        entry["findings"] = entry["findings"][:1]
-        mapping = {"schema_version": 1, "scenarios": [entry]}
+        mapping = copy.deepcopy(self.mapping)
+        mapping["scenarios"][0]["findings"] = mapping["scenarios"][0]["findings"][:1]
+        self.reapprove(mapping)
         with self.assertRaises(ValueError) as caught:
-            generate_scenarios.apply_evidence_mapping(self.seeded(), mapping)
+            generate_scenarios.apply_evidence_mapping(self.base(), mapping)
         self.assertIn("missing finding", str(caught.exception))
+
+    def test_unapproved_mapping_is_rejected(self):
+        mapping = copy.deepcopy(self.mapping)
+        mapping["approval"]["approved"] = False
+        with self.assertRaises(ValueError) as caught:
+            generate_scenarios.apply_evidence_mapping(self.base(), mapping)
+        self.assertIn("not approved", str(caught.exception))
+
+    def test_hash_mismatch_is_rejected(self):
+        mapping = copy.deepcopy(self.mapping)
+        mapping["scenarios"][0]["findings"][0]["evidence_log_indices"] = [15]
+        with self.assertRaises(ValueError) as caught:
+            generate_scenarios.apply_evidence_mapping(self.base(), mapping)
+        self.assertIn("hash mismatch", str(caught.exception))
 
     def test_malformed_mapping_root_is_rejected(self):
         with self.assertRaises(ValueError):
             generate_scenarios.apply_evidence_mapping(
-                self.seeded(), {"schema_version": {}, "scenarios": []}
+                self.base(), {"schema_version": {}, "scenarios": []}
             )
 
 
@@ -549,18 +647,11 @@ class SeedApplicationTests(unittest.TestCase):
         cls.mapping = generate_scenarios.load_evidence_mapping(str(MAPPING_PATH))
 
     def test_mapping_applies_when_every_scenario_is_authored(self):
-        """The expand phase is over: the draft now covers all 15 Scenarios.
-
-        T2 drafts the complete mapping but intentionally does not touch the
-        seed; T3 approves and applies it. Applying the draft here must overlay
-        every finding with its authored evidence.
-        """
         base = generate_scenarios.create_scenarios()
         mapped_titles = {entry["scenario_title"] for entry in self.mapping["scenarios"]}
-        self.assertEqual(15, len(mapped_titles), "T2 must draft the complete scenario set")
+        self.assertEqual(15, len(mapped_titles), "the mapping must cover the full scenario set")
 
-        seeded = generate_scenarios.assign_evidence_indices(generate_scenarios.create_scenarios())
-        applied = generate_scenarios.apply_evidence_mapping(seeded, self.mapping)
+        applied = generate_scenarios.apply_evidence_mapping(base, self.mapping)
 
         for scenario in applied:
             entry = next(e for e in self.mapping["scenarios"] if e["scenario_title"] == scenario["title"])
@@ -570,16 +661,14 @@ class SeedApplicationTests(unittest.TestCase):
                 self.assertEqual(authored["evidence_log_indices"], finding["evidence_log_indices"])
                 self.assertEqual(authored["verdict_support"], finding["verdict_support"])
 
-        self.assertEqual(
-            [],
-            validator.validate_seed(applied, applied, mapped_titles=mapped_titles),
-        )
+        self.assertEqual([], validator.validate_seed(applied, base))
 
-    def test_real_mapping_passes_partial_validation(self):
+    def test_real_mapping_passes_complete_approved_validation(self):
         errors = validator.validate_mapping(
             self.mapping,
             generate_scenarios.create_scenarios(),
-            require_complete=False,
+            require_complete=True,
+            require_approval=True,
         )
         self.assertEqual([], errors)
 
@@ -587,8 +676,64 @@ class SeedApplicationTests(unittest.TestCase):
         entry = self.mapping["scenarios"][0]
         self.assertEqual("Multi-Factor Authentication Bypass (Push Fatigue)", entry["scenario_title"])
         by_id = {f["finding_id"]: f for f in entry["findings"]}
-        self.assertTrue({15, 16, 17}.issubset(set(by_id["d1_f1"]["evidence_log_indices"])))
+        self.assertEqual([15, 16, 17, 18], by_id["d1_f1"]["evidence_log_indices"])
         self.assertTrue(set(by_id["d1_f2"]["evidence_log_indices"]).intersection({18, 19, 20}))
+
+
+class NoChunkingTests(unittest.TestCase):
+    def test_chunking_helper_is_gone(self):
+        self.assertFalse(hasattr(generate_scenarios, "assign_evidence_indices"))
+        source = Path(generate_scenarios.__file__).read_text(encoding="utf-8")
+        self.assertNotIn("assign_evidence_indices", source)
+        self.assertNotIn("evidence_start", source)
+        self.assertNotIn("chunk_size", source)
+
+
+class FinalSeedTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.seed = json.loads(
+            (SCRIPT_DIR.parent / "scenarios_seed.json").read_text(encoding="utf-8")
+        )
+        cls.base = generate_scenarios.create_scenarios()
+
+    def test_committed_seed_passes_validation(self):
+        self.assertEqual([], validator.validate_seed(self.seed, self.base))
+
+    def test_committed_seed_has_all_scenarios_and_findings(self):
+        self.assertEqual(15, len(self.seed))
+        self.assertEqual(27, sum(
+            len(scenario["expected_outcomes"]["key_findings"]) for scenario in self.seed
+        ))
+
+    def test_every_committed_finding_has_authored_evidence_and_verdict_support(self):
+        for scenario in self.seed:
+            for finding in scenario["expected_outcomes"]["key_findings"]:
+                self.assertTrue(finding["evidence_log_indices"], finding["id"])
+                self.assertIn(
+                    finding["verdict_support"],
+                    {"malicious", "benign", "supporting"},
+                    finding["id"],
+                )
+
+    def test_no_scenario_exceeds_the_fifty_percent_union_cap(self):
+        for scenario in self.seed:
+            union = set()
+            for finding in scenario["expected_outcomes"]["key_findings"]:
+                union.update(finding["evidence_log_indices"])
+            self.assertLessEqual(
+                len(union), len(scenario["initial_logs"]) // 2, scenario["title"]
+            )
+
+    def test_guest_streaming_scenario_stays_benign(self):
+        scenario = next(
+            item for item in self.seed
+            if item["title"] == "Exorbitant Bandwidth Consumption on Guest Network"
+        )
+        self.assertFalse(scenario["is_true_positive"])
+        finding = scenario["expected_outcomes"]["key_findings"][0]
+        self.assertEqual("benign", finding["verdict_support"])
+        self.assertEqual({0, 25, 26}, set(finding["evidence_log_indices"]))
 
 
 if __name__ == "__main__":

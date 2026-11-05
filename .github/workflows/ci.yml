@@ -66,6 +66,18 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Scenario Evidence Authoring Gate
+        run: |
+          python scripts/test_evidence_authoring.py
+          python scripts/test_evidence_drafting.py
+          python scripts/validate_evidence_mapping.py --mapping scripts/evidence_mapping.json --require-complete
+          python scripts/validate_evidence_mapping.py --seed scenarios_seed.json
+
   integration-test:
     name: Database & Exam Test Harness
     needs: lint-and-audit

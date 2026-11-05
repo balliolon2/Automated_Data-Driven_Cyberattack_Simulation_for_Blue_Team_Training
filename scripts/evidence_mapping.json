@@ -5,10 +5,10 @@
   "prompt_version": "evidence-mapping-v1",
   "drafted_by": "llm",
   "approval": {
-    "approved": false,
-    "approved_by": null,
-    "approved_at": null,
-    "mapping_sha256": null
+    "approved": true,
+    "approved_by": "balliolon2",
+    "approved_at": "2026-11-05T07:34:36Z",
+    "mapping_sha256": "cd8c28eea458a00e940b793fc7ae764c8a26567c0db84b996ab7eb2b9719beb2"
   },
   "scenarios": [
     {
@@ -20,9 +20,10 @@
           "evidence_log_indices": [
             15,
             16,
-            17
+            17,
+            18
           ],
-          "rationale": "Three consecutive MFA push notifications were rejected by the user within 30 seconds, indicating a classic push fatigue or brute-force attempt against the user 'ajones'.",
+          "rationale": "Three MFA pushes for 'ajones' were rejected within 30 seconds, then the next push was approved from 198.51.100.42, the classic push-fatigue sequence that handed the attacker a session.",
           "verdict_support": "malicious"
         },
         {

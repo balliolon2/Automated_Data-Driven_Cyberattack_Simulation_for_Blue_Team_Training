@@ -813,10 +813,9 @@
           "points": 10,
           "explanation": "HR logs verify the user is in Paris, France during this time.",
           "evidence_log_indices": [
-            15,
-            16,
-            17
-          ]
+            18
+          ],
+          "verdict_support": "benign"
         },
         {
           "id": "d1_f4",
@@ -825,9 +824,10 @@
           "points": 10,
           "explanation": "MFA SMS was successfully entered and device posture checks passed.",
           "evidence_log_indices": [
-            17,
-            18
-          ]
+            16,
+            17
+          ],
+          "verdict_support": "benign"
         }
       ]
     },
@@ -1220,10 +1220,9 @@
           "points": 10,
           "explanation": "DACL modification by svc_backup bypassed normal change control processes.",
           "evidence_log_indices": [
-            15,
-            16,
-            17
-          ]
+            16
+          ],
+          "verdict_support": "malicious"
         },
         {
           "id": "d1_f6",
@@ -1232,9 +1231,11 @@
           "points": 10,
           "explanation": "jsmith accessed the payroll files immediately after the permission change.",
           "evidence_log_indices": [
+            16,
             17,
             18
-          ]
+          ],
+          "verdict_support": "malicious"
         }
       ]
     },
@@ -1610,9 +1611,9 @@
           "explanation": "The parameter 'q' contains a UNION SELECT query used to extract credentials.",
           "evidence_log_indices": [
             15,
-            16,
-            17
-          ]
+            16
+          ],
+          "verdict_support": "malicious"
         },
         {
           "id": "d2_f2",
@@ -1623,7 +1624,8 @@
           "evidence_log_indices": [
             17,
             18
-          ]
+          ],
+          "verdict_support": "malicious"
         }
       ]
     },
@@ -2037,14 +2039,9 @@
           "points": 10,
           "explanation": "Vulnerability scan was pre-authorized via Change Request CR-4099.",
           "evidence_log_indices": [
-            15,
-            16,
-            17,
-            18,
-            19,
-            20,
-            21
-          ]
+            26
+          ],
+          "verdict_support": "benign"
         },
         {
           "id": "d2_f4",
@@ -2053,13 +2050,10 @@
           "points": 10,
           "explanation": "Traffic remained within internal private subnets.",
           "evidence_log_indices": [
-            21,
-            22,
-            23,
-            24,
-            25,
-            26
-          ]
+            0,
+            25
+          ],
+          "verdict_support": "supporting"
         }
       ]
     },
@@ -2437,9 +2431,9 @@
           "explanation": "vssadmin.exe delete shadows is used to inhibit system recovery.",
           "evidence_log_indices": [
             15,
-            16,
-            17
-          ]
+            16
+          ],
+          "verdict_support": "malicious"
         },
         {
           "id": "d2_f6",
@@ -2450,7 +2444,8 @@
           "evidence_log_indices": [
             17,
             18
-          ]
+          ],
+          "verdict_support": "malicious"
         }
       ]
     },
@@ -2827,10 +2822,9 @@
           "points": 10,
           "explanation": "Firewall permitted route 192.168.10.145 -> 10.0.50.12:5432.",
           "evidence_log_indices": [
-            15,
-            16,
-            17
-          ]
+            15
+          ],
+          "verdict_support": "malicious"
         },
         {
           "id": "d3_f2",
@@ -2839,9 +2833,10 @@
           "points": 10,
           "explanation": "Multiple database login failures indicate active brute forcing.",
           "evidence_log_indices": [
-            17,
-            18
-          ]
+            16,
+            17
+          ],
+          "verdict_support": "malicious"
         }
       ]
     },
@@ -3256,14 +3251,11 @@
           "points": 10,
           "explanation": "Traffic destinations were youtube.com and netflix.com.",
           "evidence_log_indices": [
-            15,
-            16,
-            17,
-            18,
-            19,
-            20,
-            21
-          ]
+            0,
+            26,
+            25
+          ],
+          "verdict_support": "benign"
         }
       ]
     },
@@ -3642,10 +3634,9 @@
           "points": 10,
           "explanation": "PutBucketAcl made the storage bucket publicly accessible.",
           "evidence_log_indices": [
-            15,
-            16,
-            17
-          ]
+            15
+          ],
+          "verdict_support": "malicious"
         },
         {
           "id": "d3_f5",
@@ -3654,9 +3645,11 @@
           "points": 10,
           "explanation": "Anonymous user from 198.51.100.99 fetched contract files.",
           "evidence_log_indices": [
+            16,
             17,
             18
-          ]
+          ],
+          "verdict_support": "malicious"
         }
       ]
     },
@@ -4033,8 +4026,10 @@
           "evidence_log_indices": [
             15,
             16,
-            17
-          ]
+            17,
+            18
+          ],
+          "verdict_support": "malicious"
         },
         {
           "id": "d4_f2",
@@ -4043,9 +4038,10 @@
           "points": 10,
           "explanation": "All anomalous traffic pointed to domain 'malicious-tunnel.com'.",
           "evidence_log_indices": [
-            17,
+            15,
             18
-          ]
+          ],
+          "verdict_support": "malicious"
         }
       ]
     },
@@ -4479,14 +4475,13 @@
           "points": 10,
           "explanation": "Change Request CR-3212 documents the temporary clock drift configuration.",
           "evidence_log_indices": [
-            15,
-            16,
-            17,
-            18,
-            19,
-            20,
-            21
-          ]
+            0,
+            1,
+            34,
+            35,
+            36
+          ],
+          "verdict_support": "benign"
         }
       ]
     },
@@ -4851,7 +4846,8 @@
             15,
             16,
             17
-          ]
+          ],
+          "verdict_support": "malicious"
         },
         {
           "id": "d4_f5",
@@ -4860,9 +4856,9 @@
           "points": 10,
           "explanation": "Account 'adm_backdoor' was created maliciously without authorization.",
           "evidence_log_indices": [
-            17,
             18
-          ]
+          ],
+          "verdict_support": "malicious"
         }
       ]
     },
@@ -5240,9 +5236,9 @@
           "explanation": "Bulk data export of customer billing records was atypical for this role.",
           "evidence_log_indices": [
             15,
-            16,
             17
-          ]
+          ],
+          "verdict_support": "malicious"
         },
         {
           "id": "d5_f2",
@@ -5251,9 +5247,10 @@
           "points": 10,
           "explanation": "Post to personal-gmail.com matches size of exported data.",
           "evidence_log_indices": [
-            17,
-            18
-          ]
+            15,
+            16
+          ],
+          "verdict_support": "malicious"
         }
       ]
     },
@@ -5623,7 +5620,8 @@
             15,
             16,
             17
-          ]
+          ],
+          "verdict_support": "benign"
         }
       ]
     },
@@ -5999,9 +5997,9 @@
           "explanation": "Gi1/0/22 exceeded its maximum MAC limit due to downstream router.",
           "evidence_log_indices": [
             15,
-            16,
-            17
-          ]
+            18
+          ],
+          "verdict_support": "malicious"
         },
         {
           "id": "d5_f5",
@@ -6010,9 +6008,9 @@
           "points": 10,
           "explanation": "Rogue SSID 'CORP-GUEST-FAST' broadcasted from the same device MAC.",
           "evidence_log_indices": [
-            17,
-            18
-          ]
+            17
+          ],
+          "verdict_support": "malicious"
         }
       ]
     },

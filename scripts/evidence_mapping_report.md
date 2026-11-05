@@ -2,8 +2,8 @@
 
 Batch: 15 scenarios · Model: z-ai/glm-5.3-flash · Prompt: evidence-mapping-v1
 Drafted by: llm · Generated: 2026-10-22T09:06:13Z
-Mapping SHA-256: not computed (unapproved draft)
-Status: PENDING APPROVAL
+Mapping SHA-256: cd8c28eea458a00e940b793fc7ae764c8a26567c0db84b996ab7eb2b9719beb2
+Status: APPROVED by balliolon2 at 2026-11-05T07:34:36Z
 
 ## Coverage summary
 
@@ -27,6 +27,7 @@ Status: PENDING APPROVAL
 
 ## Warnings
 
+- Scenario 'Multi-Factor Authentication Bypass (Push Fatigue)': log index 18 is shared evidence for findings d1_f1, d1_f2
 - Scenario 'Unauthorized Privileged Access / DACL Abuse': log index 16 is shared evidence for findings d1_f5, d1_f6
 - Scenario 'Exorbitant Bandwidth Consumption on Guest Network': False Positive has no change/HR/scheduled/approved log in its evidence; the benign context is the observed authorized activity itself.
 - Scenario 'DNS Tunneling / Data Exfiltration via DNS TXT Queries': log index 15 is shared evidence for findings d4_f1, d4_f2
@@ -35,20 +36,21 @@ Status: PENDING APPROVAL
 
 ## 1. Multi-Factor Authentication Bypass (Push Fatigue) — TRUE POSITIVE
 
-Status: DRAFTED (llm, 1 attempt(s))
+Status: FINAL MAPPING (llm)
 TP/FP Decision: TRUE POSITIVE
 Evidence union: 5 / 36 logs (14%)
 
 | Scenario | Finding | Evidence logs | Rationale | Support |
 |---|---|---|---|---|
-| 1. Multi-Factor Authentication Bypass (Push Fatigue) (TP) | d1_f1 — Identified push fatigue indicators | #15 2026-07-13T08:03:00Z okta/warning — "MFA push sent to user 'ajones' - rejected by user"<br>#16 2026-07-13T08:03:10Z okta/warning — "MFA push sent to user 'ajones' - rejected by user"<br>#17 2026-07-13T08:03:20Z okta/warning — "MFA push sent to user 'ajones' - rejected by user" | Three consecutive MFA push notifications were rejected by the user within 30 seconds, indicating a classic push fatigue or brute-force attempt against the user 'ajones'. | malicious |
+| 1. Multi-Factor Authentication Bypass (Push Fatigue) (TP) | d1_f1 — Identified push fatigue indicators | #15 2026-07-13T08:03:00Z okta/warning — "MFA push sent to user 'ajones' - rejected by user"<br>#16 2026-07-13T08:03:10Z okta/warning — "MFA push sent to user 'ajones' - rejected by user"<br>#17 2026-07-13T08:03:20Z okta/warning — "MFA push sent to user 'ajones' - rejected by user"<br>#18 2026-07-13T08:03:30Z okta/high — "MFA push sent to user 'ajones' - approved" | Three MFA pushes for 'ajones' were rejected within 30 seconds, then the next push was approved from 198.51.100.42, the classic push-fatigue sequence that handed the attacker a session. | malicious |
 | 1. Multi-Factor Authentication Bypass (Push Fatigue) (TP) | d1_f2 — Identified suspicious login source IP | #18 2026-07-13T08:03:30Z okta/high — "MFA push sent to user 'ajones' - approved"<br>#19 2026-07-13T08:03:40Z ad_controller/high — "Admin session established with hijacked session token" | The MFA push was successfully approved from the external IP 198.51.100.42, immediately followed by an admin session establishment using a hijacked token from the same suspicious source. | malicious |
 
-Flags: none
+Flags:
+- Scenario 'Multi-Factor Authentication Bypass (Push Fatigue)': log index 18 is shared evidence for findings d1_f1, d1_f2
 
 ## 2. Atypical Travel VPN Connection Alert — FALSE POSITIVE
 
-Status: DRAFTED (llm, 1 attempt(s))
+Status: FINAL MAPPING (llm)
 TP/FP Decision: FALSE POSITIVE
 Evidence union: 3 / 34 logs (9%)
 
@@ -61,7 +63,7 @@ Flags: none
 
 ## 3. Unauthorized Privileged Access / DACL Abuse — TRUE POSITIVE
 
-Status: DRAFTED (llm, 1 attempt(s))
+Status: FINAL MAPPING (llm)
 TP/FP Decision: TRUE POSITIVE
 Evidence union: 3 / 34 logs (9%)
 
@@ -75,7 +77,7 @@ Flags:
 
 ## 4. SQL Injection & Database Exfiltration — TRUE POSITIVE
 
-Status: DRAFTED (llm, 1 attempt(s))
+Status: FINAL MAPPING (llm)
 TP/FP Decision: TRUE POSITIVE
 Evidence union: 4 / 34 logs (12%)
 
@@ -88,7 +90,7 @@ Flags: none
 
 ## 5. Internal Port Scan and SYN Flood Alarm — FALSE POSITIVE
 
-Status: DRAFTED (llm, 1 attempt(s))
+Status: FINAL MAPPING (llm)
 TP/FP Decision: FALSE POSITIVE
 Evidence union: 3 / 42 logs (7%)
 
@@ -101,7 +103,7 @@ Flags: none
 
 ## 6. Ransomware Execution & Volume Shadow Copy Deletion — TRUE POSITIVE
 
-Status: DRAFTED (llm, 1 attempt(s))
+Status: FINAL MAPPING (llm)
 TP/FP Decision: TRUE POSITIVE
 Evidence union: 4 / 34 logs (12%)
 
@@ -114,7 +116,7 @@ Flags: none
 
 ## 7. VLAN Segmentation Failure / Guest Network Bypass — TRUE POSITIVE
 
-Status: DRAFTED (llm, 1 attempt(s))
+Status: FINAL MAPPING (llm)
 TP/FP Decision: TRUE POSITIVE
 Evidence union: 3 / 34 logs (9%)
 
@@ -127,7 +129,7 @@ Flags: none
 
 ## 8. Exorbitant Bandwidth Consumption on Guest Network — FALSE POSITIVE
 
-Status: DRAFTED (llm, 1 attempt(s))
+Status: FINAL MAPPING (llm)
 TP/FP Decision: FALSE POSITIVE
 Evidence union: 3 / 37 logs (8%)
 
@@ -140,7 +142,7 @@ Flags:
 
 ## 9. AWS S3 Cloud Storage Misconfiguration — TRUE POSITIVE
 
-Status: DRAFTED (llm, 1 attempt(s))
+Status: FINAL MAPPING (llm)
 TP/FP Decision: TRUE POSITIVE
 Evidence union: 4 / 34 logs (12%)
 
@@ -153,7 +155,7 @@ Flags: none
 
 ## 10. DNS Tunneling / Data Exfiltration via DNS TXT Queries — TRUE POSITIVE
 
-Status: DRAFTED (llm, 1 attempt(s))
+Status: FINAL MAPPING (llm)
 TP/FP Decision: TRUE POSITIVE
 Evidence union: 4 / 34 logs (12%)
 
@@ -168,7 +170,7 @@ Flags:
 
 ## 11. Anomalous Volume of NTP Network Requests — FALSE POSITIVE
 
-Status: DRAFTED (llm, 1 attempt(s))
+Status: FINAL MAPPING (llm)
 TP/FP Decision: FALSE POSITIVE
 Evidence union: 5 / 37 logs (14%)
 
@@ -180,7 +182,7 @@ Flags: none
 
 ## 12. Spear Phishing leading to Credential Harvesting — TRUE POSITIVE
 
-Status: DRAFTED (llm, 1 attempt(s))
+Status: FINAL MAPPING (llm)
 TP/FP Decision: TRUE POSITIVE
 Evidence union: 4 / 34 logs (12%)
 
@@ -193,7 +195,7 @@ Flags: none
 
 ## 13. Insider Threat: Customer Database Exfiltration — TRUE POSITIVE
 
-Status: DRAFTED (llm, 1 attempt(s))
+Status: FINAL MAPPING (llm)
 TP/FP Decision: TRUE POSITIVE
 Evidence union: 3 / 34 logs (9%)
 
@@ -207,7 +209,7 @@ Flags:
 
 ## 14. Anomalous Cloud Data Archiving Alert — FALSE POSITIVE
 
-Status: DRAFTED (llm, 1 attempt(s))
+Status: FINAL MAPPING (llm)
 TP/FP Decision: FALSE POSITIVE
 Evidence union: 3 / 33 logs (9%)
 
@@ -219,7 +221,7 @@ Flags: none
 
 ## 15. Rogue Wireless Access Point Detection — TRUE POSITIVE
 
-Status: DRAFTED (llm, 1 attempt(s))
+Status: FINAL MAPPING (llm)
 TP/FP Decision: TRUE POSITIVE
 Evidence union: 3 / 34 logs (9%)
 

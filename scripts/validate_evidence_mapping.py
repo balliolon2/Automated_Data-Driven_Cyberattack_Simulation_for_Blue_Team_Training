@@ -3,21 +3,20 @@
 The module is deliberately free of database and HTTP dependencies. The CLI at the
 bottom is a thin wrapper around ``validate_mapping`` and ``validate_seed``.
 
-Expand phase (ticket #17): mapping-mode validation accepts a partial mapping so
-one authored Scenario can be proven without rewriting the other fourteen. Pass
-``--require-complete`` (or ``require_complete=True``) to enforce that every base
-Scenario is mapped. The later contract phase removes the partial mode.
+The contract is complete: every base Scenario and finding must be mapped, and
+mapping mode requires a human approval whose ``mapping_sha256`` matches the
+canonical ``scenarios`` array. Any later edit to the mapping invalidates that
+hash and blocks seeding.
 
-Seed mode (also ticket #17) always compares the seed against the base Scenario
-set from ``generate_scenarios.create_scenarios()``. While the sibling mapping is
-an unapproved draft, seed mode relies on the seed's own ``verdict_support``
-markers; once the mapping is approved, every mapped Scenario must carry complete
-verdict markers in the seed.
+Seed mode always compares the seed against the base Scenario set from
+``generate_scenarios.create_scenarios()`` and requires authored evidence plus
+valid verdict support for every finding. There is no legacy tolerance.
 """
 
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import sys
 from pathlib import Path
@@ -35,6 +34,66 @@ LOW_SEVERITIES = {"info", "low"}
 
 def _is_integer(value):
     return isinstance(value, int) and not isinstance(value, bool)
+
+
+def canonical_scenarios(mapping):
+    """Return the canonical ``scenarios`` array used for approval hashing.
+
+    Scenario entries are ordered by title, findings by ID, and evidence indices
+    by value. Key order is normalized by ``sort_keys=True`` in
+    :func:`mapping_sha256`. Only the ``scenarios`` array participates; approval
+    metadata and provenance fields never affect the hash.
+    """
+    scenarios = mapping.get("scenarios") if isinstance(mapping, dict) else None
+    if not isinstance(scenarios, list):
+        return []
+
+    normalized = []
+    for entry in scenarios:
+        if not isinstance(entry, dict):
+            normalized.append(entry)
+            continue
+
+        entry_copy = dict(entry)
+        findings = entry_copy.get("findings")
+        if isinstance(findings, list):
+            finding_copies = []
+            for finding in findings:
+                if not isinstance(finding, dict):
+                    finding_copies.append(finding)
+                    continue
+                finding_copy = dict(finding)
+                indices = finding_copy.get("evidence_log_indices")
+                if isinstance(indices, list) and all(_is_integer(value) for value in indices):
+                    finding_copy["evidence_log_indices"] = sorted(indices)
+                finding_copies.append(finding_copy)
+            finding_copies.sort(
+                key=lambda item: item.get("finding_id")
+                if isinstance(item, dict) and isinstance(item.get("finding_id"), str)
+                else ""
+            )
+            entry_copy["findings"] = finding_copies
+        normalized.append(entry_copy)
+
+    normalized.sort(
+        key=lambda item: item.get("scenario_title")
+        if isinstance(item, dict) and isinstance(item.get("scenario_title"), str)
+        else ""
+    )
+    return normalized
+
+
+def mapping_sha256(mapping):
+    """Return the SHA-256 of the canonicalized ``scenarios`` array."""
+    if not isinstance(mapping, dict):
+        raise ValueError("Mapping root must be a JSON object")
+    canonical = json.dumps(
+        canonical_scenarios(mapping),
+        sort_keys=True,
+        separators=(",", ":"),
+        ensure_ascii=False,
+    )
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
 
 
 def _scenario_prefix(title):
@@ -183,6 +242,34 @@ def _validate_all_logs_rule(indices, log_count, title, finding_id):
     return []
 
 
+def _validate_approval(mapping):
+    """Require a complete human approval whose hash matches the scenarios."""
+    approval = mapping.get("approval")
+    if not isinstance(approval, dict):
+        return ["Mapping approval block is missing"]
+
+    errors = []
+    if approval.get("approved") is not True:
+        errors.append("Mapping is not approved; approval.approved must be true")
+    approved_by = approval.get("approved_by")
+    if not isinstance(approved_by, str) or not approved_by.strip():
+        errors.append("Mapping approval is missing approved_by")
+    approved_at = approval.get("approved_at")
+    if not isinstance(approved_at, str) or not approved_at.strip():
+        errors.append("Mapping approval is missing approved_at")
+
+    expected = mapping_sha256(mapping)
+    recorded = approval.get("mapping_sha256")
+    if not isinstance(recorded, str) or not recorded.strip():
+        errors.append("Mapping approval is missing mapping_sha256")
+    elif recorded.strip().lower() != expected:
+        errors.append(
+            "Mapping approval hash mismatch: mapping_sha256 does not match the "
+            "current scenarios content"
+        )
+    return errors
+
+
 def _validate_union(union, log_count, title):
     cap = int(log_count * UNION_CAP_RATIO)
     if len(union) > cap:
@@ -251,13 +338,21 @@ def _validate_finding_evidence(finding, log_count, title):
     return errors
 
 
-def validate_mapping(mapping, base_scenarios, *, require_complete=True, warnings=None):
+def validate_mapping(
+    mapping,
+    base_scenarios,
+    *,
+    require_complete=True,
+    require_approval=False,
+    warnings=None,
+):
     """Validate a mapping file against the base scenarios.
 
     Returns a list of human-readable errors. An empty list means the mapping is
     structurally valid. ``warnings`` may be a list that receives non-fatal
-    authoring warnings. Approval is intentionally not checked here; ticket #19
-    adds the approval hash gate.
+    authoring warnings. ``require_approval`` turns on the human approval hash
+    gate; mapping mode and the seed pipeline always enable it, while drafting
+    validates individual unapproved entries.
     """
     errors = []
 
@@ -275,6 +370,9 @@ def validate_mapping(mapping, base_scenarios, *, require_complete=True, warnings
     if not isinstance(scenario_entries, list):
         errors.append("Mapping 'scenarios' must be a list")
         return errors
+
+    if require_approval:
+        errors.extend(_validate_approval(mapping))
 
     base_by_title = {}
     for base_scenario in base_scenarios:
@@ -390,15 +488,15 @@ def validate_mapping(mapping, base_scenarios, *, require_complete=True, warnings
     return errors
 
 
-def validate_seed(seed_scenarios, base_scenarios, *, mapped_titles=None, warnings=None):
+def validate_seed(seed_scenarios, base_scenarios, *, warnings=None):
     """Validate a seed against the base Scenario set and finding IDs.
 
     ``base_scenarios`` is the authoritative set from
     ``generate_scenarios.create_scenarios()``. Missing, extra, and duplicate
-    scenarios or findings are errors, so truncating the seed cannot bypass the
-    gate. ``mapped_titles`` names the scenarios that have an authored mapping;
-    those must carry complete ``verdict_support`` markers. Unmapped scenarios
-    remain tolerated while the expand-phase chunked fallback is in use.
+    scenarios or findings are errors, so truncating or hand-editing the seed
+    cannot bypass the gate. Every finding must carry non-empty, in-range, unique
+    evidence, a positive point value, and valid verdict support; every Scenario's
+    evidence union must stay at or below 50% of its logs.
     """
     errors = []
 
@@ -409,8 +507,6 @@ def validate_seed(seed_scenarios, base_scenarios, *, mapped_titles=None, warning
     for base_scenario in base_scenarios if isinstance(base_scenarios, list) else []:
         if isinstance(base_scenario, dict):
             base_by_title[base_scenario.get("title")] = base_scenario
-
-    mapped_titles = set(mapped_titles or ())
 
     seen_titles = set()
     for scenario in seed_scenarios:
@@ -455,11 +551,7 @@ def validate_seed(seed_scenarios, base_scenarios, *, mapped_titles=None, warning
         logs = scenario.get("initial_logs", [])
         logs = logs if isinstance(logs, list) else []
         log_count = len(logs)
-        is_mapped = title in mapped_titles
-        has_any_verdict_support = any(
-            isinstance(finding, dict) and "verdict_support" in finding for finding in findings
-        )
-        require_verdicts = is_mapped or has_any_verdict_support
+        is_true_positive = base_scenario.get("is_true_positive")
 
         union = set()
         index_to_findings = {}
@@ -500,11 +592,9 @@ def validate_seed(seed_scenarios, base_scenarios, *, mapped_titles=None, warning
             errors.extend(
                 _validate_points(finding.get("points", DEFAULT_POINTS), title, finding_id)
             )
-
-            if require_verdicts:
-                errors.extend(
-                    _validate_verdict(finding.get("verdict_support"), title, finding_id)
-                )
+            errors.extend(
+                _validate_verdict(finding.get("verdict_support"), title, finding_id)
+            )
             supports.append(finding.get("verdict_support"))
 
         for base_id in base_by_id:
@@ -515,21 +605,18 @@ def validate_seed(seed_scenarios, base_scenarios, *, mapped_titles=None, warning
 
         errors.extend(_validate_union(union, log_count, title))
 
-        if require_verdicts:
-            if scenario.get("is_true_positive") is True and "malicious" not in supports:
-                errors.append(
-                    f"{_scenario_prefix(title)}: True Positive requires at least one malicious finding"
-                )
-            if scenario.get("is_true_positive") is False and "benign" not in supports:
-                errors.append(
-                    f"{_scenario_prefix(title)}: False Positive requires at least one benign finding"
-                )
+        if is_true_positive is True and "malicious" not in supports:
+            errors.append(
+                f"{_scenario_prefix(title)}: True Positive requires at least one malicious finding"
+            )
+        if is_true_positive is False and "benign" not in supports:
+            errors.append(
+                f"{_scenario_prefix(title)}: False Positive requires at least one benign finding"
+            )
 
         _warn_shared_evidence(warnings, index_to_findings, title)
         _warn_union_near_cap(warnings, union, log_count, title)
-        _warn_verdict_severity(
-            warnings, title, scenario.get("is_true_positive"), findings, logs
-        )
+        _warn_verdict_severity(warnings, title, is_true_positive, findings, logs)
 
     for title in base_by_title:
         if title not in seen_titles:
@@ -552,40 +639,6 @@ def _load_base_scenarios():
     return create_scenarios()
 
 
-def _load_mapped_titles(path=None, seed=None):
-    """Load mapped scenario titles from the sibling mapping file, if present.
-
-    Seed mode is phase-aware. While the mapping is still an unapproved draft
-    (the expand phase), the committed seed may not have the draft applied yet,
-    so seed mode relies on the seed's own verdict markers rather than demanding
-    verdicts for every drafted Scenario. Once the mapping is approved, all
-    mapped Scenarios must carry verdict markers in the seed.
-    """
-    mapping_path = Path(path) if path else Path(__file__).resolve().parent / "evidence_mapping.json"
-    if not mapping_path.is_file():
-        return set()
-    try:
-        mapping = _load_json(mapping_path)
-    except (OSError, json.JSONDecodeError):
-        return set()
-    if not isinstance(mapping, dict):
-        return set()
-    entries = mapping.get("scenarios")
-    if not isinstance(entries, list):
-        return set()
-    titles = {
-        entry["scenario_title"]
-        for entry in entries
-        if isinstance(entry, dict) and isinstance(entry.get("scenario_title"), str)
-    }
-    if seed is not None:
-        approval = mapping.get("approval")
-        approved = isinstance(approval, dict) and approval.get("approved") is True
-        if not approved:
-            return set()
-    return titles
-
-
 def _print_warnings(warnings):
     for warning in warnings:
         print(f"Warning: {warning}", file=sys.stderr)
@@ -599,7 +652,7 @@ def main(argv=None):
     parser.add_argument(
         "--require-complete",
         action="store_true",
-        help="Mapping mode only: require every base scenario to be mapped (contract phase).",
+        help="Accepted for compatibility; mapping mode always requires complete coverage.",
     )
     args = parser.parse_args(argv)
 
@@ -617,26 +670,10 @@ def main(argv=None):
             errors = validate_mapping(
                 mapping,
                 base_scenarios,
-                require_complete=args.require_complete,
+                require_complete=True,
+                require_approval=True,
                 warnings=warnings,
             )
-            if not args.require_complete:
-                mapped = {
-                    entry.get("scenario_title")
-                    for entry in mapping.get("scenarios", [])
-                    if isinstance(entry, dict)
-                } if isinstance(mapping, dict) else set()
-                unmapped = [
-                    scenario.get("title")
-                    for scenario in base_scenarios
-                    if scenario.get("title") not in mapped
-                ]
-                if unmapped:
-                    print(
-                        f"Expand phase: {len(unmapped)} scenario(s) use the existing fallback "
-                        f"evidence behavior: {', '.join(unmapped)}",
-                        file=sys.stderr,
-                    )
         else:
             try:
                 seed = _load_json(args.seed)
@@ -644,11 +681,9 @@ def main(argv=None):
                 print(f"Could not read seed {args.seed}: {exc}", file=sys.stderr)
                 return 1
             base_scenarios = _load_base_scenarios()
-            mapped_titles = _load_mapped_titles(seed=seed)
             errors = validate_seed(
                 seed,
                 base_scenarios,
-                mapped_titles=mapped_titles,
                 warnings=warnings,
             )
     except (TypeError, ValueError, AttributeError, KeyError, IndexError) as exc:
