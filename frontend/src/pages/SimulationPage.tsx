@@ -387,7 +387,7 @@ export default function SimulationPage() {
     <div className="space-y-6">
       {/* Simulation Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-graphite-800 pb-5">
-        <div>
+        <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2 mb-1.5">
             <span className="px-2 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/20 text-[10px] font-mono font-bold text-emerald-400 uppercase tracking-wider">
               Active Incident
@@ -420,13 +420,13 @@ export default function SimulationPage() {
             </p>
           )}
 
-          <h1 className="text-2xl font-bold tracking-tight text-graphite-50">
+          <h1 className="text-2xl font-bold tracking-tight text-graphite-50 break-words max-w-full" title={scenario.title}>
             {scenario.title}
           </h1>
         </div>
 
         {/* Tab Navigation */}
-        <div className="flex bg-graphite-900/50 p-1 rounded-lg border border-graphite-800/80 font-mono text-xs w-full md:w-auto">
+        <div className="flex bg-graphite-900/50 p-1 rounded-lg border border-graphite-800/80 font-mono text-xs w-full md:w-auto shrink-0">
           <button
             onClick={() => setActiveTab("scenario")}
             className={cn(
