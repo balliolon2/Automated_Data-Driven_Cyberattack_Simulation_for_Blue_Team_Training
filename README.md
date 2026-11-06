@@ -6,6 +6,25 @@ This project implements an interactive platform designed to train and assess Blu
 
 ---
 
+## 📸 Interface Preview
+
+### Landing Page
+![CyberSim/SOC landing page with the hero section, sample exam panel, and curriculum cards](pictures/landing_page.jpg)
+
+The landing page introduces the platform with the CyberSim/SOC brand and the tagline **"Master Cyber Defense Through Data-Driven Scenarios."** It offers two entry points — **Start Assessment** and **View Sample Exam** — and previews a CompTIA Security+ SY0-701 practice question inside a terminal-style panel. Below the hero, the *Platform Curriculum & Design* section presents the **Adaptive Learning Flow** (pre-test diagnostic → AI gap roadmap) and **Interactive IR Playbooks** mapped to containment, eradication, and recovery.
+
+### Scenario Investigation Workspace
+![Scenario page showing an active incident, triage classification, and SIEM investigation shortcuts](pictures/scenario.jpg)
+
+The simulation workspace for an active incident. The header shows the scenario title, generation source (AI Dynamic Scenario or static fallback), and session ID, with three-step navigation: **1. Scenario → 2. Detect & Analyze → 3. Response**. The first panel presents the incident narrative, a **Triage Classification** control for True Positive vs. False Positive, and clickable **Investigation Clues & SIEM Shortcuts** that pre-fill queries against the telemetry logs.
+
+### Skill Evaluation Dashboard
+![Skill evaluation page showing average proficiency, per-domain bars, and a skill gap analysis](pictures/skill_evaluation.jpg)
+
+The post-assessment dashboard summarizes learner performance against the **70% proficiency threshold**. It shows the average proficiency score, per-domain proficiency bars for all five CompTIA Security+ domains, and a **Skill Gap Analysis** that identifies the weakest domains and recommends adaptive hands-on scenarios covering log investigation, KQL search, and playbook response.
+
+---
+
 ## 🚀 Core Features
 
 - **Pre-Test & Post-Test Assessment**: Automated evaluation of learner skills using 100-question randomized exams. Questions are dynamically drawn from 5 distinct CompTIA Security+ domains:
@@ -140,5 +159,5 @@ The project includes an enterprise-grade automated CI/CD pipeline on GitHub Acti
 
 ## 📚 References
 
-- [docs/REFERENCES.md](docs/REFERENCES.md) — ทะเบียนแหล่งอ้างอิงกลาง (R-ID), การอ้างอิง APA 7th / BibTeX, provenance ของคลังข้อสอบ และข้อจำกัดด้านลิขสิทธิ์
-- [examination/README.md](examination/README.md) — คำอธิบายไฟล์ข้อสอบต้นทาง, การแมปบท → Domain และนโยบายไฟล์ที่ Parser สร้าง
+- [docs/REFERENCES.md](docs/REFERENCES.md) — Central reference registry (R-ID), APA 7th / BibTeX citations, question-bank provenance, and copyright restrictions
+- [examination/README.md](examination/README.md) — Source exam file documentation, chapter → Domain mapping, and the parser-generated artifact policy

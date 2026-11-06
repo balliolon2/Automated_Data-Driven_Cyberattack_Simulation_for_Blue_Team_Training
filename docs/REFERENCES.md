@@ -1,50 +1,50 @@
-# ทะเบียนแหล่งอ้างอิงและที่มาของข้อมูล (References & Source Provenance)
+# References & Source Provenance
 
-เอกสารนี้เป็นทะเบียนกลาง (canonical registry) ของแหล่งอ้างอิงทั้งหมดที่ใช้ในโครงการ **Automated Data-Driven Cyberattack Simulation for Blue Team Training** ทำหน้าที่บันทึกว่าข้อมูลแต่ละชุดมาจากแหล่งใด ถูกแมปเข้าสู่ Domain ใด มีข้อจำกัดการใช้งานอย่างไร และต้องอ้างอิงในรายงานหรืองานเผยแพร่ด้วยรูปแบบใด
+This document is the canonical registry of all references used in the **Automated Data-Driven Cyberattack Simulation for Blue Team Training** project. It records where each dataset comes from, which Domain it is mapped to, what usage restrictions apply, and how it must be cited in reports or publications.
 
-เอกสารนี้เป็นเอกสารด้านเอกสารประกอบ (documentation) เท่านั้น ไม่ได้เปลี่ยนแปลง Schema ฐานข้อมูล หรือรูปแบบข้อมูลที่ระบบใช้งาน
+This document is documentation only. It does not change the database schema or the data formats used by the system.
 
-## 1. วัตถุประสงค์
+## 1. Purpose
 
-- กำหนดรหัสอ้างอิงถาวร (stable reference key) ให้ทุกแหล่งข้อมูลที่โครงการนำมาใช้
-- บันทึกที่มา (provenance) ของคลังข้อสอบ Pre-test/Post-test ตั้งแต่ระดับบท ช่วงข้อ ไปจนถึงไฟล์ต้นทาง
-- กำหนดรูปแบบการอ้างอิงให้สอดคล้องกันทั้งโครงการ ทั้งในเอกสารโครงการ รายงาน และ Source Code
-- บันทึกข้อจำกัดด้านลิขสิทธิ์และความเสี่ยงที่ยังเปิดอยู่ เพื่อให้ผู้เกี่ยวข้องตัดสินใจได้อย่างมีข้อมูล
-- เป็นแม่แบบสำหรับการเพิ่มแหล่งข้อมูลใหม่ในอนาคต
+- Define a stable reference key for every data source used by the project.
+- Record the provenance of the Pre-test/Post-test question bank, from chapter and question range down to the source file.
+- Define a consistent citation format across the project, in project documents, reports, and source code.
+- Record copyright restrictions and open risks so that stakeholders can make informed decisions.
+- Serve as a template for adding new sources in the future.
 
-## 2. สถานะและวันที่
+## 2. Status and Dates
 
-| รายการ | ค่า |
+| Item | Value |
 |---|---|
-| สถานะ | Active — ใช้งานเป็นทะเบียนหลักของโครงการ |
-| วันที่สร้าง | 2026-10-20 |
-| ปรับปรุงล่าสุด | 2026-10-20 |
-| เจ้าของเอกสาร | เจ้าของโครงการ (Project Owner) |
-| ขอบเขต | แหล่งอ้างอิงเนื้อหา (content sources) และข้อมูลที่ ingest เข้าฐานข้อมูล |
+| Status | Active — used as the project's primary registry |
+| Date created | 2026-10-20 |
+| Last updated | 2026-10-20 |
+| Document owner | Project Owner |
+| Scope | Content sources and data ingested into the database |
 
-## 3. รูปแบบการอ้างอิง (Citation Convention)
+## 3. Citation Convention
 
-โครงการใช้รูปแบบการอ้างอิงสองชั้นร่วมกัน โดยมี **APA 7th** เป็นรูปแบบอ้างอิงหลัก:
+The project uses a two-tier citation convention, with **APA 7th** as the primary citation style:
 
-1. **รหัสโครงการ `[R1]`** — ใช้สำหรับการตรวจสอบย้อนกลับภายในโครงการ (traceability) เช่น ในเอกสารออกแบบ, Decision Log, Issue, และ Comment ในโค้ด/สคริปต์ รหัสนี้ผูกกับทะเบียนในเอกสารนี้เพียงแห่งเดียว
-2. **การอ้างอิงในเนื้อหารายงาน `(Gorgotsias, 2024)`** — ใช้ในประโยคบรรยายของรายงาน วิทยานิพนธ์ และงานเผยแพร่ ตามรูปแบบ APA 7th
-3. **BibTeX key `gorgotsias2024securityplus`** — ใช้เมื่อผลิตเอกสารด้วย LaTeX หรือเครื่องมือที่อ่านไฟล์ `docs/references.bib`
+1. **Project key `[R1]`** — used for internal traceability, such as in design documents, the Decision Log, issues, and comments in code or scripts. This key is bound to the registry in this document only.
+2. **In-text citation `(Gorgotsias, 2024)`** — used in narrative sentences in reports, theses, and publications, following APA 7th.
+3. **BibTeX key `gorgotsias2024securityplus`** — used when producing documents with LaTeX or tools that read `docs/references.bib`.
 
-ในข้อความโครงการและรายงาน ให้ใช้ทั้ง `[R1]` และ `(Gorgotsias, 2024)` ประกอบกัน โดย `[R1]` ทำหน้าที่ระบุแหล่งในระดับทะเบียน และ `(Gorgotsias, 2024)` ทำหน้าที่อ้างอิงเชิงวิชาการตาม APA 7th
+In project text and reports, use both `[R1]` and `(Gorgotsias, 2024)` together: `[R1]` identifies the source at the registry level, while `(Gorgotsias, 2024)` provides the academic citation under APA 7th.
 
-ตัวอย่าง:
+Example:
 
-> คลังข้อสอบ Pre-test และ Post-test ของโครงการถูกทำซ้ำ (reproduced) มาจากหนังสือคู่มือสอบ Security+ SY0-701 [R1] (Gorgotsias, 2024)
+> The project's Pre-test and Post-test question banks are reproduced from the Security+ SY0-701 practice-test book [R1] (Gorgotsias, 2024).
 
-## 4. ทะเบียนแหล่งอ้างอิง (Reference Registry)
+## 4. Reference Registry
 
-| R-ID | Short citation | ประเภทแหล่ง | ใช้ในโครงการ | สถานะ |
+| R-ID | Short citation | Source type | Used in project | Status |
 |---|---|---|---|---|
-| R1 | (Gorgotsias, 2024) | Book — practice tests & PBQs | คลังข้อสอบ Pre-test/Post-test 540 ข้อ | Active |
+| R1 | (Gorgotsias, 2024) | Book — practice tests & PBQs | Pre-test/Post-test question bank, 540 questions | Active |
 
-รหัส `R-ID` เป็นรหัสถาวร ห้ามนำกลับมาใช้ซ้ำหรือเปลี่ยนความหมายภายหลัง แม้แหล่งอ้างอิงนั้นจะถูกถอดออกจากการใช้งานแล้วก็ตาม
+`R-ID` codes are permanent. They must never be reused or redefined, even after the reference is retired.
 
-## 5. R1 — รายการอ้างอิงฉบับเต็ม (APA 7th)
+## 5. R1 — Full Reference (APA 7th)
 
 Gorgotsias, N. (2024). *CompTIA Security+ SY0-701 practice tests & PBQs: Exam SY0-701* (3rd ed.). ExamsDigest LLC; LabsDigest LLC.
 
@@ -59,119 +59,119 @@ Gorgotsias, N. (2024). *CompTIA Security+ SY0-701 practice tests & PBQs: Exam SY
 | Pages | 1620 |
 | Language | English |
 
-หมายเหตุ:
+Notes:
 
-- ข้อมูล Edition (3rd ed.) บันทึกตามที่เจ้าของโครงการยืนยัน เมื่อวันที่ 2026-10-20
-- ไม่มีการระบุสถานที่พิมพ์ (place of publication) ในทะเบียนนี้ และไม่ควรแต่งเติมขึ้นเอง
-- BibTeX entry อยู่ใน [`docs/references.bib`](references.bib) ภายใต้ key `gorgotsias2024securityplus`
+- The edition information (3rd ed.) is recorded as confirmed by the Project Owner on 2026-10-20.
+- No place of publication is recorded in this registry, and none should be invented.
+- The BibTeX entry is in [`docs/references.bib`](references.bib) under the key `gorgotsias2024securityplus`.
 
-## 6. Provenance และการแมปบท → Domain
+## 6. Provenance and Chapter → Domain Mapping
 
-หนังสือต้นทางบทที่ 1–5 ถูกใช้เป็นแหล่งของคลังข้อสอบ โดยแมปหนึ่งบทต่อหนึ่ง Domain ของโครงการ ดังนี้
+Chapters 1–5 of the source book are used as the source of the question bank, mapped one chapter per project Domain as follows:
 
-| บท | ชื่อบทในหนังสือ (Book TOC) | domain_id | ชื่อ Domain ในโครงการ | ช่วงข้อสอบ | ไฟล์ต้นทาง | จำนวนในต้นฉบับ | จำนวนที่ ingest |
+| Chapter | Book TOC chapter title | domain_id | Project domain name | Question range | Source file | Count in original | Count ingested |
 |---|---|---|---|---|---|---|---|
 | Ch1 | General Security Concepts | domain1 | Security Concepts | Q1–Q110 | `examination/domain1_security_concepts.md` | 110 | 110 |
 | Ch2 | Threats, Vulnerabilities, and Mitigations | domain2 | Threats, Vulnerabilities, and Mitigations | Q111–Q220 | `examination/domain2_threats_vulnerabilities.md` | 110 | 110 |
 | Ch3 | Implementation | domain3 | Security Architecture | Q221–Q310 | `examination/domain3_security_architecture.md` | 90 | 90 |
 | Ch4 | Security Operations | domain4 | Security Operations | Q311–Q460 | `examination/domain4_security_operations.md` | 150 | 150 |
 | Ch5 | Security Program Management and Oversight | domain5 | Security Management | Q461–Q540 | `examination/domain5_security_management.md` | 80 | 80 |
-| **รวม** | | | | **Q1–Q540** | | **540** | **540** |
+| **Total** | | | | **Q1–Q540** | | **540** | **540** |
 
-หมายเหตุ: จำนวนที่ ingest ในตารางคือค่าที่ถูกต้องตามสภาพข้อมูลหลังการ Normalization (ดูหัวข้อ 10) และ `parsed_questions.json` ที่ Root ของ Repository บันทึกไว้ 540 รายการ หากจำนวนไม่ตรง ให้รัน `python scripts/parse_exams.py` จาก Root ของ Repository เพื่อสร้างใหม่
+Note: The ingested counts in the table reflect the correct state after normalization (see Section 10), and `parsed_questions.json` at the repository root records 540 entries. If the counts do not match, run `python scripts/parse_exams.py` from the repository root to regenerate.
 
-## 7. การนำคลังข้อสอบไปใช้
+## 7. Use of the Question Bank
 
-- ระบบสร้างชุดข้อสอบ **Pre-test และ Post-test ชนิดละ 30 ข้อ** ต่อผู้เรียนหนึ่งคน
-- โควตาต่อ Domain ในแต่ละชุดคือ **Domain 1 = 4, Domain 2 = 7, Domain 3 = 5, Domain 4 = 8, Domain 5 = 6** (รวม 30 ข้อ)
-- ระบบบังคับ **Zero Overlap**: ข้อสอบที่ปรากฏใน Pre-test ของผู้เรียนจะไม่ถูกนำมาใช้ใน Post-test ของผู้เรียนคนเดียวกัน
-- **เนื้อหาคำถาม ตัวเลือก เฉลย และคำอธิบายเป็น content-verbatim**: ไม่มีการเรียบเรียงหรือแก้ถ้อยคำใหม่ เนื้อหาสาระคงเดิมทุกประการ
-- Parser ทำ Normalization เชิงรูปแบบ Markdown/ช่องว่างระหว่างการ Extraction (เช่น ตัดเครื่องหมาย `**` และยุบช่องว่างต่อเนื่องให้เหลือช่องว่างเดียว) ซึ่งเป็นพฤติกรรมเดิมของขั้นตอน Extraction และไม่เปลี่ยนเนื้อหาสาระ
-- การแก้ไขข้อความต้นฉบับมีเพียงจุดเดียว คือ การเพิ่มจุดท้ายหัวข้อ Question 444 ตามที่บันทึกไว้ในหัวข้อ 10
+- The system generates Pre-test and Post-test sets of **30 questions each** per learner.
+- The per-Domain quota in each set is **Domain 1 = 4, Domain 2 = 7, Domain 3 = 5, Domain 4 = 8, Domain 5 = 6** (30 total).
+- The system enforces **Zero Overlap**: questions that appear in a learner's Pre-test are not used in the same learner's Post-test.
+- **Question text, options, answers, and explanations are content-verbatim**: no rewording or editing; the substantive content remains unchanged.
+- The parser performs Markdown/whitespace normalization during extraction (for example, stripping `**` and collapsing consecutive spaces to one). This is existing extraction behavior and does not change the substantive content.
+- The only edit to the source text is the single added period in the Question 444 heading, recorded in Section 10.
 
-## 8. ข้อสังเกต: ชื่อบทที่ 3 ไม่ตรงกับชื่อ Domain
+## 8. Note: Chapter 3 Title Does Not Match the Domain Name
 
-หนังสือต้นทางใช้ชื่อบทที่ 3 ว่า **"Implementation"** ตามสารบัญ ขณะที่โครงการแมปบทนี้เข้ากับ **CompTIA Domain 3 "Security Architecture"**
+The source book names Chapter 3 **"Implementation"** in its table of contents, while the project maps this chapter to **CompTIA Domain 3 "Security Architecture"**.
 
-ข้อแตกต่างนี้เป็นความต่างของชื่อเรียก ไม่ใช่ความคลาดเคลื่อนของข้อมูล:
+This difference is a naming difference, not a data discrepancy:
 
-- การแมปยึดตาม **ลำดับบทและช่วงข้อสอบ** (Q221–Q310) เป็นหลัก
-- ชื่อ Domain ในโครงการยึดตามโครงสร้าง Domain ของ CompTIA Security+ SY0-701 ที่ใช้ในระบบ
-- เมื่ออ้างอิงถึงบทที่ 3 ในรายงาน ควรระบุทั้งชื่อบทตามหนังสือและชื่อ Domain ตามโครงการ เพื่อป้องกันความสับสน
+- The mapping follows the **chapter order and question ranges** (Q221–Q310) as the primary basis.
+- Project Domain names follow the CompTIA Security+ SY0-701 Domain structure used by the system.
+- When referring to Chapter 3 in reports, cite both the book's chapter title and the project's Domain name to avoid confusion.
 
-## 9. การตรวจสอบย้อนกลับของข้อมูล (Data Traceability)
+## 9. Data Traceability
 
-ไฟล์ที่สร้างจาก Parser (`parsed_questions.json` ที่ Root ของ Repository) บันทึกฟิลด์กำกับที่มาแบบ Flat ไว้ในทุกข้อ:
+The parser-generated file (`parsed_questions.json` at the repository root) records flat provenance fields on every question:
 
-| Field | ชนิด | ความหมาย |
+| Field | Type | Meaning |
 |---|---|---|
-| `source_ref` | string | รหัสแหล่งอ้างอิงในทะเบียนนี้ ค่าปัจจุบันคือ `"R1"` |
-| `source_chapter` | integer | เลขบทของหนังสือต้นทาง (1–5) |
-| `source_question_no` | integer | หมายเลขข้อสอบในหนังสือต้นทาง (1–540) |
+| `source_ref` | string | Reference key in this registry; the current value is `"R1"`. |
+| `source_chapter` | integer | Source book chapter number (1–5). |
+| `source_question_no` | integer | Source book question number (1–540). |
 
-หลักการทำงาน:
+How it works:
 
-- Parser เป็นผู้กำหนดค่า `source_ref` จากค่าคงที่ของแหล่งอ้างอิง และได้ค่า `source_chapter` จากตารางแมป Domain → บท (`domain1` → บท 1, …, `domain5` → บท 5)
-- ค่า `source_question_no` อ่านจากหัวข้อคำถามในไฟล์ Markdown ต้นทางโดยตรง
-- **ไม่มีการเปลี่ยนแปลง Schema ของฐานข้อมูล** ฟิลด์เหล่านี้เป็น Metadata ของ Artifact ที่ใช้ตรวจสอบย้อนกลับ ไม่ใช่คอลัมน์ใหม่ใน PostgreSQL
-- `examination/questions.json` เคยเป็นไฟล์ซ้ำที่ไม่ถูกอ้างอิงโดยสคริปต์ใด และถูกลบออกแล้ว Artifact ที่เป็นทางการเพียงไฟล์เดียวคือ `parsed_questions.json` ที่ Root ของ Repository
+- The parser sets `source_ref` from the source reference constant and derives `source_chapter` from the Domain → Chapter mapping table (`domain1` → Chapter 1, …, `domain5` → Chapter 5).
+- `source_question_no` is read directly from the question headings in the source Markdown files.
+- **No database schema changes** are made. These fields are artifact metadata used for traceability, not new PostgreSQL columns.
+- `examination/questions.json` was once a duplicate file not referenced by any script and has been removed. The only official artifact is `parsed_questions.json` at the repository root.
 
-## 10. บันทึกการ Normalization — Question 444
+## 10. Normalization Record — Question 444
 
-วันที่: **2026-10-20**
+Date: **2026-10-20**
 
-ไฟล์ต้นทาง `examination/domain4_security_operations.md` มีข้อบกพร่องเชิงรูปแบบที่หัวข้อ **Question 444** คือ **ไม่มีจุด (period) ต่อท้ายหมายเลขข้อ** ทำให้ Pattern ที่ Parser ใช้จับหัวข้อคำถามไม่ตรงและข้อนี้ถูกข้ามไป
+The source file `examination/domain4_security_operations.md` had a formatting defect in the **Question 444** heading: **there was no period after the question number**, so the parser's heading pattern did not match and the question was skipped.
 
-การแก้ไข:
+Fix:
 
-- เพิ่ม **จุดหลังหมายเลขข้อเพียงอย่างเดียว** (`**Question 444**` → `**Question 444.**`)
-- **ไม่มีการแก้ไขเนื้อหาคำถาม ตัวเลือก เฉลย หรือคำอธิบายใด ๆ**
+- Add **only a period after the question number** (`**Question 444**` → `**Question 444.**`).
+- **No question text, options, answers, or explanations were changed.**
 
-ผลลัพธ์:
+Result:
 
-| สถานะ | จำนวนข้อที่ ingest |
+| State | Questions ingested |
 |---|---|
-| ก่อน Normalization | 539 |
-| หลัง Normalization | **540** |
+| Before normalization | 539 |
+| After normalization | **540** |
 
-จำนวนรวมที่คาดหวังของคลังข้อสอบคือ **540 ข้อ** และจำนวนนี้ต้องตรงกับผลรวมในตารางหัวข้อ 6
+The expected total for the question bank is **540 questions**, and this number must match the total in the table in Section 6.
 
-## 11. ข้อจำกัดการใช้งานและลิขสิทธิ์
+## 11. Usage Restrictions and Copyright
 
-- หนังสือและคลังข้อสอบต้นทางเป็นงานที่มี **ลิขสิทธิ์** เนื้อหาคำถาม ตัวเลือก เฉลย และคำอธิบายยังคงเป็นลิขสิทธิ์ของ **ผู้เขียนและสำนักพิมพ์**
-- โครงการนี้ใช้ข้อมูลดังกล่าวเพื่อ **การศึกษาและการฝึกอบรมภายใน (internal academic use) เท่านั้น**
-- **ห้ามเผยแพร่ ซ้ำจำหน่าย หรือกระจายข้อความคำถามและคำอธิบาย** ไม่ว่าในรูปแบบใด นอกขอบเขตการใช้งานภายในโครงการ
-- รายงาน เอกสารนำเสนอ และงานเผยแพร่ที่อ้างถึงคลังข้อสอบ **ต้องอ้างอิงแหล่งที่มา** ตามรูปแบบในหัวข้อ 3 และหัวข้อ 5
-- เอกสารนี้บันทึกข้อเท็จจริงและข้อจำกัดการใช้งานเท่านั้น **ไม่ใช่คำแนะนำทางกฎหมาย** และไม่ใช่การยืนยันหรือรับรองสิทธิ์ใด ๆ
+- The source book and question bank are **copyrighted** works. The question text, options, answers, and explanations remain the copyright of the **author and publisher**.
+- This project uses this material for **internal academic use and training only**.
+- **Do not publish, resell, or redistribute the question text or explanations** in any form outside the project's internal use scope.
+- Reports, presentations, and publications that reference the question bank **must cite the source** using the formats in Sections 3 and 5.
+- This document records facts and usage restrictions only. It is **not legal advice** and does not confirm or grant any rights.
 
-## 12. ความเสี่ยงที่ยังเปิดอยู่ (Open Risk)
+## 12. Open Risk
 
-| รายการ | รายละเอียด |
+| Item | Detail |
 |---|---|
-| Risk | Repository สาธารณะบน GitHub ของโครงการปัจจุบันมีคลังข้อสอบฉบับคำต่อคำ (verbatim) รวมอยู่ด้วย ซึ่งอาจขัดกับข้อจำกัดการใช้งานของหนังสือต้นทาง |
-| สถานะ | **Open** ณ วันที่ 2026-10-20 |
-| ผู้รับผิดชอบ | เจ้าของโครงการ (Project Owner) |
-| การตัดสินใจ | อยู่ระหว่างการพิจารณาร่วมกับอาจารย์ที่ปรึกษา ยังไม่มีข้อสรุป |
-| เอกสารอนุญาต | **ยังไม่มีเอกสารยืนยันการได้รับอนุญาตจากสำนักพิมพ์** และเอกสารนี้ไม่ถือเป็นการกล่าวอ้างว่าได้รับอนุญาตแล้ว |
-| ผลกระทบ | อาจกระทบต่อการเผยแพร่ Repository การส่งผลงาน และการนำผลงานไปใช้ต่อ |
+| Risk | The project's current public GitHub repository includes a verbatim copy of the question bank, which may conflict with the usage restrictions of the source book. |
+| Status | **Open** as of 2026-10-20 |
+| Owner | Project Owner |
+| Decision | Under discussion with the academic advisor; no conclusion yet. |
+| Permission document | **No document confirming permission from the publisher exists**, and this document is not a claim that permission has been granted. |
+| Impact | May affect publication of the repository, submission of the work, and downstream use of the work. |
 
-แนวทางที่พิจารณาไว้ (ยังไม่ยืนยัน): ปรับสิทธิ์การเข้าถึง Repository, แยกคลังข้อสอบออกจากพื้นที่สาธารณะ, หรือใช้ข้อสอบที่สร้างขึ้นเองแทนบางส่วน ทั้งนี้ต้องรอข้อสรุปจากเจ้าของโครงการและอาจารย์ที่ปรึกษา
+Options considered (not confirmed): restrict repository access, separate the question bank from the public area, or replace some questions with self-authored items. A decision is pending from the Project Owner and the academic advisor.
 
-## 13. การเพิ่มแหล่งอ้างอิงใหม่
+## 13. Adding a New Reference
 
-เมื่อโครงการนำแหล่งข้อมูลเนื้อหาใหม่มาใช้ ต้องดำเนินการตามลำดับต่อไปนี้ **ก่อน** การ Parse หรือ Ingest ข้อมูล:
+When the project adopts a new content source, the following steps must be completed **before** parsing or ingesting the data:
 
-1. ออกรหัส `R-ID` ถัดไปตามลำดับ (`R2`, `R3`, …) และห้ามใช้รหัสซ้ำ
-2. เพิ่มรายการอ้างอิงฉบับเต็มตามรูปแบบ APA 7th ในหัวข้อทะเบียนของเอกสารนี้
-3. เพิ่ม BibTeX entry ใน [`docs/references.bib`](references.bib) พร้อม key ที่สอดคล้องกับชื่อผู้เขียนและปี
-4. บันทึก provenance: บท/หัวข้อ ช่วงข้อมูล ไฟล์ต้นทาง จำนวนรายการ และการแมปเข้าสู่ Domain หรือเอนทิตีของโครงการ
-5. บันทึกข้อจำกัดการใช้งานและลิขสิทธิ์ รวมถึงความเสี่ยงที่ยังเปิดอยู่ (ถ้ามี)
-6. อัปเดตวันที่ปรับปรุงล่าสุดและเพิ่มรายการใน Revision History
+1. Assign the next `R-ID` in sequence (`R2`, `R3`, …); never reuse a code.
+2. Add the full APA 7th reference entry in the registry section of this document.
+3. Add a BibTeX entry to [`docs/references.bib`](references.bib) with a key consistent with the author name and year.
+4. Record provenance: chapter/section, data range, source file, item count, and mapping to project Domains or entities.
+5. Record usage and copyright restrictions, including any open risks.
+6. Update the last-updated date and add an entry to the Revision History.
 
-แหล่งข้อมูลที่ไม่ผ่านขั้นตอนนี้ห้ามนำเข้า Pipeline การ Parse หรือ Ingest
+Sources that do not complete these steps must not enter the parsing or ingestion pipeline.
 
-## 14. ประวัติการแก้ไข (Revision History)
+## 14. Revision History
 
-| วันที่ | รายการ |
+| Date | Item |
 |---|---|
-| 2026-10-20 | สร้างเอกสารและลงทะเบียนแหล่งอ้างอิง R1 (Gorgotsias, 2024) พร้อมตาราง Provenance, บันทึก Normalization Question 444, ข้อจำกัดลิขสิทธิ์ และ Open Risk |
+| 2026-10-20 | Created the document and registered reference R1 (Gorgotsias, 2024), with the provenance table, Question 444 normalization record, copyright restrictions, and open risk. |

@@ -1,82 +1,82 @@
-# examination/ — แหล่งข้อสอบต้นทาง (Source Exam Markdown)
+# examination/ — Source Exam Markdown
 
-## 1. ไดเรกทอรีนี้เก็บอะไร
+## 1. What This Directory Contains
 
-ไดเรกทอรีนี้เก็บไฟล์ Markdown ต้นทางของคลังข้อสอบ Pre-test/Post-test ซึ่งเป็นเนื้อหาที่ใช้ในระบบประเมินผลของผู้เรียน จำนวน **540 ข้อ** โดยแบ่งเป็น **ไฟล์ต้นทางตาม Domain จำนวน 5 ไฟล์** (`domain*.md`) พร้อมด้วย `README.md` นี้ที่อธิบายแหล่งที่มา การแมป และนโยบายการใช้งาน
+This directory contains the source Markdown files for the Pre-test/Post-test question bank used by the learner assessment system: **540 questions** across **5 source files, one per Domain** (`domain*.md`), together with this `README.md`, which documents provenance, mapping, and usage policy.
 
-ไฟล์ในไดเรกทอรีนี้เป็น **แหล่งข้อมูลต้นทาง (source of truth)** สำหรับการสร้าง Artifact ด้วย Parser ไม่ใช่ไฟล์ที่ Backend อ่านโดยตรง
+Files in this directory are the **source of truth** for generating artifacts with the parser. The backend does not read them directly.
 
-## 2. แหล่งที่มาและการอ้างอิง
+## 2. Source and Citation
 
-เนื้อหาข้อสอบทั้งหมดในไดเรกทอรีนี้มาจากหนังสือ:
+All questions in this directory come from the following book:
 
 Gorgotsias, N. (2024). *CompTIA Security+ SY0-701 practice tests & PBQs: Exam SY0-701* (3rd ed.). ExamsDigest LLC; LabsDigest LLC.
 
-- รหัสอ้างอิงโครงการ: **[R1]**
-- การอ้างอิงในเนื้อหารายงาน: **(Gorgotsias, 2024)**
-- ทะเบียนแหล่งอ้างอิง ข้อจำกัดลิขสิทธิ์ และความเสี่ยงที่ยังเปิดอยู่: [`../docs/REFERENCES.md`](../docs/REFERENCES.md)
+- Project reference key: **[R1]**
+- In-text citation: **(Gorgotsias, 2024)**
+- Reference registry, copyright restrictions, and open risks: [`../docs/REFERENCES.md`](../docs/REFERENCES.md)
 
-## 3. การแมปบท → Domain → ไฟล์
+## 3. Chapter → Domain → File Mapping
 
-| บท | ชื่อบทในหนังสือ | Domain ในโครงการ | ช่วงข้อสอบ | ไฟล์ | จำนวน |
+| Chapter | Book chapter title | Project Domain | Question range | File | Count |
 |---|---|---|---|---|---|
 | Ch1 | General Security Concepts | domain1 — Security Concepts | Q1–Q110 | [`domain1_security_concepts.md`](domain1_security_concepts.md) | 110 |
 | Ch2 | Threats, Vulnerabilities, and Mitigations | domain2 — Threats, Vulnerabilities, and Mitigations | Q111–Q220 | [`domain2_threats_vulnerabilities.md`](domain2_threats_vulnerabilities.md) | 110 |
 | Ch3 | Implementation | domain3 — Security Architecture | Q221–Q310 | [`domain3_security_architecture.md`](domain3_security_architecture.md) | 90 |
 | Ch4 | Security Operations | domain4 — Security Operations | Q311–Q460 | [`domain4_security_operations.md`](domain4_security_operations.md) | 150 |
 | Ch5 | Security Program Management and Oversight | domain5 — Security Management | Q461–Q540 | [`domain5_security_management.md`](domain5_security_management.md) | 80 |
-| **รวม** | | | **Q1–Q540** | | **540** |
+| **Total** | | | **Q1–Q540** | | **540** |
 
-หมายเหตุ: หนังสือต้นทางใช้ชื่อบทที่ 3 ว่า **"Implementation"** ขณะที่โครงการแมปบทนี้เข้ากับ CompTIA Domain 3 **"Security Architecture"** ความต่างนี้เป็นเรื่องของชื่อเรียก โดยการแมปยึดตามลำดับบทและช่วงข้อสอบ
+Note: The source book names Chapter 3 **"Implementation"**, while the project maps it to CompTIA Domain 3, **"Security Architecture"**. This is a naming difference; the mapping follows chapter order and question ranges.
 
-## 4. การ Normalization — Question 444
+## 4. Normalization — Question 444
 
-ไฟล์ [`domain4_security_operations.md`](domain4_security_operations.md) เดิมมีข้อบกพร่องเชิงรูปแบบที่หัวข้อ **Question 444** คือไม่มีจุดต่อท้ายหมายเลขข้อ ทำให้ Parser ไม่จับหัวข้อและข้ามข้อนี้ไป
+The file [`domain4_security_operations.md`](domain4_security_operations.md) previously had a formatting defect in the **Question 444** heading: there was no period after the question number, so the parser did not match the heading and skipped the question.
 
-- แก้ไขเมื่อ **2026-10-20** โดยเพิ่ม **จุดหลังหมายเลขข้อเพียงอย่างเดียว**
-- **เนื้อหาคำถาม ตัวเลือก เฉลย และคำอธิบายไม่ถูกแก้ไข**
-- ผลลัพธ์: จำนวนข้อที่ Ingest เพิ่มจาก **539** เป็น **540** ซึ่งเป็นจำนวนที่คาดหวังของคลังข้อสอบ
+- Fixed on **2026-10-20** by adding **only a period after the question number**.
+- **No question text, options, answers, or explanations were changed.**
+- Result: the number of ingested questions increased from **539** to **540**, the expected size of the question bank.
 
-## 5. นโยบายไฟล์ที่สร้างขึ้น (Generated Artifact Policy)
+## 5. Generated Artifact Policy
 
-- รัน Parser จาก **Root ของ Repository**:
+- Run the parser from the **repository root**:
 
   ```bash
   python scripts/parse_exams.py
   ```
 
-- Artifact ที่เป็นทางการคือ **`parsed_questions.json` ที่ Root ของ Repository** เท่านั้น
-- Parser อ่านเฉพาะไฟล์ต้นทาง `domain*.md` ในไดเรกทอรีนี้ และไม่ประมวลผลไฟล์อื่น เช่น `README.md`
-- `examination/questions.json` เคยเป็นไฟล์ซ้ำที่ไม่ถูกอ้างอิงโดยสคริปต์ใด และ **ถูกลบออกแล้ว** เพื่อให้เหลือ Artifact เดียว
-- ห้ามแก้ไข `parsed_questions.json` ด้วยมือ ให้สร้างใหม่จาก Parser เสมอ
+- The official artifact is **`parsed_questions.json` at the repository root only**.
+- The parser reads only the `domain*.md` source files in this directory and does not process other files such as `README.md`.
+- `examination/questions.json` was once a duplicate file not referenced by any script and **has been removed**, leaving a single artifact.
+- Never edit `parsed_questions.json` by hand; always regenerate it with the parser.
 
-## 6. Metadata ใน JSON
+## 6. Metadata in JSON
 
-ทุกข้อใน `parsed_questions.json` มีฟิลด์กำกับที่มาแบบ Flat ดังนี้
+Every question in `parsed_questions.json` has the following flat provenance fields:
 
-| Field | ชนิด | ความหมาย |
+| Field | Type | Meaning |
 |---|---|---|
-| `source_ref` | string | รหัสแหล่งอ้างอิงในทะเบียน ค่าปัจจุบันคือ `"R1"` |
-| `source_chapter` | integer | เลขบทของหนังสือต้นทาง (1–5) |
-| `source_question_no` | integer | หมายเลขข้อในหนังสือต้นทาง (1–540) |
+| `source_ref` | string | Reference key in the registry; the current value is `"R1"`. |
+| `source_chapter` | integer | Source book chapter number (1–5). |
+| `source_question_no` | integer | Source book question number (1–540). |
 
-ค่า `source_chapter` ได้มาจากการแมป Domain → บท ในสคริปต์ Parser และ `source_question_no` อ่านจากหัวข้อคำถามในไฟล์ Markdown ต้นทาง
+`source_chapter` comes from the Domain → Chapter mapping in the parser script, and `source_question_no` is read from the question headings in the source Markdown files.
 
-## 7. ข้อจำกัดด้านลิขสิทธิ์
+## 7. Copyright Restrictions
 
-- ข้อความคำถาม ตัวเลือก เฉลย และคำอธิบาย เป็นลิขสิทธิ์ของ **ผู้เขียนและสำนักพิมพ์**
-- ใช้เพื่อ **การศึกษาและการฝึกอบรมภายในโครงการเท่านั้น**
-- **ห้ามนำข้อความคำถามไปเผยแพร่หรือกระจายต่อ** นอกขอบเขตการใช้งานภายใน
-- ต้องอ้างอิง `[R1]` / (Gorgotsias, 2024) ในรายงานหรือเอกสารที่อ้างถึงคลังข้อสอบ
-- รายละเอียดและความเสี่ยงที่ยังเปิดอยู่: [`../docs/REFERENCES.md`](../docs/REFERENCES.md)
+- The question text, options, answers, and explanations are the copyright of the **author and publisher**.
+- Use is limited to **internal academic use and training within the project**.
+- **Do not publish or redistribute the question text** outside the internal use scope.
+- Cite `[R1]` / (Gorgotsias, 2024) in reports or documents that reference the question bank.
+- Details and open risks: [`../docs/REFERENCES.md`](../docs/REFERENCES.md)
 
-## 8. กฎการแก้ไขไฟล์ต้นทาง
+## 8. Source Editing Rules
 
-ห้ามแก้ไขเนื้อหาข้อสอบในไฟล์ Markdown ของไดเรกทอรีนี้โดยไม่ดำเนินการต่อไปนี้พร้อมกัน:
+Do not edit the exam content in this directory's Markdown files without doing all of the following:
 
-1. แจ้งและบันทึกเหตุผลของการแก้ไข
-2. อัปเดตข้อมูล Provenance ใน [`../docs/REFERENCES.md`](../docs/REFERENCES.md) หากการแก้ไขกระทบจำนวนข้อ ช่วงข้อ หรือการแมป Domain
-3. อัปเดตทะเบียนแหล่งอ้างอิง (`R-ID`, Revision History) เมื่อมีการเปลี่ยนแปลงที่เกี่ยวกับที่มาของข้อมูล
-4. รัน `python scripts/parse_exams.py` ใหม่และตรวจสอบว่าจำนวนข้อที่ได้ตรงกับที่คาดหวัง
+1. Announce and record the reason for the edit.
+2. Update the provenance in [`../docs/REFERENCES.md`](../docs/REFERENCES.md) if the edit affects question counts, question ranges, or Domain mapping.
+3. Update the reference registry (`R-ID`, Revision History) when the change affects data provenance.
+4. Re-run `python scripts/parse_exams.py` and verify that the resulting question count matches the expected count.
 
-การแก้ไขเชิงรูปแบบ (เช่น การเพิ่มจุดในหัวข้อคำถาม) ต้องไม่เปลี่ยนเนื้อหาคำถามและต้องบันทึกไว้ในหัวข้อ 4 ของเอกสารนี้
+Formatting edits (for example, adding a period in a question heading) must not change the question content and must be recorded in Section 4 of this document.
