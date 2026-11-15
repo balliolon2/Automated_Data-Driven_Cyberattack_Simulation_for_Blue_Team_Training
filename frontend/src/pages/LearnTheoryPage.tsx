@@ -575,7 +575,7 @@ export default function LearnTheoryPage() {
     <div className="space-y-6 animate-fade-in">
       {/* Header & Progress Gate Banner */}
       <div className="bg-graphite-900 border border-graphite-800 rounded-lg p-6 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
-        <div className="space-y-2">
+        <div className="space-y-2 flex-1 min-w-0">
           <div className="flex items-center gap-2 text-xs font-mono text-emerald-400">
             <BookOpen className="w-4 h-4" />
             <span className="uppercase tracking-wider font-semibold">
@@ -592,7 +592,7 @@ export default function LearnTheoryPage() {
           </p>
         </div>
 
-        <div className="w-full lg:w-88 space-y-3 bg-graphite-950/70 border border-graphite-800 rounded-lg p-4 shrink-0">
+        <div className="w-full lg:w-80 space-y-3 bg-graphite-950/70 border border-graphite-800 rounded-lg p-4 shrink-0">
           <div className="flex items-center justify-between text-xs font-mono">
             <span className="text-graphite-400">Study Progress</span>
             <span

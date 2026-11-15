@@ -1647,8 +1647,8 @@ func (sc *SimulationController) getUserTheoryProgressSummary(userID any) ([]stri
 	if err := sc.DB.Where("user_id = ?", userID).Find(&subProgress).Error; err != nil {
 		return []string{}, []string{}, false, nil
 	}
-	completedDomains, _ := buildOrderedCompletedDomains(domProgress)
 	completedSubtopics, bySub := buildOrderedCompletedSubtopics(subProgress)
+	completedDomains, _ := buildEffectiveCompletedDomains(domProgress, completedSubtopics)
 	theoryCompleted := services.IsTheorySubtopicGateSatisfied(completedSubtopics)
 	var completedAt *time.Time
 	if theoryCompleted {

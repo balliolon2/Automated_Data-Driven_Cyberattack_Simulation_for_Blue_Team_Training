@@ -421,12 +421,14 @@ func (s *gormLearnStore) CompleteSubtopic(userID, role, subTopicID, domainID str
 			SubTopicID:  subTopicID,
 			CompletedAt: time.Now(),
 		}
-		if err := tx.Clauses(clause.OnConflict{
+		subRes := tx.Clauses(clause.OnConflict{
 			Columns:   []clause.Column{{Name: "user_id"}, {Name: "sub_topic_id"}},
 			DoNothing: true,
-		}).Create(&subRow).Error; err != nil {
-			return err
+		}).Create(&subRow)
+		if subRes.Error != nil {
+			return subRes.Error
 		}
+		subNewlyCompleted := subRes.RowsAffected > 0
 
 		var allSubProg []models.UserTheorySubtopicProgress
 		if err := tx.Where("user_id = ?", userID).Find(&allSubProg).Error; err != nil {
@@ -443,10 +445,16 @@ func (s *gormLearnStore) CompleteSubtopic(userID, role, subTopicID, domainID str
 
 		domainAutoCompleted := false
 		if len(domainSubs) > 0 && completedInDomain == len(domainSubs) {
-			domRes := tx.Clauses(clause.OnConflict{
+			conflict := clause.OnConflict{
 				Columns:   []clause.Column{{Name: "user_id"}, {Name: "domain_id"}},
 				DoNothing: true,
-			}).Create(&models.UserTheoryProgress{
+			}
+			if subNewlyCompleted {
+				// Refresh completed_at and signal transition even if a legacy pre-Spec-9 row existed.
+				conflict.DoNothing = false
+				conflict.DoUpdates = clause.AssignmentColumns([]string{"completed_at"})
+			}
+			domRes := tx.Clauses(conflict).Create(&models.UserTheoryProgress{
 				UserID:      userID,
 				DomainID:    domainID,
 				CompletedAt: time.Now(),
@@ -454,14 +462,14 @@ func (s *gormLearnStore) CompleteSubtopic(userID, role, subTopicID, domainID str
 			if domRes.Error != nil {
 				return domRes.Error
 			}
-			domainAutoCompleted = domRes.RowsAffected > 0
+			domainAutoCompleted = subNewlyCompleted || domRes.RowsAffected > 0
 		}
 
 		var domProg []models.UserTheoryProgress
 		if err := tx.Where("user_id = ?", userID).Find(&domProg).Error; err != nil {
 			return err
 		}
-		completedDomains, _ := buildOrderedCompletedDomains(domProg)
+		completedDomains, _ := buildEffectiveCompletedDomains(domProg, completedSubtopics)
 
 		resp = dto.CompleteSubtopicResponse{
 			SubTopicID:                 subTopicID,
@@ -498,18 +506,25 @@ func NewLearnControllerWithStore(store LearnStore) *LearnController {
 	return &LearnController{Store: store}
 }
 
-func buildOrderedCompletedDomains(progress []models.UserTheoryProgress) ([]string, map[string]models.UserTheoryProgress) {
+// buildEffectiveCompletedDomains intersects domain progress records with canonical
+// child sub-topic completion so pre-existing Spec 8 rows do not mark a domain
+// completed until every SY0-701 sub-topic in that domain is finished.
+func buildEffectiveCompletedDomains(progress []models.UserTheoryProgress, completedSubtopics []string) ([]string, map[string]models.UserTheoryProgress) {
 	byDomain := make(map[string]models.UserTheoryProgress, len(progress))
 	for _, item := range progress {
 		byDomain[item.DomainID] = item
 	}
 	ordered := make([]string, 0, len(services.OrderedTheoryDomains))
+	effective := make(map[string]models.UserTheoryProgress, len(services.OrderedTheoryDomains))
 	for _, spec := range services.OrderedTheoryDomains {
-		if _, ok := byDomain[spec.DomainID]; ok {
-			ordered = append(ordered, spec.DomainID)
+		row, ok := byDomain[spec.DomainID]
+		if !ok || len(services.MissingSubtopicsForDomain(spec.DomainID, completedSubtopics)) > 0 {
+			continue
 		}
+		ordered = append(ordered, spec.DomainID)
+		effective[spec.DomainID] = row
 	}
-	return ordered, byDomain
+	return ordered, effective
 }
 
 func buildOrderedCompletedSubtopics(progress []models.UserTheorySubtopicProgress) ([]string, map[string]models.UserTheorySubtopicProgress) {
@@ -602,8 +617,8 @@ func (lc *LearnController) GetDomains(c *gin.Context) {
 		return
 	}
 
-	completedDomains, completedByDomain := buildOrderedCompletedDomains(progress)
 	completedSubtopics, subCompletedByID := buildOrderedCompletedSubtopics(subProgress)
+	completedDomains, completedByDomain := buildEffectiveCompletedDomains(progress, completedSubtopics)
 
 	subDTOsByDomain := make(map[string][]dto.TheorySubtopicSummaryDTO, len(services.OrderedTheoryDomains))
 	completedSubCountByDomain := make(map[string]int, len(services.OrderedTheoryDomains))
@@ -754,7 +769,7 @@ func (lc *LearnController) CompleteDomain(c *gin.Context) {
 		return
 	}
 
-	completedDomains, _ := buildOrderedCompletedDomains(progress)
+	completedDomains, _ := buildEffectiveCompletedDomains(progress, completedSubtopics)
 
 	c.JSON(http.StatusOK, dto.CompleteTheoryDomainResponse{
 		DomainID:         domainID,

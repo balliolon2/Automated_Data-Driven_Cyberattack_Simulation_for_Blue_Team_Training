@@ -132,12 +132,14 @@ func (f *fakeLearnStore) CompleteSubtopic(userID, role, subTopicID, domainID str
 	if _, ok := f.subProgress[userID]; !ok {
 		f.subProgress[userID] = make(map[string]models.UserTheorySubtopicProgress)
 	}
+	subNewlyCompleted := false
 	if _, exists := f.subProgress[userID][subTopicID]; !exists {
 		f.subProgress[userID][subTopicID] = models.UserTheorySubtopicProgress{
 			UserID:      userID,
 			SubTopicID:  subTopicID,
 			CompletedAt: time.Now(),
 		}
+		subNewlyCompleted = true
 	}
 
 	completedSubInDomain := 0
@@ -148,7 +150,17 @@ func (f *fakeLearnStore) CompleteSubtopic(userID, role, subTopicID, domainID str
 	}
 	domainAutoCompleted := false
 	if len(specList) > 0 && completedSubInDomain == len(specList) {
-		if _, exists := f.progress[userID][domainID]; !exists {
+		if subNewlyCompleted {
+			if _, ok := f.progress[userID]; !ok {
+				f.progress[userID] = make(map[string]models.UserTheoryProgress)
+			}
+			f.progress[userID][domainID] = models.UserTheoryProgress{
+				UserID:      userID,
+				DomainID:    domainID,
+				CompletedAt: time.Now(),
+			}
+			domainAutoCompleted = true
+		} else if _, exists := f.progress[userID][domainID]; !exists {
 			_ = f.MarkTheoryCompleted(userID, domainID)
 			domainAutoCompleted = true
 		}
@@ -161,7 +173,7 @@ func (f *fakeLearnStore) CompleteSubtopic(userID, role, subTopicID, domainID str
 		}
 	}
 	progRows, _ := f.GetTheoryProgress(userID)
-	completedDomains, _ := buildOrderedCompletedDomains(progRows)
+	completedDomains, _ := buildEffectiveCompletedDomains(progRows, completedSub)
 
 	return dto.CompleteSubtopicResponse{
 		SubTopicID:                 subTopicID,
@@ -696,5 +708,114 @@ func TestBuildPostTestExclusionQuery_SQLIncludesPreTestAndLearnSamples(t *testin
 	}
 	if !strings.Contains(sql, "UNION") {
 		t.Fatalf("expected UNION in exclusion subquery, got: %s", sql)
+	}
+}
+
+func TestLearnController_LegacyDomainProgressIgnoredUntilSubtopicsComplete(t *testing.T) {
+	store := newFakeLearnStore()
+	userID := "legacy-t4"
+	legacyTime := time.Now().Add(-48 * time.Hour)
+
+	store.profiles[userID] = []models.UserSkillProfile{
+		{UserID: userID, DomainID: "domain1", ProficiencyScore: 19.0},
+		{UserID: userID, DomainID: "domain2", ProficiencyScore: 45.0},
+		{UserID: userID, DomainID: "domain3", ProficiencyScore: 60.0},
+		{UserID: userID, DomainID: "domain4", ProficiencyScore: 55.0},
+		{UserID: userID, DomainID: "domain5", ProficiencyScore: 70.0},
+	}
+	store.progress[userID] = make(map[string]models.UserTheoryProgress)
+	for _, dom := range services.OrderedTheoryDomains {
+		store.progress[userID][dom.DomainID] = models.UserTheoryProgress{
+			UserID:      userID,
+			DomainID:    dom.DomainID,
+			CompletedAt: legacyTime,
+		}
+	}
+	for _, sub := range services.SubtopicsForDomain("domain1") {
+		store.seedSamplePool("domain1", sub.SubTopicID, []models.Question{
+			{QuestionID: "leg-" + sub.SubTopicID + "-a", QuestionText: "Q1?", Options: map[string]any{"A": "Right", "B": "Wrong"}, CorrectAnswer: "A", Explanation: "Because A."},
+			{QuestionID: "leg-" + sub.SubTopicID + "-b", QuestionText: "Q2?", Options: map[string]any{"A": "Wrong", "B": "Right"}, CorrectAnswer: "B", Explanation: "Because B."},
+		})
+	}
+
+	lc := NewLearnControllerWithStore(store)
+	r := setupLearnRouter(lc, userID, "learner")
+
+	// 1. Legacy 5/5 domain rows with 0/28 subtopics must report 0/5 completed domains.
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest("GET", "/api/learn/domains", nil)
+	r.ServeHTTP(w, req)
+	if w.Code != http.StatusOK {
+		t.Fatalf("GET /api/learn/domains status = %d, want 200", w.Code)
+	}
+	var resp dto.LearnDomainsResponse
+	if err := json.Unmarshal(w.Body.Bytes(), &resp); err != nil {
+		t.Fatalf("unmarshal domains: %v", err)
+	}
+	if resp.CompletedCount != 0 || len(resp.CompletedDomains) != 0 || resp.CompletedSubtopicCount != 0 || resp.TheoryCompleted {
+		t.Fatalf("legacy 0/28 subtopics must show 0/5 completed domains, got count=%d domains=%v sub=%d theory=%v",
+			resp.CompletedCount, resp.CompletedDomains, resp.CompletedSubtopicCount, resp.TheoryCompleted)
+	}
+	for _, d := range resp.Domains {
+		if d.IsCompleted || d.CompletedAt != nil {
+			t.Fatalf("domain %s should not be marked completed with 0 subtopics: %+v", d.DomainID, d)
+		}
+	}
+
+	// 2. Complete all 4 subtopics of domain1; only the 4th subtopic auto-completes domain1.
+	dom1Subs := services.SubtopicsForDomain("domain1")
+	for idx, sub := range dom1Subs {
+		wSub := httptest.NewRecorder()
+		reqSub, _ := http.NewRequest("GET", "/api/learn/subtopics/"+sub.SubTopicID, nil)
+		r.ServeHTTP(wSub, reqSub)
+		if wSub.Code != http.StatusOK {
+			t.Fatalf("GET subtopic %s status = %d", sub.SubTopicID, wSub.Code)
+		}
+		var detail dto.LearnSubtopicDetailResponse
+		_ = json.Unmarshal(wSub.Body.Bytes(), &detail)
+		for _, sq := range detail.SampleQuestions {
+			body, _ := json.Marshal(dto.AttemptSampleQuestionRequest{Answer: "A"})
+			wAtt := httptest.NewRecorder()
+			reqAtt, _ := http.NewRequest("POST", "/api/learn/subtopics/"+sub.SubTopicID+"/sample-questions/"+sq.QuestionID+"/attempt", bytes.NewReader(body))
+			reqAtt.Header.Set("Content-Type", "application/json")
+			r.ServeHTTP(wAtt, reqAtt)
+			if wAtt.Code != http.StatusOK {
+				t.Fatalf("attempt %s/%s status = %d", sub.SubTopicID, sq.QuestionID, wAtt.Code)
+			}
+		}
+
+		wComp := httptest.NewRecorder()
+		reqComp, _ := http.NewRequest("POST", "/api/learn/subtopics/"+sub.SubTopicID+"/complete", nil)
+		r.ServeHTTP(wComp, reqComp)
+		if wComp.Code != http.StatusOK {
+			t.Fatalf("complete %s status = %d: %s", sub.SubTopicID, wComp.Code, wComp.Body.String())
+		}
+		var comp dto.CompleteSubtopicResponse
+		_ = json.Unmarshal(wComp.Body.Bytes(), &comp)
+
+		isLast := idx == len(dom1Subs)-1
+		if comp.DomainAutoCompleted != isLast {
+			t.Fatalf("subtopic %s: DomainAutoCompleted = %v, want %v", sub.SubTopicID, comp.DomainAutoCompleted, isLast)
+		}
+		wantDomCount := 0
+		if isLast {
+			wantDomCount = 1
+		}
+		if comp.CompletedCount != wantDomCount || len(comp.CompletedDomains) != wantDomCount {
+			t.Fatalf("subtopic %s: expected CompletedCount=%d, got %d (%v)", sub.SubTopicID, wantDomCount, comp.CompletedCount, comp.CompletedDomains)
+		}
+	}
+
+	// 3. Re-fetching domains shows only domain1 completed (1/5), domains 2-5 still incomplete.
+	wAfter := httptest.NewRecorder()
+	reqAfter, _ := http.NewRequest("GET", "/api/learn/domains", nil)
+	r.ServeHTTP(wAfter, reqAfter)
+	var after dto.LearnDomainsResponse
+	_ = json.Unmarshal(wAfter.Body.Bytes(), &after)
+	if after.CompletedCount != 1 || len(after.CompletedDomains) != 1 || after.CompletedDomains[0] != "domain1" {
+		t.Fatalf("expected only [domain1] after finishing 4/4 of domain1, got %d %v", after.CompletedCount, after.CompletedDomains)
+	}
+	if !after.Domains[0].IsCompleted || after.Domains[1].IsCompleted {
+		t.Fatalf("unexpected domain states after domain1 completion: dom1=%v dom2=%v", after.Domains[0].IsCompleted, after.Domains[1].IsCompleted)
 	}
 }

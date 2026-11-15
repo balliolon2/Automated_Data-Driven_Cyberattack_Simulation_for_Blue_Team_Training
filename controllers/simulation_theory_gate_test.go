@@ -148,3 +148,44 @@ func TestBuildLearnSubtopicTelemetry(t *testing.T) {
 		t.Fatalf("unexpected domain1 breakdown: %+v", tel.DomainBreakdown)
 	}
 }
+
+func TestBuildEffectiveCompletedDomains_ExcludesLegacyWithoutSubtopics(t *testing.T) {
+	now := time.Now().Add(-24 * time.Hour)
+	allLegacyRows := make([]models.UserTheoryProgress, 0, len(services.OrderedTheoryDomains))
+	for _, dom := range services.OrderedTheoryDomains {
+		allLegacyRows = append(allLegacyRows, models.UserTheoryProgress{
+			UserID:      "legacy-t4",
+			DomainID:    dom.DomainID,
+			CompletedAt: now,
+		})
+	}
+
+	noneDone, byNone := buildEffectiveCompletedDomains(allLegacyRows, []string{})
+	if len(noneDone) != 0 || len(byNone) != 0 {
+		t.Fatalf("expected 0 effective completed domains with 0 subtopics, got %v (map len %d)", noneDone, len(byNone))
+	}
+
+	partialPlusDom2 := []string{"1.1", "1.2", "1.3"}
+	for _, s := range services.SubtopicsForDomain("domain2") {
+		partialPlusDom2 = append(partialPlusDom2, s.SubTopicID)
+	}
+	onlyDom2, byDom2 := buildEffectiveCompletedDomains(allLegacyRows, partialPlusDom2)
+	if len(onlyDom2) != 1 || onlyDom2[0] != "domain2" {
+		t.Fatalf("expected only [domain2] when domain1 is 3/4 and domain2 is 7/7, got %v", onlyDom2)
+	}
+	if _, ok := byDom2["domain1"]; ok {
+		t.Fatalf("incomplete domain1 should not be present in effective domain map")
+	}
+	if _, ok := byDom2["domain2"]; !ok {
+		t.Fatalf("completed domain2 missing from effective domain map")
+	}
+
+	allTwentyEight := make([]string, 0, len(services.OrderedTheorySubtopics))
+	for _, s := range services.OrderedTheorySubtopics {
+		allTwentyEight = append(allTwentyEight, s.SubTopicID)
+	}
+	allFive, _ := buildEffectiveCompletedDomains(allLegacyRows, allTwentyEight)
+	if len(allFive) != len(services.OrderedTheoryDomains) {
+		t.Fatalf("expected all %d domains when all 28 subtopics are complete, got %v", len(services.OrderedTheoryDomains), allFive)
+	}
+}
