@@ -4,11 +4,11 @@ import sys
 
 
 DOMAIN_SPECS = [
-    ("domain1", "Domain 1: General Security Concepts", "domain1_security_concepts.md"),
-    ("domain2", "Domain 2: Threats, Vulnerabilities, and Mitigations", "domain2_threats_vulnerabilities.md"),
-    ("domain3", "Domain 3: Security Architecture", "domain3_security_architecture.md"),
-    ("domain4", "Domain 4: Security Operations", "domain4_security_operations.md"),
-    ("domain5", "Domain 5: Security Program Management and Oversight", "domain5_security_management.md"),
+    ("domain1", "Domain 1: General Security Concepts", "domain1_security_concepts.md", "https://csrc.nist.gov/pubs/sp/800/53/r5/final"),
+    ("domain2", "Domain 2: Threats, Vulnerabilities, and Mitigations", "domain2_threats_vulnerabilities.md", "https://owasp.org/Top10/"),
+    ("domain3", "Domain 3: Security Architecture", "domain3_security_architecture.md", "https://csrc.nist.gov/pubs/sp/800/207/final"),
+    ("domain4", "Domain 4: Security Operations", "domain4_security_operations.md", "https://csrc.nist.gov/pubs/sp/800/61/r3/final"),
+    ("domain5", "Domain 5: Security Program Management and Oversight", "domain5_security_management.md", "https://www.cmu.edu/iso/governance/procedures/incident-response.html"),
 ]
 
 REQUIRED_SECTION_PATTERNS = [
@@ -17,8 +17,6 @@ REQUIRED_SECTION_PATTERNS = [
     ("Section 3 (Alert Triage & Playbook)", r"^##\s+3\.\s+Alert Triage"),
     ("Section 4 (Key Takeaways & References)", r"^##\s+4\.\s+Key Takeaways"),
 ]
-
-SOURCE_REF_URL = "docs/REFERENCES.md#14-learning-theory-curriculum-provenance-r2r5"
 
 
 def resolve_theory_dir(theory_dir=None):
@@ -58,6 +56,9 @@ def validate_theory_content(domain_id, title, content):
     if "false positive" not in content.lower() or "true positive" not in content.lower():
         errors.append(f"{domain_id} ({title}): missing True Positive / False Positive triage guidance")
 
+    if "](https://" not in content:
+        errors.append(f"{domain_id} ({title}): missing clickable https:// reference links")
+
     return errors
 
 
@@ -66,7 +67,7 @@ def load_and_validate_modules(theory_dir=None):
     modules = []
     all_errors = []
 
-    for domain_id, title, filename in DOMAIN_SPECS:
+    for domain_id, title, filename, source_url in DOMAIN_SPECS:
         file_path = os.path.join(resolved_dir, filename)
         if not os.path.isfile(file_path):
             all_errors.append(f"{domain_id}: missing file {file_path}")
@@ -82,7 +83,7 @@ def load_and_validate_modules(theory_dir=None):
                 "domain_id": domain_id,
                 "title": title,
                 "content": content,
-                "source_url": SOURCE_REF_URL,
+                "source_url": source_url,
             }
         )
 

@@ -1,4 +1,5 @@
 import React from "react";
+import { ExternalLink } from "lucide-react";
 import { cn } from "../lib/utils";
 
 interface MarkdownViewProps {
@@ -107,7 +108,21 @@ export default function MarkdownView({ content, className }: MarkdownViewProps) 
       continue;
     }
 
+    // Horizontal rule ---
+    if (line.trim() === "---") {
+      elements.push(<hr key={`hr-${i}`} className="my-5 border-graphite-800" />);
+      continue;
+    }
+
     // Headers
+    if (line.startsWith("#### ")) {
+      elements.push(
+        <h4 key={`h4-${i}`} className="text-sm font-semibold text-graphite-100 mt-3 mb-1.5 tracking-tight">
+          {renderInline(line.replace("#### ", ""))}
+        </h4>
+      );
+      continue;
+    }
     if (line.startsWith("### ")) {
       elements.push(
         <h3 key={`h3-${i}`} className="text-base font-semibold text-white mt-4 mb-2 tracking-tight">
@@ -208,7 +223,7 @@ function renderInline(text: string): React.ReactNode {
     if (boldMatch) {
       parts.push(
         <strong key={keyIdx++} className="font-semibold text-white">
-          {boldMatch[1]}
+          {renderInline(boldMatch[1])}
         </strong>
       );
       remaining = remaining.slice(boldMatch[0].length);
@@ -220,25 +235,28 @@ function renderInline(text: string): React.ReactNode {
     if (italicMatch) {
       parts.push(
         <em key={keyIdx++} className="italic text-graphite-200">
-          {italicMatch[1]}
+          {renderInline(italicMatch[1])}
         </em>
       );
       remaining = remaining.slice(italicMatch[0].length);
       continue;
     }
 
-    // Link [text](url)
-    const linkMatch = remaining.match(/^\[([^\]]+)\]\(([^)]+)\)/);
+    // Link [text](url) supporting balanced parentheses inside URLs
+    const linkMatch = remaining.match(/^\[([^\]]+)\]\(((?:[^()\s]+|\([^()\s]*\))+)\)/);
     if (linkMatch) {
+      const href = linkMatch[2];
+      const isExternal = /^https?:\/\//i.test(href);
       parts.push(
         <a
           key={keyIdx++}
-          href={linkMatch[2]}
+          href={href}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-indigo-400 hover:text-indigo-300 underline underline-offset-2"
+          className="inline-flex items-center gap-1 text-indigo-400 hover:text-indigo-300 underline underline-offset-2"
         >
-          {linkMatch[1]}
+          <span>{linkMatch[1]}</span>
+          {isExternal && <ExternalLink className="w-3 h-3 inline shrink-0" />}
         </a>
       );
       remaining = remaining.slice(linkMatch[0].length);
@@ -246,7 +264,7 @@ function renderInline(text: string): React.ReactNode {
     }
 
     // Plain text until next special character
-    const nextSpecial = remaining.search(/[`*\[]/);
+    const nextSpecial = remaining.search(/[`*[]/);
     if (nextSpecial === -1) {
       parts.push(remaining);
       break;

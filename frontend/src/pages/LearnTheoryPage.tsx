@@ -7,6 +7,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Circle,
+  ExternalLink,
   Loader2,
   Lock,
   PlayCircle,
@@ -377,12 +378,25 @@ export default function LearnTheoryPage() {
               )}
             </div>
 
-            {activeDomain.is_completed && (
-              <span className="inline-flex items-center gap-1.5 text-xs font-mono font-semibold text-emerald-400">
-                <CheckCircle2 className="w-3.5 h-3.5" />
-                Domain Completed
-              </span>
-            )}
+            <div className="flex flex-wrap items-center gap-3">
+              {/^https?:\/\//i.test(activeDomain.source_url || "") && (
+                <a
+                  href={activeDomain.source_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/30 text-[11px] font-mono text-indigo-300 transition-colors"
+                >
+                  <ExternalLink className="w-3 h-3" />
+                  Primary Reference
+                </a>
+              )}
+              {activeDomain.is_completed && (
+                <span className="inline-flex items-center gap-1.5 text-xs font-mono font-semibold text-emerald-400">
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                  Domain Completed
+                </span>
+              )}
+            </div>
           </div>
 
           {/* Markdown Curriculum Body */}

@@ -1,6 +1,7 @@
 package services
 
 import (
+	"strings"
 	"testing"
 )
 
@@ -20,6 +21,12 @@ func TestLoadTheoryModules_AllFiveDomainsPassStructure(t *testing.T) {
 		}
 		if mod.Title == "" || mod.DomainName == "" {
 			t.Errorf("module %s has empty title or domain name", mod.DomainID)
+		}
+		if !strings.HasPrefix(mod.SourceURL, "https://") {
+			t.Errorf("module %s expected clickable https SourceURL, got %q", mod.DomainID, mod.SourceURL)
+		}
+		if !strings.Contains(mod.Content, "](https://") || !strings.Contains(mod.Content, "https://en.wikipedia.org/") {
+			t.Errorf("module %s expected clickable Wikipedia/web reference links inside content", mod.DomainID)
 		}
 		if err := ValidateTheoryModuleContent(mod.DomainID, mod.Content); err != nil {
 			t.Errorf("module %s failed structural validation: %v", mod.DomainID, err)

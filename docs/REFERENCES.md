@@ -40,11 +40,12 @@ Example:
 
 | R-ID | Short citation | Source type | Used in project | Status |
 |---|---|---|---|---|
-| R1 | (Gorgotsias, 2024) | Book — practice tests & PBQs | Pre-test/Post-test question bank, 540 questions | Active |
-| R2 | (CompTIA, 2023) | Official Certification Blueprint | Five-domain structure & objectives for Learning Theory Hub (`theory/domain1_*.md`–`domain5_*.md`) | Active |
-| R3 | (Cichonski et al., 2012; NIST, 2020) | NIST Special Publications (SP 800-61r2, SP 800-53r5) | Incident handling lifecycle, control families, containment/eradication/recovery in Theory Modules | Active |
-| R4 | (The MITRE Corporation, 2024) | Threat Knowledge Base (ATT&CK® Enterprise) | Adversary tactics, techniques, and telemetry detection mappings in Theory Modules & Scenarios | Active |
-| R5 | (OWASP Foundation, 2021; Wikipedia contributors, 2026) | Web Security Standard & Open Reference Articles | Web/application vulnerability mitigations and foundational security terminology in Theory Modules | Active |
+| R1 | (Gorgotsias, 2024) | Book — practice tests & PBQs | Pre-test/Post-test question bank, 540 questions (`examination/`) | Active |
+| R2 | (CompTIA, 2023) | Domain Taxonomy Syllabus | Five-domain syllabus mapping (`domain1`–`domain5`) for UI & assessment parity | Active |
+| R3 | (Cichonski et al., 2012; NIST, 2020, 2024, 2025) | U.S. Federal Agency Standards (NIST CSRC: SP 800-53r5, SP 800-61r2/r3, SP 800-207, SP 800-30r1, CSF 2.0) | Core controls, Zero Trust Architecture, risk assessment, and incident response lifecycle in Theory Modules (`theory/`) | Active |
+| R4 | (The MITRE Corporation, 2024) | Threat Knowledge Base (ATT&CK® Enterprise) | Clickable adversary tactics, techniques, and telemetry detection mappings in Theory Modules & Scenarios | Active |
+| R5 | (OWASP Foundation, 2021; Wikipedia contributors, 2026) | Open Web Standard & Wikipedia Reference Articles | Core security terminology, CIA triad, cryptography/PKI, vulnerabilities, network defense, SIEM, and compliance in Theory Modules | Active |
+| R6 | (CISA, 2023–2025; CMU ISO, 2025; Stanford UIT, 2025; Microsoft Learn, 2025) | Federal Cybersecurity Agency (CISA), Universities (CMU & Stanford), & Query Docs | Ransomware/phishing/Zero Trust maturity guidance, university IR procedures, and KQL reference in Theory Modules | Active |
 
 `R-ID` codes are permanent. They must never be reused or redefined, even after the reference is retired.
 
@@ -174,57 +175,71 @@ When the project adopts a new content source, the following steps must be comple
 
 Sources that do not complete these steps must not enter the parsing or ingestion pipeline.
 
-## 14. Learning Theory Curriculum Provenance (R2–R5)
+## 14. Learning Theory Curriculum Provenance (R2–R6)
 
-The Learning Theory Hub (`theory/domain1_*.md` through `theory/domain5_*.md`) synthesizes original educational prose from authoritative public standards and reference materials (`R2`–`R5`). No verbatim copyrighted textbook prose is reproduced.
+The Learning Theory Hub (`theory/domain1_*.md` through `theory/domain5_*.md`) synthesizes educational prose exclusively from **verifiable public websites**—**Wikipedia**, **U.S. federal cybersecurity agencies (NIST & CISA)**, **academic universities (Carnegie Mellon University & Stanford University)**, and **open technical standards (MITRE ATT&CK, OWASP, Microsoft Learn)**—rather than copyrighted textbooks, with clickable HTTPS links embedded directly inside each Theory Module. No textbook prose is reproduced.
 
-### R2 — CompTIA Security+ (SY0-701) Exam Objectives
+### R2 — Domain Taxonomy Alignment (Domain 1–Domain 5 Syllabus)
 
-CompTIA, Inc. (2023). *CompTIA Security+ certification exam objectives (Exam SY0-701)*. Computing Technology Industry Association. https://www.comptia.org/certifications/security
+CompTIA, Inc. (2023). *CompTIA Security+ certification exam objectives (Exam SY0-701)*. Computing Technology Industry Association. [https://www.comptia.org/certifications/security](https://www.comptia.org/certifications/security)
 
 - **BibTeX key**: `comptia2023sy0701`
-- **Mapping**: Defines the 5 canonical domains and exam weights (`Domain 1.0` 12%, `Domain 2.0` 22%, `Domain 3.0` 18%, `Domain 4.0` 28%, `Domain 5.0` 20%) mapped 1:1 to `theory/domain1_security_concepts.md` – `theory/domain5_security_management.md`.
-- **Usage & Copyright**: Publicly published exam objective syllabus; used only as structural taxonomy and terminology reference.
+- **Mapping**: Defines only the 5 domain IDs and question quotas (`Domain 1.0` 12%, `Domain 2.0` 22%, `Domain 3.0` 18%, `Domain 4.0` 28%, `Domain 5.0` 20%) mapped 1:1 to `theory/domain1_security_concepts.md` – `theory/domain5_security_management.md`. Explanatory content comes from `R3`–`R6`.
+- **Usage & Copyright**: Publicly published domain taxonomy outline.
 
-### R3 — NIST Special Publications (SP 800-61 Rev. 2 & SP 800-53 Rev. 5)
+### R3 — NIST Computer Security Resource Center (CSRC) Publications
 
-1. Cichonski, P., Millar, T., Grance, T., & Scarfone, K. (2012). *Computer security incident handling guide* (NIST Special Publication 800-61, Revision 2). National Institute of Standards and Technology. https://doi.org/10.6028/NIST.SP.800-61r2
-2. National Institute of Standards and Technology. (2020). *Security and privacy controls for information systems and organizations* (NIST Special Publication 800-53, Revision 5). U.S. Department of Commerce. https://doi.org/10.6028/NIST.SP.800-53r5
+1. National Institute of Standards and Technology. (2020). *Security and privacy controls for information systems and organizations* (NIST SP 800-53 Rev. 5). [https://csrc.nist.gov/pubs/sp/800/53/r5/final](https://csrc.nist.gov/pubs/sp/800/53/r5/final)
+2. Rose, S., Borchert, O., Mitchell, S., & Connelly, S. (2020). *Zero trust architecture* (NIST SP 800-207). [https://csrc.nist.gov/pubs/sp/800/207/final](https://csrc.nist.gov/pubs/sp/800/207/final)
+3. Cichonski, P., Millar, T., Grance, T., & Scarfone, K. (2012). *Computer security incident handling guide* (NIST SP 800-61 Rev. 2). [https://csrc.nist.gov/pubs/sp/800/61/r2/final](https://csrc.nist.gov/pubs/sp/800/61/r2/final)
+4. National Institute of Standards and Technology. (2025). *Incident response recommendations and considerations for cybersecurity risk management: A CSF 2.0 community profile* (NIST SP 800-61 Rev. 3). [https://csrc.nist.gov/pubs/sp/800/61/r3/final](https://csrc.nist.gov/pubs/sp/800/61/r3/final)
+5. National Institute of Standards and Technology. (2012). *Guide for conducting risk assessments* (NIST SP 800-30 Rev. 1). [https://csrc.nist.gov/pubs/sp/800/30/r1/final](https://csrc.nist.gov/pubs/sp/800/30/r1/final)
+6. NIST Cybersecurity Framework (CSF 2.0) & CSRC Glossary: [https://www.nist.gov/cyberframework](https://www.nist.gov/cyberframework) | [https://csrc.nist.gov/glossary](https://csrc.nist.gov/glossary)
 
-- **BibTeX keys**: `cichonski2012nist80061r2`, `nist2020sp80053r5`
-- **Mapping**: Used across `domain1` (security control categories/families), `domain3` (system & communications protection), `domain4` (4-phase incident response lifecycle, detection & analysis, containment/eradication/recovery), and `domain5` (risk assessment, contingency planning, post-incident lessons learned).
+- **BibTeX keys**: `cichonski2012nist80061r2`, `nist2020sp80053r5`, `rose2020nist800207`, `nist2025sp80061r3`, `nist2012sp80030r1`
+- **Mapping**: Authoritative agency foundation across all five Theory Modules (`domain1`–`domain5`).
 - **Usage & Copyright**: U.S. federal government publications in the public domain; unrestricted academic and educational use with attribution.
 
 ### R4 — MITRE ATT&CK® Enterprise Matrix
 
-The MITRE Corporation. (2024). *MITRE ATT&CK® Enterprise Matrix*. https://attack.mitre.org/matrices/enterprise/
+The MITRE Corporation. (2024). *MITRE ATT&CK® Enterprise Matrix*. [https://attack.mitre.org/matrices/enterprise/](https://attack.mitre.org/matrices/enterprise/)
 
 - **BibTeX key**: `mitre2024attack`
-- **Mapping**: Used in Section 2 of all five Theory Modules (`domain1`–`domain5`) to connect adversary tactics and techniques (e.g., `T1621`, `T1566`, `T1190`, `T1059`, `T1078`, `T1021`, `T1486`, `T1048`) to SIEM/EDR telemetry indicators and KQL detection queries.
-- **Usage & Copyright**: Openly accessible knowledge base licensed for research, education, and defensive use under the MITRE ATT&CK Terms of Use with attribution.
+- **Mapping**: Used in Section 2 of all five Theory Modules with direct clickable links (`https://attack.mitre.org/techniques/Txxxx/`) for `T1621`, `T1078`, `T1556`, `T1553`, `T1566`, `T1190`, `T1059`, `T1486`, `T1021`, `T1562`, `T1048`, `T1090`, `T1003`, `T1053`, `T1110`, `T1071`, `T1070`, `T1567`, `T1199`, `T1530`.
+- **Usage & Copyright**: Openly accessible knowledge base licensed under the MITRE ATT&CK Terms of Use with attribution.
 
-### R5 — OWASP Top 10 (2021) & Wikipedia Computer Security Reference Articles
+### R5 — OWASP Top 10 (2021) & Wikipedia Security Reference Articles
 
-1. OWASP Foundation. (2021). *OWASP Top 10:2021 — The ten most critical web application security risks*. Open Worldwide Application Security Project. https://owasp.org/Top10/
-2. Wikipedia contributors. (2026). *Information security*, *CIA triad*, *Zero trust security model*, *Security information and event management*, *Computer security incident management*, and *Risk management*. Wikipedia, The Free Encyclopedia. https://en.wikipedia.org/wiki/Information_security
+1. OWASP Foundation. (2021). *OWASP Top 10:2021 — The ten most critical web application security risks*. [https://owasp.org/Top10/](https://owasp.org/Top10/)
+2. Wikipedia contributors. (2026). Encyclopedia reference articles with direct clickable URLs in `theory/*.md`, including [Information security](https://en.wikipedia.org/wiki/Information_security), [Public-key cryptography](https://en.wikipedia.org/wiki/Public-key_cryptography), [Public key infrastructure](https://en.wikipedia.org/wiki/Public_key_infrastructure), [Access control](https://en.wikipedia.org/wiki/Access_control), [Authentication](https://en.wikipedia.org/wiki/Authentication), [Zero trust security model](https://en.wikipedia.org/wiki/Zero_trust_security_model), [Phishing](https://en.wikipedia.org/wiki/Phishing), [Social engineering](https://en.wikipedia.org/wiki/Social_engineering_%28security%29), [Malware](https://en.wikipedia.org/wiki/Malware), [Ransomware](https://en.wikipedia.org/wiki/Ransomware), [SQL injection](https://en.wikipedia.org/wiki/SQL_injection), [Cross-site scripting](https://en.wikipedia.org/wiki/Cross-site_scripting), [Defense in depth](https://en.wikipedia.org/wiki/Defense_in_depth_%28computing%29), [DMZ](https://en.wikipedia.org/wiki/DMZ_%28computing%29), [Firewall](https://en.wikipedia.org/wiki/Firewall_%28computing%29), [Security operations center](https://en.wikipedia.org/wiki/Security_operations_center), [SIEM](https://en.wikipedia.org/wiki/Security_information_and_event_management), [Intrusion detection system](https://en.wikipedia.org/wiki/Intrusion_detection_system), [Computer security incident management](https://en.wikipedia.org/wiki/Computer_security_incident_management), [Digital forensics](https://en.wikipedia.org/wiki/Digital_forensics), [Risk management](https://en.wikipedia.org/wiki/Risk_management), [Data loss prevention](https://en.wikipedia.org/wiki/Data_loss_prevention_software), [Business continuity](https://en.wikipedia.org/wiki/Business_continuity), and [GDPR](https://en.wikipedia.org/wiki/General_Data_Protection_Regulation).
 
 - **BibTeX keys**: `owasp2021top10`, `wikipedia2026infosec`
-- **Mapping**: Used in `domain1` (CIA triad, AAA, cryptography, Zero Trust), `domain2` (OWASP A01–A10 vulnerabilities, social engineering, malware taxonomy), `domain3` (defense-in-depth, DMZ, network segmentation), `domain4` (SIEM monitoring & log analysis), and `domain5` (risk formulas, governance, compliance).
-- **Usage & Copyright**: OWASP documentation is licensed under CC BY-SA 4.0; Wikipedia articles are licensed under CC BY-SA 4.0. Synthesized into original educational prose with citations.
+- **Usage & Copyright**: OWASP documentation and Wikipedia articles are licensed under CC BY-SA 4.0; synthesized into original educational prose with direct clickable links.
+
+### R6 — CISA Federal Guidance, University Security Programs (CMU & Stanford), & KQL Reference
+
+1. Cybersecurity and Infrastructure Security Agency (CISA). *Zero Trust Maturity Model*: [https://www.cisa.gov/zero-trust-maturity-model](https://www.cisa.gov/zero-trust-maturity-model) | *#StopRansomware*: [https://www.cisa.gov/stopransomware](https://www.cisa.gov/stopransomware) | *Phishing Guidance*: [https://www.cisa.gov/topics/cyber-threats-and-responses/phishing](https://www.cisa.gov/topics/cyber-threats-and-responses/phishing)
+2. Carnegie Mellon University — Information Security Office (ISO). *Computer Security Incident Response Plan*: [https://www.cmu.edu/iso/governance/procedures/incident-response.html](https://www.cmu.edu/iso/governance/procedures/incident-response.html)
+3. Stanford University — University IT Information Security (SISA). *Information Security Portal*: [https://uit.stanford.edu/security](https://uit.stanford.edu/security) | *Incident Reporting & Response*: [https://uit.stanford.edu/security/report-incident](https://uit.stanford.edu/security/report-incident)
+4. Microsoft Learn. *Kusto Query Language (KQL) Overview*: [https://learn.microsoft.com/en-us/kusto/query/](https://learn.microsoft.com/en-us/kusto/query/)
+
+- **BibTeX keys**: `cisa2023ztmm`, `cmu2025irplan`, `stanford2025infosec`, `microsoft2025kql`
+- **Mapping**: Grounds federal threat advisories (`domain2`, `domain3`), university governance & incident response procedures (`domain4`, `domain5`), and SOC query patterns (`domain1`–`domain5`).
+- **Usage & Copyright**: CISA publications are U.S. government public domain; CMU ISO, Stanford UIT, and Microsoft Learn pages are publicly published institutional/technical documentation cited via clickable URLs.
 
 ### Provenance Summary Table (`theory/` Curriculum)
 
-| Domain ID | Project Domain Name | Source File | Registered Sources | Item Count |
+| Domain ID | Project Domain Name | Source File | Registered Sources | Primary Web Reference |
 |---|---|---|---|---|
-| `domain1` | General Security Concepts | `theory/domain1_security_concepts.md` | R2, R3, R4, R5 | 1 Theory Module (4 sections) |
-| `domain2` | Threats, Vulnerabilities, and Mitigations | `theory/domain2_threats_vulnerabilities.md` | R2, R3, R4, R5 | 1 Theory Module (4 sections) |
-| `domain3` | Security Architecture | `theory/domain3_security_architecture.md` | R2, R3, R4, R5 | 1 Theory Module (4 sections) |
-| `domain4` | Security Operations | `theory/domain4_security_operations.md` | R2, R3, R4, R5 | 1 Theory Module (4 sections) |
-| `domain5` | Security Management | `theory/domain5_security_management.md` | R2, R3, R4, R5 | 1 Theory Module (4 sections) |
+| `domain1` | General Security Concepts | `theory/domain1_security_concepts.md` | R2, R3, R4, R5, R6 | [NIST SP 800-53r5](https://csrc.nist.gov/pubs/sp/800/53/r5/final) |
+| `domain2` | Threats, Vulnerabilities, and Mitigations | `theory/domain2_threats_vulnerabilities.md` | R2, R3, R4, R5, R6 | [OWASP Top 10:2021](https://owasp.org/Top10/) |
+| `domain3` | Security Architecture | `theory/domain3_security_architecture.md` | R2, R3, R4, R5, R6 | [NIST SP 800-207](https://csrc.nist.gov/pubs/sp/800/207/final) |
+| `domain4` | Security Operations | `theory/domain4_security_operations.md` | R2, R3, R4, R5, R6 | [NIST SP 800-61r3](https://csrc.nist.gov/pubs/sp/800/61/r3/final) |
+| `domain5` | Security Management | `theory/domain5_security_management.md` | R2, R3, R4, R5, R6 | [CMU ISO Incident Response](https://www.cmu.edu/iso/governance/procedures/incident-response.html) |
 
 ## 15. Revision History
 
 | Date | Item |
 |---|---|
 | 2026-10-20 | Created the document and registered reference R1 (Gorgotsias, 2024), with the provenance table, Question 444 normalization record, copyright restrictions, and open risk. |
-| 2026-11-15 | Registered references R2–R5 (CompTIA SY0-701 Objectives, NIST SP 800-61r2 & 800-53r5, MITRE ATT&CK, OWASP Top 10 2021, and Wikipedia Security Articles) and added Learning Theory Hub (`theory/`) provenance mapping for Issue #26 / Spec 8. |
+| 2026-11-15 | Registered references R2–R6 (Domain taxonomy, NIST SP 800-53r5/800-61r2/800-61r3/800-207/800-30r1, CISA guides, CMU ISO & Stanford UIT resources, MITRE ATT&CK, OWASP Top 10 2021, Microsoft Learn KQL, and Wikipedia Security Articles) with clickable URLs across all 5 `theory/*.md` modules. |

@@ -32,43 +32,42 @@ type TheoryModuleContent struct {
 	SourceURL  string
 }
 
-const theorySourceRefURL = "docs/REFERENCES.md#14-learning-theory-curriculum-provenance-r2r5"
-
+// OrderedTheoryDomains defines canonical module order and web references.
 var OrderedTheoryDomains = []TheoryDomainSpec{
 	{
 		DomainID:   "domain1",
 		DomainName: "General Security Concepts",
 		Title:      "Domain 1: General Security Concepts",
 		Filename:   "domain1_security_concepts.md",
-		SourceURL:  theorySourceRefURL,
+		SourceURL:  "https://csrc.nist.gov/pubs/sp/800/53/r5/final",
 	},
 	{
 		DomainID:   "domain2",
 		DomainName: "Threats, Vulnerabilities, and Mitigations",
 		Title:      "Domain 2: Threats, Vulnerabilities, and Mitigations",
 		Filename:   "domain2_threats_vulnerabilities.md",
-		SourceURL:  theorySourceRefURL,
+		SourceURL:  "https://owasp.org/Top10/",
 	},
 	{
 		DomainID:   "domain3",
 		DomainName: "Security Architecture",
 		Title:      "Domain 3: Security Architecture",
 		Filename:   "domain3_security_architecture.md",
-		SourceURL:  theorySourceRefURL,
+		SourceURL:  "https://csrc.nist.gov/pubs/sp/800/207/final",
 	},
 	{
 		DomainID:   "domain4",
 		DomainName: "Security Operations",
 		Title:      "Domain 4: Security Operations",
 		Filename:   "domain4_security_operations.md",
-		SourceURL:  theorySourceRefURL,
+		SourceURL:  "https://csrc.nist.gov/pubs/sp/800/61/r3/final",
 	},
 	{
 		DomainID:   "domain5",
 		DomainName: "Security Program Management and Oversight",
 		Title:      "Domain 5: Security Program Management and Oversight",
 		Filename:   "domain5_security_management.md",
-		SourceURL:  theorySourceRefURL,
+		SourceURL:  "https://www.cmu.edu/iso/governance/procedures/incident-response.html",
 	},
 }
 
@@ -208,7 +207,7 @@ func LoadTheoryModules(db *gorm.DB) ([]TheoryModuleContent, error) {
 				for _, spec := range OrderedTheoryDomains {
 					doc := byDomain[spec.DomainID]
 					sourceURL := doc.SourceURL
-					if sourceURL == "" {
+					if !strings.HasPrefix(sourceURL, "https://") {
 						sourceURL = spec.SourceURL
 					}
 					out = append(out, TheoryModuleContent{

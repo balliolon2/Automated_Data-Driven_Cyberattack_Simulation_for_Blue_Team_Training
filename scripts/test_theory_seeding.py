@@ -21,7 +21,9 @@ class TheorySeedingValidationTests(unittest.TestCase):
         )
         for mod in modules:
             self.assertTrue(len(mod["content"]) > 500)
-            self.assertIn("REFERENCES.md", mod["source_url"])
+            self.assertTrue(mod["source_url"].startswith("https://"))
+            self.assertIn("](https://", mod["content"])
+            self.assertIn("https://en.wikipedia.org/", mod["content"])
 
     def test_rejects_missing_required_section(self):
         broken = """# Domain 1: Broken
