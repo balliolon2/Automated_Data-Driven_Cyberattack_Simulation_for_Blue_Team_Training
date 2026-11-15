@@ -70,6 +70,14 @@ def run_tests():
     else:
         print("Received expected error response:", status_res.status_code)
 
+    # 3b. Verify Stage 1 Theory Gate BEFORE Pre-test is complete (should return 403 pre_test_required)
+    print("Verifying Learning Theory Hub Stage 1 Gate before pre-test...")
+    blocked_learn_res = requests.get(f"{BASE_URL}/learn/domains", headers=headers)
+    if blocked_learn_res.status_code != 403 or blocked_learn_res.json().get("reason") != "pre_test_required":
+        print(f"Error: Expected 403 pre_test_required from /learn/domains before pre-test, got {blocked_learn_res.status_code}: {blocked_learn_res.text}")
+        sys.exit(1)
+    print("Stage 1 Theory Gate VERIFIED: /learn/domains blocked before pre-test completion.")
+
     # 4. Start Pre-Test
     print("Starting Pre-Test...")
     pre_res = requests.post(f"{BASE_URL}/exams/pre-test", headers=headers)
@@ -117,6 +125,59 @@ def run_tests():
         print(f"Error: Expected 403 Forbidden for unearned Post-Test, got {blocked_post_res.status_code}")
         sys.exit(1)
     print("Eligibility Gate VERIFIED: Post-Test correctly blocked for learner below threshold:", blocked_post_res.json())
+
+    # 6c. Verify Stage 1 UNLOCKED & Stage 2 BLOCKED after Pre-test, plus Theory Completion without altering proficiency
+    print("Verifying Learning Theory Hub unlocked and Simulation gated before theory completion...")
+    learn_res = requests.get(f"{BASE_URL}/learn/domains", headers=headers)
+    if learn_res.status_code != 200:
+        print(f"Error: Expected 200 from /learn/domains after pre-test, got {learn_res.status_code}: {learn_res.text}")
+        sys.exit(1)
+    learn_data = learn_res.json()
+    learn_domains = learn_data.get("domains", [])
+    if not learn_data.get("unlocked") or learn_data.get("theory_completed") or len(learn_domains) != 5:
+        print("Error: Unexpected /learn/domains payload after pre-test:", learn_data)
+        sys.exit(1)
+    for d in learn_domains:
+        if not d.get("content") or not d.get("title"):
+            print(f"Error: Domain {d.get('domain_id')} returned empty content or title")
+            sys.exit(1)
+
+    pre_theory_scores = {d["domain_id"]: d["proficiency_score"] for d in status_data.get("domains", [])}
+
+    blocked_sim_res = requests.post(f"{BASE_URL}/simulation/start", {}, headers=headers)
+    if blocked_sim_res.status_code != 403 or blocked_sim_res.json().get("reason") != "theory_incomplete":
+        print(f"Error: Expected 403 theory_incomplete from /simulation/start before theory completion, got {blocked_sim_res.status_code}: {blocked_sim_res.text}")
+        sys.exit(1)
+    print("Stage 2 Theory Gate VERIFIED: /simulation/start blocked with 403 theory_incomplete.")
+
+    # Complete domain1 twice to verify idempotency, then complete domain2..domain5
+    for attempt in range(2):
+        comp_res = requests.post(f"{BASE_URL}/learn/domains/domain1/complete", {}, headers=headers)
+        if comp_res.status_code != 200 or comp_res.json().get("completed_count") != 1:
+            print(f"Error: Idempotent complete attempt {attempt+1} failed: {comp_res.status_code} {comp_res.text}")
+            sys.exit(1)
+    for dom_id in ["domain2", "domain3", "domain4", "domain5"]:
+        comp_res = requests.post(f"{BASE_URL}/learn/domains/{dom_id}/complete", {}, headers=headers)
+        if comp_res.status_code != 200:
+            print(f"Error: Completing {dom_id} failed: {comp_res.status_code} {comp_res.text}")
+            sys.exit(1)
+    if not comp_res.json().get("theory_completed") or len(comp_res.json().get("completed_domains", [])) != 5:
+        print("Error: Expected theory_completed=True after completing all 5 domains:", comp_res.json())
+        sys.exit(1)
+
+    post_theory_status_res = requests.get(f"{BASE_URL}/simulation/status", headers=headers)
+    if post_theory_status_res.status_code != 200:
+        print("Failed to get post-theory simulation status:", post_theory_status_res.text)
+        sys.exit(1)
+    post_theory_status = post_theory_status_res.json()
+    if not post_theory_status.get("theory_completed") or len(post_theory_status.get("completed_theory_domains", [])) != 5:
+        print("Error: /simulation/status did not reflect completed theory:", post_theory_status)
+        sys.exit(1)
+    for d in post_theory_status.get("domains", []):
+        if abs(d["proficiency_score"] - pre_theory_scores.get(d["domain_id"], -1)) > 1e-6:
+            print(f"Error: Theory completion mutated proficiency score for {d['domain_id']}: {pre_theory_scores.get(d['domain_id'])} -> {d['proficiency_score']}")
+            sys.exit(1)
+    print("Learning Theory Hub 5/5 completion verified with zero proficiency score mutation.")
 
     # 7. Start Simulation Scenario
     print("Starting simulation scenario...")
@@ -336,10 +397,20 @@ def run_tests():
         print("Failed to retrieve research summary", summary_res.json())
         sys.exit(1)
     summary_data = summary_res.json()
+    if (
+        not summary_data.get("theory_completed")
+        or len(summary_data.get("completed_theory_domains", [])) != 5
+        or not summary_data.get("theory_completed_at")
+    ):
+        print("Error: Expected research summary to report theory_completed=True, theory_completed_at, and 5 domains:", summary_data)
+        sys.exit(1)
     print("Research Summary retrieved:", {
         "protocol_version": summary_data.get("protocol_version"),
         "calculation_version": summary_data.get("calculation_version"),
         "has_pre_test": summary_data.get("has_pre_test"),
+        "theory_completed": summary_data.get("theory_completed"),
+        "theory_completed_at": summary_data.get("theory_completed_at"),
+        "completed_theory_domains": summary_data.get("completed_theory_domains"),
         "completed_scenarios": summary_data.get("completed_scenarios"),
         "all_domains_passed": summary_data.get("all_domains_passed"),
     })

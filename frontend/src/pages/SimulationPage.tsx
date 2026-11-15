@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
-import { Terminal, Shield, Eye, CheckCircle2, ChevronRight, Loader2, AlertCircle, Sparkles, Search, X, Trash2 } from "lucide-react";
+import { Terminal, Shield, Eye, CheckCircle2, ChevronRight, Loader2, AlertCircle, Sparkles, Search, X, Trash2, BookOpen } from "lucide-react";
 import KqlSearchBar from "../components/KqlSearchBar";
 import LogTable from "../components/LogTable";
 import ResponsePanel from "../components/ResponsePanel";
@@ -76,6 +76,11 @@ export default function SimulationPage() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [theoryGateInfo, setTheoryGateInfo] = useState<{
+    completedCount: number;
+    totalDomains: number;
+    completedDomains: string[];
+  } | null>(null);
 
   const applySelection = (indices: number[] | undefined | null) => {
     const normalized = normalizeIndices(indices);
@@ -287,6 +292,20 @@ export default function SimulationPage() {
         setSelectedLogIndices(restoredSelection);
       } catch (err: any) {
         console.error("Failed to initialize simulation:", err);
+        if (err.response?.status === 403 && err.response?.data?.reason === "theory_incomplete") {
+          setTheoryGateInfo({
+            completedCount: err.response.data.completed_count ?? 0,
+            totalDomains: err.response.data.total_domains ?? 5,
+            completedDomains: Array.isArray(err.response.data.completed_domains)
+              ? err.response.data.completed_domains
+              : [],
+          });
+          setErrorMessage(
+            err.response.data.error ||
+              "Complete all 5 Learning Theory modules before starting simulations."
+          );
+          return;
+        }
         setErrorMessage("An error occurred while loading the simulation. Please ensure your pre-test is completed.");
       } finally {
         setLoading(false);
@@ -358,6 +377,36 @@ export default function SimulationPage() {
   }
 
   if (errorMessage) {
+    if (theoryGateInfo) {
+      return (
+        <div className="max-w-md mx-auto mt-12 bg-graphite-900 p-8 rounded-lg border border-graphite-800 text-center space-y-6 animate-fade-in">
+          <BookOpen className="w-10 h-10 text-amber-500 mx-auto" />
+          <div className="space-y-2">
+            <h3 className="text-base font-bold text-white tracking-tight">Learning Theory Required</h3>
+            <p className="text-xs text-graphite-400 font-mono leading-relaxed">{errorMessage}</p>
+            <p className="text-xs font-mono text-graphite-300">
+              Completed modules: <span className="text-white font-semibold">{theoryGateInfo.completedCount} / {theoryGateInfo.totalDomains}</span>
+            </p>
+          </div>
+          <div className="flex flex-col gap-2">
+            <button
+              onClick={() => navigate("/learn")}
+              className="w-full py-2.5 bg-white hover:bg-white/90 text-black font-semibold text-xs rounded-md transition-all duration-200 flex items-center justify-center gap-2"
+            >
+              <BookOpen className="w-4 h-4" />
+              Go to Learning Theory Hub
+            </button>
+            <button
+              onClick={() => navigate("/evaluation")}
+              className="w-full py-2 bg-graphite-800 hover:bg-graphite-700 text-graphite-300 font-semibold text-xs rounded-md transition-all duration-200"
+            >
+              Back to Evaluation
+            </button>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="max-w-md mx-auto mt-12 bg-graphite-900 p-8 rounded-lg border border-graphite-800 text-center space-y-6 animate-fade-in">
         <AlertCircle className="w-10 h-10 text-amber-500 mx-auto" />

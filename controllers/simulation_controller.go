@@ -461,17 +461,21 @@ func (sc *SimulationController) GetStatus(c *gin.Context) {
 		Where("user_id = ? AND status = 'completed'", userID).
 		Count(&completedCount)
 
+	completedTheoryDomains, theoryCompleted, _ := sc.getUserTheoryProgressSummary(userID)
+
 	needsTraining := !allPassed || int(completedCount) < MinScenarios
 	if int(completedCount) >= MaxScenarios {
 		needsTraining = false
 	}
 
 	c.JSON(http.StatusOK, SimulationStatusResponse{
-		NeedsTraining:      needsTraining,
-		Domains:            domains,
-		CompletedScenarios: int(completedCount),
-		MaxScenarios:       MaxScenarios,
-		AllDomainsPassed:   allPassed,
+		NeedsTraining:          needsTraining,
+		Domains:                domains,
+		CompletedScenarios:     int(completedCount),
+		MaxScenarios:           MaxScenarios,
+		AllDomainsPassed:       allPassed,
+		TheoryCompleted:        theoryCompleted,
+		CompletedTheoryDomains: completedTheoryDomains,
 	})
 }
 
@@ -485,6 +489,7 @@ func (sc *SimulationController) GetStatus(c *gin.Context) {
 // @Success 200 {object} dto.ActiveSimulationResponse
 // @Failure 400 {object} dto.ErrorResponse
 // @Failure 401 {object} dto.ErrorResponse
+// @Failure 403 {object} dto.TheoryGateErrorResponse
 // @Failure 500 {object} dto.ErrorResponse
 // @Router /simulation/start [post]
 func (sc *SimulationController) StartScenario(c *gin.Context) {
@@ -525,6 +530,16 @@ func (sc *SimulationController) StartScenario(c *gin.Context) {
 			"error":          "No skill profile found. Please complete the pre-test first.",
 			"needs_training": true,
 		})
+		return
+	}
+
+	// Stage 2 Theory Gate: Learners must complete all 5 Theory Modules before
+	// starting new simulation scenarios (unless BYPASS_THEORY_GATE=true).
+	if gateErr := evaluateStage2TheoryGate(os.Getenv("BYPASS_THEORY_GATE"), func() []string {
+		completedTheoryDomains, _, _ := sc.getUserTheoryProgressSummary(userID)
+		return completedTheoryDomains
+	}); gateErr != nil {
+		c.JSON(http.StatusForbidden, gateErr)
 		return
 	}
 
@@ -1495,23 +1510,74 @@ func (sc *SimulationController) GetResearchSummary(c *gin.Context) {
 		scoreImprovement = &diff
 	}
 
+	completedTheoryDomains, theoryCompleted, theoryCompletedAt := sc.getUserTheoryProgressSummary(userID)
+
 	c.JSON(http.StatusOK, gin.H{
-		"protocol_version":    "protocol-v1",
-		"calculation_version": services.CalculationVersion,
-		"rubric_version":      services.RubricVersion,
-		"participant_id":      userID,
-		"has_pre_test":        hasPre,
-		"pre_test_score":      preExam.Score,
-		"has_post_test":       hasPost,
-		"post_test_score":     postExam.Score,
-		"improvement_score":   scoreImprovement,
-		"all_domains_passed":  allPassed,
-		"eligible_for_post":   allPassed && len(completedSessions) >= MinScenarios,
-		"completed_scenarios": len(completedSessions),
-		"max_scenarios":       MaxScenarios,
-		"total_actions":       totalActions,
-		"total_elapsed_sec":   totalSimElapsed,
-		"average_proficiency": avgProficiency,
-		"domain_profiles":     profiles,
+		"protocol_version":         "protocol-v1",
+		"calculation_version":      services.CalculationVersion,
+		"rubric_version":           services.RubricVersion,
+		"participant_id":           userID,
+		"has_pre_test":             hasPre,
+		"pre_test_score":           preExam.Score,
+		"has_post_test":            hasPost,
+		"post_test_score":          postExam.Score,
+		"improvement_score":        scoreImprovement,
+		"all_domains_passed":       allPassed,
+		"eligible_for_post":        allPassed && len(completedSessions) >= MinScenarios,
+		"theory_completed":         theoryCompleted,
+		"completed_theory_domains": completedTheoryDomains,
+		"theory_completed_at":      theoryCompletedAt,
+		"completed_scenarios":      len(completedSessions),
+		"max_scenarios":            MaxScenarios,
+		"total_actions":            totalActions,
+		"total_elapsed_sec":        totalSimElapsed,
+		"average_proficiency":      avgProficiency,
+		"domain_profiles":          profiles,
 	})
+}
+
+func (sc *SimulationController) getUserTheoryProgressSummary(userID any) ([]string, bool, *time.Time) {
+	if sc.DB == nil {
+		return []string{}, false, nil
+	}
+	var progress []models.UserTheoryProgress
+	if err := sc.DB.Where("user_id = ?", userID).Find(&progress).Error; err != nil {
+		return []string{}, false, nil
+	}
+	completedDomains, byDomain := buildOrderedCompletedDomains(progress)
+	theoryCompleted := services.IsTheoryGateSatisfied(completedDomains)
+	var completedAt *time.Time
+	if theoryCompleted {
+		var latest time.Time
+		for _, p := range byDomain {
+			if p.CompletedAt.After(latest) {
+				latest = p.CompletedAt
+			}
+		}
+		if !latest.IsZero() {
+			completedAt = &latest
+		}
+	}
+	return completedDomains, theoryCompleted, completedAt
+}
+
+// evaluateStage2TheoryGate returns a structured 403 TheoryGateErrorResponse when
+// Stage 2 (5/5 theory modules completed) is not yet satisfied and bypassEnv is not "true".
+func evaluateStage2TheoryGate(bypassEnv string, loadCompletedDomains func() []string) *dto.TheoryGateErrorResponse {
+	if bypassEnv == "true" {
+		return nil
+	}
+	completedTheoryDomains := loadCompletedDomains()
+	if services.IsTheoryGateSatisfied(completedTheoryDomains) {
+		return nil
+	}
+	completedCount := len(completedTheoryDomains)
+	totalDomains := len(services.OrderedTheoryDomains)
+	return &dto.TheoryGateErrorResponse{
+		Error:            "Please complete all 5 Learning Theory domains before starting simulation scenarios.",
+		Reason:           "theory_incomplete",
+		CompletedCount:   &completedCount,
+		TotalDomains:     &totalDomains,
+		CompletedDomains: completedTheoryDomains,
+	}
 }

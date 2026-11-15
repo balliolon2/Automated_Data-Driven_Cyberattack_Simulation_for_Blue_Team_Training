@@ -18,7 +18,7 @@ This document is documentation only. It does not change the database schema or t
 |---|---|
 | Status | Active — used as the project's primary registry |
 | Date created | 2026-10-20 |
-| Last updated | 2026-10-20 |
+| Last updated | 2026-11-15 |
 | Document owner | Project Owner |
 | Scope | Content sources and data ingested into the database |
 
@@ -41,6 +41,10 @@ Example:
 | R-ID | Short citation | Source type | Used in project | Status |
 |---|---|---|---|---|
 | R1 | (Gorgotsias, 2024) | Book — practice tests & PBQs | Pre-test/Post-test question bank, 540 questions | Active |
+| R2 | (CompTIA, 2023) | Official Certification Blueprint | Five-domain structure & objectives for Learning Theory Hub (`theory/domain1_*.md`–`domain5_*.md`) | Active |
+| R3 | (Cichonski et al., 2012; NIST, 2020) | NIST Special Publications (SP 800-61r2, SP 800-53r5) | Incident handling lifecycle, control families, containment/eradication/recovery in Theory Modules | Active |
+| R4 | (The MITRE Corporation, 2024) | Threat Knowledge Base (ATT&CK® Enterprise) | Adversary tactics, techniques, and telemetry detection mappings in Theory Modules & Scenarios | Active |
+| R5 | (OWASP Foundation, 2021; Wikipedia contributors, 2026) | Web Security Standard & Open Reference Articles | Web/application vulnerability mitigations and foundational security terminology in Theory Modules | Active |
 
 `R-ID` codes are permanent. They must never be reused or redefined, even after the reference is retired.
 
@@ -170,8 +174,57 @@ When the project adopts a new content source, the following steps must be comple
 
 Sources that do not complete these steps must not enter the parsing or ingestion pipeline.
 
-## 14. Revision History
+## 14. Learning Theory Curriculum Provenance (R2–R5)
+
+The Learning Theory Hub (`theory/domain1_*.md` through `theory/domain5_*.md`) synthesizes original educational prose from authoritative public standards and reference materials (`R2`–`R5`). No verbatim copyrighted textbook prose is reproduced.
+
+### R2 — CompTIA Security+ (SY0-701) Exam Objectives
+
+CompTIA, Inc. (2023). *CompTIA Security+ certification exam objectives (Exam SY0-701)*. Computing Technology Industry Association. https://www.comptia.org/certifications/security
+
+- **BibTeX key**: `comptia2023sy0701`
+- **Mapping**: Defines the 5 canonical domains and exam weights (`Domain 1.0` 12%, `Domain 2.0` 22%, `Domain 3.0` 18%, `Domain 4.0` 28%, `Domain 5.0` 20%) mapped 1:1 to `theory/domain1_security_concepts.md` – `theory/domain5_security_management.md`.
+- **Usage & Copyright**: Publicly published exam objective syllabus; used only as structural taxonomy and terminology reference.
+
+### R3 — NIST Special Publications (SP 800-61 Rev. 2 & SP 800-53 Rev. 5)
+
+1. Cichonski, P., Millar, T., Grance, T., & Scarfone, K. (2012). *Computer security incident handling guide* (NIST Special Publication 800-61, Revision 2). National Institute of Standards and Technology. https://doi.org/10.6028/NIST.SP.800-61r2
+2. National Institute of Standards and Technology. (2020). *Security and privacy controls for information systems and organizations* (NIST Special Publication 800-53, Revision 5). U.S. Department of Commerce. https://doi.org/10.6028/NIST.SP.800-53r5
+
+- **BibTeX keys**: `cichonski2012nist80061r2`, `nist2020sp80053r5`
+- **Mapping**: Used across `domain1` (security control categories/families), `domain3` (system & communications protection), `domain4` (4-phase incident response lifecycle, detection & analysis, containment/eradication/recovery), and `domain5` (risk assessment, contingency planning, post-incident lessons learned).
+- **Usage & Copyright**: U.S. federal government publications in the public domain; unrestricted academic and educational use with attribution.
+
+### R4 — MITRE ATT&CK® Enterprise Matrix
+
+The MITRE Corporation. (2024). *MITRE ATT&CK® Enterprise Matrix*. https://attack.mitre.org/matrices/enterprise/
+
+- **BibTeX key**: `mitre2024attack`
+- **Mapping**: Used in Section 2 of all five Theory Modules (`domain1`–`domain5`) to connect adversary tactics and techniques (e.g., `T1621`, `T1566`, `T1190`, `T1059`, `T1078`, `T1021`, `T1486`, `T1048`) to SIEM/EDR telemetry indicators and KQL detection queries.
+- **Usage & Copyright**: Openly accessible knowledge base licensed for research, education, and defensive use under the MITRE ATT&CK Terms of Use with attribution.
+
+### R5 — OWASP Top 10 (2021) & Wikipedia Computer Security Reference Articles
+
+1. OWASP Foundation. (2021). *OWASP Top 10:2021 — The ten most critical web application security risks*. Open Worldwide Application Security Project. https://owasp.org/Top10/
+2. Wikipedia contributors. (2026). *Information security*, *CIA triad*, *Zero trust security model*, *Security information and event management*, *Computer security incident management*, and *Risk management*. Wikipedia, The Free Encyclopedia. https://en.wikipedia.org/wiki/Information_security
+
+- **BibTeX keys**: `owasp2021top10`, `wikipedia2026infosec`
+- **Mapping**: Used in `domain1` (CIA triad, AAA, cryptography, Zero Trust), `domain2` (OWASP A01–A10 vulnerabilities, social engineering, malware taxonomy), `domain3` (defense-in-depth, DMZ, network segmentation), `domain4` (SIEM monitoring & log analysis), and `domain5` (risk formulas, governance, compliance).
+- **Usage & Copyright**: OWASP documentation is licensed under CC BY-SA 4.0; Wikipedia articles are licensed under CC BY-SA 4.0. Synthesized into original educational prose with citations.
+
+### Provenance Summary Table (`theory/` Curriculum)
+
+| Domain ID | Project Domain Name | Source File | Registered Sources | Item Count |
+|---|---|---|---|---|
+| `domain1` | General Security Concepts | `theory/domain1_security_concepts.md` | R2, R3, R4, R5 | 1 Theory Module (4 sections) |
+| `domain2` | Threats, Vulnerabilities, and Mitigations | `theory/domain2_threats_vulnerabilities.md` | R2, R3, R4, R5 | 1 Theory Module (4 sections) |
+| `domain3` | Security Architecture | `theory/domain3_security_architecture.md` | R2, R3, R4, R5 | 1 Theory Module (4 sections) |
+| `domain4` | Security Operations | `theory/domain4_security_operations.md` | R2, R3, R4, R5 | 1 Theory Module (4 sections) |
+| `domain5` | Security Management | `theory/domain5_security_management.md` | R2, R3, R4, R5 | 1 Theory Module (4 sections) |
+
+## 15. Revision History
 
 | Date | Item |
 |---|---|
 | 2026-10-20 | Created the document and registered reference R1 (Gorgotsias, 2024), with the provenance table, Question 444 normalization record, copyright restrictions, and open risk. |
+| 2026-11-15 | Registered references R2–R5 (CompTIA SY0-701 Objectives, NIST SP 800-61r2 & 800-53r5, MITRE ATT&CK, OWASP Top 10 2021, and Wikipedia Security Articles) and added Learning Theory Hub (`theory/`) provenance mapping for Issue #26 / Spec 8. |

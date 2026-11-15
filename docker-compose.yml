@@ -49,6 +49,7 @@ services:
     volumes:
       - ./scripts:/app/scripts:ro
       - ./examination:/app/examination:ro
+      - ./theory:/app/theory:ro
     working_dir: /work
     user: "65532:65532"
     read_only: true
@@ -65,6 +66,7 @@ services:
       - |
         python /app/scripts/parse_exams.py &&
         python /app/scripts/load_exams_to_db.py &&
+        python /app/scripts/load_theory_to_db.py &&
         python /app/scripts/generate_scenarios.py &&
         python /app/scripts/load_scenarios_to_db.py
     networks:

@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
-import { AlertTriangle, CheckCircle, ShieldAlert, Award, PlayCircle, Loader2 } from "lucide-react";
+import { AlertTriangle, BookOpen, CheckCircle, ShieldAlert, Award, PlayCircle, Loader2 } from "lucide-react";
 import DomainBreakdown from "../components/DomainBreakdown";
 
 interface DomainStatus {
@@ -17,6 +17,8 @@ export default function EvaluationPage() {
   const [domains, setDomains] = useState<DomainStatus[]>([]);
   const [completedScenarios, setCompletedScenarios] = useState(0);
   const [needsTraining, setNeedsTraining] = useState(false);
+  const [theoryCompleted, setTheoryCompleted] = useState(false);
+  const [completedTheoryDomains, setCompletedTheoryDomains] = useState<string[]>([]);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const navigate = useNavigate();
@@ -43,6 +45,8 @@ export default function EvaluationPage() {
         setDomains(res.data.domains || []);
         setCompletedScenarios(res.data.completed_scenarios || 0);
         setNeedsTraining(res.data.needs_training);
+        setTheoryCompleted(Boolean(res.data.theory_completed));
+        setCompletedTheoryDomains(Array.isArray(res.data.completed_theory_domains) ? res.data.completed_theory_domains : []);
       } catch (err) {
         console.error("Failed to load evaluation details:", err);
         setErrorMessage("Please complete the pre-test before viewing evaluation metrics.");
@@ -107,7 +111,11 @@ export default function EvaluationPage() {
 
         {/* Right Side: Detailed Breakdown List */}
         <div className="md:col-span-2">
-          <DomainBreakdown domains={domains} title="Current Domain Proficiency Levels" />
+          <DomainBreakdown
+            domains={domains}
+            title="Current Domain Proficiency Levels"
+            studyDomainHref={(id) => `/learn?domain=${id}`}
+          />
         </div>
       </div>
 
@@ -132,6 +140,21 @@ export default function EvaluationPage() {
                   <strong className="text-white">Adaptive Roadmap:</strong> Recommended training includes hands-on investigations of alerts, log audits using KQL-like search, and playbook response steps.
                 </span>
               </li>
+              {!theoryCompleted && (
+                <li className="flex gap-3 items-start">
+                  <BookOpen className="text-amber-500 shrink-0 w-4 h-4 mt-0.5" />
+                  <span>
+                    <strong className="text-white">Required Pre-Simulation Step:</strong> Complete all 5 domain modules in the{" "}
+                    <button
+                      onClick={() => navigate("/learn")}
+                      className="text-white underline hover:text-emerald-400 transition-colors"
+                    >
+                      Learning Theory Hub
+                    </button>{" "}
+                    ({completedTheoryDomains.length}/5 completed) before launching your first simulation scenario.
+                  </span>
+                </li>
+              )}
             </>
           ) : (
             <li className="flex gap-3 items-start">
@@ -145,13 +168,23 @@ export default function EvaluationPage() {
 
         <div className="pt-4 border-t border-graphite-800 flex justify-end">
           {needsTraining ? (
-            <button
-              onClick={() => navigate("/simulation")}
-              className="px-4 py-2 bg-white text-black font-semibold text-xs rounded-md hover:bg-white/90 transition-all duration-200 flex items-center gap-2"
-            >
-              <PlayCircle className="w-4 h-4" />
-              Start Recommended Scenarios ({completedScenarios} completed)
-            </button>
+            !theoryCompleted ? (
+              <button
+                onClick={() => navigate("/learn")}
+                className="px-4 py-2 bg-white text-black font-semibold text-xs rounded-md hover:bg-white/90 transition-all duration-200 flex items-center gap-2"
+              >
+                <BookOpen className="w-4 h-4" />
+                Study Learning Theory First ({completedTheoryDomains.length}/5 Completed)
+              </button>
+            ) : (
+              <button
+                onClick={() => navigate("/simulation")}
+                className="px-4 py-2 bg-white text-black font-semibold text-xs rounded-md hover:bg-white/90 transition-all duration-200 flex items-center gap-2"
+              >
+                <PlayCircle className="w-4 h-4" />
+                Start Recommended Scenarios ({completedScenarios} completed)
+              </button>
+            )
           ) : (
             <button
               onClick={() => navigate("/simulation/complete")}

@@ -1,4 +1,5 @@
-import { ShieldAlert, ShieldCheck } from "lucide-react";
+import { BookOpen, ShieldAlert, ShieldCheck } from "lucide-react";
+import { Link } from "react-router-dom";
 import { cn } from "../lib/utils";
 
 interface DomainStatus {
@@ -13,9 +14,10 @@ interface DomainBreakdownProps {
   domains: DomainStatus[];
   title?: string;
   showThresholdLine?: boolean;
+  studyDomainHref?: (domainId: string) => string;
 }
 
-export default function DomainBreakdown({ domains, title = "Domain Proficiency Breakdown", showThresholdLine = true }: DomainBreakdownProps) {
+export default function DomainBreakdown({ domains, title = "Domain Proficiency Breakdown", showThresholdLine = true, studyDomainHref }: DomainBreakdownProps) {
   return (
     <div className="bg-graphite-900 border border-graphite-800 rounded-lg p-6 space-y-6">
       <h3 className="text-sm font-semibold tracking-tight text-white border-b border-graphite-800 pb-3">
@@ -39,14 +41,25 @@ export default function DomainBreakdown({ domains, title = "Domain Proficiency B
                     {domain.domain_name}
                   </span>
                 </div>
-                <div className="flex items-baseline gap-1.5 font-mono">
-                  <span className={cn(
-                    "text-sm font-bold",
-                    domain.passed ? "text-emerald-400" : "text-amber-400"
-                  )}>
-                    {domain.proficiency_score.toFixed(1)}%
-                  </span>
-                  <span className="text-[10px] text-graphite-500">/ {domain.threshold}%</span>
+                <div className="flex items-center gap-3 font-mono">
+                  {studyDomainHref && (
+                    <Link
+                      to={studyDomainHref(domain.domain_id)}
+                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded border border-graphite-700 bg-graphite-800/80 hover:bg-graphite-700 text-graphite-300 hover:text-white text-[10px] font-sans transition-colors"
+                    >
+                      <BookOpen className="w-3 h-3" />
+                      Study Theory
+                    </Link>
+                  )}
+                  <div className="flex items-baseline gap-1.5">
+                    <span className={cn(
+                      "text-sm font-bold",
+                      domain.passed ? "text-emerald-400" : "text-amber-400"
+                    )}>
+                      {domain.proficiency_score.toFixed(1)}%
+                    </span>
+                    <span className="text-[10px] text-graphite-500">/ {domain.threshold}%</span>
+                  </div>
                 </div>
               </div>
               

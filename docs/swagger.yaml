@@ -40,6 +40,30 @@ definitions:
     required:
     - session_id
     type: object
+  dto.CompleteTheoryDomainResponse:
+    properties:
+      completed_count:
+        example: 1
+        type: integer
+      completed_domains:
+        example:
+        - domain1
+        items:
+          type: string
+        type: array
+      domain_id:
+        example: domain1
+        type: string
+      is_completed:
+        example: true
+        type: boolean
+      theory_completed:
+        example: false
+        type: boolean
+      total_domains:
+        example: 5
+        type: integer
+    type: object
   dto.DetailedExamResultDTO:
     properties:
       correct_answer:
@@ -176,6 +200,32 @@ definitions:
         type: array
       session: {}
     type: object
+  dto.LearnDomainsResponse:
+    properties:
+      completed_count:
+        example: 2
+        type: integer
+      completed_domains:
+        example:
+        - domain1
+        - domain2
+        items:
+          type: string
+        type: array
+      domains:
+        items:
+          $ref: '#/definitions/dto.TheoryDomainDTO'
+        type: array
+      theory_completed:
+        example: false
+        type: boolean
+      total_domains:
+        example: 5
+        type: integer
+      unlocked:
+        example: true
+        type: boolean
+    type: object
   dto.LogQueryRequest:
     properties:
       query:
@@ -267,6 +317,10 @@ definitions:
       completed_scenarios:
         example: 3
         type: integer
+      completed_theory_domains:
+        items:
+          type: string
+        type: array
       domain_profiles:
         items:
           $ref: '#/definitions/dto.DomainStatusDTO'
@@ -298,6 +352,11 @@ definitions:
         type: string
       rubric_version:
         example: rubric-v2-evidence-click
+        type: string
+      theory_completed:
+        example: true
+        type: boolean
+      theory_completed_at:
         type: string
       total_actions:
         example: 18
@@ -370,6 +429,10 @@ definitions:
       completed_scenarios:
         example: 2
         type: integer
+      completed_theory_domains:
+        items:
+          type: string
+        type: array
       domains:
         items:
           $ref: '#/definitions/dto.DomainStatusDTO'
@@ -381,6 +444,9 @@ definitions:
         example: 10
         type: integer
       needs_training:
+        example: true
+        type: boolean
+      theory_completed:
         example: true
         type: boolean
     type: object
@@ -580,6 +646,62 @@ definitions:
         example: false
         type: boolean
       result: {}
+    type: object
+  dto.TheoryDomainDTO:
+    properties:
+      completed_at:
+        type: string
+      content:
+        type: string
+      domain_id:
+        example: domain1
+        type: string
+      domain_name:
+        example: General Security Concepts
+        type: string
+      is_completed:
+        example: true
+        type: boolean
+      passed_threshold:
+        example: true
+        type: boolean
+      proficiency_score:
+        example: 71.4
+        type: number
+      recommended_focus:
+        example: false
+        type: boolean
+      source_url:
+        example: docs/REFERENCES.md#14-learning-theory-curriculum-provenance-r2r5
+        type: string
+      threshold:
+        example: 70
+        type: number
+      title:
+        example: 'Domain 1: General Security Concepts'
+        type: string
+    type: object
+  dto.TheoryGateErrorResponse:
+    properties:
+      completed_count:
+        example: 2
+        type: integer
+      completed_domains:
+        items:
+          type: string
+        type: array
+      error:
+        example: Please complete the Pre-Test first to unlock Learning Theory.
+        type: string
+      reason:
+        example: pre_test_required
+        type: string
+      total_domains:
+        example: 5
+        type: integer
+      unlocked:
+        example: false
+        type: boolean
     type: object
   models.DomainScoreDetail:
     properties:
@@ -869,6 +991,77 @@ paths:
       summary: Submit an exam answer
       tags:
       - Exams
+  /learn/domains:
+    get:
+      consumes:
+      - application/json
+      description: Returns the 5 CompTIA Security+ domain Theory Modules, learner
+        proficiency context, and completion state. Learners must finish the Pre-Test
+        first; Specialists and Admins always have access.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.LearnDomainsResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/dto.TheoryGateErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List all five Security+ Theory Modules
+      tags:
+      - Learn
+  /learn/domains/{domainId}/complete:
+    post:
+      consumes:
+      - application/json
+      description: Idempotently records that the authenticated user finished studying
+        the specified domain Theory Module without altering Proficiency Score.
+      parameters:
+      - description: Domain ID (domain1..domain5)
+        in: path
+        name: domainId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.CompleteTheoryDomainResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/dto.TheoryGateErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Mark a domain Theory Module as completed
+      tags:
+      - Learn
   /login:
     post:
       consumes:
@@ -1155,6 +1348,10 @@ paths:
           description: Unauthorized
           schema:
             $ref: '#/definitions/dto.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/dto.TheoryGateErrorResponse'
         "500":
           description: Internal Server Error
           schema:

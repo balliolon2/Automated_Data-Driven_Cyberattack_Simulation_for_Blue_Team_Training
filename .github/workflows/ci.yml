@@ -22,9 +22,10 @@ jobs:
           go-version: '1.23'
           cache: true
 
-      - name: Backend Lint & Vet
+      - name: Backend Lint, Vet & Unit Tests
         run: |
           go vet ./...
+          go test ./...
 
       - name: Go Security Vulnerability Scan (govulncheck)
         run: |
@@ -78,6 +79,10 @@ jobs:
           python scripts/validate_evidence_mapping.py --mapping scripts/evidence_mapping.json --require-complete
           python scripts/validate_evidence_mapping.py --seed scenarios_seed.json
 
+      - name: Learning Theory Curriculum Gate
+        run: |
+          python scripts/test_theory_seeding.py
+
   integration-test:
     name: Database & Exam Test Harness
     needs: lint-and-audit
@@ -129,11 +134,12 @@ jobs:
           print('PostgreSQL schema initialized successfully!')
           "
 
-      - name: Seed CompTIA Domains & Questions to DB
+      - name: Seed CompTIA Domains, Questions & Theory Modules to DB
         env:
           DATABASE_URL: "postgres://postgres:password123@localhost:5432/cyber_sim?sslmode=disable"
         run: |
           python scripts/load_exams_to_db.py
+          python scripts/load_theory_to_db.py
 
       - name: Start Backend & Run Integration Test Harness
         env:

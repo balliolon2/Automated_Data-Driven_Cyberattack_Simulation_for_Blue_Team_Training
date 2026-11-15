@@ -203,3 +203,34 @@
 
 
 
+
+## Canonical Terms (Issue #26)
+
+- **Theory Module (บทเรียนทฤษฎีรายโดเมน)**: the structured English curriculum document for one of the 5 CompTIA Security+ SY0-701 domains (`domain1`–`domain5`), stored under `theory/domain{1..5}_*.md` and seeded into PostgreSQL.
+- **Theory Gate (เกตปลดล็อกการเรียนทฤษฎี)**: the two-stage progression gate where (1) completing the 30-question Pre-Test unlocks `/learn`, and (2) completing all 5 Theory Modules (`5/5`) unlocks starting Simulation Scenarios (`POST /api/simulation/start`).
+- **Domain Theory Completion (การเรียนจบรายโดเมน)**: a persisted record in `user_theory_progress (user_id, domain_id, completed_at)` indicating a learner has completed a domain's Theory Module.
+- **Recommended Focus Domain (โดเมนที่แนะนำให้เน้น)**: any domain where the learner's `proficiency_score < 70.0%` (or the lowest-scoring domain), highlighted on `/learn` and `/evaluation`.
+
+## Settled Decisions (Issue #26: Learning Theory Hub)
+
+35. **Role in the Learner Loop & Two-Stage Gate**:
+   - Progression order: `Pre-Test (30 questions)` → unlocks `Learn (/learn)` → completing all `5/5` domains in `Learn` unlocks `Adaptive Simulation (/simulation)` → `Post-Test`.
+   - Once unlocked after the Pre-Test, `/learn` remains permanently accessible at any time (via Navbar, `/evaluation`, and `/simulation/result/:id`).
+   - `specialist` and `admin` roles can view `/learn` at any time without taking the Pre-Test.
+
+36. **Content Structure, Language & Provenance**:
+   - Written in **English** across 5 Markdown files in `theory/`:
+     - `theory/domain1_security_concepts.md`
+     - `theory/domain2_threats_vulnerabilities.md`
+     - `theory/domain3_security_architecture.md`
+     - `theory/domain4_security_operations.md`
+     - `theory/domain5_security_management.md`
+   - Combines **CompTIA Security+ (SY0-701) Core Theory** (for Pre/Post-test alignment) and **SOC Blue-Team Operational Theory** (SIEM/EDR telemetry & KQL indicators, MITRE ATT&CK mapping, TP vs. FP triage with benign context logs, and 3-phase Containment/Eradication/Recovery playbook selection).
+   - Compiled from authoritative public references (CompTIA SY0-701 Objectives, NIST SP 800-53 / 800-61r2, MITRE ATT&CK, OWASP, Wikipedia) and registered in `docs/REFERENCES.md` (`R2`–`R5`) and `docs/references.bib` before seeding.
+
+37. **Storage, Progress Tracking & Scoring Invariance**:
+   - Seeded into PostgreSQL (`rag_documents`) via `scripts/load_theory_to_db.py` (wired into `docker-compose.yml` `seed` service) with embedded Go fallback.
+   - Domain-level completion (`5/5` checkpoints via **"Mark Domain as Completed"**) persisted in `user_theory_progress`.
+   - Displays learner's current `proficiency_score` per domain and flags weak domains (`< 70%`) as **Recommended Focus**, without directly altering `proficiency_score`.
+   - Exposed in `GET /api/simulation/status` and `GET /api/analytics/research-summary` (`theory_completed`, `completed_theory_domains`, `theory_completed_at`).
+   - See `workflows/learning_theory_hub.md`.

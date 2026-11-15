@@ -7,6 +7,7 @@ import ProfilePage from "./pages/ProfilePage"
 import AdminSpecialistsPage from "./pages/AdminSpecialistsPage"
 import ExamPage from "./pages/ExamPage"
 import ExamRedirectPage from "./pages/ExamRedirectPage"
+import LearnTheoryPage from "./pages/LearnTheoryPage"
 import EvaluationPage from "./pages/EvaluationPage"
 import SimulationPage from "./pages/SimulationPage"
 import ScenarioResultPage from "./pages/ScenarioResultPage"
@@ -34,6 +35,7 @@ function App() {
           <Route path="exam" element={<ExamRedirectPage />} />
           <Route path="pre-test" element={<ExamPage mode="pre" />} />
           <Route path="post-test" element={<ExamPage mode="post" />} />
+          <Route path="learn" element={<LearnTheoryPage />} />
           <Route path="evaluation" element={<EvaluationPage />} />
           <Route path="simulation" element={<SimulationPage />} />
           <Route path="simulation/result/:id" element={<ScenarioResultPage />} />

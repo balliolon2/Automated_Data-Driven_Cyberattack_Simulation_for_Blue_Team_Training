@@ -22,6 +22,7 @@ export default function Layout() {
 
   const navLinks = [
     { path: "/exam", label: "Exam" },
+    { path: "/learn", label: "Learn" },
     { path: "/evaluation", label: "Evaluation" },
     { path: "/discussions", label: "Discussions" },
     ...(token && (userRole === "specialist" || userRole === "admin")

@@ -19,7 +19,7 @@ package main
 //go:generate swag init -g main.go --parseDependency --parseInternal
 
 import (
-	_ "embed"
+	"embed"
 	"errors"
 	"log"
 	"os"
@@ -46,7 +46,11 @@ import (
 //go:embed scenarios_seed.json
 var scenarioSeedJSON []byte
 
+//go:embed theory/*.md
+var theoryMarkdownFS embed.FS
+
 func main() {
+	services.RegisterEmbeddedTheoryFS(theoryMarkdownFS)
 	dsn := os.Getenv("DATABASE_URL")
 	if dsn == "" {
 		dsn = "host=localhost user=admin password=password dbname=cyber_sim port=5432 sslmode=disable TimeZone=Asia/Bangkok"
@@ -92,6 +96,7 @@ func main() {
 	// Controllers
 	authController := controllers.NewAuthController(db)
 	examController := controllers.NewExamController(db)
+	learnController := controllers.NewLearnController(db)
 	simController := controllers.NewSimulationController(db)
 	specialistController := controllers.NewSpecialistController(db)
 	adminController := controllers.NewAdminController(db)
@@ -184,6 +189,13 @@ func main() {
 			exams.POST("/post-test", examController.StartPostTest)
 			exams.GET("/session", examController.GetActiveSession)
 			exams.POST("/submit-answer", examController.SubmitAnswer)
+		}
+
+		// Protected Learning Theory Hub routes
+		learn := api.Group("/learn", middlewares.AuthMiddleware())
+		{
+			learn.GET("/domains", learnController.GetDomains)
+			learn.POST("/domains/:domainId/complete", learnController.CompleteDomain)
 		}
 
 		// Protected simulation routes

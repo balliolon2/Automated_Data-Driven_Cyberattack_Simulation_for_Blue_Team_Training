@@ -1,5 +1,7 @@
 package dto
 
+import "time"
+
 // DomainStatusDTO represents proficiency metrics for a specific domain
 type DomainStatusDTO struct {
 	DomainID         string  `json:"domain_id" example:"domain1"`
@@ -11,12 +13,14 @@ type DomainStatusDTO struct {
 
 // SimulationStatusResponse describes the learner's overall scenario loop status
 type SimulationStatusResponse struct {
-	NeedsTraining      bool              `json:"needs_training" example:"true"`
-	Domains            []DomainStatusDTO `json:"domains,omitempty"`
-	CompletedScenarios int               `json:"completed_scenarios" example:"2"`
-	MaxScenarios       int               `json:"max_scenarios" example:"10"`
-	AllDomainsPassed   bool              `json:"all_domains_passed" example:"false"`
-	Error              string            `json:"error,omitempty" example:"No skill profile found. Please complete the pre-test first."`
+	NeedsTraining          bool              `json:"needs_training" example:"true"`
+	Domains                []DomainStatusDTO `json:"domains,omitempty"`
+	CompletedScenarios     int               `json:"completed_scenarios" example:"2"`
+	MaxScenarios           int               `json:"max_scenarios" example:"10"`
+	AllDomainsPassed       bool              `json:"all_domains_passed" example:"false"`
+	TheoryCompleted        bool              `json:"theory_completed" example:"true"`
+	CompletedTheoryDomains []string          `json:"completed_theory_domains"`
+	Error                  string            `json:"error,omitempty" example:"No skill profile found. Please complete the pre-test first."`
 }
 
 // ScenarioResponse represents the sanitized scenario presented to the learner
@@ -111,9 +115,12 @@ type ResearchSummaryResponse struct {
 	HasPostTest        bool              `json:"has_post_test" example:"true"`
 	PostTestScore      *float64          `json:"post_test_score" example:"85.0"`
 	ImprovementScore   *float64          `json:"improvement_score" example:"20.0"`
-	AllDomainsPassed   bool              `json:"all_domains_passed" example:"true"`
-	EligibleForPost    bool              `json:"eligible_for_post" example:"true"`
-	CompletedScenarios int               `json:"completed_scenarios" example:"3"`
+	AllDomainsPassed       bool              `json:"all_domains_passed" example:"true"`
+	EligibleForPost        bool              `json:"eligible_for_post" example:"true"`
+	TheoryCompleted        bool              `json:"theory_completed" example:"true"`
+	CompletedTheoryDomains []string          `json:"completed_theory_domains"`
+	TheoryCompletedAt      *time.Time        `json:"theory_completed_at,omitempty"`
+	CompletedScenarios     int               `json:"completed_scenarios" example:"3"`
 	MaxScenarios       int               `json:"max_scenarios" example:"10"`
 	TotalActions       int               `json:"total_actions" example:"18"`
 	TotalElapsedSec    int               `json:"total_elapsed_sec" example:"720"`

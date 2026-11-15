@@ -1,0 +1,134 @@
+package services
+
+import (
+	"testing"
+)
+
+func TestLoadTheoryModules_AllFiveDomainsPassStructure(t *testing.T) {
+	modules, err := LoadTheoryModules(nil)
+	if err != nil {
+		t.Fatalf("LoadTheoryModules(nil) failed: %v", err)
+	}
+	if len(modules) != 5 {
+		t.Fatalf("expected 5 theory modules, got %d", len(modules))
+	}
+
+	expectedIDs := []string{"domain1", "domain2", "domain3", "domain4", "domain5"}
+	for i, mod := range modules {
+		if mod.DomainID != expectedIDs[i] {
+			t.Errorf("module %d: got domain_id %q, want %q", i, mod.DomainID, expectedIDs[i])
+		}
+		if mod.Title == "" || mod.DomainName == "" {
+			t.Errorf("module %s has empty title or domain name", mod.DomainID)
+		}
+		if err := ValidateTheoryModuleContent(mod.DomainID, mod.Content); err != nil {
+			t.Errorf("module %s failed structural validation: %v", mod.DomainID, err)
+		}
+	}
+}
+
+func TestValidateTheoryModuleContent(t *testing.T) {
+	validDoc := `# Domain 1: Example
+## 1. Core Security+ Theory & Exam Concepts
+Concepts here.
+## 2. SOC Telemetry, Log Indicators & MITRE ATT&CK Mapping
+KQL patterns here.
+## 3. Alert Triage (TP vs. FP) & 3-Phase Playbook Response Guide
+True Positive and False Positive triage.
+## 4. Key Takeaways & References
+Summary here.`
+
+	if err := ValidateTheoryModuleContent("domain1", validDoc); err != nil {
+		t.Fatalf("expected valid document to pass, got %v", err)
+	}
+
+	cases := []struct {
+		name    string
+		content string
+	}{
+		{name: "empty content", content: "   "},
+		{name: "missing section 2", content: "## 1. Core Security+ Theory\n## 3. Alert Triage\nTrue Positive False Positive\n## 4. Key Takeaways"},
+		{name: "missing TP/FP guidance", content: "## 1. Core Security+ Theory\n## 2. SOC Telemetry\nKQL\n## 3. Alert Triage\n## 4. Key Takeaways"},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			if err := ValidateTheoryModuleContent("domain1", tc.content); err == nil {
+				t.Errorf("expected error for %s, got nil", tc.name)
+			}
+		})
+	}
+}
+
+func TestCanAccessTheoryHub(t *testing.T) {
+	cases := []struct {
+		name              string
+		role              string
+		skillProfileCount int
+		want              bool
+	}{
+		{name: "learner before pre-test is locked", role: "learner", skillProfileCount: 0, want: false},
+		{name: "learner after pre-test is unlocked", role: "learner", skillProfileCount: 5, want: true},
+		{name: "specialist without pre-test is unlocked", role: "specialist", skillProfileCount: 0, want: true},
+		{name: "admin without pre-test is unlocked", role: "admin", skillProfileCount: 0, want: true},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := CanAccessTheoryHub(tc.role, tc.skillProfileCount)
+			if got != tc.want {
+				t.Errorf("CanAccessTheoryHub(%q, %d) = %v, want %v", tc.role, tc.skillProfileCount, got, tc.want)
+			}
+		})
+	}
+}
+
+func TestDetermineRecommendedFocusDomains(t *testing.T) {
+	t.Run("flags all domains strictly below threshold", func(t *testing.T) {
+		scores := map[string]float64{
+			"domain1": 75.0,
+			"domain2": 55.0,
+			"domain3": 80.0,
+			"domain4": 69.9,
+			"domain5": 70.0,
+		}
+		focus := DetermineRecommendedFocusDomains(scores, 70.0)
+		if focus["domain1"] || focus["domain3"] || focus["domain5"] {
+			t.Errorf("domains >= 70 should not be flagged when weak domains exist: %+v", focus)
+		}
+		if !focus["domain2"] || !focus["domain4"] {
+			t.Errorf("expected domain2 and domain4 to be flagged, got %+v", focus)
+		}
+	})
+
+	t.Run("flags single lowest domain when all pass threshold", func(t *testing.T) {
+		scores := map[string]float64{
+			"domain1": 71.4,
+			"domain2": 90.9,
+			"domain3": 94.6,
+			"domain4": 70.4,
+			"domain5": 75.0,
+		}
+		focus := DetermineRecommendedFocusDomains(scores, 70.0)
+		for _, id := range []string{"domain1", "domain2", "domain3", "domain5"} {
+			if focus[id] {
+				t.Errorf("did not expect %s to be flagged, got %+v", id, focus)
+			}
+		}
+		if !focus["domain4"] {
+			t.Errorf("expected lowest domain4 (70.4) to be flagged, got %+v", focus)
+		}
+	})
+}
+
+func TestIsTheoryGateSatisfied(t *testing.T) {
+	if IsTheoryGateSatisfied([]string{"domain1", "domain2", "domain3", "domain4"}) {
+		t.Errorf("expected gate to be unsatisfied with 4/5 domains")
+	}
+	if !IsTheoryGateSatisfied([]string{"domain5", "domain1", "domain3", "domain2", "domain4"}) {
+		t.Errorf("expected gate to be satisfied when all 5 domains are present")
+	}
+	if IsTheoryGateSatisfied([]string{"domain1", "domain1", "domain2", "domain3", "domain4"}) {
+		t.Errorf("duplicate domain IDs must not satisfy the 5-domain gate")
+	}
+}

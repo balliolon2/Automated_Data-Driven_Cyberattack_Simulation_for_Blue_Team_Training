@@ -52,3 +52,20 @@ _Avoid_: Error log, fallback status
 The canonical structured performance summary generated upon simulation session submission. Contains the overall score, TP/FP outcome, key findings found, response actions executed, and updated per-domain proficiency metrics.
 _Avoid_: Score sheet, grading output
 
+**Theory Module**:
+The structured English curriculum document for one of the five CompTIA Security+ (SY0-701) domains (`domain1`–`domain5`), combining exam-aligned security theory with Blue Team telemetry indicators, TP/FP triage criteria, and three-phase response principles.
+_Avoid_: Lesson page, blog post, study note
+
+**Theory Gate**:
+The two-stage progression rule enforcing that (1) Pre-Test completion unlocks the Learning Theory Hub for Learners, and (2) completing all five Theory Modules (`5/5`) unlocks starting Simulation Sessions.
+_Avoid_: Reading lock, tutorial blocker
+
+**Domain Theory Completion**:
+A persisted record in `user_theory_progress` indicating that a Learner has finished studying a specific domain's Theory Module, without altering their Proficiency Score.
+_Avoid_: Lesson score, reading grade
+
+**Recommended Focus Domain**:
+Any domain where the Learner's current Proficiency Score is below the 70% Proficiency Threshold (or the lowest-scoring domain when all domains meet the threshold), highlighted in the Learning Theory Hub and Skill Evaluation views.
+_Avoid_: Failed subject, weak topic
+
+

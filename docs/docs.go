@@ -297,6 +297,113 @@ const docTemplate = `{
                 }
             }
         },
+        "/learn/domains": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns the 5 CompTIA Security+ domain Theory Modules, learner proficiency context, and completion state. Learners must finish the Pre-Test first; Specialists and Admins always have access.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Learn"
+                ],
+                "summary": "List all five Security+ Theory Modules",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.LearnDomainsResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/dto.TheoryGateErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/learn/domains/{domainId}/complete": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Idempotently records that the authenticated user finished studying the specified domain Theory Module without altering Proficiency Score.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Learn"
+                ],
+                "summary": "Mark a domain Theory Module as completed",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Domain ID (domain1..domain5)",
+                        "name": "domainId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.CompleteTheoryDomainResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/dto.TheoryGateErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/login": {
             "post": {
                 "description": "Authenticates a user and returns a signed JWT token",
@@ -746,6 +853,12 @@ const docTemplate = `{
                             "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/dto.TheoryGateErrorResponse"
+                        }
+                    },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
@@ -1055,6 +1168,40 @@ const docTemplate = `{
                 }
             }
         },
+        "dto.CompleteTheoryDomainResponse": {
+            "type": "object",
+            "properties": {
+                "completed_count": {
+                    "type": "integer",
+                    "example": 1
+                },
+                "completed_domains": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "example": [
+                        "domain1"
+                    ]
+                },
+                "domain_id": {
+                    "type": "string",
+                    "example": "domain1"
+                },
+                "is_completed": {
+                    "type": "boolean",
+                    "example": true
+                },
+                "theory_completed": {
+                    "type": "boolean",
+                    "example": false
+                },
+                "total_domains": {
+                    "type": "integer",
+                    "example": 5
+                }
+            }
+        },
         "dto.DetailedExamResultDTO": {
             "type": "object",
             "properties": {
@@ -1251,6 +1398,43 @@ const docTemplate = `{
                 "session": {}
             }
         },
+        "dto.LearnDomainsResponse": {
+            "type": "object",
+            "properties": {
+                "completed_count": {
+                    "type": "integer",
+                    "example": 2
+                },
+                "completed_domains": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "example": [
+                        "domain1",
+                        "domain2"
+                    ]
+                },
+                "domains": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.TheoryDomainDTO"
+                    }
+                },
+                "theory_completed": {
+                    "type": "boolean",
+                    "example": false
+                },
+                "total_domains": {
+                    "type": "integer",
+                    "example": 5
+                },
+                "unlocked": {
+                    "type": "boolean",
+                    "example": true
+                }
+            }
+        },
         "dto.LogQueryRequest": {
             "type": "object",
             "required": [
@@ -1378,6 +1562,12 @@ const docTemplate = `{
                     "type": "integer",
                     "example": 3
                 },
+                "completed_theory_domains": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
                 "domain_profiles": {
                     "type": "array",
                     "items": {
@@ -1420,6 +1610,13 @@ const docTemplate = `{
                 "rubric_version": {
                     "type": "string",
                     "example": "rubric-v2-evidence-click"
+                },
+                "theory_completed": {
+                    "type": "boolean",
+                    "example": true
+                },
+                "theory_completed_at": {
+                    "type": "string"
                 },
                 "total_actions": {
                     "type": "integer",
@@ -1516,6 +1713,12 @@ const docTemplate = `{
                     "type": "integer",
                     "example": 2
                 },
+                "completed_theory_domains": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
                 "domains": {
                     "type": "array",
                     "items": {
@@ -1531,6 +1734,10 @@ const docTemplate = `{
                     "example": 10
                 },
                 "needs_training": {
+                    "type": "boolean",
+                    "example": true
+                },
+                "theory_completed": {
                     "type": "boolean",
                     "example": true
                 }
@@ -1822,6 +2029,84 @@ const docTemplate = `{
                     "example": false
                 },
                 "result": {}
+            }
+        },
+        "dto.TheoryDomainDTO": {
+            "type": "object",
+            "properties": {
+                "completed_at": {
+                    "type": "string"
+                },
+                "content": {
+                    "type": "string"
+                },
+                "domain_id": {
+                    "type": "string",
+                    "example": "domain1"
+                },
+                "domain_name": {
+                    "type": "string",
+                    "example": "General Security Concepts"
+                },
+                "is_completed": {
+                    "type": "boolean",
+                    "example": true
+                },
+                "passed_threshold": {
+                    "type": "boolean",
+                    "example": true
+                },
+                "proficiency_score": {
+                    "type": "number",
+                    "example": 71.4
+                },
+                "recommended_focus": {
+                    "type": "boolean",
+                    "example": false
+                },
+                "source_url": {
+                    "type": "string",
+                    "example": "docs/REFERENCES.md#14-learning-theory-curriculum-provenance-r2r5"
+                },
+                "threshold": {
+                    "type": "number",
+                    "example": 70
+                },
+                "title": {
+                    "type": "string",
+                    "example": "Domain 1: General Security Concepts"
+                }
+            }
+        },
+        "dto.TheoryGateErrorResponse": {
+            "type": "object",
+            "properties": {
+                "completed_count": {
+                    "type": "integer",
+                    "example": 2
+                },
+                "completed_domains": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "error": {
+                    "type": "string",
+                    "example": "Please complete the Pre-Test first to unlock Learning Theory."
+                },
+                "reason": {
+                    "type": "string",
+                    "example": "pre_test_required"
+                },
+                "total_domains": {
+                    "type": "integer",
+                    "example": 5
+                },
+                "unlocked": {
+                    "type": "boolean",
+                    "example": false
+                }
             }
         },
         "models.DomainScoreDetail": {

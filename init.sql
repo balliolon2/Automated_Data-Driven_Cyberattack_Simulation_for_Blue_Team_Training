@@ -200,6 +200,14 @@ CREATE TABLE user_skill_profiles (
   UNIQUE (user_id, domain_id)
 );
 
+CREATE TABLE user_theory_progress (
+  user_id UUID REFERENCES users(user_id) ON DELETE CASCADE,
+  domain_id VARCHAR REFERENCES security_domains(domain_id) ON DELETE CASCADE,
+  completed_at TIMESTAMP DEFAULT now(),
+  PRIMARY KEY (user_id, domain_id)
+);
+CREATE INDEX idx_user_theory_progress_user ON user_theory_progress(user_id);
+
 CREATE TABLE evaluation_metrics (
   eval_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID REFERENCES users(user_id),

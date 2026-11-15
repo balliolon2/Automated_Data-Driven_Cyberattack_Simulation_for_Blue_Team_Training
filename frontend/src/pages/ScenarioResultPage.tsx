@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import axios from "axios";
-import { CheckCircle2, XCircle, ChevronRight, Award, ShieldAlert, ShieldCheck, Loader2, MessageSquare, Plus, Search } from "lucide-react";
+import { CheckCircle2, XCircle, ChevronRight, Award, ShieldAlert, ShieldCheck, Loader2, MessageSquare, Plus, Search, BookOpen } from "lucide-react";
 import DomainBreakdown from "../components/DomainBreakdown";
 import { cn } from "../lib/utils";
 
@@ -328,6 +328,16 @@ export default function ScenarioResultPage() {
               </>
             )}
           </button>
+
+          {scenario?.domain_id && (
+            <button
+              onClick={() => navigate(`/learn?domain=${encodeURIComponent(scenario.domain_id)}`)}
+              className="w-full py-2 bg-graphite-800 hover:bg-graphite-700 text-graphite-200 border border-graphite-700 font-semibold text-xs rounded-md transition-all duration-200 flex items-center justify-center gap-2"
+            >
+              <BookOpen className="w-4 h-4" />
+              Review Domain Theory
+            </button>
+          )}
         </div>
 
         {/* Right Side: Analysis reviews */}

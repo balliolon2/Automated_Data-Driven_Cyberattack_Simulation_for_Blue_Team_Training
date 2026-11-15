@@ -10,7 +10,7 @@ export default function MarkdownView({ content, className }: MarkdownViewProps) 
   if (!content) return null;
 
   // Render markdown lines
-  const lines = content.split("\n");
+  const lines = content.replace(/\r\n/g, "\n").split("\n");
   const elements: React.ReactNode[] = [];
   let inCodeBlock = false;
   let codeBlockLang = "";
@@ -40,7 +40,7 @@ export default function MarkdownView({ content, className }: MarkdownViewProps) 
               <tr key={rIdx} className="hover:bg-graphite-900/30 transition-colors">
                 {row.map((cell, cIdx) => (
                   <td key={cIdx} className="p-2.5 text-graphite-300 font-mono text-[11px]">
-                    {cell.trim()}
+                    {renderInline(cell.trim())}
                   </td>
                 ))}
               </tr>

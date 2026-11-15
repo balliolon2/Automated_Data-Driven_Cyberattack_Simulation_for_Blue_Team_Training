@@ -163,6 +163,13 @@ func RunMigrations(db *gorm.DB) error {
 		)`,
 		`CREATE INDEX IF NOT EXISTS idx_user_notifications_user ON user_notifications(user_id)`,
 		`CREATE INDEX IF NOT EXISTS idx_user_notifications_unread ON user_notifications(user_id, is_read)`,
+		`CREATE TABLE IF NOT EXISTS user_theory_progress (
+			user_id UUID REFERENCES users(user_id) ON DELETE CASCADE,
+			domain_id VARCHAR REFERENCES security_domains(domain_id) ON DELETE CASCADE,
+			completed_at TIMESTAMP DEFAULT now(),
+			PRIMARY KEY (user_id, domain_id)
+		)`,
+		`CREATE INDEX IF NOT EXISTS idx_user_theory_progress_user ON user_theory_progress(user_id)`,
 	}
 
 	for _, stmt := range ddl {
