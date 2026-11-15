@@ -5,6 +5,8 @@ import glob
 import sys
 from collections import Counter
 
+from classify_subtopics import classify_question_subtopic
+
 
 SOURCE_REF = "R1"
 
@@ -95,6 +97,7 @@ def parse_markdown_file(filepath):
             "source_question_no": question_no,
         }
 
+        question_data["sub_topic_id"] = classify_question_subtopic(question_data)
         questions.append(question_data)
 
     return questions

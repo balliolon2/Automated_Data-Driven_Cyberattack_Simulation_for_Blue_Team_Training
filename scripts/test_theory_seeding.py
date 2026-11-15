@@ -40,6 +40,64 @@ Text only.
             with self.assertRaises(ValueError):
                 load_theory_to_db.load_and_validate_modules(tmpdir)
 
+    def test_repo_theory_subtopics_pass_validation(self):
+        repo_theory_dir = os.path.join(SCRIPT_DIR, "..", "theory")
+        subtopics = load_theory_to_db.load_and_validate_subtopics(repo_theory_dir)
+        expected_ids = [
+            "1.1", "1.2", "1.3", "1.4",
+            "2.1", "2.2", "2.3", "2.4", "2.5",
+            "3.1", "3.2", "3.3", "3.4",
+            "4.1", "4.2", "4.3", "4.4", "4.5", "4.6", "4.7", "4.8", "4.9",
+            "5.1", "5.2", "5.3", "5.4", "5.5", "5.6",
+        ]
+        self.assertEqual([s["sub_topic_id"] for s in subtopics], expected_ids)
+        for sub in subtopics:
+            self.assertTrue(sub["domain_id"].startswith("domain"))
+            self.assertEqual(sub["domain_id"][-1], sub["sub_topic_id"][0])
+            self.assertTrue(len(sub["content"]) > 300)
+            self.assertTrue(sub["source_url"].startswith("https://"))
+            self.assertIn("](https://", sub["content"])
+
+    def test_subtopic_rejects_missing_required_sections_or_links(self):
+        broken = """# 1.1 Broken Subtopic
+## 1. Core Security+ Theory
+Concepts only without practice or web references.
+"""
+        errors = load_theory_to_db.validate_subtopic_content("1.1", "Broken", broken)
+        self.assertTrue(any("Section 2" in err for err in errors))
+        self.assertTrue(any("Section 3" in err for err in errors))
+        self.assertTrue(any("https://" in err for err in errors))
+
+    def test_parsed_questions_classified_into_28_subtopics(self):
+        import json
+
+        parsed_path = os.path.join(SCRIPT_DIR, "..", "parsed_questions.json")
+        with open(parsed_path, "r", encoding="utf-8") as f:
+            questions = json.load(f)
+
+        self.assertEqual(len(questions), 540)
+        valid_ids = {s[0] for s in load_theory_to_db.SUBTOPIC_SPECS}
+        domain_counts = {}
+        subtopic_counts = {}
+        for q in questions:
+            sub_id = q.get("sub_topic_id")
+            self.assertIn(sub_id, valid_ids, f"Question #{q.get('source_question_no')} missing/invalid sub_topic_id: {sub_id}")
+            self.assertEqual(
+                sub_id[0],
+                q["domain_id"][-1],
+                f"Question #{q.get('source_question_no')} domain_id={q['domain_id']} mismatched sub_topic_id={sub_id}",
+            )
+            domain_counts[q["domain_id"]] = domain_counts.get(q["domain_id"], 0) + 1
+            subtopic_counts[sub_id] = subtopic_counts.get(sub_id, 0) + 1
+
+        self.assertEqual(
+            domain_counts,
+            {"domain1": 110, "domain2": 110, "domain3": 90, "domain4": 150, "domain5": 80},
+        )
+        # Every one of the 28 SY0-701 sub-topics has at least 2 dedicated questions
+        for sub_id in sorted(valid_ids):
+            self.assertGreaterEqual(subtopic_counts.get(sub_id, 0), 2, f"Sub-topic {sub_id} has < 2 questions")
+
 
 if __name__ == "__main__":
     unittest.main()

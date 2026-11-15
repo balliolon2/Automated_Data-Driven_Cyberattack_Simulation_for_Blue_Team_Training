@@ -32,6 +32,26 @@ type TheoryModuleContent struct {
 	SourceURL  string
 }
 
+// TheorySubtopicSpec defines canonical ordering and metadata for one SY0-701 sub-topic.
+type TheorySubtopicSpec struct {
+	SubTopicID string
+	DomainID   string
+	OrderIndex int
+	Title      string
+	Filename   string
+	SourceURL  string
+}
+
+// TheorySubtopicContent represents a resolved SY0-701 sub-topic document ready for delivery.
+type TheorySubtopicContent struct {
+	SubTopicID string
+	DomainID   string
+	OrderIndex int
+	Title      string
+	Content    string
+	SourceURL  string
+}
+
 // OrderedTheoryDomains defines canonical module order and web references.
 var OrderedTheoryDomains = []TheoryDomainSpec{
 	{
@@ -264,4 +284,188 @@ func readTheoryMarkdown(emb fs.FS, filename string) (string, error) {
 		}
 	}
 	return "", fmt.Errorf("theory markdown file %s not found in embedded FS or local theory/ directory", filename)
+}
+
+// OrderedTheorySubtopics defines the exact 28 CompTIA Security+ (SY0-701) objectives.
+var OrderedTheorySubtopics = []TheorySubtopicSpec{
+	{SubTopicID: "1.1", DomainID: "domain1", OrderIndex: 1, Title: "Compare and contrast various types of security controls", Filename: "domain1/1_1_security_controls.md", SourceURL: "https://csrc.nist.gov/pubs/sp/800/53/r5/final"},
+	{SubTopicID: "1.2", DomainID: "domain1", OrderIndex: 2, Title: "Summarize fundamental security concepts", Filename: "domain1/1_2_fundamental_security_concepts.md", SourceURL: "https://csrc.nist.gov/pubs/sp/800/207/final"},
+	{SubTopicID: "1.3", DomainID: "domain1", OrderIndex: 3, Title: "Explain change management best practices", Filename: "domain1/1_3_change_management.md", SourceURL: "https://en.wikipedia.org/wiki/Change_control"},
+	{SubTopicID: "1.4", DomainID: "domain1", OrderIndex: 4, Title: "Explain the importance of using appropriate cryptographic solutions", Filename: "domain1/1_4_cryptographic_solutions.md", SourceURL: "https://en.wikipedia.org/wiki/Public_key_infrastructure"},
+	{SubTopicID: "2.1", DomainID: "domain2", OrderIndex: 1, Title: "Compare and contrast threat actors and intelligence sources", Filename: "domain2/2_1_threat_actors_and_motivations.md", SourceURL: "https://attack.mitre.org/matrices/enterprise/"},
+	{SubTopicID: "2.2", DomainID: "domain2", OrderIndex: 2, Title: "Analyze common threat vectors and attack surfaces", Filename: "domain2/2_2_threat_vectors_and_attack_surfaces.md", SourceURL: "https://www.cisa.gov/topics/cyber-threats-and-responses/phishing"},
+	{SubTopicID: "2.3", DomainID: "domain2", OrderIndex: 3, Title: "Explain various types of vulnerabilities", Filename: "domain2/2_3_types_of_vulnerabilities.md", SourceURL: "https://owasp.org/Top10/"},
+	{SubTopicID: "2.4", DomainID: "domain2", OrderIndex: 4, Title: "Analyze indicators of malicious activity", Filename: "domain2/2_4_indicators_of_malicious_activity.md", SourceURL: "https://en.wikipedia.org/wiki/Indicator_of_compromise"},
+	{SubTopicID: "2.5", DomainID: "domain2", OrderIndex: 5, Title: "Explain mitigation techniques used to secure the enterprise", Filename: "domain2/2_5_mitigation_techniques.md", SourceURL: "https://csrc.nist.gov/pubs/sp/800/40/r4/final"},
+	{SubTopicID: "3.1", DomainID: "domain3", OrderIndex: 1, Title: "Compare and contrast security architecture models", Filename: "domain3/3_1_security_architecture_models.md", SourceURL: "https://csrc.nist.gov/pubs/sp/800/207/final"},
+	{SubTopicID: "3.2", DomainID: "domain3", OrderIndex: 2, Title: "Apply security principles to secure enterprise infrastructure", Filename: "domain3/3_2_enterprise_infrastructure_security.md", SourceURL: "https://en.wikipedia.org/wiki/Defense_in_depth_%28computing%29"},
+	{SubTopicID: "3.3", DomainID: "domain3", OrderIndex: 3, Title: "Compare and contrast concepts and strategies to protect data", Filename: "domain3/3_3_data_protection_strategies.md", SourceURL: "https://en.wikipedia.org/wiki/Data_loss_prevention_software"},
+	{SubTopicID: "3.4", DomainID: "domain3", OrderIndex: 4, Title: "Explain the importance of resilience and recovery in security architecture", Filename: "domain3/3_4_resilience_and_recovery.md", SourceURL: "https://www.cisa.gov/stopransomware"},
+	{SubTopicID: "4.1", DomainID: "domain4", OrderIndex: 1, Title: "Apply common security techniques to computing resources", Filename: "domain4/4_1_computing_resource_security.md", SourceURL: "https://en.wikipedia.org/wiki/Endpoint_detection_and_response"},
+	{SubTopicID: "4.2", DomainID: "domain4", OrderIndex: 2, Title: "Explain security implications of hardware, software, and data asset management", Filename: "domain4/4_2_asset_management.md", SourceURL: "https://csrc.nist.gov/pubs/sp/800/88/r1/final"},
+	{SubTopicID: "4.3", DomainID: "domain4", OrderIndex: 3, Title: "Explain various activities associated with vulnerability management", Filename: "domain4/4_3_vulnerability_management.md", SourceURL: "https://en.wikipedia.org/wiki/Vulnerability_management"},
+	{SubTopicID: "4.4", DomainID: "domain4", OrderIndex: 4, Title: "Explain security alerting and monitoring concepts and tools", Filename: "domain4/4_4_security_alerting_and_monitoring.md", SourceURL: "https://en.wikipedia.org/wiki/Security_information_and_event_management"},
+	{SubTopicID: "4.5", DomainID: "domain4", OrderIndex: 5, Title: "Modify enterprise capabilities to enhance security", Filename: "domain4/4_5_modifying_enterprise_capabilities.md", SourceURL: "https://csrc.nist.gov/pubs/sp/800/53/r5/final"},
+	{SubTopicID: "4.6", DomainID: "domain4", OrderIndex: 6, Title: "Implement and maintain identity and access management", Filename: "domain4/4_6_identity_and_access_management.md", SourceURL: "https://csrc.nist.gov/pubs/sp/800/63/3/final"},
+	{SubTopicID: "4.7", DomainID: "domain4", OrderIndex: 7, Title: "Explain the importance of automation and orchestration", Filename: "domain4/4_7_automation_and_orchestration.md", SourceURL: "https://en.wikipedia.org/wiki/Security_orchestration"},
+	{SubTopicID: "4.8", DomainID: "domain4", OrderIndex: 8, Title: "Explain appropriate incident response activities", Filename: "domain4/4_8_incident_response_activities.md", SourceURL: "https://csrc.nist.gov/pubs/sp/800/61/r3/final"},
+	{SubTopicID: "4.9", DomainID: "domain4", OrderIndex: 9, Title: "Use data sources to support an investigation and digital forensics", Filename: "domain4/4_9_data_sources_and_digital_forensics.md", SourceURL: "https://csrc.nist.gov/pubs/sp/800/86/final"},
+	{SubTopicID: "5.1", DomainID: "domain5", OrderIndex: 1, Title: "Summarize elements of effective security governance", Filename: "domain5/5_1_security_governance.md", SourceURL: "https://en.wikipedia.org/wiki/Information_security_governance"},
+	{SubTopicID: "5.2", DomainID: "domain5", OrderIndex: 2, Title: "Explain elements of the risk management process", Filename: "domain5/5_2_risk_management_process.md", SourceURL: "https://csrc.nist.gov/pubs/sp/800/30/r1/final"},
+	{SubTopicID: "5.3", DomainID: "domain5", OrderIndex: 3, Title: "Explain third-party risk assessment and management processes", Filename: "domain5/5_3_third_party_risk_management.md", SourceURL: "https://csrc.nist.gov/pubs/sp/800/161/r1/final"},
+	{SubTopicID: "5.4", DomainID: "domain5", OrderIndex: 4, Title: "Summarize elements of effective security compliance", Filename: "domain5/5_4_security_compliance.md", SourceURL: "https://en.wikipedia.org/wiki/Regulatory_compliance"},
+	{SubTopicID: "5.5", DomainID: "domain5", OrderIndex: 5, Title: "Explain types and purposes of audits and assessments", Filename: "domain5/5_5_audits_and_assessments.md", SourceURL: "https://csrc.nist.gov/pubs/sp/800/115/final"},
+	{SubTopicID: "5.6", DomainID: "domain5", OrderIndex: 6, Title: "Implement security awareness practices", Filename: "domain5/5_6_security_awareness_practices.md", SourceURL: "https://csrc.nist.gov/pubs/sp/800/50/r1/final"},
+}
+
+var requiredSubtopicSectionPatterns = []struct {
+	label   string
+	pattern *regexp.Regexp
+}{
+	{"Section 1 (Core Security+ Theory)", regexp.MustCompile(`(?m)^##\s+1\.\s+Core Security\+ Theory`)},
+	{"Section 2 (SOC & Blue-Team Practice)", regexp.MustCompile(`(?m)^##\s+2\.\s+SOC & Blue-Team`)},
+	{"Section 3 (References)", regexp.MustCompile(`(?m)^##\s+3\.\s+References`)},
+}
+
+// ValidateTheorySubtopicContent ensures each Sub-topic file contains non-empty
+// prose, required sections, and clickable https:// web references.
+func ValidateTheorySubtopicContent(subTopicID, content string) error {
+	normalized := strings.ReplaceAll(content, "\r\n", "\n")
+	if strings.TrimSpace(normalized) == "" {
+		return fmt.Errorf("%s: sub-topic content is empty", subTopicID)
+	}
+	for _, req := range requiredSubtopicSectionPatterns {
+		if !req.pattern.MatchString(normalized) {
+			return fmt.Errorf("%s: missing required %s", subTopicID, req.label)
+		}
+	}
+	if !strings.Contains(normalized, "](https://") {
+		return fmt.Errorf("%s: missing clickable https:// reference links", subTopicID)
+	}
+	return nil
+}
+
+// GetSubtopicSpec returns canonical metadata for a Sub-topic ID if valid.
+func GetSubtopicSpec(subTopicID string) (TheorySubtopicSpec, bool) {
+	for _, spec := range OrderedTheorySubtopics {
+		if spec.SubTopicID == subTopicID {
+			return spec, true
+		}
+	}
+	return TheorySubtopicSpec{}, false
+}
+
+// GetSubtopicNeighbors returns previous and next Sub-topic IDs in sequential curriculum order.
+func GetSubtopicNeighbors(subTopicID string) (string, string) {
+	for i, spec := range OrderedTheorySubtopics {
+		if spec.SubTopicID == subTopicID {
+			prev := ""
+			next := ""
+			if i > 0 {
+				prev = OrderedTheorySubtopics[i-1].SubTopicID
+			}
+			if i+1 < len(OrderedTheorySubtopics) {
+				next = OrderedTheorySubtopics[i+1].SubTopicID
+			}
+			return prev, next
+		}
+	}
+	return "", ""
+}
+
+// SubtopicsForDomain returns all canonical Sub-topic specs belonging to domainID.
+func SubtopicsForDomain(domainID string) []TheorySubtopicSpec {
+	var out []TheorySubtopicSpec
+	for _, spec := range OrderedTheorySubtopics {
+		if spec.DomainID == domainID {
+			out = append(out, spec)
+		}
+	}
+	return out
+}
+
+// IsTheorySubtopicGateSatisfied returns true only when all 28 canonical
+// CompTIA Security+ (SY0-701) Sub-topics have been completed.
+func IsTheorySubtopicGateSatisfied(completedSubtopics []string) bool {
+	seen := make(map[string]bool, len(completedSubtopics))
+	for _, id := range completedSubtopics {
+		if _, ok := GetSubtopicSpec(id); ok {
+			seen[id] = true
+		}
+	}
+	return len(seen) == len(OrderedTheorySubtopics)
+}
+
+// MissingSubtopicsForDomain returns canonical Sub-topic IDs under domainID that
+// are not yet present in completedSubtopics, preserving curriculum order.
+func MissingSubtopicsForDomain(domainID string, completedSubtopics []string) []string {
+	done := make(map[string]bool, len(completedSubtopics))
+	for _, id := range completedSubtopics {
+		done[id] = true
+	}
+	var missing []string
+	for _, spec := range SubtopicsForDomain(domainID) {
+		if !done[spec.SubTopicID] {
+			missing = append(missing, spec.SubTopicID)
+		}
+	}
+	return missing
+}
+
+// LoadTheorySubtopics returns all 28 ordered Sub-topics, preferring seeded rows
+// in theory_subtopics when complete and falling back to embedded/local Markdown files.
+func LoadTheorySubtopics(db *gorm.DB) ([]TheorySubtopicContent, error) {
+	if db != nil {
+		var rows []models.TheorySubtopic
+		if err := db.Find(&rows).Error; err == nil && len(rows) >= len(OrderedTheorySubtopics) {
+			byID := make(map[string]models.TheorySubtopic, len(rows))
+			for _, r := range rows {
+				if strings.TrimSpace(r.Content) != "" {
+					byID[r.SubTopicID] = r
+				}
+			}
+			if len(byID) == len(OrderedTheorySubtopics) {
+				out := make([]TheorySubtopicContent, 0, len(OrderedTheorySubtopics))
+				for _, spec := range OrderedTheorySubtopics {
+					row := byID[spec.SubTopicID]
+					sourceURL := row.SourceURL
+					if !strings.HasPrefix(sourceURL, "https://") {
+						sourceURL = spec.SourceURL
+					}
+					out = append(out, TheorySubtopicContent{
+						SubTopicID: spec.SubTopicID,
+						DomainID:   spec.DomainID,
+						OrderIndex: spec.OrderIndex,
+						Title:      spec.Title,
+						Content:    strings.ReplaceAll(row.Content, "\r\n", "\n"),
+						SourceURL:  sourceURL,
+					})
+				}
+				return out, nil
+			}
+		}
+	}
+
+	return loadTheorySubtopicsFromFS()
+}
+
+func loadTheorySubtopicsFromFS() ([]TheorySubtopicContent, error) {
+	emb := getEmbeddedTheoryFS()
+	out := make([]TheorySubtopicContent, 0, len(OrderedTheorySubtopics))
+
+	for _, spec := range OrderedTheorySubtopics {
+		raw, err := readTheoryMarkdown(emb, spec.Filename)
+		if err != nil {
+			return nil, fmt.Errorf("failed to load subtopic %s: %w", spec.SubTopicID, err)
+		}
+		out = append(out, TheorySubtopicContent{
+			SubTopicID: spec.SubTopicID,
+			DomainID:   spec.DomainID,
+			OrderIndex: spec.OrderIndex,
+			Title:      spec.Title,
+			Content:    strings.ReplaceAll(raw, "\r\n", "\n"),
+			SourceURL:  spec.SourceURL,
+		})
+	}
+	return out, nil
 }

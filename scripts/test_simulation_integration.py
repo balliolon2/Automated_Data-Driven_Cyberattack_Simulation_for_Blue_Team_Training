@@ -88,6 +88,7 @@ def run_tests():
     pre_data = pre_res.json()
     session_id = pre_data["session"]["session_id"]
     questions = pre_data["questions"]
+    pre_question_ids = {q["question_id"] for q in questions}
     print(f"Pre-Test started. Session ID: {session_id}. Questions count: {len(questions)}")
 
     # 5. Submit Pre-Test Answers to seed proficiency
@@ -134,15 +135,35 @@ def run_tests():
         sys.exit(1)
     learn_data = learn_res.json()
     learn_domains = learn_data.get("domains", [])
-    if not learn_data.get("unlocked") or learn_data.get("theory_completed") or len(learn_domains) != 5:
+    if (
+        not learn_data.get("unlocked")
+        or learn_data.get("theory_completed")
+        or len(learn_domains) != 5
+        or learn_data.get("total_subtopics") != 28
+    ):
         print("Error: Unexpected /learn/domains payload after pre-test:", learn_data)
         sys.exit(1)
+
+    all_subtopics = []
     for d in learn_domains:
-        if not d.get("content") or not d.get("title"):
-            print(f"Error: Domain {d.get('domain_id')} returned empty content or title")
+        subs = d.get("subtopics") or []
+        if not d.get("content") or not d.get("title") or not subs:
+            print(f"Error: Domain {d.get('domain_id')} missing content, title, or nested subtopics")
             sys.exit(1)
+        all_subtopics.extend(subs)
+
+    if len(all_subtopics) != 28:
+        print(f"Error: Expected 28 nested subtopics total, got {len(all_subtopics)}")
+        sys.exit(1)
 
     pre_theory_scores = {d["domain_id"]: d["proficiency_score"] for d in status_data.get("domains", [])}
+
+    # Verify Anti-Bypass Guard on direct domain completion before child sub-topics finish
+    bypass_res = requests.post(f"{BASE_URL}/learn/domains/domain1/complete", {}, headers=headers)
+    if bypass_res.status_code != 403 or bypass_res.json().get("reason") != "subtopics_incomplete":
+        print(f"Error: Expected 403 subtopics_incomplete on premature domain complete, got {bypass_res.status_code}: {bypass_res.text}")
+        sys.exit(1)
+    print("Anti-Bypass Guard VERIFIED: /learn/domains/domain1/complete returned 403 subtopics_incomplete.")
 
     blocked_sim_res = requests.post(f"{BASE_URL}/simulation/start", {}, headers=headers)
     if blocked_sim_res.status_code != 403 or blocked_sim_res.json().get("reason") != "theory_incomplete":
@@ -150,19 +171,87 @@ def run_tests():
         sys.exit(1)
     print("Stage 2 Theory Gate VERIFIED: /simulation/start blocked with 403 theory_incomplete.")
 
-    # Complete domain1 twice to verify idempotency, then complete domain2..domain5
-    for attempt in range(2):
-        comp_res = requests.post(f"{BASE_URL}/learn/domains/domain1/complete", {}, headers=headers)
-        if comp_res.status_code != 200 or comp_res.json().get("completed_count") != 1:
-            print(f"Error: Idempotent complete attempt {attempt+1} failed: {comp_res.status_code} {comp_res.text}")
+    # Attempt-gated completion across all 28 Sub-topics x 2 locked sample questions
+    learn_sample_q_ids = set()
+    domain_auto_completed_map = {}
+    for idx, sub in enumerate(all_subtopics):
+        sub_id = sub["sub_topic_id"]
+        sub_res = requests.get(f"{BASE_URL}/learn/subtopics/{sub_id}", headers=headers)
+        if sub_res.status_code != 200:
+            print(f"Error: GET /learn/subtopics/{sub_id} failed: {sub_res.status_code} {sub_res.text}")
             sys.exit(1)
-    for dom_id in ["domain2", "domain3", "domain4", "domain5"]:
-        comp_res = requests.post(f"{BASE_URL}/learn/domains/{dom_id}/complete", {}, headers=headers)
-        if comp_res.status_code != 200:
-            print(f"Error: Completing {dom_id} failed: {comp_res.status_code} {comp_res.text}")
+        sub_detail = sub_res.json()
+        samples = sub_detail.get("sample_questions") or []
+        if len(samples) != 2:
+            print(f"Error: Expected 2 sample questions for {sub_id}, got {len(samples)}")
             sys.exit(1)
-    if not comp_res.json().get("theory_completed") or len(comp_res.json().get("completed_domains", [])) != 5:
-        print("Error: Expected theory_completed=True after completing all 5 domains:", comp_res.json())
+
+        # Ensure answers/explanations remain hidden prior to attempt
+        for sq in samples:
+            if sq.get("correct_answer") is not None or sq.get("explanation") is not None:
+                print(f"Error: Answer leaked before attempt in {sub_id}/{sq['question_id']}")
+                sys.exit(1)
+            if sq["question_id"] in pre_question_ids:
+                print(f"Error: Sample question {sq['question_id']} overlaps Pre-Test!")
+                sys.exit(1)
+            if sq["question_id"] in learn_sample_q_ids:
+                print(f"Error: Duplicate sample question {sq['question_id']} assigned across sub-topics!")
+                sys.exit(1)
+            learn_sample_q_ids.add(sq["question_id"])
+
+        # For the first sub-topic (1.1), prove 400 gate before attempts AND first-attempt answer lock
+        if sub_id == "1.1":
+            premature_sub = requests.post(f"{BASE_URL}/learn/subtopics/1.1/complete", {}, headers=headers)
+            if premature_sub.status_code != 400 or premature_sub.json().get("reason") != "sample_questions_incomplete":
+                print(f"Error: Expected 400 sample_questions_incomplete, got {premature_sub.status_code}: {premature_sub.text}")
+                sys.exit(1)
+
+        for s_idx, sq in enumerate(samples):
+            att_res = requests.post(
+                f"{BASE_URL}/learn/subtopics/{sub_id}/sample-questions/{sq['question_id']}/attempt",
+                json={"answer": "b" if s_idx == 0 else "A"},
+                headers=headers,
+            )
+            if att_res.status_code != 200:
+                print(f"Error: Sample attempt failed for {sub_id}/{sq['question_id']}: {att_res.status_code} {att_res.text}")
+                sys.exit(1)
+            att_data = att_res.json()
+            if not att_data.get("explanation") or not att_data.get("correct_answer"):
+                print(f"Error: Missing explanation/correct_answer after attempt in {sub_id}: {att_data}")
+                sys.exit(1)
+            if sub_id == "1.1" and s_idx == 0:
+                retry_res = requests.post(
+                    f"{BASE_URL}/learn/subtopics/1.1/sample-questions/{sq['question_id']}/attempt",
+                    json={"answer": "C"},
+                    headers=headers,
+                )
+                if retry_res.status_code != 200 or not retry_res.json().get("already_submitted") or retry_res.json().get("submitted_answer") != "B":
+                    print(f"Error: First-attempt answer lock failed: {retry_res.status_code} {retry_res.text}")
+                    sys.exit(1)
+
+        comp_sub_res = requests.post(f"{BASE_URL}/learn/subtopics/{sub_id}/complete", {}, headers=headers)
+        if comp_sub_res.status_code != 200:
+            print(f"Error: Completing subtopic {sub_id} failed: {comp_sub_res.status_code} {comp_sub_res.text}")
+            sys.exit(1)
+        comp_sub_data = comp_sub_res.json()
+        if comp_sub_data.get("domain_auto_completed"):
+            domain_auto_completed_map[comp_sub_data["domain_id"]] = True
+
+        # Verify Stage 2 remains gated at 27/28
+        if idx == len(all_subtopics) - 2:
+            still_blocked = requests.post(f"{BASE_URL}/simulation/start", {}, headers=headers)
+            if still_blocked.status_code != 403 or still_blocked.json().get("completed_subtopic_count") != 27:
+                print(f"Error: Expected 403 gate at 27/28 subtopics, got {still_blocked.status_code}: {still_blocked.text}")
+                sys.exit(1)
+
+    if len(learn_sample_q_ids) != 56 or len(domain_auto_completed_map) != 5:
+        print(f"Error: Expected 56 unique learn sample questions and 5 auto-completed domains, got {len(learn_sample_q_ids)} / {domain_auto_completed_map}")
+        sys.exit(1)
+
+    # Idempotent domain1 complete now permitted cleanly after all 4 child sub-topics finish
+    idemp_dom = requests.post(f"{BASE_URL}/learn/domains/domain1/complete", {}, headers=headers)
+    if idemp_dom.status_code != 200 or not idemp_dom.json().get("theory_completed"):
+        print(f"Error: Idempotent domain1 complete failed after 28/28 subtopics: {idemp_dom.status_code} {idemp_dom.text}")
         sys.exit(1)
 
     post_theory_status_res = requests.get(f"{BASE_URL}/simulation/status", headers=headers)
@@ -170,14 +259,18 @@ def run_tests():
         print("Failed to get post-theory simulation status:", post_theory_status_res.text)
         sys.exit(1)
     post_theory_status = post_theory_status_res.json()
-    if not post_theory_status.get("theory_completed") or len(post_theory_status.get("completed_theory_domains", [])) != 5:
-        print("Error: /simulation/status did not reflect completed theory:", post_theory_status)
+    if (
+        not post_theory_status.get("theory_completed")
+        or post_theory_status.get("completed_subtopic_count") != 28
+        or len(post_theory_status.get("completed_theory_domains", [])) != 5
+    ):
+        print("Error: /simulation/status did not reflect 28/28 completed theory:", post_theory_status)
         sys.exit(1)
     for d in post_theory_status.get("domains", []):
         if abs(d["proficiency_score"] - pre_theory_scores.get(d["domain_id"], -1)) > 1e-6:
             print(f"Error: Theory completion mutated proficiency score for {d['domain_id']}: {pre_theory_scores.get(d['domain_id'])} -> {d['proficiency_score']}")
             sys.exit(1)
-    print("Learning Theory Hub 5/5 completion verified with zero proficiency score mutation.")
+    print("Learning Theory Hub 28/28 sub-topics & 56 zero-overlap samples verified with zero proficiency mutation.")
 
     # 7. Start Simulation Scenario
     print("Starting simulation scenario...")
@@ -397,12 +490,17 @@ def run_tests():
         print("Failed to retrieve research summary", summary_res.json())
         sys.exit(1)
     summary_data = summary_res.json()
+    telemetry = summary_data.get("learn_subtopic_telemetry") or {}
     if (
         not summary_data.get("theory_completed")
         or len(summary_data.get("completed_theory_domains", [])) != 5
         or not summary_data.get("theory_completed_at")
+        or telemetry.get("completed_subtopics_count") != 28
+        or telemetry.get("sample_questions_assigned") != 56
+        or telemetry.get("sample_questions_attempted") != 56
+        or len(telemetry.get("domain_breakdown") or []) != 5
     ):
-        print("Error: Expected research summary to report theory_completed=True, theory_completed_at, and 5 domains:", summary_data)
+        print("Error: Expected research summary to report theory_completed=True, 5 domains, and 28/28 learn_subtopic_telemetry:", summary_data)
         sys.exit(1)
     print("Research Summary retrieved:", {
         "protocol_version": summary_data.get("protocol_version"),

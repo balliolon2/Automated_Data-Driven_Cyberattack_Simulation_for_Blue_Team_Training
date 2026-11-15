@@ -7,6 +7,7 @@ import (
 type Question struct {
 	QuestionID    string    `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"question_id"`
 	DomainID      string    `gorm:"type:varchar;not null" json:"domain_id"`
+	SubTopicID    *string   `gorm:"type:varchar(16)" json:"sub_topic_id,omitempty"`
 	Type          string    `gorm:"type:question_type;not null" json:"type"`
 	QuestionText  string    `gorm:"type:text;not null" json:"question_text"`
 	Options       any       `gorm:"type:jsonb;serializer:json" json:"options"`

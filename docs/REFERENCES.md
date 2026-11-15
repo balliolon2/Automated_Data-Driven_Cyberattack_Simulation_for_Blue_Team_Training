@@ -237,9 +237,28 @@ The MITRE Corporation. (2024). *MITRE ATT&CK® Enterprise Matrix*. [https://atta
 | `domain4` | Security Operations | `theory/domain4_security_operations.md` | R2, R3, R4, R5, R6 | [NIST SP 800-61r3](https://csrc.nist.gov/pubs/sp/800/61/r3/final) |
 | `domain5` | Security Management | `theory/domain5_security_management.md` | R2, R3, R4, R5, R6 | [CMU ISO Incident Response](https://www.cmu.edu/iso/governance/procedures/incident-response.html) |
 
+### R7 — Sub-Topic Agency, Encyclopedia & Technical Reference Extensions (SY0-701 Sub-Topics 1.1–5.6)
+
+To ground all **28 granular SY0-701 Sub-Topic Markdown modules** (`theory/domain1/*.md` through `theory/domain5/*.md`) in verified public web sources with zero textbook dependency, the following additional NIST CSRC and Wikipedia articles are registered:
+
+1. National Institute of Standards and Technology:
+   - NIST SP 800-88 Rev. 1 (*Guidelines for Media Sanitization*): [https://csrc.nist.gov/pubs/sp/800/88/r1/final](https://csrc.nist.gov/pubs/sp/800/88/r1/final)
+   - NIST SP 800-40 Rev. 4 (*Guide to Enterprise Patch Management Planning*): [https://csrc.nist.gov/pubs/sp/800/40/r4/final](https://csrc.nist.gov/pubs/sp/800/40/r4/final)
+   - NIST SP 800-63-3 (*Digital Identity Guidelines*): [https://csrc.nist.gov/pubs/sp/800/63/3/final](https://csrc.nist.gov/pubs/sp/800/63/3/final)
+   - NIST SP 800-161 Rev. 1 (*Cybersecurity Supply Chain Risk Management Practices*): [https://csrc.nist.gov/pubs/sp/800/161/r1/final](https://csrc.nist.gov/pubs/sp/800/161/r1/final)
+   - NIST SP 800-86 (*Guide to Integrating Forensic Techniques into Incident Response*): [https://csrc.nist.gov/pubs/sp/800/86/final](https://csrc.nist.gov/pubs/sp/800/86/final)
+   - NIST SP 800-115 (*Technical Guide to Information Security Testing and Assessment*): [https://csrc.nist.gov/pubs/sp/800/115/final](https://csrc.nist.gov/pubs/sp/800/115/final)
+   - NIST SP 800-50 Rev. 1 (*Building a Cybersecurity and Privacy Learning Program*): [https://csrc.nist.gov/pubs/sp/800/50/r1/final](https://csrc.nist.gov/pubs/sp/800/50/r1/final)
+2. Wikipedia contributors (CC BY-SA 4.0) additional verified articles: [Security controls](https://en.wikipedia.org/wiki/Security_controls), [Change management (engineering)](https://en.wikipedia.org/wiki/Change_management_(engineering)), [Change control](https://en.wikipedia.org/wiki/Change_control), [Hardware security module](https://en.wikipedia.org/wiki/Hardware_security_module), [Threat (computer)](https://en.wikipedia.org/wiki/Threat_(computer)), [Advanced persistent threat](https://en.wikipedia.org/wiki/Advanced_persistent_threat), [Attack surface](https://en.wikipedia.org/wiki/Attack_surface), [Vulnerability (computing)](https://en.wikipedia.org/wiki/Vulnerability_(computing)), [Indicator of compromise](https://en.wikipedia.org/wiki/Indicator_of_compromise), [Endpoint detection and response](https://en.wikipedia.org/wiki/Endpoint_detection_and_response), [Cloud computing security](https://en.wikipedia.org/wiki/Cloud_computing_security), [Infrastructure as code](https://en.wikipedia.org/wiki/Infrastructure_as_code), [Network segmentation](https://en.wikipedia.org/wiki/Network_segmentation), [Data sanitization](https://en.wikipedia.org/wiki/Data_sanitization), [Data remanence](https://en.wikipedia.org/wiki/Data_remanence), [Vulnerability management](https://en.wikipedia.org/wiki/Vulnerability_management), [CVSS](https://en.wikipedia.org/wiki/CVSS), [Security orchestration](https://en.wikipedia.org/wiki/Security_orchestration), [Identity management](https://en.wikipedia.org/wiki/Identity_management), [Multi-factor authentication](https://en.wikipedia.org/wiki/Multi-factor_authentication), [Chain of custody](https://en.wikipedia.org/wiki/Chain_of_custody), [Information security governance](https://en.wikipedia.org/wiki/Information_security_governance), [Business impact analysis](https://en.wikipedia.org/wiki/Business_impact_analysis), [Supply chain security](https://en.wikipedia.org/wiki/Supply_chain_security), [Regulatory compliance](https://en.wikipedia.org/wiki/Regulatory_compliance), [Penetration test](https://en.wikipedia.org/wiki/Penetration_test), [Information technology security audit](https://en.wikipedia.org/wiki/Information_technology_security_audit), and [Security awareness](https://en.wikipedia.org/wiki/Security_awareness).
+
+- **BibTeX keys**: `nist2015sp80088r1`, `nist2022sp80040r4`, `nist2017sp80063_3`, `nist2022sp800161r1`, `nist2006sp80086`, `nist2008sp800115`, `nist2024sp80050r1`, `wikipedia2026infosec`
+- **Mapping**: Covers all 28 SY0-701 Sub-topics (`1.1`–`5.6`) under `theory/domain1/` through `theory/domain5/` and database table `theory_subtopics`.
+- **Usage & Copyright**: NIST SPs are U.S. government public domain; Wikipedia articles are CC BY-SA 4.0. All prose is originally synthesized with direct clickable HTTPS links.
+
 ## 15. Revision History
 
 | Date | Item |
 |---|---|
 | 2026-10-20 | Created the document and registered reference R1 (Gorgotsias, 2024), with the provenance table, Question 444 normalization record, copyright restrictions, and open risk. |
 | 2026-11-15 | Registered references R2–R6 (Domain taxonomy, NIST SP 800-53r5/800-61r2/800-61r3/800-207/800-30r1, CISA guides, CMU ISO & Stanford UIT resources, MITRE ATT&CK, OWASP Top 10 2021, Microsoft Learn KQL, and Wikipedia Security Articles) with clickable URLs across all 5 `theory/*.md` modules. |
+| 2026-11-16 | Registered reference R7 covering verified NIST CSRC SPs (`800-88r1`, `800-40r4`, `800-63-3`, `800-161r1`, `800-86`, `800-115`, `800-50r1`) and Wikipedia encyclopedia articles for all 28 SY0-701 Sub-topic Markdown files (`theory/domain1/*.md`–`theory/domain5/*.md`). |

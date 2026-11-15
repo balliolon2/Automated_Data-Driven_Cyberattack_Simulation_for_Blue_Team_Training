@@ -350,7 +350,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Idempotently records that the authenticated user finished studying the specified domain Theory Module without altering Proficiency Score.",
+                "description": "Idempotently records that the authenticated user finished studying the specified domain Theory Module without altering Proficiency Score. For Learners, rejects with 403 subtopics_incomplete unless all child Sub-topics are completed.",
                 "consumes": [
                     "application/json"
                 ],
@@ -393,6 +393,217 @@ const docTemplate = `{
                         "description": "Forbidden",
                         "schema": {
                             "$ref": "#/definitions/dto.TheoryGateErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/learn/subtopics/{subTopicId}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns the web-grounded Markdown lesson for a Security+ Sub-topic alongside 2 permanently assigned formative sample questions (drawn cleanly without overlap with Pre-Test or future Post-Test). Correct answers and explanations stay hidden until submitted.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Learn"
+                ],
+                "summary": "Retrieve a Sub-topic lesson and its 2 locked sample questions",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Sub-topic ID (e.g. 1.1..5.6)",
+                        "name": "subTopicId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.LearnSubtopicDetailResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/dto.TheoryGateErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/learn/subtopics/{subTopicId}/complete": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Verifies that all assigned sample questions for the Learner in this Sub-topic have been attempted (400 sample_questions_incomplete otherwise), idempotently marks the Sub-topic complete, and automatically completes the parent domain when all child Sub-topics are done. Specialists/Admins receive preview_mode=true without database writes.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Learn"
+                ],
+                "summary": "Mark a Sub-topic as completed (attempt-gated)",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Sub-topic ID (e.g. 1.1..5.6)",
+                        "name": "subTopicId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.CompleteSubtopicResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/dto.TheoryGateErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/dto.TheoryGateErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/learn/subtopics/{subTopicId}/sample-questions/{questionId}/attempt": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Immediately evaluates a Learner's answer choice (A-D) for an assigned sample question, reveals the explanation, and locks the first submitted answer. Does not modify Proficiency Score.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Learn"
+                ],
+                "summary": "Submit an answer for a Sub-topic sample question",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Sub-topic ID (e.g. 1.1..5.6)",
+                        "name": "subTopicId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Assigned Sample Question UUID",
+                        "name": "questionId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Answer choice A-D",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.AttemptSampleQuestionRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.AttemptSampleQuestionResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/dto.TheoryGateErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     },
                     "500": {
@@ -1131,6 +1342,65 @@ const docTemplate = `{
                 "session": {}
             }
         },
+        "dto.AttemptSampleQuestionRequest": {
+            "type": "object",
+            "required": [
+                "answer"
+            ],
+            "properties": {
+                "answer": {
+                    "type": "string",
+                    "example": "A"
+                }
+            }
+        },
+        "dto.AttemptSampleQuestionResponse": {
+            "type": "object",
+            "properties": {
+                "already_submitted": {
+                    "type": "boolean",
+                    "example": false
+                },
+                "attempted_count": {
+                    "type": "integer",
+                    "example": 2
+                },
+                "correct_answer": {
+                    "type": "string",
+                    "example": "B"
+                },
+                "explanation": {
+                    "type": "string"
+                },
+                "is_correct": {
+                    "type": "boolean",
+                    "example": true
+                },
+                "preview_mode": {
+                    "type": "boolean",
+                    "example": false
+                },
+                "question_id": {
+                    "type": "string"
+                },
+                "ready_to_complete": {
+                    "type": "boolean",
+                    "example": true
+                },
+                "required_count": {
+                    "type": "integer",
+                    "example": 2
+                },
+                "sub_topic_id": {
+                    "type": "string",
+                    "example": "1.2"
+                },
+                "submitted_answer": {
+                    "type": "string",
+                    "example": "B"
+                }
+            }
+        },
         "dto.AuthResponse": {
             "type": "object",
             "properties": {
@@ -1165,6 +1435,71 @@ const docTemplate = `{
                 "session_id": {
                     "type": "string",
                     "example": "123e4567-e89b-12d3-a456-426614174000"
+                }
+            }
+        },
+        "dto.CompleteSubtopicResponse": {
+            "type": "object",
+            "properties": {
+                "completed_count": {
+                    "type": "integer",
+                    "example": 1
+                },
+                "completed_domains": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "completed_subtopic_count": {
+                    "type": "integer",
+                    "example": 4
+                },
+                "completed_subtopics": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "completed_subtopics_in_domain": {
+                    "type": "integer",
+                    "example": 4
+                },
+                "domain_auto_completed": {
+                    "type": "boolean",
+                    "example": true
+                },
+                "domain_id": {
+                    "type": "string",
+                    "example": "domain1"
+                },
+                "is_completed": {
+                    "type": "boolean",
+                    "example": true
+                },
+                "preview_mode": {
+                    "type": "boolean",
+                    "example": false
+                },
+                "sub_topic_id": {
+                    "type": "string",
+                    "example": "1.4"
+                },
+                "theory_completed": {
+                    "type": "boolean",
+                    "example": false
+                },
+                "total_domains": {
+                    "type": "integer",
+                    "example": 5
+                },
+                "total_subtopics": {
+                    "type": "integer",
+                    "example": 28
+                },
+                "total_subtopics_in_domain": {
+                    "type": "integer",
+                    "example": 4
                 }
             }
         },
@@ -1398,6 +1733,35 @@ const docTemplate = `{
                 "session": {}
             }
         },
+        "dto.LearnDomainBreakdownDTO": {
+            "type": "object",
+            "properties": {
+                "completed_subtopics": {
+                    "type": "integer",
+                    "example": 4
+                },
+                "domain_id": {
+                    "type": "string",
+                    "example": "domain1"
+                },
+                "sample_assigned": {
+                    "type": "integer",
+                    "example": 8
+                },
+                "sample_attempted": {
+                    "type": "integer",
+                    "example": 8
+                },
+                "sample_correct": {
+                    "type": "integer",
+                    "example": 6
+                },
+                "total_subtopics": {
+                    "type": "integer",
+                    "example": 4
+                }
+            }
+        },
         "dto.LearnDomainsResponse": {
             "type": "object",
             "properties": {
@@ -1415,6 +1779,20 @@ const docTemplate = `{
                         "domain2"
                     ]
                 },
+                "completed_subtopic_count": {
+                    "type": "integer",
+                    "example": 7
+                },
+                "completed_subtopics": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "example": [
+                        "1.1",
+                        "1.2"
+                    ]
+                },
                 "domains": {
                     "type": "array",
                     "items": {
@@ -1429,9 +1807,145 @@ const docTemplate = `{
                     "type": "integer",
                     "example": 5
                 },
+                "total_subtopics": {
+                    "type": "integer",
+                    "example": 28
+                },
                 "unlocked": {
                     "type": "boolean",
                     "example": true
+                }
+            }
+        },
+        "dto.LearnSubtopicDetailResponse": {
+            "type": "object",
+            "properties": {
+                "attempted_count": {
+                    "type": "integer"
+                },
+                "completed_at": {
+                    "type": "string"
+                },
+                "content": {
+                    "type": "string"
+                },
+                "domain_id": {
+                    "type": "string",
+                    "example": "domain1"
+                },
+                "is_completed": {
+                    "type": "boolean"
+                },
+                "next_sub_topic_id": {
+                    "type": "string"
+                },
+                "order_index": {
+                    "type": "integer",
+                    "example": 1
+                },
+                "preview_mode": {
+                    "type": "boolean"
+                },
+                "previous_sub_topic_id": {
+                    "type": "string"
+                },
+                "ready_to_complete": {
+                    "type": "boolean"
+                },
+                "required_count": {
+                    "type": "integer"
+                },
+                "sample_questions": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.LearnSubtopicSampleQuestionDTO"
+                    }
+                },
+                "source_url": {
+                    "type": "string"
+                },
+                "sub_topic_id": {
+                    "type": "string",
+                    "example": "1.1"
+                },
+                "title": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.LearnSubtopicSampleQuestionDTO": {
+            "type": "object",
+            "properties": {
+                "answered_at": {
+                    "type": "string"
+                },
+                "correct_answer": {
+                    "type": "string"
+                },
+                "explanation": {
+                    "type": "string"
+                },
+                "is_correct": {
+                    "type": "boolean"
+                },
+                "is_fallback": {
+                    "type": "boolean",
+                    "example": false
+                },
+                "options": {},
+                "order_index": {
+                    "type": "integer",
+                    "example": 1
+                },
+                "question_id": {
+                    "type": "string"
+                },
+                "question_text": {
+                    "type": "string"
+                },
+                "submitted_answer": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.LearnSubtopicTelemetryDTO": {
+            "type": "object",
+            "properties": {
+                "completed_subtopics": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "completed_subtopics_count": {
+                    "type": "integer",
+                    "example": 28
+                },
+                "domain_breakdown": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.LearnDomainBreakdownDTO"
+                    }
+                },
+                "sample_accuracy_percent": {
+                    "type": "number",
+                    "example": 78.57
+                },
+                "sample_questions_assigned": {
+                    "type": "integer",
+                    "example": 56
+                },
+                "sample_questions_attempted": {
+                    "type": "integer",
+                    "example": 56
+                },
+                "sample_questions_correct": {
+                    "type": "integer",
+                    "example": 44
+                },
+                "total_subtopics": {
+                    "type": "integer",
+                    "example": 28
                 }
             }
         },
@@ -1590,6 +2104,9 @@ const docTemplate = `{
                     "type": "number",
                     "example": 20
                 },
+                "learn_subtopic_telemetry": {
+                    "$ref": "#/definitions/dto.LearnSubtopicTelemetryDTO"
+                },
                 "max_scenarios": {
                     "type": "integer",
                     "example": 10
@@ -1713,6 +2230,16 @@ const docTemplate = `{
                     "type": "integer",
                     "example": 2
                 },
+                "completed_subtopic_count": {
+                    "type": "integer",
+                    "example": 28
+                },
+                "completed_subtopics": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
                 "completed_theory_domains": {
                     "type": "array",
                     "items": {
@@ -1740,6 +2267,10 @@ const docTemplate = `{
                 "theory_completed": {
                     "type": "boolean",
                     "example": true
+                },
+                "total_subtopics": {
+                    "type": "integer",
+                    "example": 28
                 }
             }
         },
@@ -2037,6 +2568,10 @@ const docTemplate = `{
                 "completed_at": {
                     "type": "string"
                 },
+                "completed_subtopics_in_domain": {
+                    "type": "integer",
+                    "example": 4
+                },
                 "content": {
                     "type": "string"
                 },
@@ -2066,7 +2601,13 @@ const docTemplate = `{
                 },
                 "source_url": {
                     "type": "string",
-                    "example": "docs/REFERENCES.md#14-learning-theory-curriculum-provenance-r2r5"
+                    "example": "https://csrc.nist.gov/pubs/sp/800/53/r5/final"
+                },
+                "subtopics": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.TheorySubtopicSummaryDTO"
+                    }
                 },
                 "threshold": {
                     "type": "number",
@@ -2075,6 +2616,10 @@ const docTemplate = `{
                 "title": {
                     "type": "string",
                     "example": "Domain 1: General Security Concepts"
+                },
+                "total_subtopics_in_domain": {
+                    "type": "integer",
+                    "example": 4
                 }
             }
         },
@@ -2091,9 +2636,25 @@ const docTemplate = `{
                         "type": "string"
                     }
                 },
+                "completed_subtopic_count": {
+                    "type": "integer",
+                    "example": 12
+                },
+                "completed_subtopics": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
                 "error": {
                     "type": "string",
                     "example": "Please complete the Pre-Test first to unlock Learning Theory."
+                },
+                "missing_subtopics": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
                 },
                 "reason": {
                     "type": "string",
@@ -2103,9 +2664,49 @@ const docTemplate = `{
                     "type": "integer",
                     "example": 5
                 },
+                "total_subtopics": {
+                    "type": "integer",
+                    "example": 28
+                },
                 "unlocked": {
                     "type": "boolean",
                     "example": false
+                }
+            }
+        },
+        "dto.TheorySubtopicSummaryDTO": {
+            "type": "object",
+            "properties": {
+                "completed_at": {
+                    "type": "string"
+                },
+                "domain_id": {
+                    "type": "string",
+                    "example": "domain1"
+                },
+                "is_completed": {
+                    "type": "boolean",
+                    "example": true
+                },
+                "order_index": {
+                    "type": "integer",
+                    "example": 1
+                },
+                "sample_attempted_count": {
+                    "type": "integer",
+                    "example": 2
+                },
+                "sample_total_count": {
+                    "type": "integer",
+                    "example": 2
+                },
+                "sub_topic_id": {
+                    "type": "string",
+                    "example": "1.1"
+                },
+                "title": {
+                    "type": "string",
+                    "example": "Compare and contrast various types of security controls"
                 }
             }
         },

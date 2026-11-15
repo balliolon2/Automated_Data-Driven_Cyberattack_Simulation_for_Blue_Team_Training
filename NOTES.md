@@ -234,3 +234,30 @@
    - Displays learner's current `proficiency_score` per domain and flags weak domains (`< 70%`) as **Recommended Focus**, without directly altering `proficiency_score`.
    - Exposed in `GET /api/simulation/status` and `GET /api/analytics/research-summary` (`theory_completed`, `completed_theory_domains`, `theory_completed_at`).
    - See `workflows/learning_theory_hub.md`.
+
+## Canonical Terms (Issue #30)
+
+- **Domain Overview (ภาพรวมโดเมน)**: the 5 high-level curriculum summaries retained in `theory/domain{1..5}_*.md` (`rag_documents`), acting as informational landing pages and sub-topic roadmaps for each Security+ domain.
+- **Theory Sub-Topic (หัวข้อย่อยตามแนว SY0-701)**: one of the **28 official CompTIA Security+ (SY0-701) objective modules** (`1.1`–`5.6`), stored under `theory/domain{1..5}/*.md`, embedded in Go, and seeded into `theory_subtopics`.
+- **Formative Sample Questions (ข้อสอบตัวอย่างระหว่างเรียน)**: the **2 unused `multiple_choice` questions** locked per `(user_id, sub_topic_id)` in `user_theory_sample_questions` upon first viewing a Sub-topic, with immediate graded feedback, locked first attempt, and domain-level fallback (`is_fallback`) when a Sub-topic pool is exhausted.
+- **Learn Seen Pool (กลุ่มข้อสอบที่เคยเห็นในบทเรียน)**: all `question_id`s assigned to a learner in `user_theory_sample_questions`, which are permanently excluded alongside `Pre-Test` questions when generating `StartPostTest` (`Zero-Overlap: Pre-Test ∪ Learn ∪ Post-Test = ∅`).
+
+## Settled Decisions (Issue #30: Domain Overviews, Sub-Topics & Sample Questions)
+
+38. **Exact 28-Sub-Topic Granularity & Stage 2 Gate**:
+    - 1:1 alignment with CompTIA Security+ (SY0-701): Domain 1 (`1.1`–`1.4`), Domain 2 (`2.1`–`2.5`), Domain 3 (`3.1`–`3.4`), Domain 4 (`4.1`–`4.9`), Domain 5 (`5.1`–`5.6`) = **28 Sub-topics**.
+    - Domain Overviews are informational only (no manual `"Mark Domain Completed"` button); completing all Sub-topics in a domain automatically marks the parent domain completed in `user_theory_progress`, and legacy `POST /api/learn/domains/:id/complete` rejects (`403 subtopics_incomplete`) until all child Sub-topics are done.
+    - Stage 2 Gate (`POST /api/simulation/start`) requires **28/28 Sub-topics completed** in `user_theory_subtopic_progress` (pre-existing learner accounts must complete the 28 Sub-topics; `specialist`/`admin` keep preview access without writing Learner completion rows).
+
+39. **Formative Sample Question Allocation, Fallback & Zero Overlap**:
+    - All 540 `examination/` questions (`parsed_questions.json`) are classified into `questions.sub_topic_id` (`1.1`–`5.6`) and safely upserted via `scripts/load_exams_to_db.py` preserving existing `question_id` UUIDs.
+    - Opening a Sub-topic locks 2 unused questions for `(user_id, sub_topic_id)` excluding `Pre-Test ∪ Learn Seen`; if fewer than 2 remain in `sub_topic_id`, remaining slots draw from the parent `domain_id` (`is_fallback = true`). `UNIQUE(user_id, question_id)` prevents assigning the same question twice.
+    - Submitting an answer immediately grades, reveals `explanation` + `correct_answer`, and locks the first submitted attempt (`submitted_answer`, `is_correct`) without altering `user_skill_profiles.proficiency_score` (`ADR-0004`).
+    - Attempting both (`2/2`) sample questions unlocks `"Mark Sub-topic as Completed"` regardless of whether the answers were right or wrong.
+    - `StartPostTest` excludes **both** `Pre-Test` questions and all rows in `user_theory_sample_questions` for that user.
+
+40. **Web-Only Trustworthy Sourcing, UI Tree & Research Analytics**:
+    - Sub-topic prose draws strictly from trustworthy public websites (Wikipedia, NIST, CISA, MITRE ATT&CK, OWASP, CMU ISO, Stanford UIT, Microsoft Learn — no textbooks) with clickable `https://` links and registration in `docs/REFERENCES.md` + `docs/references.bib`.
+    - `/learn` uses an expandable **Nested Sidebar Tree** with deep-linking (`/learn?domain=domain1&topic=1.2`) and `Previous / Next Sub-topic` navigation.
+    - `GET /api/analytics/research-summary` exposes `learn_subtopic_telemetry` (`completed_subtopics_count`, `sample_questions_assigned`, `sample_questions_attempted`, `sample_questions_correct`, `sample_accuracy_percent`, and `domain_breakdown`).
+    - See `workflows/learning_subtopics_sample_questions.md`.

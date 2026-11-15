@@ -59,6 +59,7 @@ CREATE TABLE mitre_techniques (
 CREATE TABLE questions (
   question_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   domain_id VARCHAR REFERENCES security_domains(domain_id),
+  sub_topic_id VARCHAR(16),
   type question_type NOT NULL,
   question_text TEXT NOT NULL,
   options JSONB,
@@ -69,6 +70,7 @@ CREATE TABLE questions (
   is_active BOOLEAN DEFAULT true,
   created_at TIMESTAMP DEFAULT now()
 );
+CREATE INDEX idx_questions_domain_subtopic ON questions(domain_id, sub_topic_id) WHERE is_active = true;
 
 CREATE TABLE exam_sessions (
   session_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -207,6 +209,40 @@ CREATE TABLE user_theory_progress (
   PRIMARY KEY (user_id, domain_id)
 );
 CREATE INDEX idx_user_theory_progress_user ON user_theory_progress(user_id);
+
+CREATE TABLE theory_subtopics (
+  sub_topic_id VARCHAR(16) PRIMARY KEY,
+  domain_id VARCHAR REFERENCES security_domains(domain_id) ON DELETE CASCADE NOT NULL,
+  order_index INT NOT NULL,
+  title VARCHAR(255) NOT NULL,
+  content TEXT NOT NULL,
+  source_url TEXT,
+  updated_at TIMESTAMP DEFAULT now()
+);
+CREATE INDEX idx_theory_subtopics_domain ON theory_subtopics(domain_id, order_index);
+
+CREATE TABLE user_theory_subtopic_progress (
+  user_id UUID REFERENCES users(user_id) ON DELETE CASCADE,
+  sub_topic_id VARCHAR(16) REFERENCES theory_subtopics(sub_topic_id) ON DELETE CASCADE,
+  completed_at TIMESTAMP DEFAULT now(),
+  PRIMARY KEY (user_id, sub_topic_id)
+);
+CREATE INDEX idx_user_theory_subtopic_progress_user ON user_theory_subtopic_progress(user_id);
+
+CREATE TABLE user_theory_sample_questions (
+  user_id UUID REFERENCES users(user_id) ON DELETE CASCADE,
+  sub_topic_id VARCHAR(16) REFERENCES theory_subtopics(sub_topic_id) ON DELETE CASCADE,
+  question_id UUID REFERENCES questions(question_id) ON DELETE CASCADE,
+  order_index INT NOT NULL,
+  is_fallback BOOLEAN NOT NULL DEFAULT false,
+  submitted_answer VARCHAR(10),
+  is_correct BOOLEAN,
+  assigned_at TIMESTAMP DEFAULT now(),
+  answered_at TIMESTAMP,
+  PRIMARY KEY (user_id, sub_topic_id, question_id),
+  UNIQUE (user_id, question_id)
+);
+CREATE INDEX idx_user_theory_sample_q_user ON user_theory_sample_questions(user_id);
 
 CREATE TABLE evaluation_metrics (
   eval_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

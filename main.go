@@ -46,7 +46,7 @@ import (
 //go:embed scenarios_seed.json
 var scenarioSeedJSON []byte
 
-//go:embed theory/*.md
+//go:embed theory/*.md theory/domain1/*.md theory/domain2/*.md theory/domain3/*.md theory/domain4/*.md theory/domain5/*.md
 var theoryMarkdownFS embed.FS
 
 func main() {
@@ -196,6 +196,9 @@ func main() {
 		{
 			learn.GET("/domains", learnController.GetDomains)
 			learn.POST("/domains/:domainId/complete", learnController.CompleteDomain)
+			learn.GET("/subtopics/:subTopicId", learnController.GetSubTopic)
+			learn.POST("/subtopics/:subTopicId/sample-questions/:questionId/attempt", learnController.AttemptSampleQuestion)
+			learn.POST("/subtopics/:subTopicId/complete", learnController.CompleteSubTopic)
 		}
 
 		// Protected simulation routes

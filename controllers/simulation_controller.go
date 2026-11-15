@@ -461,7 +461,7 @@ func (sc *SimulationController) GetStatus(c *gin.Context) {
 		Where("user_id = ? AND status = 'completed'", userID).
 		Count(&completedCount)
 
-	completedTheoryDomains, theoryCompleted, _ := sc.getUserTheoryProgressSummary(userID)
+	completedTheoryDomains, completedSubtopics, theoryCompleted, _ := sc.getUserTheoryProgressSummary(userID)
 
 	needsTraining := !allPassed || int(completedCount) < MinScenarios
 	if int(completedCount) >= MaxScenarios {
@@ -476,6 +476,9 @@ func (sc *SimulationController) GetStatus(c *gin.Context) {
 		AllDomainsPassed:       allPassed,
 		TheoryCompleted:        theoryCompleted,
 		CompletedTheoryDomains: completedTheoryDomains,
+		CompletedSubtopicCount: len(completedSubtopics),
+		TotalSubtopics:         len(services.OrderedTheorySubtopics),
+		CompletedSubtopics:     completedSubtopics,
 	})
 }
 
@@ -533,11 +536,11 @@ func (sc *SimulationController) StartScenario(c *gin.Context) {
 		return
 	}
 
-	// Stage 2 Theory Gate: Learners must complete all 5 Theory Modules before
-	// starting new simulation scenarios (unless BYPASS_THEORY_GATE=true).
-	if gateErr := evaluateStage2TheoryGate(os.Getenv("BYPASS_THEORY_GATE"), func() []string {
-		completedTheoryDomains, _, _ := sc.getUserTheoryProgressSummary(userID)
-		return completedTheoryDomains
+	// Stage 2 Theory Gate: Learners must complete all 28 Theory Sub-topics before
+	// starting new simulation scenarios (unless BYPASS_THEORY_GATE=true or Staff).
+	if gateErr := evaluateStage2TheoryGate(os.Getenv("BYPASS_THEORY_GATE"), c.GetString("role"), func() ([]string, []string) {
+		completedTheoryDomains, completedSubtopics, _, _ := sc.getUserTheoryProgressSummary(userID)
+		return completedSubtopics, completedTheoryDomains
 	}); gateErr != nil {
 		c.JSON(http.StatusForbidden, gateErr)
 		return
@@ -1510,46 +1513,147 @@ func (sc *SimulationController) GetResearchSummary(c *gin.Context) {
 		scoreImprovement = &diff
 	}
 
-	completedTheoryDomains, theoryCompleted, theoryCompletedAt := sc.getUserTheoryProgressSummary(userID)
+	domainProfileDTOs := make([]dto.DomainStatusDTO, 0, len(profiles))
+	for _, p := range profiles {
+		domainProfileDTOs = append(domainProfileDTOs, dto.DomainStatusDTO{
+			DomainID:         p.DomainID,
+			DomainName:       domainNames[p.DomainID],
+			ProficiencyScore: math.Round(p.ProficiencyScore*100) / 100,
+			Threshold:        ProficiencyThreshold,
+			Passed:           p.ProficiencyScore >= ProficiencyThreshold,
+		})
+	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"protocol_version":         "protocol-v1",
-		"calculation_version":      services.CalculationVersion,
-		"rubric_version":           services.RubricVersion,
-		"participant_id":           userID,
-		"has_pre_test":             hasPre,
-		"pre_test_score":           preExam.Score,
-		"has_post_test":            hasPost,
-		"post_test_score":          postExam.Score,
-		"improvement_score":        scoreImprovement,
-		"all_domains_passed":       allPassed,
-		"eligible_for_post":        allPassed && len(completedSessions) >= MinScenarios,
-		"theory_completed":         theoryCompleted,
-		"completed_theory_domains": completedTheoryDomains,
-		"theory_completed_at":      theoryCompletedAt,
-		"completed_scenarios":      len(completedSessions),
-		"max_scenarios":            MaxScenarios,
-		"total_actions":            totalActions,
-		"total_elapsed_sec":        totalSimElapsed,
-		"average_proficiency":      avgProficiency,
-		"domain_profiles":          profiles,
+	completedTheoryDomains, _, theoryCompleted, theoryCompletedAt := sc.getUserTheoryProgressSummary(userID)
+	learnTelemetry := sc.loadLearnSubtopicTelemetry(userID)
+
+	c.JSON(http.StatusOK, dto.ResearchSummaryResponse{
+		ProtocolVersion:        "protocol-v1",
+		CalculationVersion:     services.CalculationVersion,
+		RubricVersion:          services.RubricVersion,
+		ParticipantID:          userID,
+		HasPreTest:             hasPre,
+		PreTestScore:           preExam.Score,
+		HasPostTest:            hasPost,
+		PostTestScore:          postExam.Score,
+		ImprovementScore:       scoreImprovement,
+		AllDomainsPassed:       allPassed,
+		EligibleForPost:        allPassed && len(completedSessions) >= MinScenarios,
+		TheoryCompleted:        theoryCompleted,
+		CompletedTheoryDomains: completedTheoryDomains,
+		TheoryCompletedAt:      theoryCompletedAt,
+		CompletedScenarios:     len(completedSessions),
+		MaxScenarios:           MaxScenarios,
+		TotalActions:           totalActions,
+		TotalElapsedSec:        totalSimElapsed,
+		AverageProficiency:     avgProficiency,
+		DomainProfiles:         domainProfileDTOs,
+		LearnSubtopicTelemetry: &learnTelemetry,
 	})
 }
 
-func (sc *SimulationController) getUserTheoryProgressSummary(userID any) ([]string, bool, *time.Time) {
+func (sc *SimulationController) loadLearnSubtopicTelemetry(userID any) dto.LearnSubtopicTelemetryDTO {
 	if sc.DB == nil {
-		return []string{}, false, nil
+		return BuildLearnSubtopicTelemetry(nil, nil)
 	}
-	var progress []models.UserTheoryProgress
-	if err := sc.DB.Where("user_id = ?", userID).Find(&progress).Error; err != nil {
-		return []string{}, false, nil
+	var subProg []models.UserTheorySubtopicProgress
+	_ = sc.DB.Where("user_id = ?", userID).Find(&subProg).Error
+	var sampleRows []models.UserTheorySampleQuestion
+	_ = sc.DB.Where("user_id = ?", userID).Find(&sampleRows).Error
+	return BuildLearnSubtopicTelemetry(subProg, sampleRows)
+}
+
+// BuildLearnSubtopicTelemetry computes Sub-topic completion and formative sample-question
+// engagement/accuracy metrics across the canonical 28 SY0-701 objectives.
+func BuildLearnSubtopicTelemetry(subProgress []models.UserTheorySubtopicProgress, sampleRows []models.UserTheorySampleQuestion) dto.LearnSubtopicTelemetryDTO {
+	completedSubtopics, doneBySubID := buildOrderedCompletedSubtopics(subProgress)
+
+	subToDomain := make(map[string]string, len(services.OrderedTheorySubtopics))
+	for _, spec := range services.OrderedTheorySubtopics {
+		subToDomain[spec.SubTopicID] = spec.DomainID
 	}
-	completedDomains, byDomain := buildOrderedCompletedDomains(progress)
-	theoryCompleted := services.IsTheoryGateSatisfied(completedDomains)
+
+	assignedByDomain := make(map[string]int, len(services.OrderedTheoryDomains))
+	attemptedByDomain := make(map[string]int, len(services.OrderedTheoryDomains))
+	correctByDomain := make(map[string]int, len(services.OrderedTheoryDomains))
+	totalAssigned := len(sampleRows)
+	totalAttempted := 0
+	totalCorrect := 0
+
+	for _, r := range sampleRows {
+		domID := subToDomain[r.SubTopicID]
+		if domID != "" {
+			assignedByDomain[domID]++
+		}
+		if isSampleAnswered(r.SubmittedAnswer) {
+			totalAttempted++
+			if domID != "" {
+				attemptedByDomain[domID]++
+			}
+			if r.IsCorrect != nil && *r.IsCorrect {
+				totalCorrect++
+				if domID != "" {
+					correctByDomain[domID]++
+				}
+			}
+		}
+	}
+
+	var accuracyPct float64
+	if totalAttempted > 0 {
+		accuracyPct = math.Round((float64(totalCorrect)/float64(totalAttempted))*10000) / 100
+	}
+
+	breakdown := make([]dto.LearnDomainBreakdownDTO, 0, len(services.OrderedTheoryDomains))
+	for _, dom := range services.OrderedTheoryDomains {
+		subs := services.SubtopicsForDomain(dom.DomainID)
+		doneInDom := 0
+		for _, sp := range subs {
+			if _, ok := doneBySubID[sp.SubTopicID]; ok {
+				doneInDom++
+			}
+		}
+		breakdown = append(breakdown, dto.LearnDomainBreakdownDTO{
+			DomainID:           dom.DomainID,
+			CompletedSubtopics: doneInDom,
+			TotalSubtopics:     len(subs),
+			SampleAssigned:     assignedByDomain[dom.DomainID],
+			SampleAttempted:    attemptedByDomain[dom.DomainID],
+			SampleCorrect:      correctByDomain[dom.DomainID],
+		})
+	}
+
+	return dto.LearnSubtopicTelemetryDTO{
+		CompletedSubtopicsCount:  len(completedSubtopics),
+		TotalSubtopics:           len(services.OrderedTheorySubtopics),
+		CompletedSubtopics:       completedSubtopics,
+		SampleQuestionsAssigned:  totalAssigned,
+		SampleQuestionsAttempted: totalAttempted,
+		SampleQuestionsCorrect:   totalCorrect,
+		SampleAccuracyPercent:    accuracyPct,
+		DomainBreakdown:          breakdown,
+	}
+}
+
+func (sc *SimulationController) getUserTheoryProgressSummary(userID any) ([]string, []string, bool, *time.Time) {
+	if sc.DB == nil {
+		return []string{}, []string{}, false, nil
+	}
+	var domProgress []models.UserTheoryProgress
+	if err := sc.DB.Where("user_id = ?", userID).Find(&domProgress).Error; err != nil {
+		return []string{}, []string{}, false, nil
+	}
+	var subProgress []models.UserTheorySubtopicProgress
+	if err := sc.DB.Where("user_id = ?", userID).Find(&subProgress).Error; err != nil {
+		return []string{}, []string{}, false, nil
+	}
+	completedDomains, _ := buildOrderedCompletedDomains(domProgress)
+	completedSubtopics, bySub := buildOrderedCompletedSubtopics(subProgress)
+	theoryCompleted := services.IsTheorySubtopicGateSatisfied(completedSubtopics)
 	var completedAt *time.Time
 	if theoryCompleted {
 		var latest time.Time
-		for _, p := range byDomain {
+		for _, p := range bySub {
 			if p.CompletedAt.After(latest) {
 				latest = p.CompletedAt
 			}
@@ -1558,26 +1662,32 @@ func (sc *SimulationController) getUserTheoryProgressSummary(userID any) ([]stri
 			completedAt = &latest
 		}
 	}
-	return completedDomains, theoryCompleted, completedAt
+	return completedDomains, completedSubtopics, theoryCompleted, completedAt
 }
 
 // evaluateStage2TheoryGate returns a structured 403 TheoryGateErrorResponse when
-// Stage 2 (5/5 theory modules completed) is not yet satisfied and bypassEnv is not "true".
-func evaluateStage2TheoryGate(bypassEnv string, loadCompletedDomains func() []string) *dto.TheoryGateErrorResponse {
-	if bypassEnv == "true" {
+// Stage 2 (28/28 theory sub-topics completed) is not yet satisfied, bypassEnv is not
+// "true", and the caller is not Staff (specialist/admin).
+func evaluateStage2TheoryGate(bypassEnv, role string, loadProgress func() ([]string, []string)) *dto.TheoryGateErrorResponse {
+	if bypassEnv == "true" || role == "specialist" || role == "admin" {
 		return nil
 	}
-	completedTheoryDomains := loadCompletedDomains()
-	if services.IsTheoryGateSatisfied(completedTheoryDomains) {
+	completedSubtopics, completedDomains := loadProgress()
+	if services.IsTheorySubtopicGateSatisfied(completedSubtopics) {
 		return nil
 	}
-	completedCount := len(completedTheoryDomains)
+	doneDomCount := len(completedDomains)
 	totalDomains := len(services.OrderedTheoryDomains)
+	doneSubCount := len(completedSubtopics)
+	totalSubtopics := len(services.OrderedTheorySubtopics)
 	return &dto.TheoryGateErrorResponse{
-		Error:            "Please complete all 5 Learning Theory domains before starting simulation scenarios.",
-		Reason:           "theory_incomplete",
-		CompletedCount:   &completedCount,
-		TotalDomains:     &totalDomains,
-		CompletedDomains: completedTheoryDomains,
+		Error:                  "Please complete all 28 Learning Theory Sub-topics before starting simulation scenarios.",
+		Reason:                 "theory_incomplete",
+		CompletedCount:         &doneDomCount,
+		TotalDomains:           &totalDomains,
+		CompletedDomains:       completedDomains,
+		CompletedSubtopicCount: &doneSubCount,
+		TotalSubtopics:         &totalSubtopics,
+		CompletedSubtopics:     completedSubtopics,
 	}
 }

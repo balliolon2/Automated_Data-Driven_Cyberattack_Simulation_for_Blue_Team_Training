@@ -94,6 +94,21 @@ def run_tests():
         print("Error: Pre-Test did not complete during the answer loop; cannot verify zero overlap")
         sys.exit(1)
 
+    # 5b. Lock sample questions across Learn Sub-topics before Post-Test to verify Pre ∪ Learn ∪ Post = empty
+    print("Locking Learn Sub-topic sample questions (1.1, 2.1, 3.1, 4.8, 5.6)...")
+    learn_sample_ids = set()
+    for sub_id in ["1.1", "2.1", "3.1", "4.8", "5.6"]:
+        s_res = requests.get(f"{BASE_URL}/learn/subtopics/{sub_id}", headers=headers)
+        if s_res.status_code != 200:
+            print(f"Error: GET /learn/subtopics/{sub_id} failed: {s_res.status_code} {s_res.text}")
+            sys.exit(1)
+        for sq in s_res.json().get("sample_questions", []):
+            learn_sample_ids.add(sq["question_id"])
+    pre_set = set(pre_questions_used)
+    if pre_set.intersection(learn_sample_ids):
+        print("Error: Learn sample questions overlapped Pre-Test:", pre_set.intersection(learn_sample_ids))
+        sys.exit(1)
+
     # 6. Start Post-Test
     print("Starting Post-Test...")
     post_res = requests.post(f"{BASE_URL}/exams/post-test", headers=headers)
@@ -119,12 +134,10 @@ def run_tests():
     
     print(f"Post-Test started. Session ID: {post_session_id}. Questions count: {len(post_questions)}")
     
-    # Verify no overlap
-    pre_set = set(pre_questions_used)
+    # Verify no overlap against Pre-Test OR Learn sample questions
     post_set = set([q["question_id"] for q in post_questions])
-    
-    overlap = pre_set.intersection(post_set)
-    print(f"Overlap count between Pre-Test and Post-Test: {len(overlap)}")
+    overlap = (pre_set | learn_sample_ids).intersection(post_set)
+    print(f"Overlap count between (Pre-Test U Learn Samples) and Post-Test: {len(overlap)}")
     if len(overlap) > 0:
         print(f"Error: Found overlap questions: {overlap}")
         sys.exit(1)

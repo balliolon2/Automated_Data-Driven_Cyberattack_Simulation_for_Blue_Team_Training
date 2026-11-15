@@ -14,7 +14,8 @@
     "source_ref": "R1",
     "source_chapter": 5,
     "source_question_no": 506,
-    "difficulty": 1
+    "difficulty": 1,
+    "sub_topic_id": "5.2"
   },
   {
     "domain_id": "domain5",
@@ -31,7 +32,8 @@
     "source_ref": "R1",
     "source_chapter": 5,
     "source_question_no": 481,
-    "difficulty": 1
+    "difficulty": 1,
+    "sub_topic_id": "5.2"
   },
   {
     "domain_id": "domain4",
@@ -48,7 +50,8 @@
     "source_ref": "R1",
     "source_chapter": 4,
     "source_question_no": 361,
-    "difficulty": 1
+    "difficulty": 1,
+    "sub_topic_id": "4.1"
   },
   {
     "domain_id": "domain5",
@@ -65,7 +68,8 @@
     "source_ref": "R1",
     "source_chapter": 5,
     "source_question_no": 485,
-    "difficulty": 1
+    "difficulty": 1,
+    "sub_topic_id": "5.2"
   },
   {
     "domain_id": "domain5",
@@ -82,7 +86,8 @@
     "source_ref": "R1",
     "source_chapter": 5,
     "source_question_no": 480,
-    "difficulty": 1
+    "difficulty": 1,
+    "sub_topic_id": "5.2"
   },
   {
     "domain_id": "domain5",
@@ -99,7 +104,8 @@
     "source_ref": "R1",
     "source_chapter": 5,
     "source_question_no": 467,
-    "difficulty": 1
+    "difficulty": 1,
+    "sub_topic_id": "5.2"
   },
   {
     "domain_id": "domain5",
@@ -116,7 +122,8 @@
     "source_ref": "R1",
     "source_chapter": 5,
     "source_question_no": 472,
-    "difficulty": 1
+    "difficulty": 1,
+    "sub_topic_id": "5.2"
   },
   {
     "domain_id": "domain5",
@@ -133,7 +140,8 @@
     "source_ref": "R1",
     "source_chapter": 5,
     "source_question_no": 479,
-    "difficulty": 1
+    "difficulty": 1,
+    "sub_topic_id": "5.2"
   },
   {
     "domain_id": "domain4",
@@ -150,7 +158,8 @@
     "source_ref": "R1",
     "source_chapter": 4,
     "source_question_no": 371,
-    "difficulty": 1
+    "difficulty": 1,
+    "sub_topic_id": "4.4"
   },
   {
     "domain_id": "domain4",
@@ -167,7 +176,8 @@
     "source_ref": "R1",
     "source_chapter": 4,
     "source_question_no": 428,
-    "difficulty": 1
+    "difficulty": 1,
+    "sub_topic_id": "4.6"
   },
   {
     "domain_id": "domain1",
@@ -184,7 +194,8 @@
     "source_ref": "R1",
     "source_chapter": 1,
     "source_question_no": 87,
-    "difficulty": 1
+    "difficulty": 1,
+    "sub_topic_id": "1.4"
   },
   {
     "domain_id": "domain3",
@@ -201,7 +212,8 @@
     "source_ref": "R1",
     "source_chapter": 3,
     "source_question_no": 289,
-    "difficulty": 1
+    "difficulty": 1,
+    "sub_topic_id": "3.1"
   },
   {
     "domain_id": "domain4",
@@ -218,7 +230,8 @@
     "source_ref": "R1",
     "source_chapter": 4,
     "source_question_no": 367,
-    "difficulty": 1
+    "difficulty": 1,
+    "sub_topic_id": "4.1"
   },
   {
     "domain_id": "domain4",
@@ -235,7 +248,8 @@
     "source_ref": "R1",
     "source_chapter": 4,
     "source_question_no": 326,
-    "difficulty": 1
+    "difficulty": 1,
+    "sub_topic_id": "4.2"
   },
   {
     "domain_id": "domain3",
@@ -252,7 +266,8 @@
     "source_ref": "R1",
     "source_chapter": 3,
     "source_question_no": 273,
-    "difficulty": 1
+    "difficulty": 1,
+    "sub_topic_id": "3.3"
   },
   {
     "domain_id": "domain4",
@@ -269,7 +284,8 @@
     "source_ref": "R1",
     "source_chapter": 4,
     "source_question_no": 413,
-    "difficulty": 1
+    "difficulty": 1,
+    "sub_topic_id": "4.6"
   },
   {
     "domain_id": "domain2",
@@ -286,7 +302,8 @@
     "source_ref": "R1",
     "source_chapter": 2,
     "source_question_no": 184,
-    "difficulty": 1
+    "difficulty": 1,
+    "sub_topic_id": "2.4"
   },
   {
     "domain_id": "domain4",
@@ -303,7 +320,8 @@
     "source_ref": "R1",
     "source_chapter": 4,
     "source_question_no": 387,
-    "difficulty": 1
+    "difficulty": 1,
+    "sub_topic_id": "4.4"
   },
   {
     "domain_id": "domain4",
@@ -320,7 +338,8 @@
     "source_ref": "R1",
     "source_chapter": 4,
     "source_question_no": 391,
-    "difficulty": 1
+    "difficulty": 1,
+    "sub_topic_id": "4.1"
   },
   {
     "domain_id": "domain1",
@@ -337,7 +356,8 @@
     "source_ref": "R1",
     "source_chapter": 1,
     "source_question_no": 24,
-    "difficulty": 1
+    "difficulty": 1,
+    "sub_topic_id": "1.2"
   },
   {
     "domain_id": "domain1",
@@ -354,7 +374,8 @@
     "source_ref": "R1",
     "source_chapter": 1,
     "source_question_no": 31,
-    "difficulty": 1
+    "difficulty": 1,
+    "sub_topic_id": "1.1"
   },
   {
     "domain_id": "domain1",
@@ -371,7 +392,8 @@
     "source_ref": "R1",
     "source_chapter": 1,
     "source_question_no": 97,
-    "difficulty": 1
+    "difficulty": 1,
+    "sub_topic_id": "1.4"
   },
   {
     "domain_id": "domain1",
@@ -388,7 +410,8 @@
     "source_ref": "R1",
     "source_chapter": 1,
     "source_question_no": 59,
-    "difficulty": 1
+    "difficulty": 1,
+    "sub_topic_id": "1.4"
   },
   {
     "domain_id": "domain4",
@@ -405,7 +428,8 @@
     "source_ref": "R1",
     "source_chapter": 4,
     "source_question_no": 329,
-    "difficulty": 1
+    "difficulty": 1,
+    "sub_topic_id": "4.1"
   },
   {
     "domain_id": "domain1",
@@ -422,7 +446,8 @@
     "source_ref": "R1",
     "source_chapter": 1,
     "source_question_no": 106,
-    "difficulty": 1
+    "difficulty": 1,
+    "sub_topic_id": "1.3"
   },
   {
     "domain_id": "domain1",
@@ -439,7 +464,8 @@
     "source_ref": "R1",
     "source_chapter": 1,
     "source_question_no": 93,
-    "difficulty": 1
+    "difficulty": 1,
+    "sub_topic_id": "1.4"
   },
   {
     "domain_id": "domain4",
@@ -456,7 +482,8 @@
     "source_ref": "R1",
     "source_chapter": 4,
     "source_question_no": 359,
-    "difficulty": 1
+    "difficulty": 1,
+    "sub_topic_id": "4.1"
   },
   {
     "domain_id": "domain5",
@@ -473,7 +500,8 @@
     "source_ref": "R1",
     "source_chapter": 5,
     "source_question_no": 523,
-    "difficulty": 1
+    "difficulty": 1,
+    "sub_topic_id": "5.5"
   },
   {
     "domain_id": "domain1",
@@ -490,7 +518,8 @@
     "source_ref": "R1",
     "source_chapter": 1,
     "source_question_no": 78,
-    "difficulty": 1
+    "difficulty": 1,
+    "sub_topic_id": "1.3"
   },
   {
     "domain_id": "domain5",
@@ -507,7 +536,8 @@
     "source_ref": "R1",
     "source_chapter": 5,
     "source_question_no": 487,
-    "difficulty": 1
+    "difficulty": 1,
+    "sub_topic_id": "5.2"
   },
   {
     "domain_id": "domain1",
@@ -524,7 +554,8 @@
     "source_ref": "R1",
     "source_chapter": 1,
     "source_question_no": 70,
-    "difficulty": 1
+    "difficulty": 1,
+    "sub_topic_id": "1.3"
   },
   {
     "domain_id": "domain1",
@@ -541,7 +572,8 @@
     "source_ref": "R1",
     "source_chapter": 1,
     "source_question_no": 71,
-    "difficulty": 1
+    "difficulty": 1,
+    "sub_topic_id": "1.4"
   },
   {
     "domain_id": "domain3",
@@ -558,7 +590,8 @@
     "source_ref": "R1",
     "source_chapter": 3,
     "source_question_no": 253,
-    "difficulty": 1
+    "difficulty": 1,
+    "sub_topic_id": "3.2"
   },
   {
     "domain_id": "domain2",
@@ -575,7 +608,8 @@
     "source_ref": "R1",
     "source_chapter": 2,
     "source_question_no": 189,
-    "difficulty": 1
+    "difficulty": 1,
+    "sub_topic_id": "2.4"
   },
   {
     "domain_id": "domain3",
@@ -592,7 +626,8 @@
     "source_ref": "R1",
     "source_chapter": 3,
     "source_question_no": 296,
-    "difficulty": 1
+    "difficulty": 1,
+    "sub_topic_id": "3.2"
   },
   {
     "domain_id": "domain3",
@@ -609,7 +644,8 @@
     "source_ref": "R1",
     "source_chapter": 3,
     "source_question_no": 243,
-    "difficulty": 1
+    "difficulty": 1,
+    "sub_topic_id": "3.1"
   },
   {
     "domain_id": "domain5",
@@ -626,7 +662,8 @@
     "source_ref": "R1",
     "source_chapter": 5,
     "source_question_no": 463,
-    "difficulty": 1
+    "difficulty": 1,
+    "sub_topic_id": "5.2"
   },
   {
     "domain_id": "domain1",
@@ -643,7 +680,8 @@
     "source_ref": "R1",
     "source_chapter": 1,
     "source_question_no": 102,
-    "difficulty": 1
+    "difficulty": 1,
+    "sub_topic_id": "1.4"
   },
   {
     "domain_id": "domain4",
@@ -660,7 +698,8 @@
     "source_ref": "R1",
     "source_chapter": 4,
     "source_question_no": 449,
-    "difficulty": 1
+    "difficulty": 1,
+    "sub_topic_id": "4.6"
   },
   {
     "domain_id": "domain1",
@@ -677,7 +716,8 @@
     "source_ref": "R1",
     "source_chapter": 1,
     "source_question_no": 60,
-    "difficulty": 1
+    "difficulty": 1,
+    "sub_topic_id": "1.4"
   },
   {
     "domain_id": "domain4",
@@ -694,7 +734,8 @@
     "source_ref": "R1",
     "source_chapter": 4,
     "source_question_no": 429,
-    "difficulty": 1
+    "difficulty": 1,
+    "sub_topic_id": "4.5"
   },
   {
     "domain_id": "domain4",
@@ -711,7 +752,8 @@
     "source_ref": "R1",
     "source_chapter": 4,
     "source_question_no": 335,
-    "difficulty": 1
+    "difficulty": 1,
+    "sub_topic_id": "4.3"
   },
   {
     "domain_id": "domain4",
@@ -728,7 +770,8 @@
     "source_ref": "R1",
     "source_chapter": 4,
     "source_question_no": 323,
-    "difficulty": 1
+    "difficulty": 1,
+    "sub_topic_id": "4.3"
   },
   {
     "domain_id": "domain1",
@@ -745,7 +788,8 @@
     "source_ref": "R1",
     "source_chapter": 1,
     "source_question_no": 99,
-    "difficulty": 1
+    "difficulty": 1,
+    "sub_topic_id": "1.4"
   },
   {
     "domain_id": "domain2",
@@ -762,7 +806,8 @@
     "source_ref": "R1",
     "source_chapter": 2,
     "source_question_no": 136,
-    "difficulty": 1
+    "difficulty": 1,
+    "sub_topic_id": "2.1"
   },
   {
     "domain_id": "domain2",
@@ -779,7 +824,8 @@
     "source_ref": "R1",
     "source_chapter": 2,
     "source_question_no": 147,
-    "difficulty": 1
+    "difficulty": 1,
+    "sub_topic_id": "2.2"
   },
   {
     "domain_id": "domain2",
@@ -796,7 +842,8 @@
     "source_ref": "R1",
     "source_chapter": 2,
     "source_question_no": 196,
-    "difficulty": 1
+    "difficulty": 1,
+    "sub_topic_id": "2.4"
   },
   {
     "domain_id": "domain4",
@@ -813,7 +860,8 @@
     "source_ref": "R1",
     "source_chapter": 4,
     "source_question_no": 341,
-    "difficulty": 1
+    "difficulty": 1,
+    "sub_topic_id": "4.1"
   },
   {
     "domain_id": "domain2",
@@ -830,7 +878,8 @@
     "source_ref": "R1",
     "source_chapter": 2,
     "source_question_no": 112,
-    "difficulty": 1
+    "difficulty": 1,
+    "sub_topic_id": "2.3"
   },
   {
     "domain_id": "domain2",
@@ -847,7 +896,8 @@
     "source_ref": "R1",
     "source_chapter": 2,
     "source_question_no": 126,
-    "difficulty": 1
+    "difficulty": 1,
+    "sub_topic_id": "2.2"
   },
   {
     "domain_id": "domain4",
@@ -864,7 +914,8 @@
     "source_ref": "R1",
     "source_chapter": 4,
     "source_question_no": 339,
-    "difficulty": 1
+    "difficulty": 1,
+    "sub_topic_id": "4.3"
   },
   {
     "domain_id": "domain4",
@@ -881,7 +932,8 @@
     "source_ref": "R1",
     "source_chapter": 4,
     "source_question_no": 372,
-    "difficulty": 1
+    "difficulty": 1,
+    "sub_topic_id": "4.1"
   },
   {
     "domain_id": "domain4",
@@ -898,7 +950,8 @@
     "source_ref": "R1",
     "source_chapter": 4,
     "source_question_no": 396,
-    "difficulty": 1
+    "difficulty": 1,
+    "sub_topic_id": "4.1"
   },
   {
     "domain_id": "domain2",
@@ -915,7 +968,8 @@
     "source_ref": "R1",
     "source_chapter": 2,
     "source_question_no": 146,
-    "difficulty": 1
+    "difficulty": 1,
+    "sub_topic_id": "2.1"
   },
   {
     "domain_id": "domain4",
@@ -932,7 +986,8 @@
     "source_ref": "R1",
     "source_chapter": 4,
     "source_question_no": 358,
-    "difficulty": 1
+    "difficulty": 1,
+    "sub_topic_id": "4.1"
   },
   {
     "domain_id": "domain2",
@@ -949,7 +1004,8 @@
     "source_ref": "R1",
     "source_chapter": 2,
     "source_question_no": 178,
-    "difficulty": 1
+    "difficulty": 1,
+    "sub_topic_id": "2.4"
   },
   {
     "domain_id": "domain4",
@@ -966,7 +1022,8 @@
     "source_ref": "R1",
     "source_chapter": 4,
     "source_question_no": 399,
-    "difficulty": 1
+    "difficulty": 1,
+    "sub_topic_id": "4.4"
   },
   {
     "domain_id": "domain3",
@@ -983,7 +1040,8 @@
     "source_ref": "R1",
     "source_chapter": 3,
     "source_question_no": 246,
-    "difficulty": 1
+    "difficulty": 1,
+    "sub_topic_id": "3.2"
   },
   {
     "domain_id": "domain4",
@@ -1000,7 +1058,8 @@
     "source_ref": "R1",
     "source_chapter": 4,
     "source_question_no": 453,
-    "difficulty": 1
+    "difficulty": 1,
+    "sub_topic_id": "4.9"
   },
   {
     "domain_id": "domain4",
@@ -1017,7 +1076,8 @@
     "source_ref": "R1",
     "source_chapter": 4,
     "source_question_no": 311,
-    "difficulty": 1
+    "difficulty": 1,
+    "sub_topic_id": "4.2"
   },
   {
     "domain_id": "domain5",
@@ -1034,7 +1094,8 @@
     "source_ref": "R1",
     "source_chapter": 5,
     "source_question_no": 530,
-    "difficulty": 1
+    "difficulty": 1,
+    "sub_topic_id": "5.5"
   },
   {
     "domain_id": "domain2",
@@ -1051,7 +1112,8 @@
     "source_ref": "R1",
     "source_chapter": 2,
     "source_question_no": 214,
-    "difficulty": 1
+    "difficulty": 1,
+    "sub_topic_id": "2.3"
   },
   {
     "domain_id": "domain1",
@@ -1068,7 +1130,8 @@
     "source_ref": "R1",
     "source_chapter": 1,
     "source_question_no": 101,
-    "difficulty": 1
+    "difficulty": 1,
+    "sub_topic_id": "1.4"
   },
   {
     "domain_id": "domain3",
@@ -1085,7 +1148,8 @@
     "source_ref": "R1",
     "source_chapter": 3,
     "source_question_no": 308,
-    "difficulty": 1
+    "difficulty": 1,
+    "sub_topic_id": "3.1"
   },
   {
     "domain_id": "domain4",
@@ -1102,7 +1166,8 @@
     "source_ref": "R1",
     "source_chapter": 4,
     "source_question_no": 395,
-    "difficulty": 1
+    "difficulty": 1,
+    "sub_topic_id": "4.3"
   },
   {
     "domain_id": "domain5",
@@ -1119,7 +1184,8 @@
     "source_ref": "R1",
     "source_chapter": 5,
     "source_question_no": 494,
-    "difficulty": 1
+    "difficulty": 1,
+    "sub_topic_id": "5.3"
   },
   {
     "domain_id": "domain3",
@@ -1136,7 +1202,8 @@
     "source_ref": "R1",
     "source_chapter": 3,
     "source_question_no": 288,
-    "difficulty": 1
+    "difficulty": 1,
+    "sub_topic_id": "3.4"
   },
   {
     "domain_id": "domain4",
@@ -1153,7 +1220,8 @@
     "source_ref": "R1",
     "source_chapter": 4,
     "source_question_no": 375,
-    "difficulty": 1
+    "difficulty": 1,
+    "sub_topic_id": "4.1"
   },
   {
     "domain_id": "domain4",
@@ -1170,7 +1238,8 @@
     "source_ref": "R1",
     "source_chapter": 4,
     "source_question_no": 420,
-    "difficulty": 1
+    "difficulty": 1,
+    "sub_topic_id": "4.3"
   },
   {
     "domain_id": "domain2",
@@ -1187,7 +1256,8 @@
     "source_ref": "R1",
     "source_chapter": 2,
     "source_question_no": 164,
-    "difficulty": 1
+    "difficulty": 1,
+    "sub_topic_id": "2.4"
   },
   {
     "domain_id": "domain2",
@@ -1204,7 +1274,8 @@
     "source_ref": "R1",
     "source_chapter": 2,
     "source_question_no": 176,
-    "difficulty": 1
+    "difficulty": 1,
+    "sub_topic_id": "2.4"
   },
   {
     "domain_id": "domain1",
@@ -1221,7 +1292,8 @@
     "source_ref": "R1",
     "source_chapter": 1,
     "source_question_no": 83,
-    "difficulty": 1
+    "difficulty": 1,
+    "sub_topic_id": "1.4"
   },
   {
     "domain_id": "domain4",
@@ -1238,7 +1310,8 @@
     "source_ref": "R1",
     "source_chapter": 4,
     "source_question_no": 333,
-    "difficulty": 1
+    "difficulty": 1,
+    "sub_topic_id": "4.3"
   },
   {
     "domain_id": "domain5",
@@ -1255,7 +1328,8 @@
     "source_ref": "R1",
     "source_chapter": 5,
     "source_question_no": 514,
-    "difficulty": 1
+    "difficulty": 1,
+    "sub_topic_id": "5.5"
   },
   {
     "domain_id": "domain4",
@@ -1272,7 +1346,8 @@
     "source_ref": "R1",
     "source_chapter": 4,
     "source_question_no": 343,
-    "difficulty": 1
+    "difficulty": 1,
+    "sub_topic_id": "4.3"
   },
   {
     "domain_id": "domain2",
@@ -1289,7 +1364,8 @@
     "source_ref": "R1",
     "source_chapter": 2,
     "source_question_no": 153,
-    "difficulty": 1
+    "difficulty": 1,
+    "sub_topic_id": "2.4"
   },
   {
     "domain_id": "domain3",
@@ -1306,7 +1382,8 @@
     "source_ref": "R1",
     "source_chapter": 3,
     "source_question_no": 277,
-    "difficulty": 1
+    "difficulty": 1,
+    "sub_topic_id": "3.1"
   },
   {
     "domain_id": "domain5",
@@ -1323,7 +1400,8 @@
     "source_ref": "R1",
     "source_chapter": 5,
     "source_question_no": 470,
-    "difficulty": 1
+    "difficulty": 1,
+    "sub_topic_id": "5.2"
   },
   {
     "domain_id": "domain5",
@@ -1340,7 +1418,8 @@
     "source_ref": "R1",
     "source_chapter": 5,
     "source_question_no": 531,
-    "difficulty": 1
+    "difficulty": 1,
+    "sub_topic_id": "5.4"
   },
   {
     "domain_id": "domain3",
@@ -1357,7 +1436,8 @@
     "source_ref": "R1",
     "source_chapter": 3,
     "source_question_no": 237,
-    "difficulty": 1
+    "difficulty": 1,
+    "sub_topic_id": "3.2"
   },
   {
     "domain_id": "domain5",
@@ -1374,7 +1454,8 @@
     "source_ref": "R1",
     "source_chapter": 5,
     "source_question_no": 466,
-    "difficulty": 1
+    "difficulty": 1,
+    "sub_topic_id": "5.2"
   },
   {
     "domain_id": "domain5",
@@ -1391,7 +1472,8 @@
     "source_ref": "R1",
     "source_chapter": 5,
     "source_question_no": 483,
-    "difficulty": 1
+    "difficulty": 1,
+    "sub_topic_id": "5.1"
   },
   {
     "domain_id": "domain2",
@@ -1408,7 +1490,8 @@
     "source_ref": "R1",
     "source_chapter": 2,
     "source_question_no": 169,
-    "difficulty": 1
+    "difficulty": 1,
+    "sub_topic_id": "2.1"
   },
   {
     "domain_id": "domain4",
@@ -1425,7 +1508,8 @@
     "source_ref": "R1",
     "source_chapter": 4,
     "source_question_no": 451,
-    "difficulty": 1
+    "difficulty": 1,
+    "sub_topic_id": "4.6"
   },
   {
     "domain_id": "domain1",
@@ -1442,7 +1526,8 @@
     "source_ref": "R1",
     "source_chapter": 1,
     "source_question_no": 94,
-    "difficulty": 1
+    "difficulty": 1,
+    "sub_topic_id": "1.4"
   },
   {
     "domain_id": "domain3",
@@ -1459,7 +1544,8 @@
     "source_ref": "R1",
     "source_chapter": 3,
     "source_question_no": 232,
-    "difficulty": 1
+    "difficulty": 1,
+    "sub_topic_id": "3.1"
   },
   {
     "domain_id": "domain4",
@@ -1476,7 +1562,8 @@
     "source_ref": "R1",
     "source_chapter": 4,
     "source_question_no": 386,
-    "difficulty": 1
+    "difficulty": 1,
+    "sub_topic_id": "4.5"
   },
   {
     "domain_id": "domain1",
@@ -1493,7 +1580,8 @@
     "source_ref": "R1",
     "source_chapter": 1,
     "source_question_no": 74,
-    "difficulty": 1
+    "difficulty": 1,
+    "sub_topic_id": "1.4"
   },
   {
     "domain_id": "domain1",
@@ -1510,7 +1598,8 @@
     "source_ref": "R1",
     "source_chapter": 1,
     "source_question_no": 76,
-    "difficulty": 1
+    "difficulty": 1,
+    "sub_topic_id": "1.4"
   },
   {
     "domain_id": "domain3",
@@ -1527,7 +1616,8 @@
     "source_ref": "R1",
     "source_chapter": 3,
     "source_question_no": 247,
-    "difficulty": 1
+    "difficulty": 1,
+    "sub_topic_id": "3.2"
   },
   {
     "domain_id": "domain1",
@@ -1544,7 +1634,8 @@
     "source_ref": "R1",
     "source_chapter": 1,
     "source_question_no": 80,
-    "difficulty": 1
+    "difficulty": 1,
+    "sub_topic_id": "1.4"
   },
   {
     "domain_id": "domain3",
@@ -1561,7 +1652,8 @@
     "source_ref": "R1",
     "source_chapter": 3,
     "source_question_no": 231,
-    "difficulty": 1
+    "difficulty": 1,
+    "sub_topic_id": "3.2"
   },
   {
     "domain_id": "domain4",
@@ -1578,7 +1670,8 @@
     "source_ref": "R1",
     "source_chapter": 4,
     "source_question_no": 355,
-    "difficulty": 1
+    "difficulty": 1,
+    "sub_topic_id": "4.2"
   },
   {
     "domain_id": "domain1",
@@ -1595,7 +1688,8 @@
     "source_ref": "R1",
     "source_chapter": 1,
     "source_question_no": 37,
-    "difficulty": 1
+    "difficulty": 1,
+    "sub_topic_id": "1.2"
   },
   {
     "domain_id": "domain3",
@@ -1612,7 +1706,8 @@
     "source_ref": "R1",
     "source_chapter": 3,
     "source_question_no": 238,
-    "difficulty": 1
+    "difficulty": 1,
+    "sub_topic_id": "3.1"
   },
   {
     "domain_id": "domain1",
@@ -1629,7 +1724,8 @@
     "source_ref": "R1",
     "source_chapter": 1,
     "source_question_no": 72,
-    "difficulty": 1
+    "difficulty": 1,
+    "sub_topic_id": "1.3"
   },
   {
     "domain_id": "domain3",
@@ -1646,7 +1742,8 @@
     "source_ref": "R1",
     "source_chapter": 3,
     "source_question_no": 270,
-    "difficulty": 1
+    "difficulty": 1,
+    "sub_topic_id": "3.2"
   },
   {
     "domain_id": "domain2",
@@ -1663,7 +1760,8 @@
     "source_ref": "R1",
     "source_chapter": 2,
     "source_question_no": 174,
-    "difficulty": 1
+    "difficulty": 1,
+    "sub_topic_id": "2.2"
   },
   {
     "domain_id": "domain3",
@@ -1680,7 +1778,8 @@
     "source_ref": "R1",
     "source_chapter": 3,
     "source_question_no": 241,
-    "difficulty": 1
+    "difficulty": 1,
+    "sub_topic_id": "3.4"
   },
   {
     "domain_id": "domain3",
@@ -1697,7 +1796,8 @@
     "source_ref": "R1",
     "source_chapter": 3,
     "source_question_no": 272,
-    "difficulty": 1
+    "difficulty": 1,
+    "sub_topic_id": "3.3"
   },
   {
     "domain_id": "domain5",
@@ -1714,7 +1814,8 @@
     "source_ref": "R1",
     "source_chapter": 5,
     "source_question_no": 492,
-    "difficulty": 1
+    "difficulty": 1,
+    "sub_topic_id": "5.3"
   },
   {
     "domain_id": "domain1",
@@ -1731,7 +1832,8 @@
     "source_ref": "R1",
     "source_chapter": 1,
     "source_question_no": 98,
-    "difficulty": 1
+    "difficulty": 1,
+    "sub_topic_id": "1.4"
   },
   {
     "domain_id": "domain5",
@@ -1748,7 +1850,8 @@
     "source_ref": "R1",
     "source_chapter": 5,
     "source_question_no": 482,
-    "difficulty": 1
+    "difficulty": 1,
+    "sub_topic_id": "5.3"
   },
   {
     "domain_id": "domain1",
@@ -1765,7 +1868,8 @@
     "source_ref": "R1",
     "source_chapter": 1,
     "source_question_no": 47,
-    "difficulty": 1
+    "difficulty": 1,
+    "sub_topic_id": "1.2"
   },
   {
     "domain_id": "domain3",
@@ -1782,7 +1886,8 @@
     "source_ref": "R1",
     "source_chapter": 3,
     "source_question_no": 221,
-    "difficulty": 1
+    "difficulty": 1,
+    "sub_topic_id": "3.2"
   },
   {
     "domain_id": "domain5",
@@ -1799,7 +1904,8 @@
     "source_ref": "R1",
     "source_chapter": 5,
     "source_question_no": 511,
-    "difficulty": 1
+    "difficulty": 1,
+    "sub_topic_id": "5.4"
   },
   {
     "domain_id": "domain3",
@@ -1816,7 +1922,8 @@
     "source_ref": "R1",
     "source_chapter": 3,
     "source_question_no": 276,
-    "difficulty": 1
+    "difficulty": 1,
+    "sub_topic_id": "3.3"
   },
   {
     "domain_id": "domain2",
@@ -1833,7 +1940,8 @@
     "source_ref": "R1",
     "source_chapter": 2,
     "source_question_no": 209,
-    "difficulty": 1
+    "difficulty": 1,
+    "sub_topic_id": "2.4"
   },
   {
     "domain_id": "domain4",
@@ -1850,7 +1958,8 @@
     "source_ref": "R1",
     "source_chapter": 4,
     "source_question_no": 452,
-    "difficulty": 2
+    "difficulty": 2,
+    "sub_topic_id": "4.8"
   },
   {
     "domain_id": "domain1",
@@ -1867,7 +1976,8 @@
     "source_ref": "R1",
     "source_chapter": 1,
     "source_question_no": 56,
-    "difficulty": 2
+    "difficulty": 2,
+    "sub_topic_id": "1.3"
   },
   {
     "domain_id": "domain2",
@@ -1884,7 +1994,8 @@
     "source_ref": "R1",
     "source_chapter": 2,
     "source_question_no": 124,
-    "difficulty": 2
+    "difficulty": 2,
+    "sub_topic_id": "2.2"
   },
   {
     "domain_id": "domain4",
@@ -1901,7 +2012,8 @@
     "source_ref": "R1",
     "source_chapter": 4,
     "source_question_no": 427,
-    "difficulty": 2
+    "difficulty": 2,
+    "sub_topic_id": "4.6"
   },
   {
     "domain_id": "domain1",
@@ -1918,7 +2030,8 @@
     "source_ref": "R1",
     "source_chapter": 1,
     "source_question_no": 90,
-    "difficulty": 2
+    "difficulty": 2,
+    "sub_topic_id": "1.4"
   },
   {
     "domain_id": "domain4",
@@ -1935,7 +2048,8 @@
     "source_ref": "R1",
     "source_chapter": 4,
     "source_question_no": 348,
-    "difficulty": 2
+    "difficulty": 2,
+    "sub_topic_id": "4.1"
   },
   {
     "domain_id": "domain1",
@@ -1952,7 +2066,8 @@
     "source_ref": "R1",
     "source_chapter": 1,
     "source_question_no": 67,
-    "difficulty": 2
+    "difficulty": 2,
+    "sub_topic_id": "1.4"
   },
   {
     "domain_id": "domain5",
@@ -1969,7 +2084,8 @@
     "source_ref": "R1",
     "source_chapter": 5,
     "source_question_no": 476,
-    "difficulty": 2
+    "difficulty": 2,
+    "sub_topic_id": "5.2"
   },
   {
     "domain_id": "domain5",
@@ -1986,7 +2102,8 @@
     "source_ref": "R1",
     "source_chapter": 5,
     "source_question_no": 497,
-    "difficulty": 2
+    "difficulty": 2,
+    "sub_topic_id": "5.3"
   },
   {
     "domain_id": "domain4",
@@ -2003,7 +2120,8 @@
     "source_ref": "R1",
     "source_chapter": 4,
     "source_question_no": 319,
-    "difficulty": 2
+    "difficulty": 2,
+    "sub_topic_id": "4.3"
   },
   {
     "domain_id": "domain3",
@@ -2020,7 +2138,8 @@
     "source_ref": "R1",
     "source_chapter": 3,
     "source_question_no": 307,
-    "difficulty": 2
+    "difficulty": 2,
+    "sub_topic_id": "3.4"
   },
   {
     "domain_id": "domain4",
@@ -2037,7 +2156,8 @@
     "source_ref": "R1",
     "source_chapter": 4,
     "source_question_no": 403,
-    "difficulty": 2
+    "difficulty": 2,
+    "sub_topic_id": "4.6"
   },
   {
     "domain_id": "domain1",
@@ -2054,7 +2174,8 @@
     "source_ref": "R1",
     "source_chapter": 1,
     "source_question_no": 17,
-    "difficulty": 2
+    "difficulty": 2,
+    "sub_topic_id": "1.1"
   },
   {
     "domain_id": "domain3",
@@ -2071,7 +2192,8 @@
     "source_ref": "R1",
     "source_chapter": 3,
     "source_question_no": 269,
-    "difficulty": 2
+    "difficulty": 2,
+    "sub_topic_id": "3.1"
   },
   {
     "domain_id": "domain5",
@@ -2088,7 +2210,8 @@
     "source_ref": "R1",
     "source_chapter": 5,
     "source_question_no": 498,
-    "difficulty": 2
+    "difficulty": 2,
+    "sub_topic_id": "5.2"
   },
   {
     "domain_id": "domain3",
@@ -2105,7 +2228,8 @@
     "source_ref": "R1",
     "source_chapter": 3,
     "source_question_no": 309,
-    "difficulty": 2
+    "difficulty": 2,
+    "sub_topic_id": "3.1"
   },
   {
     "domain_id": "domain1",
@@ -2122,7 +2246,8 @@
     "source_ref": "R1",
     "source_chapter": 1,
     "source_question_no": 82,
-    "difficulty": 2
+    "difficulty": 2,
+    "sub_topic_id": "1.2"
   },
   {
     "domain_id": "domain4",
@@ -2139,7 +2264,8 @@
     "source_ref": "R1",
     "source_chapter": 4,
     "source_question_no": 407,
-    "difficulty": 2
+    "difficulty": 2,
+    "sub_topic_id": "4.4"
   },
   {
     "domain_id": "domain3",
@@ -2156,7 +2282,8 @@
     "source_ref": "R1",
     "source_chapter": 3,
     "source_question_no": 301,
-    "difficulty": 2
+    "difficulty": 2,
+    "sub_topic_id": "3.3"
   },
   {
     "domain_id": "domain3",
@@ -2173,7 +2300,8 @@
     "source_ref": "R1",
     "source_chapter": 3,
     "source_question_no": 251,
-    "difficulty": 2
+    "difficulty": 2,
+    "sub_topic_id": "3.1"
   },
   {
     "domain_id": "domain4",
@@ -2190,7 +2318,8 @@
     "source_ref": "R1",
     "source_chapter": 4,
     "source_question_no": 322,
-    "difficulty": 2
+    "difficulty": 2,
+    "sub_topic_id": "4.1"
   },
   {
     "domain_id": "domain2",
@@ -2207,7 +2336,8 @@
     "source_ref": "R1",
     "source_chapter": 2,
     "source_question_no": 167,
-    "difficulty": 2
+    "difficulty": 2,
+    "sub_topic_id": "2.3"
   },
   {
     "domain_id": "domain4",
@@ -2224,7 +2354,8 @@
     "source_ref": "R1",
     "source_chapter": 4,
     "source_question_no": 421,
-    "difficulty": 2
+    "difficulty": 2,
+    "sub_topic_id": "4.6"
   },
   {
     "domain_id": "domain3",
@@ -2241,7 +2372,8 @@
     "source_ref": "R1",
     "source_chapter": 3,
     "source_question_no": 279,
-    "difficulty": 2
+    "difficulty": 2,
+    "sub_topic_id": "3.1"
   },
   {
     "domain_id": "domain4",
@@ -2258,7 +2390,8 @@
     "source_ref": "R1",
     "source_chapter": 4,
     "source_question_no": 318,
-    "difficulty": 2
+    "difficulty": 2,
+    "sub_topic_id": "4.6"
   },
   {
     "domain_id": "domain3",
@@ -2275,7 +2408,8 @@
     "source_ref": "R1",
     "source_chapter": 3,
     "source_question_no": 274,
-    "difficulty": 2
+    "difficulty": 2,
+    "sub_topic_id": "3.1"
   },
   {
     "domain_id": "domain3",
@@ -2292,7 +2426,8 @@
     "source_ref": "R1",
     "source_chapter": 3,
     "source_question_no": 257,
-    "difficulty": 2
+    "difficulty": 2,
+    "sub_topic_id": "3.1"
   },
   {
     "domain_id": "domain3",
@@ -2309,7 +2444,8 @@
     "source_ref": "R1",
     "source_chapter": 3,
     "source_question_no": 244,
-    "difficulty": 2
+    "difficulty": 2,
+    "sub_topic_id": "3.2"
   },
   {
     "domain_id": "domain4",
@@ -2326,7 +2462,8 @@
     "source_ref": "R1",
     "source_chapter": 4,
     "source_question_no": 405,
-    "difficulty": 2
+    "difficulty": 2,
+    "sub_topic_id": "4.3"
   },
   {
     "domain_id": "domain5",
@@ -2343,7 +2480,8 @@
     "source_ref": "R1",
     "source_chapter": 5,
     "source_question_no": 525,
-    "difficulty": 2
+    "difficulty": 2,
+    "sub_topic_id": "5.5"
   },
   {
     "domain_id": "domain1",
@@ -2360,7 +2498,8 @@
     "source_ref": "R1",
     "source_chapter": 1,
     "source_question_no": 35,
-    "difficulty": 2
+    "difficulty": 2,
+    "sub_topic_id": "1.2"
   },
   {
     "domain_id": "domain1",
@@ -2377,7 +2516,8 @@
     "source_ref": "R1",
     "source_chapter": 1,
     "source_question_no": 49,
-    "difficulty": 2
+    "difficulty": 2,
+    "sub_topic_id": "1.1"
   },
   {
     "domain_id": "domain1",
@@ -2394,7 +2534,8 @@
     "source_ref": "R1",
     "source_chapter": 1,
     "source_question_no": 1,
-    "difficulty": 2
+    "difficulty": 2,
+    "sub_topic_id": "1.2"
   },
   {
     "domain_id": "domain3",
@@ -2411,7 +2552,8 @@
     "source_ref": "R1",
     "source_chapter": 3,
     "source_question_no": 227,
-    "difficulty": 2
+    "difficulty": 2,
+    "sub_topic_id": "3.2"
   },
   {
     "domain_id": "domain4",
@@ -2428,7 +2570,8 @@
     "source_ref": "R1",
     "source_chapter": 4,
     "source_question_no": 406,
-    "difficulty": 2
+    "difficulty": 2,
+    "sub_topic_id": "4.1"
   },
   {
     "domain_id": "domain3",
@@ -2445,7 +2588,8 @@
     "source_ref": "R1",
     "source_chapter": 3,
     "source_question_no": 298,
-    "difficulty": 2
+    "difficulty": 2,
+    "sub_topic_id": "3.2"
   },
   {
     "domain_id": "domain2",
@@ -2462,7 +2606,8 @@
     "source_ref": "R1",
     "source_chapter": 2,
     "source_question_no": 203,
-    "difficulty": 2
+    "difficulty": 2,
+    "sub_topic_id": "2.4"
   },
   {
     "domain_id": "domain3",
@@ -2479,7 +2624,8 @@
     "source_ref": "R1",
     "source_chapter": 3,
     "source_question_no": 291,
-    "difficulty": 2
+    "difficulty": 2,
+    "sub_topic_id": "3.3"
   },
   {
     "domain_id": "domain5",
@@ -2496,7 +2642,8 @@
     "source_ref": "R1",
     "source_chapter": 5,
     "source_question_no": 474,
-    "difficulty": 2
+    "difficulty": 2,
+    "sub_topic_id": "5.3"
   },
   {
     "domain_id": "domain4",
@@ -2513,7 +2660,8 @@
     "source_ref": "R1",
     "source_chapter": 4,
     "source_question_no": 312,
-    "difficulty": 2
+    "difficulty": 2,
+    "sub_topic_id": "4.2"
   },
   {
     "domain_id": "domain5",
@@ -2530,7 +2678,8 @@
     "source_ref": "R1",
     "source_chapter": 5,
     "source_question_no": 499,
-    "difficulty": 2
+    "difficulty": 2,
+    "sub_topic_id": "5.2"
   },
   {
     "domain_id": "domain4",
@@ -2547,7 +2696,8 @@
     "source_ref": "R1",
     "source_chapter": 4,
     "source_question_no": 392,
-    "difficulty": 2
+    "difficulty": 2,
+    "sub_topic_id": "4.1"
   },
   {
     "domain_id": "domain4",
@@ -2564,7 +2714,8 @@
     "source_ref": "R1",
     "source_chapter": 4,
     "source_question_no": 394,
-    "difficulty": 2
+    "difficulty": 2,
+    "sub_topic_id": "4.4"
   },
   {
     "domain_id": "domain1",
@@ -2581,7 +2732,8 @@
     "source_ref": "R1",
     "source_chapter": 1,
     "source_question_no": 73,
-    "difficulty": 2
+    "difficulty": 2,
+    "sub_topic_id": "1.4"
   },
   {
     "domain_id": "domain3",
@@ -2598,7 +2750,8 @@
     "source_ref": "R1",
     "source_chapter": 3,
     "source_question_no": 295,
-    "difficulty": 2
+    "difficulty": 2,
+    "sub_topic_id": "3.3"
   },
   {
     "domain_id": "domain5",
@@ -2615,7 +2768,8 @@
     "source_ref": "R1",
     "source_chapter": 5,
     "source_question_no": 501,
-    "difficulty": 2
+    "difficulty": 2,
+    "sub_topic_id": "5.1"
   },
   {
     "domain_id": "domain3",
@@ -2632,7 +2786,8 @@
     "source_ref": "R1",
     "source_chapter": 3,
     "source_question_no": 304,
-    "difficulty": 2
+    "difficulty": 2,
+    "sub_topic_id": "3.4"
   },
   {
     "domain_id": "domain5",
@@ -2649,7 +2804,8 @@
     "source_ref": "R1",
     "source_chapter": 5,
     "source_question_no": 538,
-    "difficulty": 2
+    "difficulty": 2,
+    "sub_topic_id": "5.1"
   },
   {
     "domain_id": "domain1",
@@ -2666,7 +2822,8 @@
     "source_ref": "R1",
     "source_chapter": 1,
     "source_question_no": 105,
-    "difficulty": 2
+    "difficulty": 2,
+    "sub_topic_id": "1.4"
   },
   {
     "domain_id": "domain5",
@@ -2683,7 +2840,8 @@
     "source_ref": "R1",
     "source_chapter": 5,
     "source_question_no": 519,
-    "difficulty": 2
+    "difficulty": 2,
+    "sub_topic_id": "5.1"
   },
   {
     "domain_id": "domain3",
@@ -2700,7 +2858,8 @@
     "source_ref": "R1",
     "source_chapter": 3,
     "source_question_no": 300,
-    "difficulty": 2
+    "difficulty": 2,
+    "sub_topic_id": "3.3"
   },
   {
     "domain_id": "domain4",
@@ -2717,7 +2876,8 @@
     "source_ref": "R1",
     "source_chapter": 4,
     "source_question_no": 347,
-    "difficulty": 2
+    "difficulty": 2,
+    "sub_topic_id": "4.7"
   },
   {
     "domain_id": "domain5",
@@ -2734,7 +2894,8 @@
     "source_ref": "R1",
     "source_chapter": 5,
     "source_question_no": 486,
-    "difficulty": 2
+    "difficulty": 2,
+    "sub_topic_id": "5.2"
   },
   {
     "domain_id": "domain1",
@@ -2751,7 +2912,8 @@
     "source_ref": "R1",
     "source_chapter": 1,
     "source_question_no": 95,
-    "difficulty": 2
+    "difficulty": 2,
+    "sub_topic_id": "1.4"
   },
   {
     "domain_id": "domain1",
@@ -2768,7 +2930,8 @@
     "source_ref": "R1",
     "source_chapter": 1,
     "source_question_no": 109,
-    "difficulty": 2
+    "difficulty": 2,
+    "sub_topic_id": "1.4"
   },
   {
     "domain_id": "domain1",
@@ -2785,7 +2948,8 @@
     "source_ref": "R1",
     "source_chapter": 1,
     "source_question_no": 14,
-    "difficulty": 2
+    "difficulty": 2,
+    "sub_topic_id": "1.1"
   },
   {
     "domain_id": "domain3",
@@ -2802,7 +2966,8 @@
     "source_ref": "R1",
     "source_chapter": 3,
     "source_question_no": 262,
-    "difficulty": 2
+    "difficulty": 2,
+    "sub_topic_id": "3.1"
   },
   {
     "domain_id": "domain1",
@@ -2819,7 +2984,8 @@
     "source_ref": "R1",
     "source_chapter": 1,
     "source_question_no": 62,
-    "difficulty": 2
+    "difficulty": 2,
+    "sub_topic_id": "1.4"
   },
   {
     "domain_id": "domain1",
@@ -2836,7 +3002,8 @@
     "source_ref": "R1",
     "source_chapter": 1,
     "source_question_no": 69,
-    "difficulty": 2
+    "difficulty": 2,
+    "sub_topic_id": "1.4"
   },
   {
     "domain_id": "domain4",
@@ -2853,7 +3020,8 @@
     "source_ref": "R1",
     "source_chapter": 4,
     "source_question_no": 327,
-    "difficulty": 2
+    "difficulty": 2,
+    "sub_topic_id": "4.1"
   },
   {
     "domain_id": "domain3",
@@ -2870,7 +3038,8 @@
     "source_ref": "R1",
     "source_chapter": 3,
     "source_question_no": 236,
-    "difficulty": 2
+    "difficulty": 2,
+    "sub_topic_id": "3.2"
   },
   {
     "domain_id": "domain2",
@@ -2887,7 +3056,8 @@
     "source_ref": "R1",
     "source_chapter": 2,
     "source_question_no": 220,
-    "difficulty": 2
+    "difficulty": 2,
+    "sub_topic_id": "2.4"
   },
   {
     "domain_id": "domain2",
@@ -2904,7 +3074,8 @@
     "source_ref": "R1",
     "source_chapter": 2,
     "source_question_no": 158,
-    "difficulty": 2
+    "difficulty": 2,
+    "sub_topic_id": "2.4"
   },
   {
     "domain_id": "domain2",
@@ -2921,7 +3092,8 @@
     "source_ref": "R1",
     "source_chapter": 2,
     "source_question_no": 177,
-    "difficulty": 2
+    "difficulty": 2,
+    "sub_topic_id": "2.4"
   },
   {
     "domain_id": "domain3",
@@ -2938,7 +3110,8 @@
     "source_ref": "R1",
     "source_chapter": 3,
     "source_question_no": 275,
-    "difficulty": 2
+    "difficulty": 2,
+    "sub_topic_id": "3.4"
   },
   {
     "domain_id": "domain4",
@@ -2955,7 +3128,8 @@
     "source_ref": "R1",
     "source_chapter": 4,
     "source_question_no": 368,
-    "difficulty": 2
+    "difficulty": 2,
+    "sub_topic_id": "4.3"
   },
   {
     "domain_id": "domain4",
@@ -2972,7 +3146,8 @@
     "source_ref": "R1",
     "source_chapter": 4,
     "source_question_no": 321,
-    "difficulty": 2
+    "difficulty": 2,
+    "sub_topic_id": "4.2"
   },
   {
     "domain_id": "domain4",
@@ -2989,7 +3164,8 @@
     "source_ref": "R1",
     "source_chapter": 4,
     "source_question_no": 402,
-    "difficulty": 2
+    "difficulty": 2,
+    "sub_topic_id": "4.5"
   },
   {
     "domain_id": "domain2",
@@ -3006,7 +3182,8 @@
     "source_ref": "R1",
     "source_chapter": 2,
     "source_question_no": 180,
-    "difficulty": 2
+    "difficulty": 2,
+    "sub_topic_id": "2.2"
   },
   {
     "domain_id": "domain3",
@@ -3023,7 +3200,8 @@
     "source_ref": "R1",
     "source_chapter": 3,
     "source_question_no": 303,
-    "difficulty": 2
+    "difficulty": 2,
+    "sub_topic_id": "3.1"
   },
   {
     "domain_id": "domain2",
@@ -3040,7 +3218,8 @@
     "source_ref": "R1",
     "source_chapter": 2,
     "source_question_no": 212,
-    "difficulty": 2
+    "difficulty": 2,
+    "sub_topic_id": "2.3"
   },
   {
     "domain_id": "domain4",
@@ -3057,7 +3236,8 @@
     "source_ref": "R1",
     "source_chapter": 4,
     "source_question_no": 438,
-    "difficulty": 2
+    "difficulty": 2,
+    "sub_topic_id": "4.8"
   },
   {
     "domain_id": "domain4",
@@ -3074,7 +3254,8 @@
     "source_ref": "R1",
     "source_chapter": 4,
     "source_question_no": 457,
-    "difficulty": 2
+    "difficulty": 2,
+    "sub_topic_id": "4.1"
   },
   {
     "domain_id": "domain2",
@@ -3091,7 +3272,8 @@
     "source_ref": "R1",
     "source_chapter": 2,
     "source_question_no": 193,
-    "difficulty": 2
+    "difficulty": 2,
+    "sub_topic_id": "2.4"
   },
   {
     "domain_id": "domain5",
@@ -3108,7 +3290,8 @@
     "source_ref": "R1",
     "source_chapter": 5,
     "source_question_no": 465,
-    "difficulty": 2
+    "difficulty": 2,
+    "sub_topic_id": "5.2"
   },
   {
     "domain_id": "domain2",
@@ -3125,7 +3308,8 @@
     "source_ref": "R1",
     "source_chapter": 2,
     "source_question_no": 117,
-    "difficulty": 2
+    "difficulty": 2,
+    "sub_topic_id": "2.2"
   },
   {
     "domain_id": "domain3",
@@ -3142,7 +3326,8 @@
     "source_ref": "R1",
     "source_chapter": 3,
     "source_question_no": 290,
-    "difficulty": 2
+    "difficulty": 2,
+    "sub_topic_id": "3.4"
   },
   {
     "domain_id": "domain1",
@@ -3159,7 +3344,8 @@
     "source_ref": "R1",
     "source_chapter": 1,
     "source_question_no": 10,
-    "difficulty": 2
+    "difficulty": 2,
+    "sub_topic_id": "1.1"
   },
   {
     "domain_id": "domain1",
@@ -3176,7 +3362,8 @@
     "source_ref": "R1",
     "source_chapter": 1,
     "source_question_no": 40,
-    "difficulty": 2
+    "difficulty": 2,
+    "sub_topic_id": "1.1"
   },
   {
     "domain_id": "domain3",
@@ -3193,7 +3380,8 @@
     "source_ref": "R1",
     "source_chapter": 3,
     "source_question_no": 266,
-    "difficulty": 2
+    "difficulty": 2,
+    "sub_topic_id": "3.1"
   },
   {
     "domain_id": "domain5",
@@ -3210,7 +3398,8 @@
     "source_ref": "R1",
     "source_chapter": 5,
     "source_question_no": 493,
-    "difficulty": 2
+    "difficulty": 2,
+    "sub_topic_id": "5.2"
   },
   {
     "domain_id": "domain2",
@@ -3227,7 +3416,8 @@
     "source_ref": "R1",
     "source_chapter": 2,
     "source_question_no": 140,
-    "difficulty": 2
+    "difficulty": 2,
+    "sub_topic_id": "2.1"
   },
   {
     "domain_id": "domain5",
@@ -3244,7 +3434,8 @@
     "source_ref": "R1",
     "source_chapter": 5,
     "source_question_no": 513,
-    "difficulty": 2
+    "difficulty": 2,
+    "sub_topic_id": "5.5"
   },
   {
     "domain_id": "domain1",
@@ -3261,7 +3452,8 @@
     "source_ref": "R1",
     "source_chapter": 1,
     "source_question_no": 66,
-    "difficulty": 2
+    "difficulty": 2,
+    "sub_topic_id": "1.4"
   },
   {
     "domain_id": "domain1",
@@ -3278,7 +3470,8 @@
     "source_ref": "R1",
     "source_chapter": 1,
     "source_question_no": 79,
-    "difficulty": 2
+    "difficulty": 2,
+    "sub_topic_id": "1.4"
   },
   {
     "domain_id": "domain3",
@@ -3295,7 +3488,8 @@
     "source_ref": "R1",
     "source_chapter": 3,
     "source_question_no": 260,
-    "difficulty": 2
+    "difficulty": 2,
+    "sub_topic_id": "3.1"
   },
   {
     "domain_id": "domain5",
@@ -3312,7 +3506,8 @@
     "source_ref": "R1",
     "source_chapter": 5,
     "source_question_no": 508,
-    "difficulty": 2
+    "difficulty": 2,
+    "sub_topic_id": "5.2"
   },
   {
     "domain_id": "domain2",
@@ -3329,7 +3524,8 @@
     "source_ref": "R1",
     "source_chapter": 2,
     "source_question_no": 150,
-    "difficulty": 2
+    "difficulty": 2,
+    "sub_topic_id": "2.1"
   },
   {
     "domain_id": "domain3",
@@ -3346,7 +3542,8 @@
     "source_ref": "R1",
     "source_chapter": 3,
     "source_question_no": 258,
-    "difficulty": 2
+    "difficulty": 2,
+    "sub_topic_id": "3.3"
   },
   {
     "domain_id": "domain2",
@@ -3363,7 +3560,8 @@
     "source_ref": "R1",
     "source_chapter": 2,
     "source_question_no": 182,
-    "difficulty": 2
+    "difficulty": 2,
+    "sub_topic_id": "2.3"
   },
   {
     "domain_id": "domain3",
@@ -3380,7 +3578,8 @@
     "source_ref": "R1",
     "source_chapter": 3,
     "source_question_no": 305,
-    "difficulty": 2
+    "difficulty": 2,
+    "sub_topic_id": "3.4"
   },
   {
     "domain_id": "domain1",
@@ -3397,7 +3596,8 @@
     "source_ref": "R1",
     "source_chapter": 1,
     "source_question_no": 63,
-    "difficulty": 2
+    "difficulty": 2,
+    "sub_topic_id": "1.4"
   },
   {
     "domain_id": "domain4",
@@ -3414,7 +3614,8 @@
     "source_ref": "R1",
     "source_chapter": 4,
     "source_question_no": 344,
-    "difficulty": 2
+    "difficulty": 2,
+    "sub_topic_id": "4.1"
   },
   {
     "domain_id": "domain1",
@@ -3431,7 +3632,8 @@
     "source_ref": "R1",
     "source_chapter": 1,
     "source_question_no": 68,
-    "difficulty": 2
+    "difficulty": 2,
+    "sub_topic_id": "1.4"
   },
   {
     "domain_id": "domain3",
@@ -3448,7 +3650,8 @@
     "source_ref": "R1",
     "source_chapter": 3,
     "source_question_no": 224,
-    "difficulty": 2
+    "difficulty": 2,
+    "sub_topic_id": "3.1"
   },
   {
     "domain_id": "domain4",
@@ -3465,7 +3668,8 @@
     "source_ref": "R1",
     "source_chapter": 4,
     "source_question_no": 410,
-    "difficulty": 2
+    "difficulty": 2,
+    "sub_topic_id": "4.4"
   },
   {
     "domain_id": "domain1",
@@ -3482,7 +3686,8 @@
     "source_ref": "R1",
     "source_chapter": 1,
     "source_question_no": 52,
-    "difficulty": 2
+    "difficulty": 2,
+    "sub_topic_id": "1.2"
   },
   {
     "domain_id": "domain3",
@@ -3499,7 +3704,8 @@
     "source_ref": "R1",
     "source_chapter": 3,
     "source_question_no": 264,
-    "difficulty": 2
+    "difficulty": 2,
+    "sub_topic_id": "3.1"
   },
   {
     "domain_id": "domain2",
@@ -3516,7 +3722,8 @@
     "source_ref": "R1",
     "source_chapter": 2,
     "source_question_no": 157,
-    "difficulty": 2
+    "difficulty": 2,
+    "sub_topic_id": "2.1"
   },
   {
     "domain_id": "domain2",
@@ -3533,7 +3740,8 @@
     "source_ref": "R1",
     "source_chapter": 2,
     "source_question_no": 115,
-    "difficulty": 2
+    "difficulty": 2,
+    "sub_topic_id": "2.1"
   },
   {
     "domain_id": "domain5",
@@ -3550,7 +3758,8 @@
     "source_ref": "R1",
     "source_chapter": 5,
     "source_question_no": 520,
-    "difficulty": 2
+    "difficulty": 2,
+    "sub_topic_id": "5.4"
   },
   {
     "domain_id": "domain4",
@@ -3567,7 +3776,8 @@
     "source_ref": "R1",
     "source_chapter": 4,
     "source_question_no": 357,
-    "difficulty": 2
+    "difficulty": 2,
+    "sub_topic_id": "4.5"
   },
   {
     "domain_id": "domain5",
@@ -3584,7 +3794,8 @@
     "source_ref": "R1",
     "source_chapter": 5,
     "source_question_no": 537,
-    "difficulty": 2
+    "difficulty": 2,
+    "sub_topic_id": "5.5"
   },
   {
     "domain_id": "domain4",
@@ -3601,7 +3812,8 @@
     "source_ref": "R1",
     "source_chapter": 4,
     "source_question_no": 342,
-    "difficulty": 2
+    "difficulty": 2,
+    "sub_topic_id": "4.3"
   },
   {
     "domain_id": "domain4",
@@ -3618,7 +3830,8 @@
     "source_ref": "R1",
     "source_chapter": 4,
     "source_question_no": 345,
-    "difficulty": 2
+    "difficulty": 2,
+    "sub_topic_id": "4.1"
   },
   {
     "domain_id": "domain4",
@@ -3635,7 +3848,8 @@
     "source_ref": "R1",
     "source_chapter": 4,
     "source_question_no": 369,
-    "difficulty": 2
+    "difficulty": 2,
+    "sub_topic_id": "4.4"
   },
   {
     "domain_id": "domain2",
@@ -3652,7 +3866,8 @@
     "source_ref": "R1",
     "source_chapter": 2,
     "source_question_no": 219,
-    "difficulty": 2
+    "difficulty": 2,
+    "sub_topic_id": "2.3"
   },
   {
     "domain_id": "domain4",
@@ -3669,7 +3884,8 @@
     "source_ref": "R1",
     "source_chapter": 4,
     "source_question_no": 320,
-    "difficulty": 2
+    "difficulty": 2,
+    "sub_topic_id": "4.3"
   },
   {
     "domain_id": "domain2",
@@ -3686,7 +3902,8 @@
     "source_ref": "R1",
     "source_chapter": 2,
     "source_question_no": 181,
-    "difficulty": 3
+    "difficulty": 3,
+    "sub_topic_id": "2.1"
   },
   {
     "domain_id": "domain2",
@@ -3703,7 +3920,8 @@
     "source_ref": "R1",
     "source_chapter": 2,
     "source_question_no": 202,
-    "difficulty": 3
+    "difficulty": 3,
+    "sub_topic_id": "2.4"
   },
   {
     "domain_id": "domain3",
@@ -3720,7 +3938,8 @@
     "source_ref": "R1",
     "source_chapter": 3,
     "source_question_no": 285,
-    "difficulty": 3
+    "difficulty": 3,
+    "sub_topic_id": "3.4"
   },
   {
     "domain_id": "domain3",
@@ -3737,7 +3956,8 @@
     "source_ref": "R1",
     "source_chapter": 3,
     "source_question_no": 282,
-    "difficulty": 3
+    "difficulty": 3,
+    "sub_topic_id": "3.2"
   },
   {
     "domain_id": "domain4",
@@ -3754,7 +3974,8 @@
     "source_ref": "R1",
     "source_chapter": 4,
     "source_question_no": 374,
-    "difficulty": 3
+    "difficulty": 3,
+    "sub_topic_id": "4.1"
   },
   {
     "domain_id": "domain4",
@@ -3771,7 +3992,8 @@
     "source_ref": "R1",
     "source_chapter": 4,
     "source_question_no": 385,
-    "difficulty": 3
+    "difficulty": 3,
+    "sub_topic_id": "4.3"
   },
   {
     "domain_id": "domain4",
@@ -3788,7 +4010,8 @@
     "source_ref": "R1",
     "source_chapter": 4,
     "source_question_no": 433,
-    "difficulty": 3
+    "difficulty": 3,
+    "sub_topic_id": "4.2"
   },
   {
     "domain_id": "domain3",
@@ -3805,7 +4028,8 @@
     "source_ref": "R1",
     "source_chapter": 3,
     "source_question_no": 261,
-    "difficulty": 3
+    "difficulty": 3,
+    "sub_topic_id": "3.1"
   },
   {
     "domain_id": "domain3",
@@ -3822,7 +4046,8 @@
     "source_ref": "R1",
     "source_chapter": 3,
     "source_question_no": 268,
-    "difficulty": 3
+    "difficulty": 3,
+    "sub_topic_id": "3.1"
   },
   {
     "domain_id": "domain1",
@@ -3839,7 +4064,8 @@
     "source_ref": "R1",
     "source_chapter": 1,
     "source_question_no": 36,
-    "difficulty": 3
+    "difficulty": 3,
+    "sub_topic_id": "1.1"
   },
   {
     "domain_id": "domain3",
@@ -3856,7 +4082,8 @@
     "source_ref": "R1",
     "source_chapter": 3,
     "source_question_no": 280,
-    "difficulty": 3
+    "difficulty": 3,
+    "sub_topic_id": "3.4"
   },
   {
     "domain_id": "domain4",
@@ -3873,7 +4100,8 @@
     "source_ref": "R1",
     "source_chapter": 4,
     "source_question_no": 313,
-    "difficulty": 3
+    "difficulty": 3,
+    "sub_topic_id": "4.3"
   },
   {
     "domain_id": "domain5",
@@ -3890,7 +4118,8 @@
     "source_ref": "R1",
     "source_chapter": 5,
     "source_question_no": 534,
-    "difficulty": 3
+    "difficulty": 3,
+    "sub_topic_id": "5.3"
   },
   {
     "domain_id": "domain2",
@@ -3907,7 +4136,8 @@
     "source_ref": "R1",
     "source_chapter": 2,
     "source_question_no": 123,
-    "difficulty": 3
+    "difficulty": 3,
+    "sub_topic_id": "2.2"
   },
   {
     "domain_id": "domain5",
@@ -3924,7 +4154,8 @@
     "source_ref": "R1",
     "source_chapter": 5,
     "source_question_no": 462,
-    "difficulty": 3
+    "difficulty": 3,
+    "sub_topic_id": "5.3"
   },
   {
     "domain_id": "domain5",
@@ -3941,7 +4172,8 @@
     "source_ref": "R1",
     "source_chapter": 5,
     "source_question_no": 509,
-    "difficulty": 3
+    "difficulty": 3,
+    "sub_topic_id": "5.5"
   },
   {
     "domain_id": "domain3",
@@ -3958,7 +4190,8 @@
     "source_ref": "R1",
     "source_chapter": 3,
     "source_question_no": 242,
-    "difficulty": 3
+    "difficulty": 3,
+    "sub_topic_id": "3.4"
   },
   {
     "domain_id": "domain2",
@@ -3975,7 +4208,8 @@
     "source_ref": "R1",
     "source_chapter": 2,
     "source_question_no": 111,
-    "difficulty": 3
+    "difficulty": 3,
+    "sub_topic_id": "2.3"
   },
   {
     "domain_id": "domain4",
@@ -3992,7 +4226,8 @@
     "source_ref": "R1",
     "source_chapter": 4,
     "source_question_no": 377,
-    "difficulty": 3
+    "difficulty": 3,
+    "sub_topic_id": "4.5"
   },
   {
     "domain_id": "domain5",
@@ -4009,7 +4244,8 @@
     "source_ref": "R1",
     "source_chapter": 5,
     "source_question_no": 471,
-    "difficulty": 3
+    "difficulty": 3,
+    "sub_topic_id": "5.2"
   },
   {
     "domain_id": "domain5",
@@ -4026,7 +4262,8 @@
     "source_ref": "R1",
     "source_chapter": 5,
     "source_question_no": 478,
-    "difficulty": 3
+    "difficulty": 3,
+    "sub_topic_id": "5.2"
   },
   {
     "domain_id": "domain1",
@@ -4043,7 +4280,8 @@
     "source_ref": "R1",
     "source_chapter": 1,
     "source_question_no": 58,
-    "difficulty": 3
+    "difficulty": 3,
+    "sub_topic_id": "1.4"
   },
   {
     "domain_id": "domain1",
@@ -4060,7 +4298,8 @@
     "source_ref": "R1",
     "source_chapter": 1,
     "source_question_no": 13,
-    "difficulty": 3
+    "difficulty": 3,
+    "sub_topic_id": "1.1"
   },
   {
     "domain_id": "domain1",
@@ -4077,7 +4316,8 @@
     "source_ref": "R1",
     "source_chapter": 1,
     "source_question_no": 51,
-    "difficulty": 3
+    "difficulty": 3,
+    "sub_topic_id": "1.1"
   },
   {
     "domain_id": "domain1",
@@ -4094,7 +4334,8 @@
     "source_ref": "R1",
     "source_chapter": 1,
     "source_question_no": 53,
-    "difficulty": 3
+    "difficulty": 3,
+    "sub_topic_id": "1.1"
   },
   {
     "domain_id": "domain2",
@@ -4111,7 +4352,8 @@
     "source_ref": "R1",
     "source_chapter": 2,
     "source_question_no": 116,
-    "difficulty": 3
+    "difficulty": 3,
+    "sub_topic_id": "2.4"
   },
   {
     "domain_id": "domain2",
@@ -4128,7 +4370,8 @@
     "source_ref": "R1",
     "source_chapter": 2,
     "source_question_no": 207,
-    "difficulty": 3
+    "difficulty": 3,
+    "sub_topic_id": "2.4"
   },
   {
     "domain_id": "domain4",
@@ -4145,7 +4388,8 @@
     "source_ref": "R1",
     "source_chapter": 4,
     "source_question_no": 409,
-    "difficulty": 3
+    "difficulty": 3,
+    "sub_topic_id": "4.1"
   },
   {
     "domain_id": "domain5",
@@ -4162,7 +4406,8 @@
     "source_ref": "R1",
     "source_chapter": 5,
     "source_question_no": 469,
-    "difficulty": 3
+    "difficulty": 3,
+    "sub_topic_id": "5.3"
   },
   {
     "domain_id": "domain1",
@@ -4179,7 +4424,8 @@
     "source_ref": "R1",
     "source_chapter": 1,
     "source_question_no": 46,
-    "difficulty": 3
+    "difficulty": 3,
+    "sub_topic_id": "1.4"
   },
   {
     "domain_id": "domain4",
@@ -4196,7 +4442,8 @@
     "source_ref": "R1",
     "source_chapter": 4,
     "source_question_no": 408,
-    "difficulty": 3
+    "difficulty": 3,
+    "sub_topic_id": "4.1"
   },
   {
     "domain_id": "domain2",
@@ -4213,7 +4460,8 @@
     "source_ref": "R1",
     "source_chapter": 2,
     "source_question_no": 119,
-    "difficulty": 3
+    "difficulty": 3,
+    "sub_topic_id": "2.1"
   },
   {
     "domain_id": "domain4",
@@ -4230,7 +4478,8 @@
     "source_ref": "R1",
     "source_chapter": 4,
     "source_question_no": 366,
-    "difficulty": 3
+    "difficulty": 3,
+    "sub_topic_id": "4.3"
   },
   {
     "domain_id": "domain1",
@@ -4247,7 +4496,8 @@
     "source_ref": "R1",
     "source_chapter": 1,
     "source_question_no": 19,
-    "difficulty": 3
+    "difficulty": 3,
+    "sub_topic_id": "1.1"
   },
   {
     "domain_id": "domain2",
@@ -4264,7 +4514,8 @@
     "source_ref": "R1",
     "source_chapter": 2,
     "source_question_no": 166,
-    "difficulty": 3
+    "difficulty": 3,
+    "sub_topic_id": "2.5"
   },
   {
     "domain_id": "domain5",
@@ -4281,7 +4532,8 @@
     "source_ref": "R1",
     "source_chapter": 5,
     "source_question_no": 528,
-    "difficulty": 3
+    "difficulty": 3,
+    "sub_topic_id": "5.3"
   },
   {
     "domain_id": "domain1",
@@ -4298,7 +4550,8 @@
     "source_ref": "R1",
     "source_chapter": 1,
     "source_question_no": 16,
-    "difficulty": 3
+    "difficulty": 3,
+    "sub_topic_id": "1.1"
   },
   {
     "domain_id": "domain3",
@@ -4315,7 +4568,8 @@
     "source_ref": "R1",
     "source_chapter": 3,
     "source_question_no": 249,
-    "difficulty": 3
+    "difficulty": 3,
+    "sub_topic_id": "3.2"
   },
   {
     "domain_id": "domain5",
@@ -4332,7 +4586,8 @@
     "source_ref": "R1",
     "source_chapter": 5,
     "source_question_no": 521,
-    "difficulty": 3
+    "difficulty": 3,
+    "sub_topic_id": "5.4"
   },
   {
     "domain_id": "domain1",
@@ -4349,7 +4604,8 @@
     "source_ref": "R1",
     "source_chapter": 1,
     "source_question_no": 85,
-    "difficulty": 3
+    "difficulty": 3,
+    "sub_topic_id": "1.4"
   },
   {
     "domain_id": "domain1",
@@ -4366,7 +4622,8 @@
     "source_ref": "R1",
     "source_chapter": 1,
     "source_question_no": 86,
-    "difficulty": 3
+    "difficulty": 3,
+    "sub_topic_id": "1.4"
   },
   {
     "domain_id": "domain4",
@@ -4383,7 +4640,8 @@
     "source_ref": "R1",
     "source_chapter": 4,
     "source_question_no": 448,
-    "difficulty": 3
+    "difficulty": 3,
+    "sub_topic_id": "4.6"
   },
   {
     "domain_id": "domain1",
@@ -4400,7 +4658,8 @@
     "source_ref": "R1",
     "source_chapter": 1,
     "source_question_no": 81,
-    "difficulty": 3
+    "difficulty": 3,
+    "sub_topic_id": "1.4"
   },
   {
     "domain_id": "domain5",
@@ -4417,7 +4676,8 @@
     "source_ref": "R1",
     "source_chapter": 5,
     "source_question_no": 517,
-    "difficulty": 3
+    "difficulty": 3,
+    "sub_topic_id": "5.5"
   },
   {
     "domain_id": "domain4",
@@ -4434,7 +4694,8 @@
     "source_ref": "R1",
     "source_chapter": 4,
     "source_question_no": 349,
-    "difficulty": 3
+    "difficulty": 3,
+    "sub_topic_id": "4.6"
   },
   {
     "domain_id": "domain4",
@@ -4451,7 +4712,8 @@
     "source_ref": "R1",
     "source_chapter": 4,
     "source_question_no": 436,
-    "difficulty": 3
+    "difficulty": 3,
+    "sub_topic_id": "4.9"
   },
   {
     "domain_id": "domain1",
@@ -4468,7 +4730,8 @@
     "source_ref": "R1",
     "source_chapter": 1,
     "source_question_no": 77,
-    "difficulty": 3
+    "difficulty": 3,
+    "sub_topic_id": "1.4"
   },
   {
     "domain_id": "domain4",
@@ -4485,7 +4748,8 @@
     "source_ref": "R1",
     "source_chapter": 4,
     "source_question_no": 356,
-    "difficulty": 3
+    "difficulty": 3,
+    "sub_topic_id": "4.2"
   },
   {
     "domain_id": "domain4",
@@ -4502,7 +4766,8 @@
     "source_ref": "R1",
     "source_chapter": 4,
     "source_question_no": 444,
-    "difficulty": 3
+    "difficulty": 3,
+    "sub_topic_id": "4.1"
   },
   {
     "domain_id": "domain5",
@@ -4519,7 +4784,8 @@
     "source_ref": "R1",
     "source_chapter": 5,
     "source_question_no": 500,
-    "difficulty": 3
+    "difficulty": 3,
+    "sub_topic_id": "5.1"
   },
   {
     "domain_id": "domain2",
@@ -4536,7 +4802,8 @@
     "source_ref": "R1",
     "source_chapter": 2,
     "source_question_no": 143,
-    "difficulty": 3
+    "difficulty": 3,
+    "sub_topic_id": "2.1"
   },
   {
     "domain_id": "domain4",
@@ -4553,7 +4820,8 @@
     "source_ref": "R1",
     "source_chapter": 4,
     "source_question_no": 439,
-    "difficulty": 3
+    "difficulty": 3,
+    "sub_topic_id": "4.1"
   },
   {
     "domain_id": "domain5",
@@ -4570,7 +4838,8 @@
     "source_ref": "R1",
     "source_chapter": 5,
     "source_question_no": 475,
-    "difficulty": 3
+    "difficulty": 3,
+    "sub_topic_id": "5.4"
   },
   {
     "domain_id": "domain1",
@@ -4587,7 +4856,8 @@
     "source_ref": "R1",
     "source_chapter": 1,
     "source_question_no": 22,
-    "difficulty": 3
+    "difficulty": 3,
+    "sub_topic_id": "1.1"
   },
   {
     "domain_id": "domain2",
@@ -4604,7 +4874,8 @@
     "source_ref": "R1",
     "source_chapter": 2,
     "source_question_no": 208,
-    "difficulty": 3
+    "difficulty": 3,
+    "sub_topic_id": "2.4"
   },
   {
     "domain_id": "domain4",
@@ -4621,7 +4892,8 @@
     "source_ref": "R1",
     "source_chapter": 4,
     "source_question_no": 431,
-    "difficulty": 3
+    "difficulty": 3,
+    "sub_topic_id": "4.6"
   },
   {
     "domain_id": "domain2",
@@ -4638,7 +4910,8 @@
     "source_ref": "R1",
     "source_chapter": 2,
     "source_question_no": 160,
-    "difficulty": 3
+    "difficulty": 3,
+    "sub_topic_id": "2.1"
   },
   {
     "domain_id": "domain4",
@@ -4655,7 +4928,8 @@
     "source_ref": "R1",
     "source_chapter": 4,
     "source_question_no": 404,
-    "difficulty": 3
+    "difficulty": 3,
+    "sub_topic_id": "4.1"
   },
   {
     "domain_id": "domain4",
@@ -4672,7 +4946,8 @@
     "source_ref": "R1",
     "source_chapter": 4,
     "source_question_no": 424,
-    "difficulty": 3
+    "difficulty": 3,
+    "sub_topic_id": "4.1"
   },
   {
     "domain_id": "domain3",
@@ -4689,7 +4964,8 @@
     "source_ref": "R1",
     "source_chapter": 3,
     "source_question_no": 245,
-    "difficulty": 3
+    "difficulty": 3,
+    "sub_topic_id": "3.2"
   },
   {
     "domain_id": "domain4",
@@ -4706,7 +4982,8 @@
     "source_ref": "R1",
     "source_chapter": 4,
     "source_question_no": 315,
-    "difficulty": 3
+    "difficulty": 3,
+    "sub_topic_id": "4.6"
   },
   {
     "domain_id": "domain4",
@@ -4723,7 +5000,8 @@
     "source_ref": "R1",
     "source_chapter": 4,
     "source_question_no": 346,
-    "difficulty": 3
+    "difficulty": 3,
+    "sub_topic_id": "4.2"
   },
   {
     "domain_id": "domain1",
@@ -4740,7 +5018,8 @@
     "source_ref": "R1",
     "source_chapter": 1,
     "source_question_no": 48,
-    "difficulty": 3
+    "difficulty": 3,
+    "sub_topic_id": "1.1"
   },
   {
     "domain_id": "domain3",
@@ -4757,7 +5036,8 @@
     "source_ref": "R1",
     "source_chapter": 3,
     "source_question_no": 226,
-    "difficulty": 3
+    "difficulty": 3,
+    "sub_topic_id": "3.1"
   },
   {
     "domain_id": "domain2",
@@ -4774,7 +5054,8 @@
     "source_ref": "R1",
     "source_chapter": 2,
     "source_question_no": 137,
-    "difficulty": 3
+    "difficulty": 3,
+    "sub_topic_id": "2.4"
   },
   {
     "domain_id": "domain4",
@@ -4791,7 +5072,8 @@
     "source_ref": "R1",
     "source_chapter": 4,
     "source_question_no": 354,
-    "difficulty": 3
+    "difficulty": 3,
+    "sub_topic_id": "4.1"
   },
   {
     "domain_id": "domain4",
@@ -4808,7 +5090,8 @@
     "source_ref": "R1",
     "source_chapter": 4,
     "source_question_no": 460,
-    "difficulty": 3
+    "difficulty": 3,
+    "sub_topic_id": "4.1"
   },
   {
     "domain_id": "domain4",
@@ -4825,7 +5108,8 @@
     "source_ref": "R1",
     "source_chapter": 4,
     "source_question_no": 336,
-    "difficulty": 3
+    "difficulty": 3,
+    "sub_topic_id": "4.3"
   },
   {
     "domain_id": "domain4",
@@ -4842,7 +5126,8 @@
     "source_ref": "R1",
     "source_chapter": 4,
     "source_question_no": 445,
-    "difficulty": 3
+    "difficulty": 3,
+    "sub_topic_id": "4.1"
   },
   {
     "domain_id": "domain5",
@@ -4859,7 +5144,8 @@
     "source_ref": "R1",
     "source_chapter": 5,
     "source_question_no": 464,
-    "difficulty": 3
+    "difficulty": 3,
+    "sub_topic_id": "5.3"
   },
   {
     "domain_id": "domain3",
@@ -4876,7 +5162,8 @@
     "source_ref": "R1",
     "source_chapter": 3,
     "source_question_no": 310,
-    "difficulty": 3
+    "difficulty": 3,
+    "sub_topic_id": "3.4"
   },
   {
     "domain_id": "domain1",
@@ -4893,7 +5180,8 @@
     "source_ref": "R1",
     "source_chapter": 1,
     "source_question_no": 39,
-    "difficulty": 3
+    "difficulty": 3,
+    "sub_topic_id": "1.1"
   },
   {
     "domain_id": "domain3",
@@ -4910,7 +5198,8 @@
     "source_ref": "R1",
     "source_chapter": 3,
     "source_question_no": 293,
-    "difficulty": 3
+    "difficulty": 3,
+    "sub_topic_id": "3.1"
   },
   {
     "domain_id": "domain4",
@@ -4927,7 +5216,8 @@
     "source_ref": "R1",
     "source_chapter": 4,
     "source_question_no": 417,
-    "difficulty": 3
+    "difficulty": 3,
+    "sub_topic_id": "4.6"
   },
   {
     "domain_id": "domain5",
@@ -4944,7 +5234,8 @@
     "source_ref": "R1",
     "source_chapter": 5,
     "source_question_no": 488,
-    "difficulty": 3
+    "difficulty": 3,
+    "sub_topic_id": "5.5"
   },
   {
     "domain_id": "domain2",
@@ -4961,7 +5252,8 @@
     "source_ref": "R1",
     "source_chapter": 2,
     "source_question_no": 159,
-    "difficulty": 3
+    "difficulty": 3,
+    "sub_topic_id": "2.1"
   },
   {
     "domain_id": "domain5",
@@ -4978,7 +5270,8 @@
     "source_ref": "R1",
     "source_chapter": 5,
     "source_question_no": 535,
-    "difficulty": 3
+    "difficulty": 3,
+    "sub_topic_id": "5.3"
   },
   {
     "domain_id": "domain2",
@@ -4995,7 +5288,8 @@
     "source_ref": "R1",
     "source_chapter": 2,
     "source_question_no": 135,
-    "difficulty": 3
+    "difficulty": 3,
+    "sub_topic_id": "2.3"
   },
   {
     "domain_id": "domain2",
@@ -5012,7 +5306,8 @@
     "source_ref": "R1",
     "source_chapter": 2,
     "source_question_no": 142,
-    "difficulty": 3
+    "difficulty": 3,
+    "sub_topic_id": "2.2"
   },
   {
     "domain_id": "domain5",
@@ -5029,7 +5324,8 @@
     "source_ref": "R1",
     "source_chapter": 5,
     "source_question_no": 510,
-    "difficulty": 3
+    "difficulty": 3,
+    "sub_topic_id": "5.1"
   },
   {
     "domain_id": "domain3",
@@ -5046,7 +5342,8 @@
     "source_ref": "R1",
     "source_chapter": 3,
     "source_question_no": 222,
-    "difficulty": 3
+    "difficulty": 3,
+    "sub_topic_id": "3.2"
   },
   {
     "domain_id": "domain4",
@@ -5063,7 +5360,8 @@
     "source_ref": "R1",
     "source_chapter": 4,
     "source_question_no": 411,
-    "difficulty": 3
+    "difficulty": 3,
+    "sub_topic_id": "4.1"
   },
   {
     "domain_id": "domain2",
@@ -5080,7 +5378,8 @@
     "source_ref": "R1",
     "source_chapter": 2,
     "source_question_no": 133,
-    "difficulty": 3
+    "difficulty": 3,
+    "sub_topic_id": "2.1"
   },
   {
     "domain_id": "domain4",
@@ -5097,7 +5396,8 @@
     "source_ref": "R1",
     "source_chapter": 4,
     "source_question_no": 379,
-    "difficulty": 3
+    "difficulty": 3,
+    "sub_topic_id": "4.5"
   },
   {
     "domain_id": "domain5",
@@ -5114,7 +5414,8 @@
     "source_ref": "R1",
     "source_chapter": 5,
     "source_question_no": 490,
-    "difficulty": 3
+    "difficulty": 3,
+    "sub_topic_id": "5.6"
   },
   {
     "domain_id": "domain4",
@@ -5131,7 +5432,8 @@
     "source_ref": "R1",
     "source_chapter": 4,
     "source_question_no": 422,
-    "difficulty": 3
+    "difficulty": 3,
+    "sub_topic_id": "4.7"
   },
   {
     "domain_id": "domain2",
@@ -5148,7 +5450,8 @@
     "source_ref": "R1",
     "source_chapter": 2,
     "source_question_no": 198,
-    "difficulty": 3
+    "difficulty": 3,
+    "sub_topic_id": "2.3"
   },
   {
     "domain_id": "domain1",
@@ -5165,7 +5468,8 @@
     "source_ref": "R1",
     "source_chapter": 1,
     "source_question_no": 38,
-    "difficulty": 3
+    "difficulty": 3,
+    "sub_topic_id": "1.2"
   },
   {
     "domain_id": "domain4",
@@ -5182,7 +5486,8 @@
     "source_ref": "R1",
     "source_chapter": 4,
     "source_question_no": 340,
-    "difficulty": 3
+    "difficulty": 3,
+    "sub_topic_id": "4.1"
   },
   {
     "domain_id": "domain4",
@@ -5199,7 +5504,8 @@
     "source_ref": "R1",
     "source_chapter": 4,
     "source_question_no": 456,
-    "difficulty": 3
+    "difficulty": 3,
+    "sub_topic_id": "4.6"
   },
   {
     "domain_id": "domain2",
@@ -5216,7 +5522,8 @@
     "source_ref": "R1",
     "source_chapter": 2,
     "source_question_no": 168,
-    "difficulty": 3
+    "difficulty": 3,
+    "sub_topic_id": "2.5"
   },
   {
     "domain_id": "domain3",
@@ -5233,7 +5540,8 @@
     "source_ref": "R1",
     "source_chapter": 3,
     "source_question_no": 252,
-    "difficulty": 3
+    "difficulty": 3,
+    "sub_topic_id": "3.2"
   },
   {
     "domain_id": "domain3",
@@ -5250,7 +5558,8 @@
     "source_ref": "R1",
     "source_chapter": 3,
     "source_question_no": 267,
-    "difficulty": 3
+    "difficulty": 3,
+    "sub_topic_id": "3.2"
   },
   {
     "domain_id": "domain2",
@@ -5267,7 +5576,8 @@
     "source_ref": "R1",
     "source_chapter": 2,
     "source_question_no": 129,
-    "difficulty": 3
+    "difficulty": 3,
+    "sub_topic_id": "2.1"
   },
   {
     "domain_id": "domain2",
@@ -5284,7 +5594,8 @@
     "source_ref": "R1",
     "source_chapter": 2,
     "source_question_no": 206,
-    "difficulty": 3
+    "difficulty": 3,
+    "sub_topic_id": "2.5"
   },
   {
     "domain_id": "domain4",
@@ -5301,7 +5612,8 @@
     "source_ref": "R1",
     "source_chapter": 4,
     "source_question_no": 337,
-    "difficulty": 3
+    "difficulty": 3,
+    "sub_topic_id": "4.1"
   },
   {
     "domain_id": "domain5",
@@ -5318,7 +5630,8 @@
     "source_ref": "R1",
     "source_chapter": 5,
     "source_question_no": 502,
-    "difficulty": 3
+    "difficulty": 3,
+    "sub_topic_id": "5.1"
   },
   {
     "domain_id": "domain3",
@@ -5335,7 +5648,8 @@
     "source_ref": "R1",
     "source_chapter": 3,
     "source_question_no": 306,
-    "difficulty": 3
+    "difficulty": 3,
+    "sub_topic_id": "3.1"
   },
   {
     "domain_id": "domain2",
@@ -5352,7 +5666,8 @@
     "source_ref": "R1",
     "source_chapter": 2,
     "source_question_no": 218,
-    "difficulty": 3
+    "difficulty": 3,
+    "sub_topic_id": "2.1"
   },
   {
     "domain_id": "domain3",
@@ -5369,7 +5684,8 @@
     "source_ref": "R1",
     "source_chapter": 3,
     "source_question_no": 286,
-    "difficulty": 3
+    "difficulty": 3,
+    "sub_topic_id": "3.2"
   },
   {
     "domain_id": "domain1",
@@ -5386,7 +5702,8 @@
     "source_ref": "R1",
     "source_chapter": 1,
     "source_question_no": 25,
-    "difficulty": 3
+    "difficulty": 3,
+    "sub_topic_id": "1.1"
   },
   {
     "domain_id": "domain2",
@@ -5403,7 +5720,8 @@
     "source_ref": "R1",
     "source_chapter": 2,
     "source_question_no": 191,
-    "difficulty": 3
+    "difficulty": 3,
+    "sub_topic_id": "2.5"
   },
   {
     "domain_id": "domain1",
@@ -5420,7 +5738,8 @@
     "source_ref": "R1",
     "source_chapter": 1,
     "source_question_no": 41,
-    "difficulty": 3
+    "difficulty": 3,
+    "sub_topic_id": "1.2"
   },
   {
     "domain_id": "domain1",
@@ -5437,7 +5756,8 @@
     "source_ref": "R1",
     "source_chapter": 1,
     "source_question_no": 84,
-    "difficulty": 3
+    "difficulty": 3,
+    "sub_topic_id": "1.4"
   },
   {
     "domain_id": "domain4",
@@ -5454,7 +5774,8 @@
     "source_ref": "R1",
     "source_chapter": 4,
     "source_question_no": 364,
-    "difficulty": 3
+    "difficulty": 3,
+    "sub_topic_id": "4.3"
   },
   {
     "domain_id": "domain1",
@@ -5471,7 +5792,8 @@
     "source_ref": "R1",
     "source_chapter": 1,
     "source_question_no": 100,
-    "difficulty": 3
+    "difficulty": 3,
+    "sub_topic_id": "1.1"
   },
   {
     "domain_id": "domain3",
@@ -5488,7 +5810,8 @@
     "source_ref": "R1",
     "source_chapter": 3,
     "source_question_no": 255,
-    "difficulty": 3
+    "difficulty": 3,
+    "sub_topic_id": "3.1"
   },
   {
     "domain_id": "domain4",
@@ -5505,7 +5828,8 @@
     "source_ref": "R1",
     "source_chapter": 4,
     "source_question_no": 328,
-    "difficulty": 3
+    "difficulty": 3,
+    "sub_topic_id": "4.3"
   },
   {
     "domain_id": "domain3",
@@ -5522,7 +5846,8 @@
     "source_ref": "R1",
     "source_chapter": 3,
     "source_question_no": 239,
-    "difficulty": 4
+    "difficulty": 4,
+    "sub_topic_id": "3.1"
   },
   {
     "domain_id": "domain5",
@@ -5539,7 +5864,8 @@
     "source_ref": "R1",
     "source_chapter": 5,
     "source_question_no": 527,
-    "difficulty": 4
+    "difficulty": 4,
+    "sub_topic_id": "5.4"
   },
   {
     "domain_id": "domain4",
@@ -5556,7 +5882,8 @@
     "source_ref": "R1",
     "source_chapter": 4,
     "source_question_no": 330,
-    "difficulty": 4
+    "difficulty": 4,
+    "sub_topic_id": "4.1"
   },
   {
     "domain_id": "domain5",
@@ -5573,7 +5900,8 @@
     "source_ref": "R1",
     "source_chapter": 5,
     "source_question_no": 518,
-    "difficulty": 4
+    "difficulty": 4,
+    "sub_topic_id": "5.6"
   },
   {
     "domain_id": "domain4",
@@ -5590,7 +5918,8 @@
     "source_ref": "R1",
     "source_chapter": 4,
     "source_question_no": 381,
-    "difficulty": 4
+    "difficulty": 4,
+    "sub_topic_id": "4.4"
   },
   {
     "domain_id": "domain2",
@@ -5607,7 +5936,8 @@
     "source_ref": "R1",
     "source_chapter": 2,
     "source_question_no": 190,
-    "difficulty": 4
+    "difficulty": 4,
+    "sub_topic_id": "2.3"
   },
   {
     "domain_id": "domain1",
@@ -5624,7 +5954,8 @@
     "source_ref": "R1",
     "source_chapter": 1,
     "source_question_no": 11,
-    "difficulty": 4
+    "difficulty": 4,
+    "sub_topic_id": "1.1"
   },
   {
     "domain_id": "domain4",
@@ -5641,7 +5972,8 @@
     "source_ref": "R1",
     "source_chapter": 4,
     "source_question_no": 458,
-    "difficulty": 4
+    "difficulty": 4,
+    "sub_topic_id": "4.7"
   },
   {
     "domain_id": "domain2",
@@ -5658,7 +5990,8 @@
     "source_ref": "R1",
     "source_chapter": 2,
     "source_question_no": 195,
-    "difficulty": 4
+    "difficulty": 4,
+    "sub_topic_id": "2.1"
   },
   {
     "domain_id": "domain2",
@@ -5675,7 +6008,8 @@
     "source_ref": "R1",
     "source_chapter": 2,
     "source_question_no": 211,
-    "difficulty": 4
+    "difficulty": 4,
+    "sub_topic_id": "2.4"
   },
   {
     "domain_id": "domain4",
@@ -5692,7 +6026,8 @@
     "source_ref": "R1",
     "source_chapter": 4,
     "source_question_no": 393,
-    "difficulty": 4
+    "difficulty": 4,
+    "sub_topic_id": "4.1"
   },
   {
     "domain_id": "domain1",
@@ -5709,7 +6044,8 @@
     "source_ref": "R1",
     "source_chapter": 1,
     "source_question_no": 54,
-    "difficulty": 4
+    "difficulty": 4,
+    "sub_topic_id": "1.1"
   },
   {
     "domain_id": "domain2",
@@ -5726,7 +6062,8 @@
     "source_ref": "R1",
     "source_chapter": 2,
     "source_question_no": 163,
-    "difficulty": 4
+    "difficulty": 4,
+    "sub_topic_id": "2.3"
   },
   {
     "domain_id": "domain2",
@@ -5743,7 +6080,8 @@
     "source_ref": "R1",
     "source_chapter": 2,
     "source_question_no": 197,
-    "difficulty": 4
+    "difficulty": 4,
+    "sub_topic_id": "2.3"
   },
   {
     "domain_id": "domain3",
@@ -5760,7 +6098,8 @@
     "source_ref": "R1",
     "source_chapter": 3,
     "source_question_no": 297,
-    "difficulty": 4
+    "difficulty": 4,
+    "sub_topic_id": "3.1"
   },
   {
     "domain_id": "domain2",
@@ -5777,7 +6116,8 @@
     "source_ref": "R1",
     "source_chapter": 2,
     "source_question_no": 200,
-    "difficulty": 4
+    "difficulty": 4,
+    "sub_topic_id": "2.3"
   },
   {
     "domain_id": "domain3",
@@ -5794,7 +6134,8 @@
     "source_ref": "R1",
     "source_chapter": 3,
     "source_question_no": 271,
-    "difficulty": 4
+    "difficulty": 4,
+    "sub_topic_id": "3.4"
   },
   {
     "domain_id": "domain4",
@@ -5811,7 +6152,8 @@
     "source_ref": "R1",
     "source_chapter": 4,
     "source_question_no": 382,
-    "difficulty": 4
+    "difficulty": 4,
+    "sub_topic_id": "4.1"
   },
   {
     "domain_id": "domain5",
@@ -5828,7 +6170,8 @@
     "source_ref": "R1",
     "source_chapter": 5,
     "source_question_no": 496,
-    "difficulty": 4
+    "difficulty": 4,
+    "sub_topic_id": "5.2"
   },
   {
     "domain_id": "domain4",
@@ -5845,7 +6188,8 @@
     "source_ref": "R1",
     "source_chapter": 4,
     "source_question_no": 380,
-    "difficulty": 4
+    "difficulty": 4,
+    "sub_topic_id": "4.1"
   },
   {
     "domain_id": "domain1",
@@ -5862,7 +6206,8 @@
     "source_ref": "R1",
     "source_chapter": 1,
     "source_question_no": 2,
-    "difficulty": 4
+    "difficulty": 4,
+    "sub_topic_id": "1.4"
   },
   {
     "domain_id": "domain4",
@@ -5879,7 +6224,8 @@
     "source_ref": "R1",
     "source_chapter": 4,
     "source_question_no": 334,
-    "difficulty": 4
+    "difficulty": 4,
+    "sub_topic_id": "4.1"
   },
   {
     "domain_id": "domain4",
@@ -5896,7 +6242,8 @@
     "source_ref": "R1",
     "source_chapter": 4,
     "source_question_no": 373,
-    "difficulty": 4
+    "difficulty": 4,
+    "sub_topic_id": "4.4"
   },
   {
     "domain_id": "domain4",
@@ -5913,7 +6260,8 @@
     "source_ref": "R1",
     "source_chapter": 4,
     "source_question_no": 401,
-    "difficulty": 4
+    "difficulty": 4,
+    "sub_topic_id": "4.1"
   },
   {
     "domain_id": "domain4",
@@ -5930,7 +6278,8 @@
     "source_ref": "R1",
     "source_chapter": 4,
     "source_question_no": 388,
-    "difficulty": 4
+    "difficulty": 4,
+    "sub_topic_id": "4.1"
   },
   {
     "domain_id": "domain4",
@@ -5947,7 +6296,8 @@
     "source_ref": "R1",
     "source_chapter": 4,
     "source_question_no": 324,
-    "difficulty": 4
+    "difficulty": 4,
+    "sub_topic_id": "4.3"
   },
   {
     "domain_id": "domain1",
@@ -5964,7 +6314,8 @@
     "source_ref": "R1",
     "source_chapter": 1,
     "source_question_no": 64,
-    "difficulty": 4
+    "difficulty": 4,
+    "sub_topic_id": "1.2"
   },
   {
     "domain_id": "domain5",
@@ -5981,7 +6332,8 @@
     "source_ref": "R1",
     "source_chapter": 5,
     "source_question_no": 484,
-    "difficulty": 4
+    "difficulty": 4,
+    "sub_topic_id": "5.2"
   },
   {
     "domain_id": "domain1",
@@ -5998,7 +6350,8 @@
     "source_ref": "R1",
     "source_chapter": 1,
     "source_question_no": 29,
-    "difficulty": 4
+    "difficulty": 4,
+    "sub_topic_id": "1.2"
   },
   {
     "domain_id": "domain4",
@@ -6015,7 +6368,8 @@
     "source_ref": "R1",
     "source_chapter": 4,
     "source_question_no": 384,
-    "difficulty": 4
+    "difficulty": 4,
+    "sub_topic_id": "4.3"
   },
   {
     "domain_id": "domain1",
@@ -6032,7 +6386,8 @@
     "source_ref": "R1",
     "source_chapter": 1,
     "source_question_no": 18,
-    "difficulty": 4
+    "difficulty": 4,
+    "sub_topic_id": "1.2"
   },
   {
     "domain_id": "domain2",
@@ -6049,7 +6404,8 @@
     "source_ref": "R1",
     "source_chapter": 2,
     "source_question_no": 162,
-    "difficulty": 4
+    "difficulty": 4,
+    "sub_topic_id": "2.4"
   },
   {
     "domain_id": "domain4",
@@ -6066,7 +6422,8 @@
     "source_ref": "R1",
     "source_chapter": 4,
     "source_question_no": 425,
-    "difficulty": 4
+    "difficulty": 4,
+    "sub_topic_id": "4.6"
   },
   {
     "domain_id": "domain5",
@@ -6083,7 +6440,8 @@
     "source_ref": "R1",
     "source_chapter": 5,
     "source_question_no": 461,
-    "difficulty": 4
+    "difficulty": 4,
+    "sub_topic_id": "5.1"
   },
   {
     "domain_id": "domain3",
@@ -6100,7 +6458,8 @@
     "source_ref": "R1",
     "source_chapter": 3,
     "source_question_no": 278,
-    "difficulty": 4
+    "difficulty": 4,
+    "sub_topic_id": "3.4"
   },
   {
     "domain_id": "domain1",
@@ -6117,7 +6476,8 @@
     "source_ref": "R1",
     "source_chapter": 1,
     "source_question_no": 91,
-    "difficulty": 4
+    "difficulty": 4,
+    "sub_topic_id": "1.1"
   },
   {
     "domain_id": "domain1",
@@ -6134,7 +6494,8 @@
     "source_ref": "R1",
     "source_chapter": 1,
     "source_question_no": 32,
-    "difficulty": 4
+    "difficulty": 4,
+    "sub_topic_id": "1.4"
   },
   {
     "domain_id": "domain1",
@@ -6151,7 +6512,8 @@
     "source_ref": "R1",
     "source_chapter": 1,
     "source_question_no": 75,
-    "difficulty": 4
+    "difficulty": 4,
+    "sub_topic_id": "1.4"
   },
   {
     "domain_id": "domain3",
@@ -6168,7 +6530,8 @@
     "source_ref": "R1",
     "source_chapter": 3,
     "source_question_no": 250,
-    "difficulty": 4
+    "difficulty": 4,
+    "sub_topic_id": "3.4"
   },
   {
     "domain_id": "domain3",
@@ -6185,7 +6548,8 @@
     "source_ref": "R1",
     "source_chapter": 3,
     "source_question_no": 259,
-    "difficulty": 4
+    "difficulty": 4,
+    "sub_topic_id": "3.2"
   },
   {
     "domain_id": "domain1",
@@ -6202,7 +6566,8 @@
     "source_ref": "R1",
     "source_chapter": 1,
     "source_question_no": 45,
-    "difficulty": 4
+    "difficulty": 4,
+    "sub_topic_id": "1.1"
   },
   {
     "domain_id": "domain1",
@@ -6219,7 +6584,8 @@
     "source_ref": "R1",
     "source_chapter": 1,
     "source_question_no": 61,
-    "difficulty": 4
+    "difficulty": 4,
+    "sub_topic_id": "1.1"
   },
   {
     "domain_id": "domain1",
@@ -6236,7 +6602,8 @@
     "source_ref": "R1",
     "source_chapter": 1,
     "source_question_no": 104,
-    "difficulty": 4
+    "difficulty": 4,
+    "sub_topic_id": "1.1"
   },
   {
     "domain_id": "domain2",
@@ -6253,7 +6620,8 @@
     "source_ref": "R1",
     "source_chapter": 2,
     "source_question_no": 183,
-    "difficulty": 4
+    "difficulty": 4,
+    "sub_topic_id": "2.3"
   },
   {
     "domain_id": "domain2",
@@ -6270,7 +6638,8 @@
     "source_ref": "R1",
     "source_chapter": 2,
     "source_question_no": 192,
-    "difficulty": 4
+    "difficulty": 4,
+    "sub_topic_id": "2.4"
   },
   {
     "domain_id": "domain5",
@@ -6287,7 +6656,8 @@
     "source_ref": "R1",
     "source_chapter": 5,
     "source_question_no": 495,
-    "difficulty": 4
+    "difficulty": 4,
+    "sub_topic_id": "5.3"
   },
   {
     "domain_id": "domain3",
@@ -6304,7 +6674,8 @@
     "source_ref": "R1",
     "source_chapter": 3,
     "source_question_no": 254,
-    "difficulty": 4
+    "difficulty": 4,
+    "sub_topic_id": "3.1"
   },
   {
     "domain_id": "domain3",
@@ -6321,7 +6692,8 @@
     "source_ref": "R1",
     "source_chapter": 3,
     "source_question_no": 223,
-    "difficulty": 4
+    "difficulty": 4,
+    "sub_topic_id": "3.2"
   },
   {
     "domain_id": "domain4",
@@ -6338,7 +6710,8 @@
     "source_ref": "R1",
     "source_chapter": 4,
     "source_question_no": 316,
-    "difficulty": 4
+    "difficulty": 4,
+    "sub_topic_id": "4.1"
   },
   {
     "domain_id": "domain1",
@@ -6355,7 +6728,8 @@
     "source_ref": "R1",
     "source_chapter": 1,
     "source_question_no": 88,
-    "difficulty": 4
+    "difficulty": 4,
+    "sub_topic_id": "1.2"
   },
   {
     "domain_id": "domain5",
@@ -6372,7 +6746,8 @@
     "source_ref": "R1",
     "source_chapter": 5,
     "source_question_no": 526,
-    "difficulty": 4
+    "difficulty": 4,
+    "sub_topic_id": "5.1"
   },
   {
     "domain_id": "domain2",
@@ -6389,7 +6764,8 @@
     "source_ref": "R1",
     "source_chapter": 2,
     "source_question_no": 188,
-    "difficulty": 4
+    "difficulty": 4,
+    "sub_topic_id": "2.3"
   },
   {
     "domain_id": "domain1",
@@ -6406,7 +6782,8 @@
     "source_ref": "R1",
     "source_chapter": 1,
     "source_question_no": 107,
-    "difficulty": 4
+    "difficulty": 4,
+    "sub_topic_id": "1.1"
   },
   {
     "domain_id": "domain4",
@@ -6423,7 +6800,8 @@
     "source_ref": "R1",
     "source_chapter": 4,
     "source_question_no": 376,
-    "difficulty": 4
+    "difficulty": 4,
+    "sub_topic_id": "4.1"
   },
   {
     "domain_id": "domain1",
@@ -6440,7 +6818,8 @@
     "source_ref": "R1",
     "source_chapter": 1,
     "source_question_no": 55,
-    "difficulty": 4
+    "difficulty": 4,
+    "sub_topic_id": "1.4"
   },
   {
     "domain_id": "domain2",
@@ -6457,7 +6836,8 @@
     "source_ref": "R1",
     "source_chapter": 2,
     "source_question_no": 127,
-    "difficulty": 4
+    "difficulty": 4,
+    "sub_topic_id": "2.1"
   },
   {
     "domain_id": "domain2",
@@ -6474,7 +6854,8 @@
     "source_ref": "R1",
     "source_chapter": 2,
     "source_question_no": 204,
-    "difficulty": 4
+    "difficulty": 4,
+    "sub_topic_id": "2.1"
   },
   {
     "domain_id": "domain4",
@@ -6491,7 +6872,8 @@
     "source_ref": "R1",
     "source_chapter": 4,
     "source_question_no": 397,
-    "difficulty": 4
+    "difficulty": 4,
+    "sub_topic_id": "4.5"
   },
   {
     "domain_id": "domain5",
@@ -6508,7 +6890,8 @@
     "source_ref": "R1",
     "source_chapter": 5,
     "source_question_no": 522,
-    "difficulty": 4
+    "difficulty": 4,
+    "sub_topic_id": "5.5"
   },
   {
     "domain_id": "domain3",
@@ -6525,7 +6908,8 @@
     "source_ref": "R1",
     "source_chapter": 3,
     "source_question_no": 281,
-    "difficulty": 4
+    "difficulty": 4,
+    "sub_topic_id": "3.4"
   },
   {
     "domain_id": "domain5",
@@ -6542,7 +6926,8 @@
     "source_ref": "R1",
     "source_chapter": 5,
     "source_question_no": 503,
-    "difficulty": 4
+    "difficulty": 4,
+    "sub_topic_id": "5.3"
   },
   {
     "domain_id": "domain4",
@@ -6559,7 +6944,8 @@
     "source_ref": "R1",
     "source_chapter": 4,
     "source_question_no": 430,
-    "difficulty": 4
+    "difficulty": 4,
+    "sub_topic_id": "4.4"
   },
   {
     "domain_id": "domain1",
@@ -6576,7 +6962,8 @@
     "source_ref": "R1",
     "source_chapter": 1,
     "source_question_no": 9,
-    "difficulty": 4
+    "difficulty": 4,
+    "sub_topic_id": "1.1"
   },
   {
     "domain_id": "domain1",
@@ -6593,7 +6980,8 @@
     "source_ref": "R1",
     "source_chapter": 1,
     "source_question_no": 23,
-    "difficulty": 4
+    "difficulty": 4,
+    "sub_topic_id": "1.1"
   },
   {
     "domain_id": "domain2",
@@ -6610,7 +6998,8 @@
     "source_ref": "R1",
     "source_chapter": 2,
     "source_question_no": 170,
-    "difficulty": 4
+    "difficulty": 4,
+    "sub_topic_id": "2.5"
   },
   {
     "domain_id": "domain2",
@@ -6627,7 +7016,8 @@
     "source_ref": "R1",
     "source_chapter": 2,
     "source_question_no": 152,
-    "difficulty": 4
+    "difficulty": 4,
+    "sub_topic_id": "2.2"
   },
   {
     "domain_id": "domain3",
@@ -6644,7 +7034,8 @@
     "source_ref": "R1",
     "source_chapter": 3,
     "source_question_no": 283,
-    "difficulty": 4
+    "difficulty": 4,
+    "sub_topic_id": "3.1"
   },
   {
     "domain_id": "domain5",
@@ -6661,7 +7052,8 @@
     "source_ref": "R1",
     "source_chapter": 5,
     "source_question_no": 515,
-    "difficulty": 4
+    "difficulty": 4,
+    "sub_topic_id": "5.5"
   },
   {
     "domain_id": "domain4",
@@ -6678,7 +7070,8 @@
     "source_ref": "R1",
     "source_chapter": 4,
     "source_question_no": 351,
-    "difficulty": 4
+    "difficulty": 4,
+    "sub_topic_id": "4.3"
   },
   {
     "domain_id": "domain5",
@@ -6695,7 +7088,8 @@
     "source_ref": "R1",
     "source_chapter": 5,
     "source_question_no": 516,
-    "difficulty": 4
+    "difficulty": 4,
+    "sub_topic_id": "5.5"
   },
   {
     "domain_id": "domain1",
@@ -6712,7 +7106,8 @@
     "source_ref": "R1",
     "source_chapter": 1,
     "source_question_no": 5,
-    "difficulty": 4
+    "difficulty": 4,
+    "sub_topic_id": "1.1"
   },
   {
     "domain_id": "domain2",
@@ -6729,7 +7124,8 @@
     "source_ref": "R1",
     "source_chapter": 2,
     "source_question_no": 128,
-    "difficulty": 4
+    "difficulty": 4,
+    "sub_topic_id": "2.2"
   },
   {
     "domain_id": "domain3",
@@ -6746,7 +7142,8 @@
     "source_ref": "R1",
     "source_chapter": 3,
     "source_question_no": 292,
-    "difficulty": 4
+    "difficulty": 4,
+    "sub_topic_id": "3.1"
   },
   {
     "domain_id": "domain2",
@@ -6763,7 +7160,8 @@
     "source_ref": "R1",
     "source_chapter": 2,
     "source_question_no": 210,
-    "difficulty": 4
+    "difficulty": 4,
+    "sub_topic_id": "2.4"
   },
   {
     "domain_id": "domain3",
@@ -6780,7 +7178,8 @@
     "source_ref": "R1",
     "source_chapter": 3,
     "source_question_no": 230,
-    "difficulty": 4
+    "difficulty": 4,
+    "sub_topic_id": "3.1"
   },
   {
     "domain_id": "domain1",
@@ -6797,7 +7196,8 @@
     "source_ref": "R1",
     "source_chapter": 1,
     "source_question_no": 27,
-    "difficulty": 4
+    "difficulty": 4,
+    "sub_topic_id": "1.3"
   },
   {
     "domain_id": "domain1",
@@ -6814,7 +7214,8 @@
     "source_ref": "R1",
     "source_chapter": 1,
     "source_question_no": 33,
-    "difficulty": 4
+    "difficulty": 4,
+    "sub_topic_id": "1.3"
   },
   {
     "domain_id": "domain4",
@@ -6831,7 +7232,8 @@
     "source_ref": "R1",
     "source_chapter": 4,
     "source_question_no": 418,
-    "difficulty": 4
+    "difficulty": 4,
+    "sub_topic_id": "4.1"
   },
   {
     "domain_id": "domain4",
@@ -6848,7 +7250,8 @@
     "source_ref": "R1",
     "source_chapter": 4,
     "source_question_no": 378,
-    "difficulty": 4
+    "difficulty": 4,
+    "sub_topic_id": "4.5"
   },
   {
     "domain_id": "domain4",
@@ -6865,7 +7268,8 @@
     "source_ref": "R1",
     "source_chapter": 4,
     "source_question_no": 441,
-    "difficulty": 4
+    "difficulty": 4,
+    "sub_topic_id": "4.9"
   },
   {
     "domain_id": "domain3",
@@ -6882,7 +7286,8 @@
     "source_ref": "R1",
     "source_chapter": 3,
     "source_question_no": 256,
-    "difficulty": 4
+    "difficulty": 4,
+    "sub_topic_id": "3.1"
   },
   {
     "domain_id": "domain1",
@@ -6899,7 +7304,8 @@
     "source_ref": "R1",
     "source_chapter": 1,
     "source_question_no": 96,
-    "difficulty": 4
+    "difficulty": 4,
+    "sub_topic_id": "1.4"
   },
   {
     "domain_id": "domain2",
@@ -6916,7 +7322,8 @@
     "source_ref": "R1",
     "source_chapter": 2,
     "source_question_no": 194,
-    "difficulty": 4
+    "difficulty": 4,
+    "sub_topic_id": "2.3"
   },
   {
     "domain_id": "domain1",
@@ -6933,7 +7340,8 @@
     "source_ref": "R1",
     "source_chapter": 1,
     "source_question_no": 26,
-    "difficulty": 4
+    "difficulty": 4,
+    "sub_topic_id": "1.1"
   },
   {
     "domain_id": "domain4",
@@ -6950,7 +7358,8 @@
     "source_ref": "R1",
     "source_chapter": 4,
     "source_question_no": 447,
-    "difficulty": 4
+    "difficulty": 4,
+    "sub_topic_id": "4.6"
   },
   {
     "domain_id": "domain2",
@@ -6967,7 +7376,8 @@
     "source_ref": "R1",
     "source_chapter": 2,
     "source_question_no": 215,
-    "difficulty": 4
+    "difficulty": 4,
+    "sub_topic_id": "2.5"
   },
   {
     "domain_id": "domain4",
@@ -6984,7 +7394,8 @@
     "source_ref": "R1",
     "source_chapter": 4,
     "source_question_no": 362,
-    "difficulty": 4
+    "difficulty": 4,
+    "sub_topic_id": "4.5"
   },
   {
     "domain_id": "domain5",
@@ -7001,7 +7412,8 @@
     "source_ref": "R1",
     "source_chapter": 5,
     "source_question_no": 532,
-    "difficulty": 4
+    "difficulty": 4,
+    "sub_topic_id": "5.3"
   },
   {
     "domain_id": "domain2",
@@ -7018,7 +7430,8 @@
     "source_ref": "R1",
     "source_chapter": 2,
     "source_question_no": 138,
-    "difficulty": 4
+    "difficulty": 4,
+    "sub_topic_id": "2.1"
   },
   {
     "domain_id": "domain4",
@@ -7035,7 +7448,8 @@
     "source_ref": "R1",
     "source_chapter": 4,
     "source_question_no": 412,
-    "difficulty": 4
+    "difficulty": 4,
+    "sub_topic_id": "4.6"
   },
   {
     "domain_id": "domain4",
@@ -7052,7 +7466,8 @@
     "source_ref": "R1",
     "source_chapter": 4,
     "source_question_no": 432,
-    "difficulty": 4
+    "difficulty": 4,
+    "sub_topic_id": "4.1"
   },
   {
     "domain_id": "domain4",
@@ -7069,7 +7484,8 @@
     "source_ref": "R1",
     "source_chapter": 4,
     "source_question_no": 331,
-    "difficulty": 4
+    "difficulty": 4,
+    "sub_topic_id": "4.1"
   },
   {
     "domain_id": "domain5",
@@ -7086,7 +7502,8 @@
     "source_ref": "R1",
     "source_chapter": 5,
     "source_question_no": 524,
-    "difficulty": 4
+    "difficulty": 4,
+    "sub_topic_id": "5.4"
   },
   {
     "domain_id": "domain5",
@@ -7103,7 +7520,8 @@
     "source_ref": "R1",
     "source_chapter": 5,
     "source_question_no": 533,
-    "difficulty": 4
+    "difficulty": 4,
+    "sub_topic_id": "5.3"
   },
   {
     "domain_id": "domain1",
@@ -7120,7 +7538,8 @@
     "source_ref": "R1",
     "source_chapter": 1,
     "source_question_no": 8,
-    "difficulty": 4
+    "difficulty": 4,
+    "sub_topic_id": "1.1"
   },
   {
     "domain_id": "domain1",
@@ -7137,7 +7556,8 @@
     "source_ref": "R1",
     "source_chapter": 1,
     "source_question_no": 108,
-    "difficulty": 4
+    "difficulty": 4,
+    "sub_topic_id": "1.3"
   },
   {
     "domain_id": "domain3",
@@ -7154,7 +7574,8 @@
     "source_ref": "R1",
     "source_chapter": 3,
     "source_question_no": 263,
-    "difficulty": 4
+    "difficulty": 4,
+    "sub_topic_id": "3.1"
   },
   {
     "domain_id": "domain5",
@@ -7171,7 +7592,8 @@
     "source_ref": "R1",
     "source_chapter": 5,
     "source_question_no": 491,
-    "difficulty": 4
+    "difficulty": 4,
+    "sub_topic_id": "5.1"
   },
   {
     "domain_id": "domain4",
@@ -7188,7 +7610,8 @@
     "source_ref": "R1",
     "source_chapter": 4,
     "source_question_no": 446,
-    "difficulty": 4
+    "difficulty": 4,
+    "sub_topic_id": "4.1"
   },
   {
     "domain_id": "domain1",
@@ -7205,7 +7628,8 @@
     "source_ref": "R1",
     "source_chapter": 1,
     "source_question_no": 6,
-    "difficulty": 4
+    "difficulty": 4,
+    "sub_topic_id": "1.1"
   },
   {
     "domain_id": "domain1",
@@ -7222,7 +7646,8 @@
     "source_ref": "R1",
     "source_chapter": 1,
     "source_question_no": 4,
-    "difficulty": 4
+    "difficulty": 4,
+    "sub_topic_id": "1.1"
   },
   {
     "domain_id": "domain2",
@@ -7239,7 +7664,8 @@
     "source_ref": "R1",
     "source_chapter": 2,
     "source_question_no": 113,
-    "difficulty": 4
+    "difficulty": 4,
+    "sub_topic_id": "2.1"
   },
   {
     "domain_id": "domain4",
@@ -7256,7 +7682,8 @@
     "source_ref": "R1",
     "source_chapter": 4,
     "source_question_no": 363,
-    "difficulty": 4
+    "difficulty": 4,
+    "sub_topic_id": "4.1"
   },
   {
     "domain_id": "domain2",
@@ -7273,7 +7700,8 @@
     "source_ref": "R1",
     "source_chapter": 2,
     "source_question_no": 217,
-    "difficulty": 4
+    "difficulty": 4,
+    "sub_topic_id": "2.4"
   },
   {
     "domain_id": "domain4",
@@ -7290,7 +7718,8 @@
     "source_ref": "R1",
     "source_chapter": 4,
     "source_question_no": 350,
-    "difficulty": 4
+    "difficulty": 4,
+    "sub_topic_id": "4.1"
   },
   {
     "domain_id": "domain5",
@@ -7307,7 +7736,8 @@
     "source_ref": "R1",
     "source_chapter": 5,
     "source_question_no": 468,
-    "difficulty": 4
+    "difficulty": 4,
+    "sub_topic_id": "5.1"
   },
   {
     "domain_id": "domain3",
@@ -7324,7 +7754,8 @@
     "source_ref": "R1",
     "source_chapter": 3,
     "source_question_no": 229,
-    "difficulty": 4
+    "difficulty": 4,
+    "sub_topic_id": "3.2"
   },
   {
     "domain_id": "domain5",
@@ -7341,7 +7772,8 @@
     "source_ref": "R1",
     "source_chapter": 5,
     "source_question_no": 504,
-    "difficulty": 4
+    "difficulty": 4,
+    "sub_topic_id": "5.4"
   },
   {
     "domain_id": "domain4",
@@ -7358,7 +7790,8 @@
     "source_ref": "R1",
     "source_chapter": 4,
     "source_question_no": 414,
-    "difficulty": 5
+    "difficulty": 5,
+    "sub_topic_id": "4.1"
   },
   {
     "domain_id": "domain3",
@@ -7375,7 +7808,8 @@
     "source_ref": "R1",
     "source_chapter": 3,
     "source_question_no": 228,
-    "difficulty": 5
+    "difficulty": 5,
+    "sub_topic_id": "3.1"
   },
   {
     "domain_id": "domain2",
@@ -7392,7 +7826,8 @@
     "source_ref": "R1",
     "source_chapter": 2,
     "source_question_no": 216,
-    "difficulty": 5
+    "difficulty": 5,
+    "sub_topic_id": "2.4"
   },
   {
     "domain_id": "domain5",
@@ -7409,7 +7844,8 @@
     "source_ref": "R1",
     "source_chapter": 5,
     "source_question_no": 505,
-    "difficulty": 5
+    "difficulty": 5,
+    "sub_topic_id": "5.3"
   },
   {
     "domain_id": "domain1",
@@ -7426,7 +7862,8 @@
     "source_ref": "R1",
     "source_chapter": 1,
     "source_question_no": 7,
-    "difficulty": 5
+    "difficulty": 5,
+    "sub_topic_id": "1.4"
   },
   {
     "domain_id": "domain1",
@@ -7443,7 +7880,8 @@
     "source_ref": "R1",
     "source_chapter": 1,
     "source_question_no": 92,
-    "difficulty": 5
+    "difficulty": 5,
+    "sub_topic_id": "1.4"
   },
   {
     "domain_id": "domain3",
@@ -7460,7 +7898,8 @@
     "source_ref": "R1",
     "source_chapter": 3,
     "source_question_no": 302,
-    "difficulty": 5
+    "difficulty": 5,
+    "sub_topic_id": "3.3"
   },
   {
     "domain_id": "domain2",
@@ -7477,7 +7916,8 @@
     "source_ref": "R1",
     "source_chapter": 2,
     "source_question_no": 185,
-    "difficulty": 5
+    "difficulty": 5,
+    "sub_topic_id": "2.5"
   },
   {
     "domain_id": "domain4",
@@ -7494,7 +7934,8 @@
     "source_ref": "R1",
     "source_chapter": 4,
     "source_question_no": 450,
-    "difficulty": 5
+    "difficulty": 5,
+    "sub_topic_id": "4.1"
   },
   {
     "domain_id": "domain5",
@@ -7511,7 +7952,8 @@
     "source_ref": "R1",
     "source_chapter": 5,
     "source_question_no": 512,
-    "difficulty": 5
+    "difficulty": 5,
+    "sub_topic_id": "5.1"
   },
   {
     "domain_id": "domain4",
@@ -7528,7 +7970,8 @@
     "source_ref": "R1",
     "source_chapter": 4,
     "source_question_no": 440,
-    "difficulty": 5
+    "difficulty": 5,
+    "sub_topic_id": "4.7"
   },
   {
     "domain_id": "domain2",
@@ -7545,7 +7988,8 @@
     "source_ref": "R1",
     "source_chapter": 2,
     "source_question_no": 155,
-    "difficulty": 5
+    "difficulty": 5,
+    "sub_topic_id": "2.1"
   },
   {
     "domain_id": "domain4",
@@ -7562,7 +8006,8 @@
     "source_ref": "R1",
     "source_chapter": 4,
     "source_question_no": 455,
-    "difficulty": 5
+    "difficulty": 5,
+    "sub_topic_id": "4.3"
   },
   {
     "domain_id": "domain5",
@@ -7579,7 +8024,8 @@
     "source_ref": "R1",
     "source_chapter": 5,
     "source_question_no": 507,
-    "difficulty": 5
+    "difficulty": 5,
+    "sub_topic_id": "5.4"
   },
   {
     "domain_id": "domain4",
@@ -7596,7 +8042,8 @@
     "source_ref": "R1",
     "source_chapter": 4,
     "source_question_no": 454,
-    "difficulty": 5
+    "difficulty": 5,
+    "sub_topic_id": "4.6"
   },
   {
     "domain_id": "domain5",
@@ -7613,7 +8060,8 @@
     "source_ref": "R1",
     "source_chapter": 5,
     "source_question_no": 539,
-    "difficulty": 5
+    "difficulty": 5,
+    "sub_topic_id": "5.6"
   },
   {
     "domain_id": "domain5",
@@ -7630,7 +8078,8 @@
     "source_ref": "R1",
     "source_chapter": 5,
     "source_question_no": 473,
-    "difficulty": 5
+    "difficulty": 5,
+    "sub_topic_id": "5.1"
   },
   {
     "domain_id": "domain1",
@@ -7647,7 +8096,8 @@
     "source_ref": "R1",
     "source_chapter": 1,
     "source_question_no": 20,
-    "difficulty": 5
+    "difficulty": 5,
+    "sub_topic_id": "1.4"
   },
   {
     "domain_id": "domain1",
@@ -7664,7 +8114,8 @@
     "source_ref": "R1",
     "source_chapter": 1,
     "source_question_no": 34,
-    "difficulty": 5
+    "difficulty": 5,
+    "sub_topic_id": "1.1"
   },
   {
     "domain_id": "domain3",
@@ -7681,7 +8132,8 @@
     "source_ref": "R1",
     "source_chapter": 3,
     "source_question_no": 287,
-    "difficulty": 5
+    "difficulty": 5,
+    "sub_topic_id": "3.3"
   },
   {
     "domain_id": "domain4",
@@ -7698,7 +8150,8 @@
     "source_ref": "R1",
     "source_chapter": 4,
     "source_question_no": 352,
-    "difficulty": 5
+    "difficulty": 5,
+    "sub_topic_id": "4.1"
   },
   {
     "domain_id": "domain2",
@@ -7715,7 +8168,8 @@
     "source_ref": "R1",
     "source_chapter": 2,
     "source_question_no": 151,
-    "difficulty": 5
+    "difficulty": 5,
+    "sub_topic_id": "2.1"
   },
   {
     "domain_id": "domain4",
@@ -7732,7 +8186,8 @@
     "source_ref": "R1",
     "source_chapter": 4,
     "source_question_no": 353,
-    "difficulty": 5
+    "difficulty": 5,
+    "sub_topic_id": "4.4"
   },
   {
     "domain_id": "domain4",
@@ -7749,7 +8204,8 @@
     "source_ref": "R1",
     "source_chapter": 4,
     "source_question_no": 443,
-    "difficulty": 5
+    "difficulty": 5,
+    "sub_topic_id": "4.7"
   },
   {
     "domain_id": "domain1",
@@ -7766,7 +8222,8 @@
     "source_ref": "R1",
     "source_chapter": 1,
     "source_question_no": 3,
-    "difficulty": 5
+    "difficulty": 5,
+    "sub_topic_id": "1.1"
   },
   {
     "domain_id": "domain4",
@@ -7783,7 +8240,8 @@
     "source_ref": "R1",
     "source_chapter": 4,
     "source_question_no": 314,
-    "difficulty": 5
+    "difficulty": 5,
+    "sub_topic_id": "4.2"
   },
   {
     "domain_id": "domain3",
@@ -7800,7 +8258,8 @@
     "source_ref": "R1",
     "source_chapter": 3,
     "source_question_no": 265,
-    "difficulty": 5
+    "difficulty": 5,
+    "sub_topic_id": "3.1"
   },
   {
     "domain_id": "domain4",
@@ -7817,7 +8276,8 @@
     "source_ref": "R1",
     "source_chapter": 4,
     "source_question_no": 389,
-    "difficulty": 5
+    "difficulty": 5,
+    "sub_topic_id": "4.1"
   },
   {
     "domain_id": "domain4",
@@ -7834,7 +8294,8 @@
     "source_ref": "R1",
     "source_chapter": 4,
     "source_question_no": 416,
-    "difficulty": 5
+    "difficulty": 5,
+    "sub_topic_id": "4.6"
   },
   {
     "domain_id": "domain4",
@@ -7851,7 +8312,8 @@
     "source_ref": "R1",
     "source_chapter": 4,
     "source_question_no": 423,
-    "difficulty": 5
+    "difficulty": 5,
+    "sub_topic_id": "4.6"
   },
   {
     "domain_id": "domain2",
@@ -7868,7 +8330,8 @@
     "source_ref": "R1",
     "source_chapter": 2,
     "source_question_no": 130,
-    "difficulty": 5
+    "difficulty": 5,
+    "sub_topic_id": "2.1"
   },
   {
     "domain_id": "domain2",
@@ -7885,7 +8348,8 @@
     "source_ref": "R1",
     "source_chapter": 2,
     "source_question_no": 144,
-    "difficulty": 5
+    "difficulty": 5,
+    "sub_topic_id": "2.2"
   },
   {
     "domain_id": "domain2",
@@ -7902,7 +8366,8 @@
     "source_ref": "R1",
     "source_chapter": 2,
     "source_question_no": 148,
-    "difficulty": 5
+    "difficulty": 5,
+    "sub_topic_id": "2.4"
   },
   {
     "domain_id": "domain2",
@@ -7919,7 +8384,8 @@
     "source_ref": "R1",
     "source_chapter": 2,
     "source_question_no": 172,
-    "difficulty": 5
+    "difficulty": 5,
+    "sub_topic_id": "2.5"
   },
   {
     "domain_id": "domain2",
@@ -7936,7 +8402,8 @@
     "source_ref": "R1",
     "source_chapter": 2,
     "source_question_no": 201,
-    "difficulty": 5
+    "difficulty": 5,
+    "sub_topic_id": "2.4"
   },
   {
     "domain_id": "domain4",
@@ -7953,7 +8420,8 @@
     "source_ref": "R1",
     "source_chapter": 4,
     "source_question_no": 400,
-    "difficulty": 5
+    "difficulty": 5,
+    "sub_topic_id": "4.6"
   },
   {
     "domain_id": "domain2",
@@ -7970,7 +8438,8 @@
     "source_ref": "R1",
     "source_chapter": 2,
     "source_question_no": 114,
-    "difficulty": 5
+    "difficulty": 5,
+    "sub_topic_id": "2.1"
   },
   {
     "domain_id": "domain2",
@@ -7987,7 +8456,8 @@
     "source_ref": "R1",
     "source_chapter": 2,
     "source_question_no": 121,
-    "difficulty": 5
+    "difficulty": 5,
+    "sub_topic_id": "2.2"
   },
   {
     "domain_id": "domain2",
@@ -8004,7 +8474,8 @@
     "source_ref": "R1",
     "source_chapter": 2,
     "source_question_no": 171,
-    "difficulty": 5
+    "difficulty": 5,
+    "sub_topic_id": "2.3"
   },
   {
     "domain_id": "domain3",
@@ -8021,7 +8492,8 @@
     "source_ref": "R1",
     "source_chapter": 3,
     "source_question_no": 234,
-    "difficulty": 5
+    "difficulty": 5,
+    "sub_topic_id": "3.1"
   },
   {
     "domain_id": "domain4",
@@ -8038,7 +8510,8 @@
     "source_ref": "R1",
     "source_chapter": 4,
     "source_question_no": 370,
-    "difficulty": 5
+    "difficulty": 5,
+    "sub_topic_id": "4.1"
   },
   {
     "domain_id": "domain1",
@@ -8055,7 +8528,8 @@
     "source_ref": "R1",
     "source_chapter": 1,
     "source_question_no": 103,
-    "difficulty": 5
+    "difficulty": 5,
+    "sub_topic_id": "1.3"
   },
   {
     "domain_id": "domain2",
@@ -8072,7 +8546,8 @@
     "source_ref": "R1",
     "source_chapter": 2,
     "source_question_no": 213,
-    "difficulty": 5
+    "difficulty": 5,
+    "sub_topic_id": "2.1"
   },
   {
     "domain_id": "domain4",
@@ -8089,7 +8564,8 @@
     "source_ref": "R1",
     "source_chapter": 4,
     "source_question_no": 419,
-    "difficulty": 5
+    "difficulty": 5,
+    "sub_topic_id": "4.1"
   },
   {
     "domain_id": "domain2",
@@ -8106,7 +8582,8 @@
     "source_ref": "R1",
     "source_chapter": 2,
     "source_question_no": 131,
-    "difficulty": 5
+    "difficulty": 5,
+    "sub_topic_id": "2.2"
   },
   {
     "domain_id": "domain4",
@@ -8123,7 +8600,8 @@
     "source_ref": "R1",
     "source_chapter": 4,
     "source_question_no": 325,
-    "difficulty": 5
+    "difficulty": 5,
+    "sub_topic_id": "4.1"
   },
   {
     "domain_id": "domain1",
@@ -8140,7 +8618,8 @@
     "source_ref": "R1",
     "source_chapter": 1,
     "source_question_no": 57,
-    "difficulty": 5
+    "difficulty": 5,
+    "sub_topic_id": "1.3"
   },
   {
     "domain_id": "domain1",
@@ -8157,7 +8636,8 @@
     "source_ref": "R1",
     "source_chapter": 1,
     "source_question_no": 43,
-    "difficulty": 5
+    "difficulty": 5,
+    "sub_topic_id": "1.2"
   },
   {
     "domain_id": "domain4",
@@ -8174,7 +8654,8 @@
     "source_ref": "R1",
     "source_chapter": 4,
     "source_question_no": 383,
-    "difficulty": 5
+    "difficulty": 5,
+    "sub_topic_id": "4.5"
   },
   {
     "domain_id": "domain5",
@@ -8191,7 +8672,8 @@
     "source_ref": "R1",
     "source_chapter": 5,
     "source_question_no": 540,
-    "difficulty": 5
+    "difficulty": 5,
+    "sub_topic_id": "5.5"
   },
   {
     "domain_id": "domain4",
@@ -8208,7 +8690,8 @@
     "source_ref": "R1",
     "source_chapter": 4,
     "source_question_no": 360,
-    "difficulty": 5
+    "difficulty": 5,
+    "sub_topic_id": "4.3"
   },
   {
     "domain_id": "domain4",
@@ -8225,7 +8708,8 @@
     "source_ref": "R1",
     "source_chapter": 4,
     "source_question_no": 365,
-    "difficulty": 5
+    "difficulty": 5,
+    "sub_topic_id": "4.1"
   },
   {
     "domain_id": "domain2",
@@ -8242,7 +8726,8 @@
     "source_ref": "R1",
     "source_chapter": 2,
     "source_question_no": 141,
-    "difficulty": 5
+    "difficulty": 5,
+    "sub_topic_id": "2.4"
   },
   {
     "domain_id": "domain2",
@@ -8259,7 +8744,8 @@
     "source_ref": "R1",
     "source_chapter": 2,
     "source_question_no": 205,
-    "difficulty": 5
+    "difficulty": 5,
+    "sub_topic_id": "2.1"
   },
   {
     "domain_id": "domain4",
@@ -8276,7 +8762,8 @@
     "source_ref": "R1",
     "source_chapter": 4,
     "source_question_no": 390,
-    "difficulty": 5
+    "difficulty": 5,
+    "sub_topic_id": "4.1"
   },
   {
     "domain_id": "domain3",
@@ -8293,7 +8780,8 @@
     "source_ref": "R1",
     "source_chapter": 3,
     "source_question_no": 294,
-    "difficulty": 5
+    "difficulty": 5,
+    "sub_topic_id": "3.1"
   },
   {
     "domain_id": "domain3",
@@ -8310,7 +8798,8 @@
     "source_ref": "R1",
     "source_chapter": 3,
     "source_question_no": 299,
-    "difficulty": 5
+    "difficulty": 5,
+    "sub_topic_id": "3.4"
   },
   {
     "domain_id": "domain2",
@@ -8327,7 +8816,8 @@
     "source_ref": "R1",
     "source_chapter": 2,
     "source_question_no": 161,
-    "difficulty": 5
+    "difficulty": 5,
+    "sub_topic_id": "2.5"
   },
   {
     "domain_id": "domain4",
@@ -8344,7 +8834,8 @@
     "source_ref": "R1",
     "source_chapter": 4,
     "source_question_no": 442,
-    "difficulty": 5
+    "difficulty": 5,
+    "sub_topic_id": "4.7"
   },
   {
     "domain_id": "domain2",
@@ -8361,7 +8852,8 @@
     "source_ref": "R1",
     "source_chapter": 2,
     "source_question_no": 132,
-    "difficulty": 5
+    "difficulty": 5,
+    "sub_topic_id": "2.1"
   },
   {
     "domain_id": "domain2",
@@ -8378,7 +8870,8 @@
     "source_ref": "R1",
     "source_chapter": 2,
     "source_question_no": 173,
-    "difficulty": 5
+    "difficulty": 5,
+    "sub_topic_id": "2.5"
   },
   {
     "domain_id": "domain3",
@@ -8395,7 +8888,8 @@
     "source_ref": "R1",
     "source_chapter": 3,
     "source_question_no": 233,
-    "difficulty": 5
+    "difficulty": 5,
+    "sub_topic_id": "3.1"
   },
   {
     "domain_id": "domain4",
@@ -8412,7 +8906,8 @@
     "source_ref": "R1",
     "source_chapter": 4,
     "source_question_no": 338,
-    "difficulty": 5
+    "difficulty": 5,
+    "sub_topic_id": "4.1"
   },
   {
     "domain_id": "domain2",
@@ -8429,7 +8924,8 @@
     "source_ref": "R1",
     "source_chapter": 2,
     "source_question_no": 120,
-    "difficulty": 5
+    "difficulty": 5,
+    "sub_topic_id": "2.2"
   },
   {
     "domain_id": "domain2",
@@ -8446,7 +8942,8 @@
     "source_ref": "R1",
     "source_chapter": 2,
     "source_question_no": 199,
-    "difficulty": 5
+    "difficulty": 5,
+    "sub_topic_id": "2.3"
   },
   {
     "domain_id": "domain4",
@@ -8463,7 +8960,8 @@
     "source_ref": "R1",
     "source_chapter": 4,
     "source_question_no": 437,
-    "difficulty": 5
+    "difficulty": 5,
+    "sub_topic_id": "4.1"
   },
   {
     "domain_id": "domain1",
@@ -8480,7 +8978,8 @@
     "source_ref": "R1",
     "source_chapter": 1,
     "source_question_no": 65,
-    "difficulty": 5
+    "difficulty": 5,
+    "sub_topic_id": "1.3"
   },
   {
     "domain_id": "domain4",
@@ -8497,7 +8996,8 @@
     "source_ref": "R1",
     "source_chapter": 4,
     "source_question_no": 435,
-    "difficulty": 5
+    "difficulty": 5,
+    "sub_topic_id": "4.7"
   },
   {
     "domain_id": "domain1",
@@ -8514,7 +9014,8 @@
     "source_ref": "R1",
     "source_chapter": 1,
     "source_question_no": 50,
-    "difficulty": 5
+    "difficulty": 5,
+    "sub_topic_id": "1.4"
   },
   {
     "domain_id": "domain3",
@@ -8531,7 +9032,8 @@
     "source_ref": "R1",
     "source_chapter": 3,
     "source_question_no": 235,
-    "difficulty": 5
+    "difficulty": 5,
+    "sub_topic_id": "3.2"
   },
   {
     "domain_id": "domain2",
@@ -8548,7 +9050,8 @@
     "source_ref": "R1",
     "source_chapter": 2,
     "source_question_no": 165,
-    "difficulty": 5
+    "difficulty": 5,
+    "sub_topic_id": "2.5"
   },
   {
     "domain_id": "domain3",
@@ -8565,7 +9068,8 @@
     "source_ref": "R1",
     "source_chapter": 3,
     "source_question_no": 225,
-    "difficulty": 5
+    "difficulty": 5,
+    "sub_topic_id": "3.4"
   },
   {
     "domain_id": "domain1",
@@ -8582,7 +9086,8 @@
     "source_ref": "R1",
     "source_chapter": 1,
     "source_question_no": 110,
-    "difficulty": 5
+    "difficulty": 5,
+    "sub_topic_id": "1.1"
   },
   {
     "domain_id": "domain1",
@@ -8599,7 +9104,8 @@
     "source_ref": "R1",
     "source_chapter": 1,
     "source_question_no": 15,
-    "difficulty": 5
+    "difficulty": 5,
+    "sub_topic_id": "1.4"
   },
   {
     "domain_id": "domain1",
@@ -8616,7 +9122,8 @@
     "source_ref": "R1",
     "source_chapter": 1,
     "source_question_no": 30,
-    "difficulty": 5
+    "difficulty": 5,
+    "sub_topic_id": "1.1"
   },
   {
     "domain_id": "domain4",
@@ -8633,7 +9140,8 @@
     "source_ref": "R1",
     "source_chapter": 4,
     "source_question_no": 426,
-    "difficulty": 5
+    "difficulty": 5,
+    "sub_topic_id": "4.1"
   },
   {
     "domain_id": "domain2",
@@ -8650,7 +9158,8 @@
     "source_ref": "R1",
     "source_chapter": 2,
     "source_question_no": 179,
-    "difficulty": 5
+    "difficulty": 5,
+    "sub_topic_id": "2.3"
   },
   {
     "domain_id": "domain5",
@@ -8667,7 +9176,8 @@
     "source_ref": "R1",
     "source_chapter": 5,
     "source_question_no": 536,
-    "difficulty": 5
+    "difficulty": 5,
+    "sub_topic_id": "5.6"
   },
   {
     "domain_id": "domain4",
@@ -8684,7 +9194,8 @@
     "source_ref": "R1",
     "source_chapter": 4,
     "source_question_no": 434,
-    "difficulty": 5
+    "difficulty": 5,
+    "sub_topic_id": "4.9"
   },
   {
     "domain_id": "domain4",
@@ -8701,7 +9212,8 @@
     "source_ref": "R1",
     "source_chapter": 4,
     "source_question_no": 398,
-    "difficulty": 5
+    "difficulty": 5,
+    "sub_topic_id": "4.1"
   },
   {
     "domain_id": "domain1",
@@ -8718,7 +9230,8 @@
     "source_ref": "R1",
     "source_chapter": 1,
     "source_question_no": 89,
-    "difficulty": 5
+    "difficulty": 5,
+    "sub_topic_id": "1.3"
   },
   {
     "domain_id": "domain1",
@@ -8735,7 +9248,8 @@
     "source_ref": "R1",
     "source_chapter": 1,
     "source_question_no": 44,
-    "difficulty": 5
+    "difficulty": 5,
+    "sub_topic_id": "1.1"
   },
   {
     "domain_id": "domain3",
@@ -8752,7 +9266,8 @@
     "source_ref": "R1",
     "source_chapter": 3,
     "source_question_no": 284,
-    "difficulty": 5
+    "difficulty": 5,
+    "sub_topic_id": "3.4"
   },
   {
     "domain_id": "domain3",
@@ -8769,7 +9284,8 @@
     "source_ref": "R1",
     "source_chapter": 3,
     "source_question_no": 248,
-    "difficulty": 5
+    "difficulty": 5,
+    "sub_topic_id": "3.2"
   },
   {
     "domain_id": "domain2",
@@ -8786,7 +9302,8 @@
     "source_ref": "R1",
     "source_chapter": 2,
     "source_question_no": 154,
-    "difficulty": 5
+    "difficulty": 5,
+    "sub_topic_id": "2.1"
   },
   {
     "domain_id": "domain2",
@@ -8803,7 +9320,8 @@
     "source_ref": "R1",
     "source_chapter": 2,
     "source_question_no": 149,
-    "difficulty": 5
+    "difficulty": 5,
+    "sub_topic_id": "2.1"
   },
   {
     "domain_id": "domain2",
@@ -8820,7 +9338,8 @@
     "source_ref": "R1",
     "source_chapter": 2,
     "source_question_no": 118,
-    "difficulty": 5
+    "difficulty": 5,
+    "sub_topic_id": "2.1"
   },
   {
     "domain_id": "domain1",
@@ -8837,7 +9356,8 @@
     "source_ref": "R1",
     "source_chapter": 1,
     "source_question_no": 42,
-    "difficulty": 5
+    "difficulty": 5,
+    "sub_topic_id": "1.3"
   },
   {
     "domain_id": "domain3",
@@ -8854,7 +9374,8 @@
     "source_ref": "R1",
     "source_chapter": 3,
     "source_question_no": 240,
-    "difficulty": 5
+    "difficulty": 5,
+    "sub_topic_id": "3.3"
   },
   {
     "domain_id": "domain4",
@@ -8871,7 +9392,8 @@
     "source_ref": "R1",
     "source_chapter": 4,
     "source_question_no": 317,
-    "difficulty": 5
+    "difficulty": 5,
+    "sub_topic_id": "4.2"
   },
   {
     "domain_id": "domain5",
@@ -8888,7 +9410,8 @@
     "source_ref": "R1",
     "source_chapter": 5,
     "source_question_no": 489,
-    "difficulty": 5
+    "difficulty": 5,
+    "sub_topic_id": "5.4"
   },
   {
     "domain_id": "domain2",
@@ -8905,7 +9428,8 @@
     "source_ref": "R1",
     "source_chapter": 2,
     "source_question_no": 139,
-    "difficulty": 5
+    "difficulty": 5,
+    "sub_topic_id": "2.2"
   },
   {
     "domain_id": "domain2",
@@ -8922,7 +9446,8 @@
     "source_ref": "R1",
     "source_chapter": 2,
     "source_question_no": 186,
-    "difficulty": 5
+    "difficulty": 5,
+    "sub_topic_id": "2.4"
   },
   {
     "domain_id": "domain1",
@@ -8939,7 +9464,8 @@
     "source_ref": "R1",
     "source_chapter": 1,
     "source_question_no": 28,
-    "difficulty": 5
+    "difficulty": 5,
+    "sub_topic_id": "1.1"
   },
   {
     "domain_id": "domain4",
@@ -8956,7 +9482,8 @@
     "source_ref": "R1",
     "source_chapter": 4,
     "source_question_no": 332,
-    "difficulty": 5
+    "difficulty": 5,
+    "sub_topic_id": "4.6"
   },
   {
     "domain_id": "domain1",
@@ -8973,7 +9500,8 @@
     "source_ref": "R1",
     "source_chapter": 1,
     "source_question_no": 12,
-    "difficulty": 5
+    "difficulty": 5,
+    "sub_topic_id": "1.1"
   },
   {
     "domain_id": "domain2",
@@ -8990,7 +9518,8 @@
     "source_ref": "R1",
     "source_chapter": 2,
     "source_question_no": 175,
-    "difficulty": 5
+    "difficulty": 5,
+    "sub_topic_id": "2.3"
   },
   {
     "domain_id": "domain5",
@@ -9007,7 +9536,8 @@
     "source_ref": "R1",
     "source_chapter": 5,
     "source_question_no": 477,
-    "difficulty": 5
+    "difficulty": 5,
+    "sub_topic_id": "5.1"
   },
   {
     "domain_id": "domain2",
@@ -9024,7 +9554,8 @@
     "source_ref": "R1",
     "source_chapter": 2,
     "source_question_no": 156,
-    "difficulty": 5
+    "difficulty": 5,
+    "sub_topic_id": "2.3"
   },
   {
     "domain_id": "domain4",
@@ -9041,7 +9572,8 @@
     "source_ref": "R1",
     "source_chapter": 4,
     "source_question_no": 459,
-    "difficulty": 5
+    "difficulty": 5,
+    "sub_topic_id": "4.7"
   },
   {
     "domain_id": "domain4",
@@ -9058,7 +9590,8 @@
     "source_ref": "R1",
     "source_chapter": 4,
     "source_question_no": 415,
-    "difficulty": 5
+    "difficulty": 5,
+    "sub_topic_id": "4.9"
   },
   {
     "domain_id": "domain2",
@@ -9075,7 +9608,8 @@
     "source_ref": "R1",
     "source_chapter": 2,
     "source_question_no": 187,
-    "difficulty": 5
+    "difficulty": 5,
+    "sub_topic_id": "2.3"
   },
   {
     "domain_id": "domain1",
@@ -9092,7 +9626,8 @@
     "source_ref": "R1",
     "source_chapter": 1,
     "source_question_no": 21,
-    "difficulty": 5
+    "difficulty": 5,
+    "sub_topic_id": "1.1"
   },
   {
     "domain_id": "domain2",
@@ -9109,7 +9644,8 @@
     "source_ref": "R1",
     "source_chapter": 2,
     "source_question_no": 125,
-    "difficulty": 5
+    "difficulty": 5,
+    "sub_topic_id": "2.2"
   },
   {
     "domain_id": "domain2",
@@ -9126,7 +9662,8 @@
     "source_ref": "R1",
     "source_chapter": 2,
     "source_question_no": 122,
-    "difficulty": 5
+    "difficulty": 5,
+    "sub_topic_id": "2.5"
   },
   {
     "domain_id": "domain2",
@@ -9143,7 +9680,8 @@
     "source_ref": "R1",
     "source_chapter": 2,
     "source_question_no": 134,
-    "difficulty": 5
+    "difficulty": 5,
+    "sub_topic_id": "2.1"
   },
   {
     "domain_id": "domain5",
@@ -9160,7 +9698,8 @@
     "source_ref": "R1",
     "source_chapter": 5,
     "source_question_no": 529,
-    "difficulty": 5
+    "difficulty": 5,
+    "sub_topic_id": "5.1"
   },
   {
     "domain_id": "domain2",
@@ -9177,6 +9716,7 @@
     "source_ref": "R1",
     "source_chapter": 2,
     "source_question_no": 145,
-    "difficulty": 5
+    "difficulty": 5,
+    "sub_topic_id": "2.3"
   }
 ]

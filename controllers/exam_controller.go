@@ -252,12 +252,7 @@ func (ec *ExamController) StartPostTest(c *gin.Context) {
 		return
 	}
 
-	// Exclude all questions from user's PRE test
-	excludeSubquery := tx.Table("exam_session_questions").
-		Select("exam_session_questions.question_id").
-		Joins("join exam_sessions on exam_sessions.session_id = exam_session_questions.session_id").
-		Where("exam_sessions.user_id = ? AND exam_sessions.exam_type = 'pre'", userID)
-
+	// Exclude all questions from user's PRE test and Learn sample questions (Zero-Overlap)
 	domains := map[string]int{
 		"domain1": 4,
 		"domain2": 7,
@@ -269,7 +264,7 @@ func (ec *ExamController) StartPostTest(c *gin.Context) {
 	var allSelectedQuestions []models.Question
 	for domain, count := range domains {
 		var qList []models.Question
-		if err := tx.Where("domain_id = ? AND is_active = true AND question_id NOT IN (?)", domain, excludeSubquery).
+		if err := tx.Where("domain_id = ? AND is_active = true AND question_id NOT IN (?)", domain, BuildPostTestExclusionQuery(tx, userID)).
 			Order("RANDOM()").
 			Limit(count).
 			Find(&qList).Error; err != nil {
@@ -600,5 +595,22 @@ func (ec *ExamController) GetSampleQuestion(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, question)
+}
+
+// BuildPostTestExclusionQuery returns a subquery of all question_ids already seen
+// by userID in Pre-Test exam sessions OR assigned as Learn sample questions,
+// enforcing Pre-Test ∪ Learn ∪ Post-Test = ∅.
+func BuildPostTestExclusionQuery(db *gorm.DB, userID any) *gorm.DB {
+	return db.Session(&gorm.Session{NewDB: true}).Raw(
+		`SELECT esq.question_id
+		 FROM exam_session_questions esq
+		 JOIN exam_sessions es ON es.session_id = esq.session_id
+		 WHERE es.user_id = ? AND es.exam_type = 'pre'
+		 UNION
+		 SELECT utsq.question_id
+		 FROM user_theory_sample_questions utsq
+		 WHERE utsq.user_id = ?`,
+		userID, userID,
+	)
 }
 

@@ -20,6 +20,9 @@ type SimulationStatusResponse struct {
 	AllDomainsPassed       bool              `json:"all_domains_passed" example:"false"`
 	TheoryCompleted        bool              `json:"theory_completed" example:"true"`
 	CompletedTheoryDomains []string          `json:"completed_theory_domains"`
+	CompletedSubtopicCount int               `json:"completed_subtopic_count" example:"28"`
+	TotalSubtopics         int               `json:"total_subtopics" example:"28"`
+	CompletedSubtopics     []string          `json:"completed_subtopics"`
 	Error                  string            `json:"error,omitempty" example:"No skill profile found. Please complete the pre-test first."`
 }
 
@@ -117,13 +120,36 @@ type ResearchSummaryResponse struct {
 	ImprovementScore   *float64          `json:"improvement_score" example:"20.0"`
 	AllDomainsPassed       bool              `json:"all_domains_passed" example:"true"`
 	EligibleForPost        bool              `json:"eligible_for_post" example:"true"`
-	TheoryCompleted        bool              `json:"theory_completed" example:"true"`
-	CompletedTheoryDomains []string          `json:"completed_theory_domains"`
-	TheoryCompletedAt      *time.Time        `json:"theory_completed_at,omitempty"`
-	CompletedScenarios     int               `json:"completed_scenarios" example:"3"`
-	MaxScenarios       int               `json:"max_scenarios" example:"10"`
-	TotalActions       int               `json:"total_actions" example:"18"`
-	TotalElapsedSec    int               `json:"total_elapsed_sec" example:"720"`
-	AverageProficiency float64           `json:"average_proficiency" example:"78.5"`
-	DomainProfiles     []DomainStatusDTO `json:"domain_profiles,omitempty"`
+	TheoryCompleted        bool                       `json:"theory_completed" example:"true"`
+	CompletedTheoryDomains []string                   `json:"completed_theory_domains"`
+	TheoryCompletedAt      *time.Time                 `json:"theory_completed_at,omitempty"`
+	CompletedScenarios     int                        `json:"completed_scenarios" example:"3"`
+	MaxScenarios           int                        `json:"max_scenarios" example:"10"`
+	TotalActions           int                        `json:"total_actions" example:"18"`
+	TotalElapsedSec        int                        `json:"total_elapsed_sec" example:"720"`
+	AverageProficiency     float64                    `json:"average_proficiency" example:"78.5"`
+	DomainProfiles         []DomainStatusDTO          `json:"domain_profiles,omitempty"`
+	LearnSubtopicTelemetry *LearnSubtopicTelemetryDTO `json:"learn_subtopic_telemetry,omitempty"`
+}
+
+// LearnDomainBreakdownDTO summarizes Sub-topic completion and sample accuracy for one domain.
+type LearnDomainBreakdownDTO struct {
+	DomainID           string `json:"domain_id" example:"domain1"`
+	CompletedSubtopics int    `json:"completed_subtopics" example:"4"`
+	TotalSubtopics     int    `json:"total_subtopics" example:"4"`
+	SampleAssigned     int    `json:"sample_assigned" example:"8"`
+	SampleAttempted    int    `json:"sample_attempted" example:"8"`
+	SampleCorrect      int    `json:"sample_correct" example:"6"`
+}
+
+// LearnSubtopicTelemetryDTO captures Learning Theory Sub-topic engagement and formative accuracy metrics.
+type LearnSubtopicTelemetryDTO struct {
+	CompletedSubtopicsCount  int                       `json:"completed_subtopics_count" example:"28"`
+	TotalSubtopics           int                       `json:"total_subtopics" example:"28"`
+	CompletedSubtopics       []string                  `json:"completed_subtopics"`
+	SampleQuestionsAssigned  int                       `json:"sample_questions_assigned" example:"56"`
+	SampleQuestionsAttempted int                       `json:"sample_questions_attempted" example:"56"`
+	SampleQuestionsCorrect   int                       `json:"sample_questions_correct" example:"44"`
+	SampleAccuracyPercent    float64                   `json:"sample_accuracy_percent" example:"78.57"`
+	DomainBreakdown          []LearnDomainBreakdownDTO `json:"domain_breakdown"`
 }

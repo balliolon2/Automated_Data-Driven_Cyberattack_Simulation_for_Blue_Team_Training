@@ -5,57 +5,76 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"cybersim/dto"
+	"cybersim/models"
+	"cybersim/services"
 
 	"github.com/gin-gonic/gin"
 )
 
 func TestEvaluateStage2TheoryGate(t *testing.T) {
-	allFive := []string{"domain1", "domain2", "domain3", "domain4", "domain5"}
+	allTwentyEight := make([]string, 0, len(services.OrderedTheorySubtopics))
+	for _, s := range services.OrderedTheorySubtopics {
+		allTwentyEight = append(allTwentyEight, s.SubTopicID)
+	}
+	twentySeven := allTwentyEight[:len(allTwentyEight)-1]
 
 	tests := []struct {
-		name               string
-		bypassEnv          string
-		completedDomains   []string
-		wantBlocked        bool
-		wantCompletedCount int
-		wantTotalDomains   int
+		name                   string
+		bypassEnv              string
+		role                   string
+		completedSubtopics     []string
+		wantBlocked            bool
+		wantCompletedSubtopics int
+		wantTotalSubtopics     int
 	}{
 		{
-			name:               "blocks learner with 0 completed domains",
+			name:                   "blocks learner with 0 completed subtopics",
+			bypassEnv:              "",
+			role:                   "learner",
+			completedSubtopics:     []string{},
+			wantBlocked:            true,
+			wantCompletedSubtopics: 0,
+			wantTotalSubtopics:     28,
+		},
+		{
+			name:                   "blocks learner with 27 of 28 subtopics (legacy 5/5 domains insufficient)",
+			bypassEnv:              "false",
+			role:                   "learner",
+			completedSubtopics:     twentySeven,
+			wantBlocked:            true,
+			wantCompletedSubtopics: 27,
+			wantTotalSubtopics:     28,
+		},
+		{
+			name:               "allows learner when all 28 subtopics are completed",
 			bypassEnv:          "",
-			completedDomains:   []string{},
-			wantBlocked:        true,
-			wantCompletedCount: 0,
-			wantTotalDomains:   5,
+			role:               "learner",
+			completedSubtopics: allTwentyEight,
+			wantBlocked:        false,
 		},
 		{
-			name:               "blocks learner with 4 of 5 domains",
-			bypassEnv:          "false",
-			completedDomains:   []string{"domain1", "domain2", "domain3", "domain4"},
-			wantBlocked:        true,
-			wantCompletedCount: 4,
-			wantTotalDomains:   5,
+			name:               "allows specialist exemption even with 0 completed subtopics",
+			bypassEnv:          "",
+			role:               "specialist",
+			completedSubtopics: []string{},
+			wantBlocked:        false,
 		},
 		{
-			name:             "allows learner when all 5 domains are completed",
-			bypassEnv:        "",
-			completedDomains: allFive,
-			wantBlocked:      false,
-		},
-		{
-			name:             "allows bypass when BYPASS_THEORY_GATE is true",
-			bypassEnv:        "true",
-			completedDomains: []string{},
-			wantBlocked:      false,
+			name:               "allows bypass when BYPASS_THEORY_GATE is true",
+			bypassEnv:          "true",
+			role:               "learner",
+			completedSubtopics: []string{},
+			wantBlocked:        false,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			gateErr := evaluateStage2TheoryGate(tt.bypassEnv, func() []string {
-				return tt.completedDomains
+			gateErr := evaluateStage2TheoryGate(tt.bypassEnv, tt.role, func() ([]string, []string) {
+				return tt.completedSubtopics, []string{}
 			})
 
 			if !tt.wantBlocked {
@@ -86,15 +105,46 @@ func TestEvaluateStage2TheoryGate(t *testing.T) {
 			if decoded.Reason != "theory_incomplete" {
 				t.Fatalf("expected reason=theory_incomplete, got %q", decoded.Reason)
 			}
-			if decoded.CompletedCount == nil || *decoded.CompletedCount != tt.wantCompletedCount {
-				t.Fatalf("expected completed_count=%d, got %v", tt.wantCompletedCount, decoded.CompletedCount)
+			if decoded.CompletedSubtopicCount == nil || *decoded.CompletedSubtopicCount != tt.wantCompletedSubtopics {
+				t.Fatalf("expected completed_subtopic_count=%d, got %v", tt.wantCompletedSubtopics, decoded.CompletedSubtopicCount)
 			}
-			if decoded.TotalDomains == nil || *decoded.TotalDomains != tt.wantTotalDomains {
-				t.Fatalf("expected total_domains=%d, got %v", tt.wantTotalDomains, decoded.TotalDomains)
-			}
-			if len(decoded.CompletedDomains) != tt.wantCompletedCount {
-				t.Fatalf("expected %d completed_domains, got %v", tt.wantCompletedCount, decoded.CompletedDomains)
+			if decoded.TotalSubtopics == nil || *decoded.TotalSubtopics != tt.wantTotalSubtopics {
+				t.Fatalf("expected total_subtopics=%d, got %v", tt.wantTotalSubtopics, decoded.TotalSubtopics)
 			}
 		})
+	}
+}
+
+func TestBuildLearnSubtopicTelemetry(t *testing.T) {
+	now := time.Now()
+	ansA := "A"
+	ansB := "B"
+	corrTrue := true
+	corrFalse := false
+
+	subProgress := []models.UserTheorySubtopicProgress{
+		{UserID: "u1", SubTopicID: "1.1", CompletedAt: now},
+		{UserID: "u1", SubTopicID: "2.1", CompletedAt: now},
+	}
+	sampleRows := []models.UserTheorySampleQuestion{
+		{UserID: "u1", SubTopicID: "1.1", QuestionID: "q1", OrderIndex: 1, SubmittedAnswer: &ansA, IsCorrect: &corrTrue},
+		{UserID: "u1", SubTopicID: "1.1", QuestionID: "q2", OrderIndex: 2, SubmittedAnswer: &ansB, IsCorrect: &corrFalse},
+		{UserID: "u1", SubTopicID: "2.1", QuestionID: "q3", OrderIndex: 1, SubmittedAnswer: &ansA, IsCorrect: &corrTrue},
+		{UserID: "u1", SubTopicID: "2.1", QuestionID: "q4", OrderIndex: 2},
+	}
+
+	tel := BuildLearnSubtopicTelemetry(subProgress, sampleRows)
+	if tel.CompletedSubtopicsCount != 2 || tel.TotalSubtopics != 28 {
+		t.Fatalf("expected 2/28 completed subtopics, got %d/%d", tel.CompletedSubtopicsCount, tel.TotalSubtopics)
+	}
+	if tel.SampleQuestionsAssigned != 4 || tel.SampleQuestionsAttempted != 3 || tel.SampleQuestionsCorrect != 2 {
+		t.Fatalf("unexpected sample metrics: %+v", tel)
+	}
+	// 2 / 3 = 66.67
+	if tel.SampleAccuracyPercent != 66.67 {
+		t.Fatalf("expected sample_accuracy_percent=66.67, got %v", tel.SampleAccuracyPercent)
+	}
+	if len(tel.DomainBreakdown) != 5 || tel.DomainBreakdown[0].DomainID != "domain1" || tel.DomainBreakdown[0].CompletedSubtopics != 1 || tel.DomainBreakdown[0].TotalSubtopics != 4 {
+		t.Fatalf("unexpected domain1 breakdown: %+v", tel.DomainBreakdown)
 	}
 }

@@ -12,10 +12,18 @@ def load_json_to_db(json_file_path, db_connection_string):
     if not questions:
         raise ValueError(f"No questions found in {json_file_path}; refusing to seed an empty question pool.")
 
+    for q in questions:
+        sub_topic_id = (q.get("sub_topic_id") or "").strip()
+        if not sub_topic_id or sub_topic_id[0] != q["domain_id"][-1]:
+            raise ValueError(
+                f"Question #{q.get('source_question_no')} ({q['domain_id']}) has missing or mismatched sub_topic_id: {sub_topic_id!r}"
+            )
+
     conn = psycopg2.connect(db_connection_string)
     cursor = conn.cursor()
 
     try:
+        cursor.execute("ALTER TABLE questions ADD COLUMN IF NOT EXISTS sub_topic_id VARCHAR(16)")
         domains = [
             ("domain1", "Security Concepts", "Core security concepts, principles, and control types", 1.0, "Security+ Domain 1"),
             ("domain2", "Threats, Vulnerabilities, and Mitigations", "Analyzing threat actors, vectors, vulnerabilities, and applying mitigations", 1.0, "Security+ Domain 2"),
@@ -53,6 +61,7 @@ def load_json_to_db(json_file_path, db_connection_string):
                 cursor.execute(
                     """
                     UPDATE questions SET
+                        sub_topic_id = %s,
                         type = %s,
                         question_text = %s,
                         options = %s,
@@ -63,6 +72,7 @@ def load_json_to_db(json_file_path, db_connection_string):
                     WHERE question_id = %s
                     """,
                     (
+                        q["sub_topic_id"],
                         q["type"],
                         q["question_text"],
                         json.dumps(q["options"]),
@@ -77,11 +87,12 @@ def load_json_to_db(json_file_path, db_connection_string):
                 cursor.execute(
                     """
                     INSERT INTO questions
-                    (domain_id, type, question_text, options, correct_answer, explanation, difficulty)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s)
+                    (domain_id, sub_topic_id, type, question_text, options, correct_answer, explanation, difficulty)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
                     """,
                     (
                         q["domain_id"],
+                        q["sub_topic_id"],
                         q["type"],
                         q["question_text"],
                         json.dumps(q["options"]),

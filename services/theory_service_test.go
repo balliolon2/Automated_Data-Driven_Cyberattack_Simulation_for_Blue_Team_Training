@@ -139,3 +139,50 @@ func TestIsTheoryGateSatisfied(t *testing.T) {
 		t.Errorf("duplicate domain IDs must not satisfy the 5-domain gate")
 	}
 }
+
+func TestLoadTheorySubtopics_AllTwentyEightPassStructure(t *testing.T) {
+	subtopics, err := LoadTheorySubtopics(nil)
+	if err != nil {
+		t.Fatalf("LoadTheorySubtopics(nil) failed: %v", err)
+	}
+	expectedIDs := []string{
+		"1.1", "1.2", "1.3", "1.4",
+		"2.1", "2.2", "2.3", "2.4", "2.5",
+		"3.1", "3.2", "3.3", "3.4",
+		"4.1", "4.2", "4.3", "4.4", "4.5", "4.6", "4.7", "4.8", "4.9",
+		"5.1", "5.2", "5.3", "5.4", "5.5", "5.6",
+	}
+	if len(subtopics) != len(expectedIDs) {
+		t.Fatalf("expected %d subtopics, got %d", len(expectedIDs), len(subtopics))
+	}
+	for i, sub := range subtopics {
+		if sub.SubTopicID != expectedIDs[i] {
+			t.Errorf("index %d: got sub_topic_id %q, want %q", i, sub.SubTopicID, expectedIDs[i])
+		}
+		if sub.Title == "" || sub.DomainID == "" {
+			t.Errorf("subtopic %s has empty title or domain_id", sub.SubTopicID)
+		}
+		if !strings.HasPrefix(sub.SourceURL, "https://") {
+			t.Errorf("subtopic %s expected clickable https SourceURL, got %q", sub.SubTopicID, sub.SourceURL)
+		}
+		if !strings.Contains(sub.Content, "](https://") {
+			t.Errorf("subtopic %s expected clickable https links inside content", sub.SubTopicID)
+		}
+		if err := ValidateTheorySubtopicContent(sub.SubTopicID, sub.Content); err != nil {
+			t.Errorf("subtopic %s failed validation: %v", sub.SubTopicID, err)
+		}
+	}
+
+	prev, next := GetSubtopicNeighbors("1.4")
+	if prev != "1.3" || next != "2.1" {
+		t.Errorf("neighbors of 1.4 = (%q, %q), want (1.3, 2.1)", prev, next)
+	}
+	prevFirst, nextFirst := GetSubtopicNeighbors("1.1")
+	if prevFirst != "" || nextFirst != "1.2" {
+		t.Errorf("neighbors of 1.1 = (%q, %q), want (\"\", 1.2)", prevFirst, nextFirst)
+	}
+	prevLast, nextLast := GetSubtopicNeighbors("5.6")
+	if prevLast != "5.5" || nextLast != "" {
+		t.Errorf("neighbors of 5.6 = (%q, %q), want (5.5, \"\")", prevLast, nextLast)
+	}
+}

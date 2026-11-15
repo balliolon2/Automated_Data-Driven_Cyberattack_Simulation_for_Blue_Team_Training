@@ -14,6 +14,48 @@ definitions:
         type: array
       session: {}
     type: object
+  dto.AttemptSampleQuestionRequest:
+    properties:
+      answer:
+        example: A
+        type: string
+    required:
+    - answer
+    type: object
+  dto.AttemptSampleQuestionResponse:
+    properties:
+      already_submitted:
+        example: false
+        type: boolean
+      attempted_count:
+        example: 2
+        type: integer
+      correct_answer:
+        example: B
+        type: string
+      explanation:
+        type: string
+      is_correct:
+        example: true
+        type: boolean
+      preview_mode:
+        example: false
+        type: boolean
+      question_id:
+        type: string
+      ready_to_complete:
+        example: true
+        type: boolean
+      required_count:
+        example: 2
+        type: integer
+      sub_topic_id:
+        example: "1.2"
+        type: string
+      submitted_answer:
+        example: B
+        type: string
+    type: object
   dto.AuthResponse:
     properties:
       email:
@@ -39,6 +81,53 @@ definitions:
         type: string
     required:
     - session_id
+    type: object
+  dto.CompleteSubtopicResponse:
+    properties:
+      completed_count:
+        example: 1
+        type: integer
+      completed_domains:
+        items:
+          type: string
+        type: array
+      completed_subtopic_count:
+        example: 4
+        type: integer
+      completed_subtopics:
+        items:
+          type: string
+        type: array
+      completed_subtopics_in_domain:
+        example: 4
+        type: integer
+      domain_auto_completed:
+        example: true
+        type: boolean
+      domain_id:
+        example: domain1
+        type: string
+      is_completed:
+        example: true
+        type: boolean
+      preview_mode:
+        example: false
+        type: boolean
+      sub_topic_id:
+        example: "1.4"
+        type: string
+      theory_completed:
+        example: false
+        type: boolean
+      total_domains:
+        example: 5
+        type: integer
+      total_subtopics:
+        example: 28
+        type: integer
+      total_subtopics_in_domain:
+        example: 4
+        type: integer
     type: object
   dto.CompleteTheoryDomainResponse:
     properties:
@@ -200,6 +289,27 @@ definitions:
         type: array
       session: {}
     type: object
+  dto.LearnDomainBreakdownDTO:
+    properties:
+      completed_subtopics:
+        example: 4
+        type: integer
+      domain_id:
+        example: domain1
+        type: string
+      sample_assigned:
+        example: 8
+        type: integer
+      sample_attempted:
+        example: 8
+        type: integer
+      sample_correct:
+        example: 6
+        type: integer
+      total_subtopics:
+        example: 4
+        type: integer
+    type: object
   dto.LearnDomainsResponse:
     properties:
       completed_count:
@@ -209,6 +319,16 @@ definitions:
         example:
         - domain1
         - domain2
+        items:
+          type: string
+        type: array
+      completed_subtopic_count:
+        example: 7
+        type: integer
+      completed_subtopics:
+        example:
+        - "1.1"
+        - "1.2"
         items:
           type: string
         type: array
@@ -222,9 +342,103 @@ definitions:
       total_domains:
         example: 5
         type: integer
+      total_subtopics:
+        example: 28
+        type: integer
       unlocked:
         example: true
         type: boolean
+    type: object
+  dto.LearnSubtopicDetailResponse:
+    properties:
+      attempted_count:
+        type: integer
+      completed_at:
+        type: string
+      content:
+        type: string
+      domain_id:
+        example: domain1
+        type: string
+      is_completed:
+        type: boolean
+      next_sub_topic_id:
+        type: string
+      order_index:
+        example: 1
+        type: integer
+      preview_mode:
+        type: boolean
+      previous_sub_topic_id:
+        type: string
+      ready_to_complete:
+        type: boolean
+      required_count:
+        type: integer
+      sample_questions:
+        items:
+          $ref: '#/definitions/dto.LearnSubtopicSampleQuestionDTO'
+        type: array
+      source_url:
+        type: string
+      sub_topic_id:
+        example: "1.1"
+        type: string
+      title:
+        type: string
+    type: object
+  dto.LearnSubtopicSampleQuestionDTO:
+    properties:
+      answered_at:
+        type: string
+      correct_answer:
+        type: string
+      explanation:
+        type: string
+      is_correct:
+        type: boolean
+      is_fallback:
+        example: false
+        type: boolean
+      options: {}
+      order_index:
+        example: 1
+        type: integer
+      question_id:
+        type: string
+      question_text:
+        type: string
+      submitted_answer:
+        type: string
+    type: object
+  dto.LearnSubtopicTelemetryDTO:
+    properties:
+      completed_subtopics:
+        items:
+          type: string
+        type: array
+      completed_subtopics_count:
+        example: 28
+        type: integer
+      domain_breakdown:
+        items:
+          $ref: '#/definitions/dto.LearnDomainBreakdownDTO'
+        type: array
+      sample_accuracy_percent:
+        example: 78.57
+        type: number
+      sample_questions_assigned:
+        example: 56
+        type: integer
+      sample_questions_attempted:
+        example: 56
+        type: integer
+      sample_questions_correct:
+        example: 44
+        type: integer
+      total_subtopics:
+        example: 28
+        type: integer
     type: object
   dto.LogQueryRequest:
     properties:
@@ -337,6 +551,8 @@ definitions:
       improvement_score:
         example: 20
         type: number
+      learn_subtopic_telemetry:
+        $ref: '#/definitions/dto.LearnSubtopicTelemetryDTO'
       max_scenarios:
         example: 10
         type: integer
@@ -429,6 +645,13 @@ definitions:
       completed_scenarios:
         example: 2
         type: integer
+      completed_subtopic_count:
+        example: 28
+        type: integer
+      completed_subtopics:
+        items:
+          type: string
+        type: array
       completed_theory_domains:
         items:
           type: string
@@ -449,6 +672,9 @@ definitions:
       theory_completed:
         example: true
         type: boolean
+      total_subtopics:
+        example: 28
+        type: integer
     type: object
   dto.SpecialistSubmissionDetail:
     properties:
@@ -651,6 +877,9 @@ definitions:
     properties:
       completed_at:
         type: string
+      completed_subtopics_in_domain:
+        example: 4
+        type: integer
       content:
         type: string
       domain_id:
@@ -672,14 +901,21 @@ definitions:
         example: false
         type: boolean
       source_url:
-        example: docs/REFERENCES.md#14-learning-theory-curriculum-provenance-r2r5
+        example: https://csrc.nist.gov/pubs/sp/800/53/r5/final
         type: string
+      subtopics:
+        items:
+          $ref: '#/definitions/dto.TheorySubtopicSummaryDTO'
+        type: array
       threshold:
         example: 70
         type: number
       title:
         example: 'Domain 1: General Security Concepts'
         type: string
+      total_subtopics_in_domain:
+        example: 4
+        type: integer
     type: object
   dto.TheoryGateErrorResponse:
     properties:
@@ -690,18 +926,58 @@ definitions:
         items:
           type: string
         type: array
+      completed_subtopic_count:
+        example: 12
+        type: integer
+      completed_subtopics:
+        items:
+          type: string
+        type: array
       error:
         example: Please complete the Pre-Test first to unlock Learning Theory.
         type: string
+      missing_subtopics:
+        items:
+          type: string
+        type: array
       reason:
         example: pre_test_required
         type: string
       total_domains:
         example: 5
         type: integer
+      total_subtopics:
+        example: 28
+        type: integer
       unlocked:
         example: false
         type: boolean
+    type: object
+  dto.TheorySubtopicSummaryDTO:
+    properties:
+      completed_at:
+        type: string
+      domain_id:
+        example: domain1
+        type: string
+      is_completed:
+        example: true
+        type: boolean
+      order_index:
+        example: 1
+        type: integer
+      sample_attempted_count:
+        example: 2
+        type: integer
+      sample_total_count:
+        example: 2
+        type: integer
+      sub_topic_id:
+        example: "1.1"
+        type: string
+      title:
+        example: Compare and contrast various types of security controls
+        type: string
     type: object
   models.DomainScoreDetail:
     properties:
@@ -1027,7 +1303,9 @@ paths:
       consumes:
       - application/json
       description: Idempotently records that the authenticated user finished studying
-        the specified domain Theory Module without altering Proficiency Score.
+        the specified domain Theory Module without altering Proficiency Score. For
+        Learners, rejects with 403 subtopics_incomplete unless all child Sub-topics
+        are completed.
       parameters:
       - description: Domain ID (domain1..domain5)
         in: path
@@ -1060,6 +1338,151 @@ paths:
       security:
       - BearerAuth: []
       summary: Mark a domain Theory Module as completed
+      tags:
+      - Learn
+  /learn/subtopics/{subTopicId}:
+    get:
+      consumes:
+      - application/json
+      description: Returns the web-grounded Markdown lesson for a Security+ Sub-topic
+        alongside 2 permanently assigned formative sample questions (drawn cleanly
+        without overlap with Pre-Test or future Post-Test). Correct answers and explanations
+        stay hidden until submitted.
+      parameters:
+      - description: Sub-topic ID (e.g. 1.1..5.6)
+        in: path
+        name: subTopicId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.LearnSubtopicDetailResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/dto.TheoryGateErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Retrieve a Sub-topic lesson and its 2 locked sample questions
+      tags:
+      - Learn
+  /learn/subtopics/{subTopicId}/complete:
+    post:
+      consumes:
+      - application/json
+      description: Verifies that all assigned sample questions for the Learner in
+        this Sub-topic have been attempted (400 sample_questions_incomplete otherwise),
+        idempotently marks the Sub-topic complete, and automatically completes the
+        parent domain when all child Sub-topics are done. Specialists/Admins receive
+        preview_mode=true without database writes.
+      parameters:
+      - description: Sub-topic ID (e.g. 1.1..5.6)
+        in: path
+        name: subTopicId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.CompleteSubtopicResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.TheoryGateErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/dto.TheoryGateErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Mark a Sub-topic as completed (attempt-gated)
+      tags:
+      - Learn
+  /learn/subtopics/{subTopicId}/sample-questions/{questionId}/attempt:
+    post:
+      consumes:
+      - application/json
+      description: Immediately evaluates a Learner's answer choice (A-D) for an assigned
+        sample question, reveals the explanation, and locks the first submitted answer.
+        Does not modify Proficiency Score.
+      parameters:
+      - description: Sub-topic ID (e.g. 1.1..5.6)
+        in: path
+        name: subTopicId
+        required: true
+        type: string
+      - description: Assigned Sample Question UUID
+        in: path
+        name: questionId
+        required: true
+        type: string
+      - description: Answer choice A-D
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.AttemptSampleQuestionRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.AttemptSampleQuestionResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/dto.TheoryGateErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Submit an answer for a Sub-topic sample question
       tags:
       - Learn
   /login:
