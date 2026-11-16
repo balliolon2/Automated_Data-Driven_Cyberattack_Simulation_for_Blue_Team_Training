@@ -589,6 +589,9 @@ func (sc *SimulationController) StartScenario(c *gin.Context) {
 		}
 	}
 
+	history := sc.loadScenarioDiversityHistory(userID)
+	divCtx := services.BuildScenarioDiversityContext(weakestDomain, history)
+
 	var scenario models.Scenario
 	generationType := "static_fallback"
 	fallbackReason := ""
@@ -600,11 +603,16 @@ func (sc *SimulationController) StartScenario(c *gin.Context) {
 		ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
 		defer cancel()
 
-		aiScenario, llmErr := services.GenerateLLMScenario(ctx, weakestDomain, domainName, weakestScore, profiles)
+		aiScenario, llmErr := services.GenerateLLMScenarioWithContext(ctx, weakestDomain, domainName, weakestScore, profiles, divCtx)
 		if llmErr == nil && aiScenario != nil {
 			if err := sc.DB.Create(aiScenario).Error; err == nil {
 				scenario = *aiScenario
 				generationType = "ai_generated"
+				selectionReason = fmt.Sprintf(
+					"lowest_proficiency: %s (score: %.1f%%, threshold: %.1f%%) | subtopic: %s | archetype: %s | style: %s",
+					weakestDomain, weakestScore, ProficiencyThreshold,
+					divCtx.TargetSubTopicID, divCtx.TargetArchetype, divCtx.TargetBriefingStyle,
+				)
 				fallbackReason = ""
 				log.Printf("[LLM] Successfully generated dynamic AI scenario: %s (ID: %s)", scenario.Title, scenario.ScenarioID)
 			} else {
@@ -1690,4 +1698,61 @@ func evaluateStage2TheoryGate(bypassEnv, role string, loadProgress func() ([]str
 		TotalSubtopics:         &totalSubtopics,
 		CompletedSubtopics:     completedSubtopics,
 	}
+}
+
+func (sc *SimulationController) loadScenarioDiversityHistory(userID any) []services.ScenarioHistoryEntry {
+	if sc.DB == nil {
+		return nil
+	}
+	var sessions []models.SimulationSession
+	if err := sc.DB.
+		Where("user_id = ?", userID).
+		Order("started_at DESC").
+		Limit(10).
+		Find(&sessions).Error; err != nil {
+		return nil
+	}
+	return buildHistoryEntriesFromSessions(sessions, func(sess models.SimulationSession) (models.Scenario, bool) {
+		scen, _, err := sc.sessionScenario(sess)
+		if err != nil {
+			return models.Scenario{}, false
+		}
+		return scen, true
+	})
+}
+
+func parseSelectionReasonTag(selectionReason, key string) string {
+	prefix := strings.ToLower(strings.TrimSpace(key)) + ":"
+	for _, part := range strings.Split(selectionReason, "|") {
+		trimmed := strings.TrimSpace(part)
+		if strings.HasPrefix(strings.ToLower(trimmed), prefix) {
+			return strings.TrimSpace(trimmed[len(prefix):])
+		}
+	}
+	return ""
+}
+
+func buildHistoryEntriesFromSessions(sessions []models.SimulationSession, resolveScenario func(models.SimulationSession) (models.Scenario, bool)) []services.ScenarioHistoryEntry {
+	out := make([]services.ScenarioHistoryEntry, 0, len(sessions))
+	for _, sess := range sessions {
+		entry := services.ScenarioHistoryEntry{
+			SubTopicID:    parseSelectionReasonTag(sess.SelectionReason, "subtopic"),
+			BriefingStyle: parseSelectionReasonTag(sess.SelectionReason, "style"),
+		}
+		if resolveScenario != nil {
+			if scen, ok := resolveScenario(sess); ok {
+				host, ip := services.ExtractPrimaryScenarioEntities(&scen)
+				entry.Title = scen.Title
+				entry.TargetHost = host
+				entry.AttackerIP = ip
+				entry.IsTruePositive = scen.IsTruePositive
+			} else {
+				entry.SkipCadenceVote = true
+			}
+		} else {
+			entry.SkipCadenceVote = true
+		}
+		out = append(out, entry)
+	}
+	return out
 }

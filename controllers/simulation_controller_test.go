@@ -103,12 +103,13 @@ func TestSanitizeScenario_DeterministicSessionScopedShuffleAndScoringInvariance(
 	})
 
 	t.Run("scoring via ScoreSubmission and Domain Breakdown are 100% invariant to shuffled display order", func(t *testing.T) {
+		firstEvidenceIdx := firstEvidenceIndexForTest(t, scenario)
 		baselineResult := services.ScoreSubmission(scenario, models.SubmitScenarioInput{
 			SessionID:          "sess-score-baseline",
 			IsTruePositive:     true,
 			TPFPSelected:       true,
 			SelectedActions:    []string{"c1", "e1", "r1"},
-			SelectedLogIndices: []int{15},
+			SelectedLogIndices: []int{firstEvidenceIdx},
 		})
 
 		if baselineResult.TotalScore != 100.0 {
@@ -124,7 +125,7 @@ func TestSanitizeScenario_DeterministicSessionScopedShuffleAndScoringInvariance(
 				IsTruePositive:     true,
 				TPFPSelected:       true,
 				SelectedActions:    []string{"r1", "c1", "e1"},
-				SelectedLogIndices: []int{15},
+				SelectedLogIndices: []int{firstEvidenceIdx},
 			})
 
 			if res.TotalScore != baselineResult.TotalScore || res.ResponsePoints != baselineResult.ResponsePoints {
@@ -138,4 +139,76 @@ func TestSanitizeScenario_DeterministicSessionScopedShuffleAndScoringInvariance(
 			}
 		}
 	})
+}
+
+func firstEvidenceIndexForTest(t *testing.T, scenario models.Scenario) int {
+	t.Helper()
+	outcomes, ok := scenario.ExpectedOutcomes.(map[string]interface{})
+	if !ok {
+		t.Fatalf("expected_outcomes must be map")
+	}
+	findings := findingsFromOutcomes(outcomes["key_findings"])
+	if len(findings) == 0 {
+		t.Fatalf("expected at least 1 key finding")
+	}
+	switch indices := findings[0]["evidence_log_indices"].(type) {
+	case []int:
+		if len(indices) > 0 {
+			return indices[0]
+		}
+	case []interface{}:
+		if len(indices) > 0 {
+			if v, ok := indices[0].(int); ok {
+				return v
+			}
+			if v, ok := indices[0].(float64); ok {
+				return int(v)
+			}
+		}
+	}
+	t.Fatalf("could not extract first evidence index from %v", findings[0])
+	return 0
+}
+
+func TestBuildHistoryEntriesFromSessions_ExtractsSubtopicStyleAndEntities(t *testing.T) {
+	scen1 := *services.GenerateFallbackScenario("domain2", "Threats, Vulnerabilities, and Mitigations")
+	scen2 := *services.GenerateFallbackScenario("domain3", "Security Architecture")
+	scen2.IsTruePositive = false
+
+	sessions := []models.SimulationSession{
+		{
+			SessionID:       "sess-2",
+			ScenarioID:      "sc-2",
+			SelectionReason: "lowest_proficiency: domain3 (score: 55.0%, threshold: 70.0%) | subtopic: 3.2 | archetype: Approved Cloud Staging Bastion Troubleshooting | style: cloud_guardrail_alert",
+		},
+		{
+			SessionID:       "sess-1",
+			ScenarioID:      "sc-1",
+			SelectionReason: "lowest_proficiency: domain2 (score: 40.0%, threshold: 70.0%) | subtopic: 2.2 | archetype: Spearphishing Attachment & Living-off-the-Land Execution | style: helpdesk_user_report",
+		},
+	}
+
+	entries := buildHistoryEntriesFromSessions(sessions, func(sess models.SimulationSession) (models.Scenario, bool) {
+		if sess.SessionID == "sess-2" {
+			return scen2, true
+		}
+		return scen1, true
+	})
+
+	if len(entries) != 2 {
+		t.Fatalf("expected 2 history entries, got %d", len(entries))
+	}
+	if entries[0].SubTopicID != "3.2" || entries[0].BriefingStyle != "cloud_guardrail_alert" || entries[0].IsTruePositive {
+		t.Fatalf("unexpected first history entry: %+v", entries[0])
+	}
+	if entries[1].SubTopicID != "2.2" || entries[1].BriefingStyle != "helpdesk_user_report" || entries[1].TargetHost != "WS-FINANCE04" || entries[1].AttackerIP != "185.220.101.99" {
+		t.Fatalf("unexpected second history entry: %+v", entries[1])
+	}
+
+	unresolved := buildHistoryEntriesFromSessions(sessions[:1], func(models.SimulationSession) (models.Scenario, bool) {
+		return models.Scenario{}, false
+	})
+	if len(unresolved) != 1 || !unresolved[0].SkipCadenceVote {
+		t.Fatalf("expected unresolved session scenario to mark SkipCadenceVote=true, got %+v", unresolved)
+	}
 }

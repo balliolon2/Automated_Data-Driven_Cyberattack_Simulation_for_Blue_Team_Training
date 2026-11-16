@@ -16,19 +16,19 @@ def make_scenario():
             "timestamp": "2026-07-13T08:00:00Z",
             "source": "ad_controller",
             "severity": "info",
-            "message": "User login successful",
+            "message": "User login successful for user0",
         },
         {
             "timestamp": "2026-07-13T08:00:10Z",
             "source": "ad_controller",
-            "severity": "info",
-            "message": "User login successful",
+            "severity": "warning",
+            "message": "Single bad password attempt followed by successful MFA for user1",
         },
         {
             "timestamp": "2026-07-13T08:00:20Z",
-            "source": "ad_controller",
-            "severity": "info",
-            "message": "User login successful",
+            "source": "firewall",
+            "severity": "medium",
+            "message": "Routine perimeter firewall drop on external probe port 23",
         },
         {
             "timestamp": "2026-07-13T08:03:00Z",
@@ -277,9 +277,18 @@ class OfflineTests(unittest.TestCase):
                 )
 
         travel = entries["Atypical Travel VPN Connection Alert"]
+        travel_scenario = next(s for s in scenarios if s["title"] == "Atypical Travel VPN Connection Alert")
+        travel_logs = travel_scenario["initial_logs"]
         by_id = {finding["finding_id"]: finding for finding in travel["findings"]}
-        self.assertEqual([18], by_id["d1_f3"]["evidence_log_indices"])
-        self.assertEqual([16, 17], by_id["d1_f4"]["evidence_log_indices"])
+        self.assertTrue(
+            any("travel notification" in travel_logs[i]["message"].lower() for i in by_id["d1_f3"]["evidence_log_indices"])
+        )
+        self.assertTrue(
+            any("mfa prompt completed" in travel_logs[i]["message"].lower() for i in by_id["d1_f4"]["evidence_log_indices"])
+        )
+        self.assertTrue(
+            any("device posture check passed" in travel_logs[i]["message"].lower() for i in by_id["d1_f4"]["evidence_log_indices"])
+        )
 
 
 if __name__ == "__main__":

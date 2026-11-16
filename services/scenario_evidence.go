@@ -19,7 +19,16 @@ const (
 	MaxAIFindings = 4
 	// DefaultAIFindingPoints is used when a generated finding omits or misstates its points.
 	DefaultAIFindingPoints = 10
+	// MaxLogMessageRepeats caps identical normalized messages across a scenario's logs.
+	MaxLogMessageRepeats = 3
 )
+
+// BannedLegacyLogSubstrings lists legacy hardcoded log strings prohibited by Spec 10.
+var BannedLegacyLogSubstrings = []string{
+	"siem alert rule [corr-9901]: multi-stage incident correlation triggered",
+	"routine network telemetry event ",
+	"kerberos ticket tgt requested for user account user",
+}
 
 var validVerdictSupport = map[string]bool{
 	"malicious":  true,
@@ -42,116 +51,583 @@ type mappedAIFinding struct {
 	indices []int
 }
 
-// buildScenarioLogs constructs the fixed 45-log SIEM environment around the
-// AI-generated incident core. Index 16 is always the AI attack log message.
-func buildScenarioLogs(ai aiMicroScenario, now time.Time) []map[string]interface{} {
-	logs := make([]map[string]interface{}, 0, 46)
+func normalizeLogMessage(message string) string {
+	return strings.Join(strings.Fields(strings.ToLower(strings.TrimSpace(message))), " ")
+}
 
-	for i := 0; i < 15; i++ {
-		t := now.Add(time.Duration(i*20) * time.Second).Format(time.RFC3339)
-		logs = append(logs, map[string]interface{}{
-			"timestamp":      t,
-			"source":         "ad_controller",
-			"severity":       "info",
-			"severity_level": 1,
-			"message":        fmt.Sprintf("Kerberos ticket TGT requested for user account user%d@corp.local", i),
-			"src_ip":         fmt.Sprintf("10.0.1.%d", 10+i),
-			"user":           fmt.Sprintf("user%d", i),
-			"host":           fmt.Sprintf("WS-WORKSTATION%d", i+1),
-		})
-	}
-
-	t15 := now.Add(time.Duration(310) * time.Second).Format(time.RFC3339)
-	logs = append(logs, map[string]interface{}{
-		"timestamp":      t15,
-		"source":         "firewall",
-		"severity":       "warning",
-		"severity_level": 3,
-		"message":        fmt.Sprintf("Perimeter Firewall: Connection request initiated from %s to %s:443 [ACTION: ALLOWED]", ai.TargetHost, ai.AttackerIP),
-		"src_ip":         "10.0.1.55",
-		"dst_ip":         ai.AttackerIP,
-		"user":           "sys_admin",
-		"host":           ai.TargetHost,
-	})
-
-	t16 := now.Add(time.Duration(320) * time.Second).Format(time.RFC3339)
-	logs = append(logs, map[string]interface{}{
-		"timestamp":      t16,
-		"source":         "edr",
-		"severity":       "high",
-		"severity_level": 4,
-		"message":        ai.AttackLogMessage,
-		"src_ip":         "10.0.1.55",
-		"dst_ip":         ai.AttackerIP,
-		"user":           "sys_admin",
-		"host":           ai.TargetHost,
-	})
-
-	t17 := now.Add(time.Duration(330) * time.Second).Format(time.RFC3339)
-	logs = append(logs, map[string]interface{}{
-		"timestamp":      t17,
-		"source":         "ids",
-		"severity":       "critical",
-		"severity_level": 4,
-		"message":        fmt.Sprintf("IDS Alert: Malicious attack payload signature matched on incoming traffic from %s targeting host %s", ai.AttackerIP, ai.TargetHost),
-		"src_ip":         ai.AttackerIP,
-		"dst_ip":         "10.0.1.55",
-		"user":           "sys_admin",
-		"host":           ai.TargetHost,
-	})
-
-	t18 := now.Add(time.Duration(340) * time.Second).Format(time.RFC3339)
-	logs = append(logs, map[string]interface{}{
-		"timestamp":      t18,
-		"source":         "web_app",
-		"severity":       "high",
-		"severity_level": 4,
-		"message":        fmt.Sprintf("HTTP 500 Internal Server Error - Anomaly detected on %s via POST payload from %s", ai.TargetHost, ai.AttackerIP),
-		"src_ip":         ai.AttackerIP,
-		"dst_ip":         "10.0.1.55",
-		"user":           "www-data",
-		"host":           ai.TargetHost,
-	})
-
-	t19 := now.Add(time.Duration(350) * time.Second).Format(time.RFC3339)
-	logs = append(logs, map[string]interface{}{
-		"timestamp":      t19,
-		"source":         "siem_correlator",
-		"severity":       "critical",
-		"severity_level": 4,
-		"message":        fmt.Sprintf("SIEM Alert Rule [CORR-9901]: Multi-stage incident correlation triggered on host %s involving IP %s", ai.TargetHost, ai.AttackerIP),
-		"src_ip":         ai.AttackerIP,
-		"dst_ip":         "10.0.1.55",
-		"user":           "sys_admin",
-		"host":           ai.TargetHost,
-	})
-
-	for i := 20; i < 45; i++ {
-		t := now.Add(time.Duration(i*25) * time.Second).Format(time.RFC3339)
-		source := "proxy_gateway"
-		if i%2 == 0 {
-			source = "dns_server"
-		} else if i%3 == 0 {
-			source = "dhcp_server"
+func containsBannedLegacyBoilerplate(logs []map[string]interface{}) (string, bool) {
+	for _, entry := range logs {
+		msg, _ := entry["message"].(string)
+		norm := normalizeLogMessage(msg)
+		for _, banned := range BannedLegacyLogSubstrings {
+			if strings.Contains(norm, banned) {
+				return banned, true
+			}
 		}
-		logs = append(logs, map[string]interface{}{
-			"timestamp":      t,
-			"source":         source,
-			"severity":       "info",
-			"severity_level": 1,
-			"message":        fmt.Sprintf("Routine network telemetry event %d logged for internal-service-%d.corp.local", i, i),
-			"src_ip":         fmt.Sprintf("10.0.2.%d", i),
-			"user":           "service_acct",
-			"host":           fmt.Sprintf("SRV-NODE%d", i),
-		})
+	}
+	return "", false
+}
+
+func validateScenarioAntiRepetition(logs []map[string]interface{}) error {
+	if banned, found := containsBannedLegacyBoilerplate(logs); found {
+		return fmt.Errorf("content_validation_failed: log contains banned legacy boilerplate %q", banned)
+	}
+	counts := make(map[string]int, len(logs))
+	for _, entry := range logs {
+		msg, _ := entry["message"].(string)
+		norm := normalizeLogMessage(msg)
+		if norm == "" {
+			continue
+		}
+		counts[norm]++
+		if counts[norm] > MaxLogMessageRepeats {
+			return fmt.Errorf("content_validation_failed: log message %q repeated %d times (max %d)", strings.TrimSpace(msg), counts[norm], MaxLogMessageRepeats)
+		}
+	}
+	return nil
+}
+
+func scenarioSeedHash(ai aiMicroScenario, domainID string) uint64 {
+	h := fnv.New64a()
+	_, _ = h.Write([]byte(strings.Join([]string{
+		ai.Title, ai.TargetHost, ai.AttackerIP, ai.SubTopicID, ai.BriefingStyle, domainID,
+	}, "|")))
+	return h.Sum64()
+}
+
+func severityLevelForName(severity string) int {
+	switch strings.ToLower(strings.TrimSpace(severity)) {
+	case "critical":
+		return 5
+	case "high":
+		return 4
+	case "warning":
+		return 3
+	case "medium":
+		return 2
+	default:
+		return 1
+	}
+}
+
+func normalizeIncidentEvents(ai aiMicroScenario, domainID string) []map[string]interface{} {
+	host := strings.TrimSpace(ai.TargetHost)
+	if host == "" {
+		host = "SRV-WEB01"
+	}
+	ip := strings.TrimSpace(ai.AttackerIP)
+	if ip == "" {
+		ip = "185.220.101.45"
+	}
+	user := strings.TrimSpace(ai.PrimaryUser)
+	if user == "" {
+		user = "svc_ops"
 	}
 
-	return logs
+	if len(ai.IncidentLogs) > 0 {
+		limit := len(ai.IncidentLogs)
+		if limit > 8 {
+			limit = 8
+		}
+		events := make([]map[string]interface{}, 0, 8)
+		seenMsgs := make(map[string]bool, limit)
+		for i := 0; i < limit; i++ {
+			ev := ai.IncidentLogs[i]
+			evMsg := strings.TrimSpace(ev.Message)
+			evSource := strings.TrimSpace(ev.Source)
+			if evSource == "" {
+				evSource = "edr"
+			}
+			evSeverity := strings.ToLower(strings.TrimSpace(ev.Severity))
+			if evSeverity == "" {
+				evSeverity = "warning"
+			}
+			evHost := strings.TrimSpace(ev.Host)
+			if evHost == "" {
+				evHost = host
+			}
+			evSrcIP := strings.TrimSpace(ev.SrcIP)
+			if evSrcIP == "" {
+				evSrcIP = ip
+			}
+			evUser := strings.TrimSpace(ev.User)
+			if evUser == "" {
+				evUser = user
+			}
+			row := map[string]interface{}{
+				"source":         evSource,
+				"severity":       evSeverity,
+				"severity_level": severityLevelForName(evSeverity),
+				"message":        evMsg,
+				"src_ip":         evSrcIP,
+				"user":           evUser,
+				"host":           evHost,
+			}
+			if strings.TrimSpace(ev.DstIP) != "" {
+				row["dst_ip"] = strings.TrimSpace(ev.DstIP)
+			}
+			if ev.RelativeOffsetSec > 0 {
+				row["relative_offset_sec"] = ev.RelativeOffsetSec
+			}
+			if evMsg != "" {
+				seenMsgs[normalizeLogMessage(evMsg)] = true
+			}
+			events = append(events, row)
+		}
+		if len(events) < 4 {
+			attackMsg := strings.TrimSpace(ai.AttackLogMessage)
+			if attackMsg == "" {
+				attackMsg = fmt.Sprintf("Corroborating security telemetry observation on %s involving %s", host, ip)
+			}
+			var pad []map[string]interface{}
+			if ai.IsTruePositive {
+				pad = buildDomainContextualFallbackChain(domainID, host, ip, user, attackMsg)
+			} else {
+				pad = buildFalsePositiveFallbackChain(domainID, host, ip, user, attackMsg)
+			}
+			for _, candidate := range pad {
+				if len(events) >= 4 {
+					break
+				}
+				norm := normalizeLogMessage(fmt.Sprint(candidate["message"]))
+				if norm == "" || seenMsgs[norm] {
+					continue
+				}
+				seenMsgs[norm] = true
+				events = append(events, candidate)
+			}
+		}
+		return events
+	}
+
+	// Legacy single-message compatibility without CORR-9901 or static 5-block boilerplate.
+	attackMsg := strings.TrimSpace(ai.AttackLogMessage)
+	if attackMsg == "" {
+		attackMsg = fmt.Sprintf("Anomalous security telemetry event observed on %s involving %s", host, ip)
+	}
+
+	if !ai.IsTruePositive {
+		return buildFalsePositiveFallbackChain(domainID, host, ip, user, attackMsg)
+	}
+
+	return buildDomainContextualFallbackChain(domainID, host, ip, user, attackMsg)
+}
+
+func buildFalsePositiveFallbackChain(domainID, host, ip, user, attackMsg string) []map[string]interface{} {
+	return []map[string]interface{}{
+		{
+			"source": "nids", "severity": "medium", "severity_level": 2,
+			"message": fmt.Sprintf("Threshold telemetry alert triggered between %s and %s on %s", ip, host, domainID),
+			"src_ip":  ip, "dst_ip": "10.20.4.18", "user": user, "host": host,
+		},
+		{
+			"source": "edr", "severity": "info", "severity_level": 1,
+			"message": attackMsg,
+			"src_ip":  ip, "dst_ip": "10.20.4.18", "user": user, "host": host,
+		},
+		{
+			"source": "iam_directory", "severity": "info", "severity_level": 1,
+			"message": fmt.Sprintf("Service principal session verified against authorized directory policy on %s for %s", host, user),
+			"src_ip":  "10.20.4.18", "dst_ip": ip, "user": user, "host": host,
+		},
+		{
+			"source": "proxy_gateway", "severity": "info", "severity_level": 1,
+			"message": fmt.Sprintf("Verified TLS certificate and baseline signature for %s session from %s", host, ip),
+			"src_ip":  "10.20.4.18", "dst_ip": ip, "user": user, "host": host,
+		},
+	}
+}
+
+func buildDomainContextualFallbackChain(domainID, host, ip, user, attackMsg string) []map[string]interface{} {
+	switch domainID {
+	case "domain1":
+		return []map[string]interface{}{
+			{"source": "ad_controller", "severity": "warning", "severity_level": 3, "message": fmt.Sprintf("Repeated privilege delegation query from %s targeting %s under %s", ip, host, user), "src_ip": ip, "user": user, "host": host},
+			{"source": "edr", "severity": "high", "severity_level": 4, "message": attackMsg, "src_ip": ip, "user": user, "host": host},
+			{"source": "windows_event", "severity": "high", "severity_level": 4, "message": fmt.Sprintf("Audit Event 4732: Privileged security group membership altered on %s by %s", host, user), "src_ip": ip, "user": user, "host": host},
+			{"source": "okta", "severity": "critical", "severity_level": 5, "message": fmt.Sprintf("Session token elevation observed for %s from %s after policy change on %s", user, ip, host), "src_ip": ip, "user": user, "host": host},
+		}
+	case "domain3":
+		return []map[string]interface{}{
+			{"source": "aws_cloudtrail", "severity": "warning", "severity_level": 3, "message": fmt.Sprintf("Network ACL boundary modified on %s permitting ingress from %s", host, ip), "src_ip": ip, "user": user, "host": host},
+			{"source": "edr", "severity": "high", "severity_level": 4, "message": attackMsg, "src_ip": ip, "user": user, "host": host},
+			{"source": "s3_access", "severity": "high", "severity_level": 4, "message": fmt.Sprintf("Unrestricted internal zone enumeration traced from %s across %s", ip, host), "src_ip": ip, "user": user, "host": host},
+			{"source": "k8s_audit", "severity": "critical", "severity_level": 5, "message": fmt.Sprintf("Cross-namespace secrets read request initiated on %s via %s", host, ip), "src_ip": ip, "user": user, "host": host},
+		}
+	case "domain5":
+		return []map[string]interface{}{
+			{"source": "compliance_scanner", "severity": "warning", "severity_level": 3, "message": fmt.Sprintf("Governance policy deviation flagged for %s involving transfer to %s", host, ip), "src_ip": ip, "user": user, "host": host},
+			{"source": "dlp_sensor", "severity": "high", "severity_level": 4, "message": attackMsg, "src_ip": ip, "user": user, "host": host},
+			{"source": "proxy_gateway", "severity": "high", "severity_level": 4, "message": fmt.Sprintf("Unapproved external transfer channel opened from %s to %s without DLP ticket", host, ip), "src_ip": "10.20.5.12", "dst_ip": ip, "user": user, "host": host},
+			{"source": "change_management", "severity": "warning", "severity_level": 3, "message": fmt.Sprintf("No matching approved change ticket found for configuration drift on %s", host), "src_ip": ip, "user": user, "host": host},
+		}
+	default:
+		return []map[string]interface{}{
+			{"source": "firewall", "severity": "warning", "severity_level": 3, "message": fmt.Sprintf("Outbound session anomaly observed between %s and remote peer %s", host, ip), "src_ip": "10.20.4.55", "dst_ip": ip, "user": user, "host": host},
+			{"source": "edr", "severity": "high", "severity_level": 4, "message": attackMsg, "src_ip": "10.20.4.55", "dst_ip": ip, "user": user, "host": host},
+			{"source": "sysmon", "severity": "high", "severity_level": 4, "message": fmt.Sprintf("Suspicious child process tree spawned on %s communicating with %s", host, ip), "src_ip": "10.20.4.55", "dst_ip": ip, "user": user, "host": host},
+			{"source": "nids", "severity": "critical", "severity_level": 5, "message": fmt.Sprintf("Lateral or C2 protocol anomaly confirmed between %s and %s", host, ip), "src_ip": ip, "dst_ip": "10.20.4.55", "user": user, "host": host},
+		}
+	}
+}
+
+func selectNoisePacks(domainID, subTopicID string, incidentEvents []map[string]interface{}) []string {
+	packSet := make(map[string]bool)
+	addPack := func(p string) { packSet[p] = true }
+
+	switch strings.TrimSpace(subTopicID) {
+	case "1.2", "4.6", "5.6":
+		addPack("identity_directory")
+	case "1.3", "5.1", "5.2", "5.3", "5.4", "5.5":
+		addPack("governance_itsm")
+	case "1.4", "3.1", "4.4", "4.5":
+		addPack("network_perimeter")
+	case "2.2", "2.4", "2.5", "4.8", "4.9":
+		addPack("endpoint_workstation")
+	case "2.3", "3.3":
+		addPack("application_data")
+	case "3.2", "3.4", "4.1", "4.2", "4.3", "4.7":
+		addPack("cloud_infrastructure")
+	}
+
+	for _, ev := range incidentEvents {
+		src := strings.ToLower(strings.TrimSpace(fmt.Sprint(ev["source"])))
+		switch {
+		case strings.Contains(src, "okta") || strings.Contains(src, "ad_") || strings.Contains(src, "vpn") || strings.Contains(src, "sso"):
+			addPack("identity_directory")
+		case strings.Contains(src, "aws") || strings.Contains(src, "s3") || strings.Contains(src, "k8s") || strings.Contains(src, "iam"):
+			addPack("cloud_infrastructure")
+		case strings.Contains(src, "edr") || strings.Contains(src, "sysmon") || strings.Contains(src, "file") || strings.Contains(src, "windows"):
+			addPack("endpoint_workstation")
+		case strings.Contains(src, "nginx") || strings.Contains(src, "web") || strings.Contains(src, "postgres") || strings.Contains(src, "email") || strings.Contains(src, "dlp") || strings.Contains(src, "crm"):
+			addPack("application_data")
+		case strings.Contains(src, "change") || strings.Contains(src, "hr") || strings.Contains(src, "itsm") || strings.Contains(src, "compliance") || strings.Contains(src, "backup"):
+			addPack("governance_itsm")
+		default:
+			addPack("network_perimeter")
+		}
+	}
+
+	domainDefaults := map[string][]string{
+		"domain1": {"identity_directory", "governance_itsm"},
+		"domain2": {"endpoint_workstation", "application_data"},
+		"domain3": {"cloud_infrastructure", "network_perimeter"},
+		"domain4": {"network_perimeter", "endpoint_workstation"},
+		"domain5": {"governance_itsm", "application_data"},
+	}
+	for _, p := range domainDefaults[domainID] {
+		addPack(p)
+	}
+	if len(packSet) < 2 {
+		addPack("network_perimeter")
+		addPack("identity_directory")
+	}
+
+	ordered := []string{"identity_directory", "endpoint_workstation", "cloud_infrastructure", "network_perimeter", "application_data", "governance_itsm"}
+	out := make([]string, 0, len(packSet))
+	for _, p := range ordered {
+		if packSet[p] {
+			out = append(out, p)
+		}
+	}
+	if len(out) > 3 {
+		return out[:3]
+	}
+	return out
+}
+
+func buildNoiseLogEntry(pack string, idx int, seed uint64, avoidHost, avoidIP, avoidUser string) map[string]interface{} {
+	users := []string{"tchen", "lnguyen", "dpatel", "srodriguez", "bwilson", "kpark", "amartinez", "jkim", "cmiller", "rthomas", "npatel", "edavis", "hlee", "cwright"}
+	hosts := []string{"FIN-WS-101", "ENG-MAC-204", "HR-LAP-309", "OPS-SRV-412", "MKT-WS-118", "DEV-LIN-221", "SUP-WS-105", "QA-NODE-330", "SEC-MON-04", "BUILD-AG-09", "APP-NODE-07", "AUTH-REP-02"}
+	domains := []string{"api.github.com", "packages.ubuntu.com", "login.microsoftonline.com", "cdn.cloudflare.com", "slack.com", "registry.npmjs.org", "docs.corp.internal", "zoom.us"}
+
+	n := idx + int(seed%97)
+	u := users[n%len(users)]
+	if strings.EqualFold(u, avoidUser) {
+		u = users[(n+1)%len(users)]
+	}
+	h := hosts[(n*3)%len(hosts)]
+	if strings.EqualFold(h, avoidHost) {
+		h = hosts[(n*3+1)%len(hosts)]
+	}
+	ip := fmt.Sprintf("10.%d.%d.%d", 20+(n%5), 10+((n*3)%40), 15+((n*7)%200))
+	if ip == avoidIP {
+		ip = fmt.Sprintf("10.%d.%d.%d", 26+(n%4), 12+(n%30), 22+(n%180))
+	}
+	dom := domains[n%len(domains)]
+	reqID := 5000 + n*17 + idx
+
+	var source, message string
+	switch pack {
+	case "identity_directory":
+		opts := [][2]string{
+			{"ad_controller", fmt.Sprintf("Kerberos service ticket TGS issued for %s@corp.local on %s (kvno=%d)", u, h, (idx%4)+1)},
+			{"okta", fmt.Sprintf("OAuth2 refresh token verified for %s@corp.local on trusted endpoint #%d", u, reqID)},
+			{"vpn_gateway", fmt.Sprintf("Split-tunnel VPN keepalive acknowledged for %s from %s (session #%d)", u, ip, reqID)},
+			{"sso_idp", fmt.Sprintf("SAML SSO assertion completed for %s accessing internal wiki portal", u)},
+		}
+		pick := opts[idx%len(opts)]
+		source, message = pick[0], pick[1]
+	case "endpoint_workstation":
+		opts := [][2]string{
+			{"edr", fmt.Sprintf("Signed system binary svchost.exe verified on %s (PID %d)", h, 2400+idx*19)},
+			{"sysmon", fmt.Sprintf("Process create: EdgeUpdate.exe /ua on %s under %s (signature valid)", h, u)},
+			{"windows_event", fmt.Sprintf("Scheduled Defender signature update KB2267602-v%d applied on %s", 1400+idx, h)},
+			{"file_integrity", fmt.Sprintf("Baseline checksum verified on %s: /etc/systemd/system/node-exporter unchanged", h)},
+		}
+		pick := opts[idx%len(opts)]
+		source, message = pick[0], pick[1]
+	case "cloud_infrastructure":
+		opts := [][2]string{
+			{"aws_cloudtrail", fmt.Sprintf("AssumeRole completed for CI runner role-deploy-%d (RequestId=req-%d)", (idx%5)+1, reqID)},
+			{"s3_access", fmt.Sprintf("S3 HeadObject on static-assets-cdn key=bundles/app-v%d.js HTTP 200", idx)},
+			{"k8s_audit", fmt.Sprintf("EKS kubelet liveness check passed for pod api-worker-%d in prod", 10+idx)},
+			{"iam_service", fmt.Sprintf("KMS key alias/app-secrets automated rotation health check passed (#%d)", reqID)},
+		}
+		pick := opts[idx%len(opts)]
+		source, message = pick[0], pick[1]
+	case "application_data":
+		opts := [][2]string{
+			{"nginx", fmt.Sprintf("GET /api/v2/health?node=%s HTTP/1.1 200 OK (%dms)", h, 8+(idx%15))},
+			{"postgresql", fmt.Sprintf("Read-replica WAL checkpoint completed on db-replica-0%d (lag=3ms)", (idx%3)+1)},
+			{"email_gateway", fmt.Sprintf("Inbound email SPF/DKIM/DMARC pass from alerts@%s to %s@corp.local", dom, u)},
+			{"dlp_sensor", fmt.Sprintf("Outbound report summary-q%d-%d.pdf cleared DLP policy scan for %s", (idx%4)+1, reqID, u)},
+		}
+		pick := opts[idx%len(opts)]
+		source, message = pick[0], pick[1]
+	case "governance_itsm":
+		opts := [][2]string{
+			{"change_management", fmt.Sprintf("Routine ITSM ticket INC-%d closed: printer driver update verified for %s", reqID, u)},
+			{"backup_service", fmt.Sprintf("Nightly incremental backup snap-%d finished cleanly on %s", reqID, h)},
+			{"compliance_scanner", fmt.Sprintf("CIS benchmark posture check passed on %s: auditd active", h)},
+			{"itsm_ticketing", fmt.Sprintf("Quarterly access attestation #AR-%d approved by manager for %s", reqID, u)},
+		}
+		pick := opts[idx%len(opts)]
+		source, message = pick[0], pick[1]
+	default:
+		opts := [][2]string{
+			{"dns_server", fmt.Sprintf("DNS Query %s Type=AAAA resolved from %s (%s)", dom, ip, h)},
+			{"firewall", fmt.Sprintf("Outbound TLS 1.3 session closed cleanly: %s -> 198.18.%d.%d:443 [bytes=%d]", ip, (idx%8)+1, 20+idx, 2048+idx*512)},
+			{"proxy_gateway", fmt.Sprintf("CONNECT %s:443 completed cleanly for %s on %s", dom, u, h)},
+			{"dhcp_server", fmt.Sprintf("DHCP lease renewed cleanly for %s (%s) on workstation VLAN 20", h, ip)},
+		}
+		pick := opts[idx%len(opts)]
+		source, message = pick[0], pick[1]
+	}
+
+	return map[string]interface{}{
+		"source":         source,
+		"severity":       "info",
+		"severity_level": 1,
+		"message":        message,
+		"src_ip":         ip,
+		"user":           u,
+		"host":           h,
+	}
+}
+
+func buildDecoyWarningLogs(count int, seed uint64, avoidHost, avoidIP, avoidUser string) []map[string]interface{} {
+	tag := int(seed % 1000)
+	candidates := []map[string]interface{}{
+		{
+			"source": "ad_controller", "severity": "warning", "severity_level": 2,
+			"message": fmt.Sprintf("Single invalid password entry for kpark on FIN-WS-104 followed by valid MFA (#%d)", 1100+tag),
+			"src_ip":  "10.21.14.44", "user": "kpark", "host": "FIN-WS-104",
+		},
+		{
+			"source": "firewall", "severity": "medium", "severity_level": 2,
+			"message": fmt.Sprintf("Perimeter firewall dropped unsolicited internet scan from 198.51.100.241 to port 23 (#%d)", 1200+tag),
+			"src_ip":  "198.51.100.241", "dst_ip": "10.21.1.5", "user": "net_ops", "host": "FW-PERIM-01",
+		},
+		{
+			"source": "web_app", "severity": "warning", "severity_level": 2,
+			"message": fmt.Sprintf("Transient HTTP 429 rate-limit triggered by partner crawler on /public/status (#%d)", 1300+tag),
+			"src_ip":  "10.22.5.33", "user": "svc_crawler", "host": "PROXY-EDGE-03",
+		},
+		{
+			"source": "compliance_scanner", "severity": "warning", "severity_level": 2,
+			"message": fmt.Sprintf("Internal TLS certificate on intranet-staging.corp.local expires in 14 days (#%d)", 1400+tag),
+			"src_ip":  "10.23.2.12", "user": "cert_bot", "host": "SEC-MON-04",
+		},
+		{
+			"source": "edr", "severity": "warning", "severity_level": 3,
+			"message": fmt.Sprintf("Sandboxed EICAR validation signature quarantined on QA-NODE-330 during scheduled test (#%d)", 1500+tag),
+			"src_ip":  "10.24.8.71", "user": "qa_runner", "host": "QA-NODE-330",
+		},
+	}
+
+	out := make([]map[string]interface{}, 0, count)
+	start := int(seed % uint64(len(candidates)))
+	for i := 0; i < len(candidates) && len(out) < count; i++ {
+		c := candidates[(start+i)%len(candidates)]
+		ch, _ := c["host"].(string)
+		cip, _ := c["src_ip"].(string)
+		cu, _ := c["user"].(string)
+		if strings.EqualFold(ch, avoidHost) || (avoidIP != "" && cip == avoidIP) || strings.EqualFold(cu, avoidUser) {
+			continue
+		}
+		out = append(out, c)
+	}
+	return out
+}
+
+// buildScenarioLogs constructs a variable-length (28-46 row), chronologically interleaved
+// SIEM timeline combining multi-event incident logs, decoy warnings, and environment noise.
+func buildScenarioLogs(ai aiMicroScenario, now time.Time) []map[string]interface{} {
+	return buildScenarioLogsWithDomain(ai, "domain4", now)
+}
+
+func buildScenarioLogsWithDomain(ai aiMicroScenario, domainID string, now time.Time) []map[string]interface{} {
+	incidentEvents := normalizeIncidentEvents(ai, domainID)
+	return assembleInterleavedScenarioLogs(ai, domainID, incidentEvents, now)
+}
+
+func assembleInterleavedScenarioLogs(ai aiMicroScenario, domainID string, incidentEvents []map[string]interface{}, now time.Time) []map[string]interface{} {
+	seed := scenarioSeedHash(ai, domainID)
+	decoyCount := 2 + int((seed>>8)%3) // 2..4 decoy warning/medium logs
+	decoys := buildDecoyWarningLogs(decoyCount, seed, ai.TargetHost, ai.AttackerIP, ai.PrimaryUser)
+
+	targetTotal := 28 + int(seed%19) // 28..46 rows
+	minRequired := len(incidentEvents) + len(decoys) + 8
+	if targetTotal < minRequired {
+		targetTotal = minRequired
+	}
+	if targetTotal > 46 {
+		targetTotal = 46
+	}
+
+	slots := make([]map[string]interface{}, targetTotal)
+	used := make([]bool, targetTotal)
+
+	// Spread incident events chronologically across 10%..90% of the timeline (non-contiguous).
+	m := len(incidentEvents)
+	if m > 0 {
+		lowBound := targetTotal / 10
+		if lowBound < 2 {
+			lowBound = 2
+		}
+		highBound := (targetTotal * 9) / 10
+		if highBound >= targetTotal {
+			highBound = targetTotal - 1
+		}
+		span := highBound - lowBound
+		lastPos := lowBound - 1
+		for idx, ev := range incidentEvents {
+			var pos int
+			if m == 1 {
+				pos = targetTotal / 2
+			} else {
+				pos = lowBound + (idx*span)/(m-1)
+			}
+			// Keep at least 1 noise row gap on early transitions so events don't form a solid block
+			minGap := 1
+			if idx == 1 && m >= 2 && targetTotal-lastPos > (m-idx)*2 {
+				minGap = 2
+			}
+			if pos <= lastPos+minGap-1 {
+				pos = lastPos + minGap
+			}
+			if pos >= targetTotal-(m-idx) {
+				pos = targetTotal - (m - idx)
+			}
+			if pos < 0 {
+				pos = 0
+			}
+			for pos < targetTotal && used[pos] {
+				pos++
+			}
+			if pos < targetTotal {
+				slots[pos] = ev
+				used[pos] = true
+				lastPos = pos
+			}
+		}
+	}
+
+	// Place decoys across early, middle, and late free slots.
+	freeSlots := make([]int, 0, targetTotal)
+	for i := 0; i < targetTotal; i++ {
+		if !used[i] {
+			freeSlots = append(freeSlots, i)
+		}
+	}
+	if len(freeSlots) > 0 && len(decoys) > 0 {
+		step := len(freeSlots) / (len(decoys) + 1)
+		if step < 1 {
+			step = 1
+		}
+		for dIdx, dec := range decoys {
+			pick := (dIdx + 1) * step
+			if pick >= len(freeSlots) {
+				pick = len(freeSlots) - 1
+			}
+			for used[freeSlots[pick]] {
+				pick = (pick + 1) % len(freeSlots)
+			}
+			pos := freeSlots[pick]
+			slots[pos] = dec
+			used[pos] = true
+		}
+	}
+
+	// Fill remaining slots with unique environment-matched noise logs.
+	packs := selectNoisePacks(domainID, ai.SubTopicID, incidentEvents)
+	usedMsgs := make(map[string]bool, targetTotal)
+	for _, entry := range slots {
+		if entry != nil {
+			if msg, _ := entry["message"].(string); msg != "" {
+				usedMsgs[normalizeLogMessage(msg)] = true
+			}
+		}
+	}
+
+	noiseCounter := 0
+	for i := 0; i < targetTotal; i++ {
+		if slots[i] != nil {
+			continue
+		}
+		pack := packs[(i+noiseCounter)%len(packs)]
+		var entry map[string]interface{}
+		for attempt := 0; attempt < 25; attempt++ {
+			candidate := buildNoiseLogEntry(pack, noiseCounter+attempt*7, seed, ai.TargetHost, ai.AttackerIP, ai.PrimaryUser)
+			norm := normalizeLogMessage(fmt.Sprint(candidate["message"]))
+			if !usedMsgs[norm] {
+				usedMsgs[norm] = true
+				entry = candidate
+				break
+			}
+		}
+		if entry == nil {
+			entry = buildNoiseLogEntry(pack, noiseCounter+1000+i, seed, ai.TargetHost, ai.AttackerIP, ai.PrimaryUser)
+		}
+		slots[i] = entry
+		noiseCounter++
+	}
+
+	// Stamp monotonically increasing RFC3339 timestamps across all rows, honoring relative_offset_sec when larger.
+	offsetSec := 0
+	for i, entry := range slots {
+		if i > 0 {
+			jitter := 5 + int((seed+uint64(i*11))%23)
+			offsetSec += jitter
+		}
+		if rel, ok := entry["relative_offset_sec"].(int); ok && rel > offsetSec {
+			offsetSec = rel
+		}
+		delete(entry, "relative_offset_sec")
+		entry["timestamp"] = now.Add(time.Duration(offsetSec) * time.Second).Format(time.RFC3339)
+	}
+
+	return slots
 }
 
 // normalizeAIFindings returns the explicit findings, or synthesizes one finding
 // from the legacy key_finding / attack_log_message fields.
 func normalizeAIFindings(ai aiMicroScenario) []aiFinding {
+	return normalizeAIFindingsForDomain(ai, "domain4")
+}
+
+func normalizeAIFindingsForDomain(ai aiMicroScenario, domainID string) []aiFinding {
 	if len(ai.Findings) > 0 {
 		out := make([]aiFinding, len(ai.Findings))
 		copy(out, ai.Findings)
@@ -172,11 +648,17 @@ func normalizeAIFindings(ai aiMicroScenario) []aiFinding {
 		support = "malicious"
 	}
 
-	messages := make([]string, 0, 1)
+	messages := make([]string, 0, 4)
 	if ai.IsTruePositive {
-		// Preserve the legacy AI evidence contract: the whole attack-log block
-		// (indices 15..19) is the decisive evidence for the single legacy finding.
-		messages = append(messages, legacyAttackEvidenceMessages(ai)...)
+		if len(ai.IncidentLogs) > 0 {
+			for _, ev := range ai.IncidentLogs {
+				if msg := strings.TrimSpace(ev.Message); msg != "" {
+					messages = append(messages, msg)
+				}
+			}
+		} else {
+			messages = append(messages, legacyAttackEvidenceMessagesForDomain(ai, domainID)...)
+		}
 	} else if strings.TrimSpace(ai.KeyFinding) != "" {
 		messages = append(messages, ai.KeyFinding)
 	} else if strings.TrimSpace(ai.AttackLogMessage) != "" {
@@ -374,13 +856,13 @@ func synthesizedBenignContextMessage(ai aiMicroScenario) string {
 // that is absent from the logs, that exact message is appended. Otherwise a
 // deterministic approved-change log is synthesized. The context message is also
 // attached to an existing benign finding so it becomes evidence.
-func ensureBenignContextLog(ai *aiMicroScenario, logs []map[string]interface{}, now time.Time) []map[string]interface{} {
+func ensureBenignContextIncidentEvents(ai *aiMicroScenario, events []map[string]interface{}) []map[string]interface{} {
 	if ai.IsTruePositive {
-		return logs
+		return events
 	}
-	for _, entry := range logs {
+	for _, entry := range events {
 		if isStrictBenignContextLog(entry) {
-			return logs
+			return events
 		}
 	}
 
@@ -398,7 +880,7 @@ func ensureBenignContextLog(ai *aiMicroScenario, logs []map[string]interface{}, 
 			if trimmed == "" {
 				continue
 			}
-			if _, ok := resolveEvidenceMessageIndex(logs, trimmed); !ok {
+			if _, ok := resolveEvidenceMessageIndex(events, trimmed); !ok {
 				benignMessage = trimmed
 				break
 			}
@@ -419,8 +901,7 @@ func ensureBenignContextLog(ai *aiMicroScenario, logs []map[string]interface{}, 
 	if host == "" {
 		host = "SRV-WEB01"
 	}
-	logs = append(logs, map[string]interface{}{
-		"timestamp":      now.Add(time.Duration(360) * time.Second).Format(time.RFC3339),
+	events = append(events, map[string]interface{}{
 		"source":         source,
 		"severity":       "info",
 		"severity_level": 1,
@@ -437,26 +918,21 @@ func ensureBenignContextLog(ai *aiMicroScenario, logs []map[string]interface{}, 
 		)
 	}
 
-	return logs
+	return events
 }
 
 func legacyAttackEvidenceMessages(ai aiMicroScenario) []string {
-	host := ai.TargetHost
-	if host == "" {
-		host = "SRV-WEB01"
+	return legacyAttackEvidenceMessagesForDomain(ai, "domain4")
+}
+
+func legacyAttackEvidenceMessagesForDomain(ai aiMicroScenario, domainID string) []string {
+	events := buildDomainContextualFallbackChain(domainID, ai.TargetHost, ai.AttackerIP, ai.PrimaryUser, ai.AttackLogMessage)
+	messages := make([]string, 0, len(events))
+	for _, ev := range events {
+		if msg, _ := ev["message"].(string); strings.TrimSpace(msg) != "" {
+			messages = append(messages, msg)
+		}
 	}
-	ip := ai.AttackerIP
-	if ip == "" {
-		ip = "185.220.101.45"
-	}
-	messages := make([]string, 0, 5)
-	messages = append(messages,
-		fmt.Sprintf("Perimeter Firewall: Connection request initiated from %s to %s:443 [ACTION: ALLOWED]", host, ip),
-		ai.AttackLogMessage,
-		fmt.Sprintf("IDS Alert: Malicious attack payload signature matched on incoming traffic from %s targeting host %s", ip, host),
-		fmt.Sprintf("HTTP 500 Internal Server Error - Anomaly detected on %s via POST payload from %s", host, ip),
-		fmt.Sprintf("SIEM Alert Rule [CORR-9901]: Multi-stage incident correlation triggered on host %s involving IP %s", host, ip),
-	)
 	return messages
 }
 
@@ -585,7 +1061,7 @@ func fallbackAIFinding(ai aiMicroScenario, logs []map[string]interface{}, weakes
 	support := "malicious"
 	var indices []int
 	if ai.IsTruePositive {
-		indices = fallbackAttackEvidenceIndices(logs)
+		indices = fallbackAttackEvidenceIndicesForAI(ai, logs)
 	} else {
 		support = "benign"
 		indices = benignContextEvidenceIndices(logs)
@@ -604,11 +1080,45 @@ func fallbackAIFinding(ai aiMicroScenario, logs []map[string]interface{}, weakes
 	}
 }
 
-func fallbackAttackEvidenceIndices(logs []map[string]interface{}) []int {
-	if len(logs) >= 20 {
-		return []int{15, 16, 17, 18, 19}
+func fallbackAttackEvidenceIndicesForAI(ai aiMicroScenario, logs []map[string]interface{}) []int {
+	capLimit := len(logs) / 2
+	if capLimit < 1 {
+		capLimit = 1
 	}
 
+	matched := make([]int, 0, len(ai.IncidentLogs)+4)
+	seen := make(map[int]bool)
+	addIdx := func(idx int) {
+		if idx < 0 || idx >= len(logs) || seen[idx] || len(matched) >= capLimit {
+			return
+		}
+		seen[idx] = true
+		matched = append(matched, idx)
+	}
+
+	for _, ev := range ai.IncidentLogs {
+		if idx, ok := resolveEvidenceMessageIndex(logs, ev.Message); ok {
+			addIdx(idx)
+		}
+	}
+	if strings.TrimSpace(ai.AttackLogMessage) != "" {
+		if idx, ok := resolveEvidenceMessageIndex(logs, ai.AttackLogMessage); ok {
+			addIdx(idx)
+		}
+	}
+
+	for i, entry := range logs {
+		if scenarioLogSeverityBucket(entry) == "high" {
+			addIdx(i)
+		}
+	}
+	if len(matched) > 0 {
+		return matched
+	}
+	return fallbackAttackEvidenceIndices(logs)
+}
+
+func fallbackAttackEvidenceIndices(logs []map[string]interface{}) []int {
 	high := make([]int, 0, len(logs))
 	for i, entry := range logs {
 		if scenarioLogSeverityBucket(entry) == "high" {
@@ -619,7 +1129,7 @@ func fallbackAttackEvidenceIndices(logs []map[string]interface{}) []int {
 		return high
 	}
 
-	start := len(logs) - 5
+	start := len(logs) - 4
 	if start < 0 {
 		start = 0
 	}
@@ -729,14 +1239,18 @@ func synthesizeFullScenarioWithErrors(ai aiMicroScenario, weakestDomain string, 
 		ai.KeyFinding = fmt.Sprintf("Identified malicious activity originating from %s targeting %s", ai.AttackerIP, ai.TargetHost)
 	}
 
-	if !strings.Contains(ai.Description, "Target Host:") && !strings.Contains(ai.Description, "INVESTIGATION CLUES") {
-		ai.Description = fmt.Sprintf("%s\n\nINVESTIGATION CLUES:\n- Target Host: %s\n- Suspected Attacker IP: %s\n- Alert Vector: %s", ai.Description, ai.TargetHost, ai.AttackerIP, ai.Title)
+	if strings.TrimSpace(ai.Description) == "" {
+		ai.Description = fmt.Sprintf("Security telemetry detected an event requiring triage on %s involving %s.", ai.TargetHost, ai.AttackerIP)
+	} else if !strings.Contains(strings.ToLower(ai.Description), strings.ToLower(ai.TargetHost)) {
+		lead := formatStyleEntityLead(ai.BriefingStyle, ai.TargetHost, ai.AttackerIP)
+		ai.Description = strings.TrimSpace(ai.Description) + " " + lead
 	}
 
-	ai.Findings = normalizeAIFindings(ai)
+	ai.Findings = normalizeAIFindingsForDomain(ai, weakestDomain)
 	now := time.Now().UTC()
-	logs := buildScenarioLogs(ai, now)
-	logs = ensureBenignContextLog(&ai, logs, now)
+	incidentEvents := normalizeIncidentEvents(ai, weakestDomain)
+	incidentEvents = ensureBenignContextIncidentEvents(&ai, incidentEvents)
+	logs := assembleInterleavedScenarioLogs(ai, weakestDomain, incidentEvents, now)
 
 	mapped := make([]mappedAIFinding, 0, len(ai.Findings))
 	errs := make([]string, 0)
@@ -773,6 +1287,21 @@ func synthesizeFullScenarioWithErrors(ai aiMicroScenario, weakestDomain string, 
 		},
 		Status: "active",
 	}, errs
+}
+
+func formatStyleEntityLead(briefingStyle, targetHost, attackerIP string) string {
+	switch briefingStyle {
+	case "shift_handover_brief":
+		return fmt.Sprintf("Outgoing shift notes flag host %s and peer address %s for immediate review.", targetHost, attackerIP)
+	case "threat_hunting_lead":
+		return fmt.Sprintf("Hunt scope centers on telemetry from %s and connections involving %s.", targetHost, attackerIP)
+	case "helpdesk_user_report":
+		return fmt.Sprintf("Affected endpoint %s exhibited anomalous activity linked to %s.", targetHost, attackerIP)
+	case "cloud_guardrail_alert":
+		return fmt.Sprintf("Guardrail context identifies resource %s with activity from %s.", targetHost, attackerIP)
+	default:
+		return fmt.Sprintf("Primary alert indicators reference asset %s and remote address %s.", targetHost, attackerIP)
+	}
 }
 
 // synthesizeWithEvidenceRetry runs one evidence-validation retry and then falls
@@ -823,13 +1352,13 @@ func buildEvidenceRetryPrompt(validationErrors []string, availableMessages []str
 		builder.WriteString(validationError)
 		builder.WriteString("\n")
 	}
-	builder.WriteString("\nReturn the complete scenario JSON again. Every findings[].evidence_log_messages entry MUST be copied exactly from these generated log messages:\n")
+	builder.WriteString("\nReturn the complete scenario JSON again (including 4-8 chronological incident_logs). Every findings[].evidence_log_messages entry MUST be copied verbatim from your incident_logs[].message or these generated log messages:\n")
 	for _, message := range availableMessages {
 		builder.WriteString("- ")
 		builder.WriteString(message)
 		builder.WriteString("\n")
 	}
-	builder.WriteString("\nDo not invent messages. Return 1-4 findings. A True Positive needs at least one malicious finding. A False Positive needs at least one benign finding pointing to a benign context log (approved change, HR travel, scheduled maintenance, authorized scan). Keep the evidence union at or below 50% of the logs.")
+	builder.WriteString("\nDo not invent messages. Return 1-4 findings. A True Positive needs at least one malicious finding. A False Positive needs at least one benign finding pointing to a benign context log (approved change, HR travel, scheduled maintenance, authorized scan) inside incident_logs. Keep the evidence union at or below 50% of the logs.")
 	return builder.String()
 }
 
@@ -1057,20 +1586,20 @@ func EnsureScenarioEvidenceQualityFromSeed(db *gorm.DB, seedJSON []byte) error {
 			log.Printf("[Scenario Evidence Quality Gate] Failed to archive scenario %q (%s): %v", scenario.Title, scenario.ScenarioID, updateErr)
 		} else {
 			archivedCount++
-			log.Printf("[Scenario Evidence Quality Gate] Archived invalid legacy False Positive scenario %q (%s): %v", scenario.Title, scenario.ScenarioID, validationErr)
+			log.Printf("[Scenario Evidence Quality Gate] Archived invalid legacy scenario %q (%s): %v", scenario.Title, scenario.ScenarioID, validationErr)
 		}
 	}
 
 	if archivedCount > 0 {
-		log.Printf("[Scenario Evidence Quality Gate] Archived %d invalid legacy False Positive scenario(s).", archivedCount)
+		log.Printf("[Scenario Evidence Quality Gate] Archived %d invalid legacy scenario(s).", archivedCount)
 	}
 	return nil
 }
 
 // shouldArchiveScenarioEvidence is the pure remediation policy used at startup.
-// Static authored Scenarios (matched to the seed by title), already archived
-// rows, and True Positive rows are never candidates. Only legacy False Positive
-// rows that remain invalid after inferring missing verdict support are archived.
+// Static authored Scenarios (matched to the seed by title) and already archived
+// rows are never candidates. Active non-seed rows that contain banned legacy
+// boilerplate log substrings or fail ValidateScenarioCandidate are archived.
 // The caller never touches Simulation Sessions.
 func shouldArchiveScenarioEvidence(scenario *models.Scenario, seedTitles map[string]struct{}) (bool, error) {
 	if scenario == nil {
@@ -1083,19 +1612,14 @@ func shouldArchiveScenarioEvidence(scenario *models.Scenario, seedTitles map[str
 		return false, nil
 	}
 
-	// Evaluate every candidate with legacy support inference so pre-T7 True
-	// Positive rows are validated as malicious rather than rejected for a
-	// missing verdict_support field.
-	validationErr := validateScenarioEvidenceContractForRemediation(scenario)
-	if validationErr == nil {
-		return false, nil
+	logs := normalizePhaseStepSlice(scenario.InitialLogs)
+	if banned, found := containsBannedLegacyBoilerplate(logs); found {
+		return true, fmt.Errorf("contains banned legacy boilerplate %q", banned)
 	}
-	if scenario.IsTruePositive {
-		// Only invalid False Positive rows are archived. True Positive rows are
-		// left active even when they fail the evidence contract.
-		return false, nil
+	if err := ValidateScenarioCandidate(scenario); err != nil {
+		return true, err
 	}
-	return true, validationErr
+	return false, nil
 }
 
 func loadSeedScenarioTitles(seedPath string) (map[string]struct{}, error) {

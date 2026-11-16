@@ -35,6 +35,14 @@ UNION_CAP_RATIO = 0.5
 UNION_WARNING_MIN_RATIO = 0.4
 HIGH_SEVERITIES = {"high", "critical"}
 LOW_SEVERITIES = {"info", "low"}
+DECOY_SEVERITIES = {"warning", "medium"}
+MAX_MESSAGE_REPETITIONS = 3
+MIN_DECOY_WARNINGS = 2
+BANNED_LEGACY_LOG_SUBSTRINGS = (
+    "siem alert rule [corr-9901]: multi-stage incident correlation triggered",
+    "routine network telemetry event ",
+    "kerberos ticket tgt requested for user account user",
+)
 DEFAULT_MAPPING_PATH = Path(__file__).resolve().parent / "evidence_mapping.json"
 
 
@@ -145,7 +153,7 @@ def _severity_bucket(log):
             return "high"
         if normalized in LOW_SEVERITIES:
             return "low"
-        if normalized == "medium":
+        if normalized in DECOY_SEVERITIES:
             return "medium"
 
     level = log.get("severity_level")
@@ -246,6 +254,65 @@ def _validate_all_logs_rule(indices, log_count, title, finding_id):
             f"{_finding_prefix(title, finding_id)}: evidence cannot equal all logs in the scenario"
         ]
     return []
+
+
+def _validate_log_anti_repetition(logs, union, title, findings_count=1):
+    """Enforce anti-repetition, decoy-warning, and anti-contiguous rules on a scenario."""
+    if not isinstance(logs, list) or not logs:
+        return []
+
+    errors = []
+    prefix = _scenario_prefix(title)
+    message_counts = {}
+    first_raw_message = {}
+    decoy_count = 0
+    reported_banned = set()
+
+    for index, entry in enumerate(logs):
+        if not isinstance(entry, dict):
+            continue
+
+        raw_msg = entry.get("message")
+        msg = raw_msg if isinstance(raw_msg, str) else ""
+        normalized = " ".join(msg.strip().lower().split())
+
+        for banned in BANNED_LEGACY_LOG_SUBSTRINGS:
+            if banned in normalized and banned not in reported_banned:
+                reported_banned.add(banned)
+                errors.append(
+                    f"{prefix}: log {index} contains banned legacy boilerplate {banned!r}"
+                )
+
+        if normalized:
+            message_counts[normalized] = message_counts.get(normalized, 0) + 1
+            first_raw_message.setdefault(normalized, msg.strip())
+
+        if index not in union and _severity_bucket(entry) == "medium":
+            decoy_count += 1
+
+    for normalized, count in message_counts.items():
+        if count > MAX_MESSAGE_REPETITIONS:
+            sample = first_raw_message[normalized][:80]
+            errors.append(
+                f"{prefix}: log message {sample!r} repeated {count} times "
+                f"(maximum is {MAX_MESSAGE_REPETITIONS})"
+            )
+
+    if decoy_count < MIN_DECOY_WARNINGS:
+        errors.append(
+            f"{prefix}: scenario has {decoy_count} non-evidence decoy warning/medium "
+            f"log(s); minimum is {MIN_DECOY_WARNINGS}"
+        )
+
+    sorted_union = sorted(idx for idx in union if _is_integer(idx))
+    if len(logs) >= 15 and len(sorted_union) >= 2 and (findings_count >= 2 or len(sorted_union) >= 3):
+        if sorted_union == list(range(sorted_union[0], sorted_union[-1] + 1)):
+            errors.append(
+                f"{prefix}: evidence_log_indices cluster all {len(sorted_union)} evidence logs "
+                f"into a single contiguous block {sorted_union}"
+            )
+
+    return errors
 
 
 def _validate_approval(mapping):
@@ -464,6 +531,7 @@ def validate_mapping(
                 )
 
         errors.extend(_validate_union(union, log_count, title))
+        errors.extend(_validate_log_anti_repetition(logs, union, title, len(findings)))
 
         is_true_positive = base_scenario.get("is_true_positive")
         supports = [
@@ -712,6 +780,7 @@ def validate_seed(
                 )
 
         errors.extend(_validate_union(union, log_count, title))
+        errors.extend(_validate_log_anti_repetition(logs, union, title, len(findings)))
 
         if is_true_positive is True and "malicious" not in supports:
             errors.append(

@@ -448,7 +448,11 @@ def _offline_rules():
         (
             "Anomalous Volume of NTP Network Requests",
             "d4_f3",
-        ): [{"pattern": "CR-3212", "max": 1}],
+        ): [
+            {"pattern": "High frequency NTP request permitted", "max": 2},
+            {"pattern": "w32time.exe", "max": 1},
+            {"pattern": "CR-3212", "max": 1},
+        ],
         (
             "Spear Phishing leading to Credential Harvesting",
             "d4_f4",

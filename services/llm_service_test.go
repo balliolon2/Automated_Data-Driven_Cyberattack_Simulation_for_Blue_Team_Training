@@ -2,6 +2,7 @@ package services
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -73,6 +74,20 @@ func TestGenerateFallbackScenario_AllDomainsPassValidationAndNoBoilerplate(t *te
 				}
 				if distractorCount < 2 {
 					t.Errorf("%s/%s: expected at least 2 distractor options, got %d", domainID, phase, distractorCount)
+				}
+			}
+
+			logs := normalizePhaseStepSlice(scenario.InitialLogs)
+			if len(logs) < 28 || len(logs) > 46 {
+				t.Errorf("%s: expected 28..46 fallback logs, got %d", domainID, len(logs))
+			}
+			for _, entry := range logs {
+				msg, _ := entry["message"].(string)
+				norm := strings.ToLower(msg)
+				for _, bStr := range BannedLegacyLogSubstrings {
+					if strings.Contains(norm, bStr) {
+						t.Errorf("%s: fallback log contains banned legacy boilerplate %q: %q", domainID, bStr, msg)
+					}
 				}
 			}
 		})
@@ -151,6 +166,36 @@ func TestValidateScenarioCandidate_AntiPredictabilityRules(t *testing.T) {
 		err := ValidateScenarioCandidate(s)
 		if err == nil {
 			t.Errorf("expected error for phase with 5 options, got nil")
+		}
+	})
+
+	t.Run("rejects banned legacy log boilerplate substrings", func(t *testing.T) {
+		orig := normalizePhaseStepSlice(baseScenario.InitialLogs)
+		for _, sample := range []string{
+			"SIEM Alert Rule [CORR-9901]: Multi-stage incident correlation triggered on host WS-DEV09 involving IP 198.51.100.42",
+			"Routine network telemetry event 21 logged for internal-service-21.corp.local",
+			"Kerberos ticket TGT requested for user account user0@corp.local",
+		} {
+			s := cloneScenarioForTest(baseScenario)
+			logs := cloneLogSliceForTest(orig)
+			logs[0]["message"] = sample
+			s.InitialLogs = logs
+			if err := ValidateScenarioCandidate(s); err == nil {
+				t.Errorf("expected ValidateScenarioCandidate to reject banned log boilerplate %q", sample)
+			}
+		}
+	})
+
+	t.Run("rejects more than 3 identical normalized log messages", func(t *testing.T) {
+		s := cloneScenarioForTest(baseScenario)
+		logs := cloneLogSliceForTest(normalizePhaseStepSlice(baseScenario.InitialLogs))
+		for _, idx := range []int{0, 1, 2, 3} {
+			logs[idx]["message"] = "  Duplicate heartbeat check  "
+		}
+		logs[1]["message"] = "duplicate heartbeat check"
+		s.InitialLogs = logs
+		if err := ValidateScenarioCandidate(s); err == nil {
+			t.Errorf("expected ValidateScenarioCandidate to reject >3 identical log messages")
 		}
 	})
 }
@@ -369,6 +414,18 @@ func extractPhaseStepsForTest(t *testing.T, playbook map[string]interface{}, pha
 	return steps
 }
 
+func cloneLogSliceForTest(orig []map[string]interface{}) []map[string]interface{} {
+	logs := make([]map[string]interface{}, len(orig))
+	for i, entry := range orig {
+		cp := make(map[string]interface{}, len(entry))
+		for k, v := range entry {
+			cp[k] = v
+		}
+		logs[i] = cp
+	}
+	return logs
+}
+
 func cloneScenarioForTest(s *models.Scenario) *models.Scenario {
 	cp := *s
 	oldPB := s.PlaybookSteps.(map[string]interface{})
@@ -378,4 +435,172 @@ func cloneScenarioForTest(s *models.Scenario) *models.Scenario {
 	}
 	cp.PlaybookSteps = newPB
 	return &cp
+}
+
+func TestBuildScenarioDiversityContext_RotationHistoryAndCadence(t *testing.T) {
+	t.Run("maps every canonical SY0-701 subtopic to TP and FP archetypes", func(t *testing.T) {
+		for _, spec := range OrderedTheorySubtopics {
+			tpCtx := BuildScenarioDiversityContext(spec.DomainID, nil)
+			if tpCtx.TargetSubTopicID == "" || tpCtx.TargetArchetype == "" || tpCtx.TargetBriefingStyle == "" {
+				t.Fatalf("empty diversity context for %s", spec.DomainID)
+			}
+			tpArch := archetypeForSubtopic(spec.SubTopicID, true)
+			fpArch := archetypeForSubtopic(spec.SubTopicID, false)
+			if tpArch == "" || fpArch == "" || tpArch == fpArch {
+				t.Fatalf("expected distinct non-empty TP/FP archetypes for %s, got %q and %q", spec.SubTopicID, tpArch, fpArch)
+			}
+		}
+	})
+
+	t.Run("rotates across unvisited subtopics, briefing styles, and ~70/30 TP-FP cadence", func(t *testing.T) {
+		var history []ScenarioHistoryEntry
+		seenSubtopics := make(map[string]bool)
+		seenStyles := make(map[string]bool)
+		fpCount := 0
+		tpCount := 0
+
+		for step := 0; step < 9; step++ {
+			ctx := BuildScenarioDiversityContext("domain4", history)
+			if ctx.TargetSubTopicID == "" || ctx.TargetSubTopicTitle == "" {
+				t.Fatalf("step %d: missing subtopic metadata", step)
+			}
+			if step < 9 {
+				if seenSubtopics[ctx.TargetSubTopicID] {
+					t.Fatalf("step %d: repeated subtopic %s before covering all 9 domain4 subtopics", step, ctx.TargetSubTopicID)
+				}
+				seenSubtopics[ctx.TargetSubTopicID] = true
+			}
+			seenStyles[ctx.TargetBriefingStyle] = true
+
+			if ctx.TargetIsTruePositive {
+				tpCount++
+			} else {
+				fpCount++
+			}
+
+			// Verify recent exclusions match history
+			if step > 0 && len(ctx.RecentTitles) == 0 {
+				t.Fatalf("step %d: expected RecentTitles populated", step)
+			}
+
+			// Simulate sequential history (most recent first)
+			entry := ScenarioHistoryEntry{
+				Title:          "Incident " + ctx.TargetSubTopicID,
+				SubTopicID:     ctx.TargetSubTopicID,
+				BriefingStyle:  ctx.TargetBriefingStyle,
+				TargetHost:     "HOST-" + ctx.TargetSubTopicID,
+				AttackerIP:     "198.51.100." + string(rune('1'+step)),
+				IsTruePositive: ctx.TargetIsTruePositive,
+			}
+			history = append([]ScenarioHistoryEntry{entry}, history...)
+		}
+
+		if len(seenSubtopics) != 9 {
+			t.Fatalf("expected all 9 domain4 subtopics covered, got %d", len(seenSubtopics))
+		}
+		if len(seenStyles) != 5 {
+			t.Fatalf("expected all 5 briefing styles rotated, got %d (%v)", len(seenStyles), seenStyles)
+		}
+		if fpCount != 3 || tpCount != 6 {
+			t.Fatalf("expected 6 TP and 3 FP (~67/33 cadence) over 9 runs, got TP=%d FP=%d", tpCount, fpCount)
+		}
+	})
+
+	t.Run("prevents consecutive false positives and populates recent exclusions", func(t *testing.T) {
+		history := []ScenarioHistoryEntry{
+			{Title: "Recent Alpha", SubTopicID: "1.1", TargetHost: "DC-01", AttackerIP: "203.0.113.10", IsTruePositive: false, BriefingStyle: "shift_handover_brief"},
+			{Title: "Recent Beta", SubTopicID: "1.2", TargetHost: "APP-02", AttackerIP: "198.51.100.22", IsTruePositive: true, BriefingStyle: "siem_escalation_ticket"},
+		}
+		ctx := BuildScenarioDiversityContext("domain1", history)
+		if !ctx.TargetIsTruePositive {
+			t.Fatalf("expected TargetIsTruePositive=true immediately after a false positive")
+		}
+		if ctx.TargetSubTopicID != "1.3" {
+			t.Fatalf("expected next unvisited subtopic 1.3, got %s", ctx.TargetSubTopicID)
+		}
+		if ctx.TargetBriefingStyle == "shift_handover_brief" {
+			t.Fatalf("expected briefing style to rotate away from most recent style")
+		}
+		if len(ctx.RecentTitles) != 2 || ctx.RecentTitles[0] != "Recent Alpha" {
+			t.Fatalf("unexpected RecentTitles: %v", ctx.RecentTitles)
+		}
+		if len(ctx.RecentTargetHosts) != 2 || ctx.RecentTargetHosts[0] != "DC-01" {
+			t.Fatalf("unexpected RecentTargetHosts: %v", ctx.RecentTargetHosts)
+		}
+		if len(ctx.RecentAttackerIPs) != 2 || ctx.RecentAttackerIPs[0] != "203.0.113.10" {
+			t.Fatalf("unexpected RecentAttackerIPs: %v", ctx.RecentAttackerIPs)
+		}
+	})
+
+	t.Run("rotates all 5 briefing styles across bounded 10-entry history and ignores SkipCadenceVote", func(t *testing.T) {
+		var capped []ScenarioHistoryEntry
+		for i := 0; i < 10; i++ {
+			capped = append(capped, ScenarioHistoryEntry{
+				Title:           fmt.Sprintf("Old %d", i),
+				SubTopicID:      "4.1",
+				BriefingStyle:   BriefingStyles[i%len(BriefingStyles)],
+				SkipCadenceVote: true,
+			})
+		}
+
+		// Latest resolved votes are 2 consecutive True Positives even though index 0 had SkipCadenceVote=true.
+		capped[1].SkipCadenceVote = false
+		capped[1].IsTruePositive = true
+		capped[2].SkipCadenceVote = false
+		capped[2].IsTruePositive = true
+
+		seenCappedStyles := make(map[string]bool)
+		lastStyle := capped[0].BriefingStyle
+		for step := 0; step < 5; step++ {
+			capped[0].BriefingStyle = lastStyle
+			ctx := BuildScenarioDiversityContext("domain4", capped)
+			seenCappedStyles[ctx.TargetBriefingStyle] = true
+			if step == 0 && ctx.TargetIsTruePositive {
+				t.Fatalf("expected TargetIsTruePositive=false after two SkipCadenceVote-filtered True Positives")
+			}
+			lastStyle = ctx.TargetBriefingStyle
+		}
+		if len(seenCappedStyles) != 5 {
+			t.Fatalf("expected all 5 briefing styles rotated even when capped at 10 entries, got %d (%v)", len(seenCappedStyles), seenCappedStyles)
+		}
+	})
+}
+
+func TestSynthesizeFullScenario_NoHardcodedInvestigationCluesFooter(t *testing.T) {
+	ai := aiMicroScenario{
+		Title:           "API Gateway JWT Signing Key Confusion",
+		Description:     "Escalation from API gateway monitoring: forged RS256/HS256 token accepted on api-edge-02 from 198.51.100.77.",
+		SubTopicID:      "1.4",
+		Archetype:       "jwt_key_confusion",
+		BriefingStyle:   "siem_escalation_ticket",
+		IsTruePositive:  true,
+		TpFpExplanation: "Verified token signature validation flaw exploited from 198.51.100.77.",
+		AttackerIP:      "198.51.100.77",
+		TargetHost:      "api-edge-02",
+		IncidentLogs: []aiIncidentLog{
+			{Source: "nginx", Severity: "warning", Host: "api-edge-02", SrcIP: "198.51.100.77", Message: "POST /oauth/token returned 200 with unexpected HS256 alg header"},
+			{Source: "edr", Severity: "high", Host: "api-edge-02", SrcIP: "198.51.100.77", Message: "Admin API scope granted without JWKS key match on api-edge-02"},
+			{Source: "postgresql", Severity: "high", Host: "db-auth-01", SrcIP: "198.51.100.77", Message: "Bulk read of api_keys table triggered via forged bearer token"},
+			{Source: "nids", Severity: "critical", Host: "api-edge-02", SrcIP: "198.51.100.77", Message: "Exfiltration response 2.4MB dispatched to 198.51.100.77"},
+		},
+	}
+
+	scenario, errs := synthesizeFullScenarioWithErrors(ai, "domain1", "General Security Concepts")
+	if len(errs) > 0 {
+		t.Fatalf("unexpected synthesis errors: %v", errs)
+	}
+	if strings.Contains(scenario.Description, "INVESTIGATION CLUES:") {
+		t.Fatalf("expected legacy INVESTIGATION CLUES footer to be removed, got %q", scenario.Description)
+	}
+}
+
+func TestExtractPrimaryScenarioEntities_SkipsNoiseRowZero(t *testing.T) {
+	sc := GenerateFallbackScenario("domain2", "Threats, Vulnerabilities, and Mitigations")
+	host, ip := ExtractPrimaryScenarioEntities(sc)
+	if host != "WS-FINANCE04" {
+		t.Fatalf("ExtractPrimaryScenarioEntities host = %q, want WS-FINANCE04", host)
+	}
+	if ip != "185.220.101.99" {
+		t.Fatalf("ExtractPrimaryScenarioEntities ip = %q, want 185.220.101.99", ip)
+	}
 }

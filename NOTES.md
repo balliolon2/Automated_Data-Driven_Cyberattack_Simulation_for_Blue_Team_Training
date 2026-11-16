@@ -261,3 +261,41 @@
     - `/learn` uses an expandable **Nested Sidebar Tree** with deep-linking (`/learn?domain=domain1&topic=1.2`) and `Previous / Next Sub-topic` navigation.
     - `GET /api/analytics/research-summary` exposes `learn_subtopic_telemetry` (`completed_subtopics_count`, `sample_questions_assigned`, `sample_questions_attempted`, `sample_questions_correct`, `sample_accuracy_percent`, and `domain_breakdown`).
     - See `workflows/learning_subtopics_sample_questions.md`.
+
+
+## Canonical Terms (Issue #25)
+
+- **Incident Event Chain (ชุดล็อกเหตุการณ์หลัก)**: the **4 to 8 contextual telemetry log entries** (`incident_logs[]`) generated for a specific scenario's narrative, replacing the legacy hardcoded 5-row block (`firewall` → `edr` → `ids` → `web_app` → `siem_correlator` `[CORR-9901]`).
+- **Environment Noise Pack (ชุดล็อกพื้นหลังตามสภาพแวดล้อม)**: a domain/archetype-matched generator producing diverse operational background telemetry (`identity_directory`, `endpoint_workstation`, `cloud_infrastructure`, `network_perimeter`, `application_data`, `governance_itsm`) without repetitive identical `for-loop` messages.
+- **Decoy Warning Log (ล็อกแจ้งเตือนตัวหลอกที่ไม่มีพิษภัย)**: a non-evidence background noise log carrying `warning` or `medium` severity (e.g., transient auth retry, health-check timeout, routine scanner block, certificate expiry notice) included (`2–4` per scenario) so learners cannot solve Detect & Analyze merely by filtering `High/Critical` or `Warning`.
+- **Chronological Interleaving (การคละลำดับเวลาตามจริง)**: dispersing the scenario's Incident Event Chain across a variable-length (`28–46` rows) timeline with background noise before, between, and after key events, eliminating the fixed `15..19` middle-block sandwich.
+- **Scenario Archetype & Briefing Style (ต้นแบบสถานการณ์และสไตล์การบรีฟเคส)**: the combination of a CompTIA SY0-701 Sub-topic (`1.1`–`5.6`), an operational incident archetype, and one of 5 SOC briefing formats (`siem_escalation_ticket`, `shift_handover_brief`, `threat_hunting_lead`, `helpdesk_user_report`, `cloud_guardrail_alert`) rotated across a learner's sessions.
+- **Context-Aware SIEM Shortcuts (ปุ่มลัด SIEM ตามบริบทโจทย์)**: dynamic investigation filter chips on `SimulationPage.tsx` derived from the scenario's actual target host, actor IP/user, and primary telemetry sources rather than `initial_logs[0].host` or hardcoded `Firewall Logs`.
+
+## Settled Decisions (Issue #25: Scenario Telemetry, Archetype & Briefing Style Diversity)
+
+41. **Multi-Event AI Incident Chain & Contextual Noise Synthesis (Hybrid)**:
+    - `aiMicroScenario` (`services/llm_service.go`) is expanded with `incident_logs` (`4–8` structured log events `{source, severity, host, src_ip, dst_ip, user, message}`), `sub_topic_id`, `archetype`, and `briefing_style`, while retaining `attack_log_message` fallback compatibility for legacy unit tests.
+    - The hardcoded 5-log block (`Perimeter Firewall: Connection request initiated...`, `IDS Alert: Malicious attack payload signature matched...`, `HTTP 500 Internal Server Error...`, `SIEM Alert Rule [CORR-9901]...`) and the fixed 45-log Kerberos/Routine sandwich in `buildScenarioLogs` (`services/scenario_evidence.go`) are retired.
+    - `GenerateFallbackScenario` uses multi-event, domain-distinct incident chains rather than the legacy 5-row wrapper.
+
+42. **Variable Log Count, Multi-Severity Decoy Noise & Chronological Interleaving**:
+    - Total log count per scenario varies deterministically in the range **28–46 logs** (never fixed at 45).
+    - Background noise is synthesized from 6 environment-matched Noise Packs with unique messages and realistic host/IP/user variety (no `for-loop` repeating the exact same message 15–25 times).
+    - Every scenario includes **2–4 Decoy Warning/Medium noise logs** that are not part of any finding's evidence set, alongside informational/warning/high/critical incident logs, preventing severity-only clicking shortcuts.
+    - Incident events are interleaved chronologically across the log array (with noise separating multi-stage events) rather than clustered contiguously at indices `15..19`, and `evidence_log_indices` are resolved after final timeline ordering.
+
+43. **Sub-Topic / Archetype Rotation, History Exclusion & Controlled TP/FP Cadence**:
+    - Before calling `GenerateLLMScenario`, the backend inspects the learner's recent `simulation_sessions` (titles, hosts, IPs, sub-topics, and verdicts) to select the next unvisited (or least-visited) SY0-701 Sub-topic (`1.1`–`5.6`) within the weakest domain and a matching Scenario Archetype + Briefing Style.
+    - Recent scenario titles, hosts, and IPs are passed into the LLM prompt's exclusion list to prevent consecutive plot/entity repetition.
+    - The backend deterministically targets a **~70% True Positive / ~30% False Positive cadence** (injecting a False Positive target roughly every 3rd–4th scenario and preventing >2 consecutive False Positives) and passes `target_is_true_positive` to the LLM prompt.
+
+44. **Varied Narrative Briefing Styles & Dynamic SIEM Shortcuts**:
+    - Replaces the uniform `INVESTIGATION CLUES:\n- Target Host: ...\n- Suspected Attacker IP: ...\n- Alert Vector: ...` footer with 5 realistic SOC briefing styles (`siem_escalation_ticket`, `shift_handover_brief`, `threat_hunting_lead`, `helpdesk_user_report`, `cloud_guardrail_alert`).
+    - Fixes the `SimulationPage.tsx` `Host:` shortcut bug (which grabbed `initial_logs[0].host` = `WS-WORKSTATION1`) and replaces static `Firewall Logs` / `High Severity Alerts` buttons with 4 dynamic, context-aware shortcuts derived from the scenario's primary entities (`host`, `ip` or `user`, primary `source`, and relevant `severity`).
+
+45. **Static Seed Re-Authoring, Anti-Repetition Gate & Legacy DB Archival**:
+    - All 15 static scenarios in `scripts/generate_scenarios.py` are upgraded with interleaved timelines, diverse multi-source/multi-severity background noise (`28–46` rows), and zero repetitive `for-loop` message blocks; `scripts/evidence_mapping.json`, `scripts/evidence_mapping_report.md`, and `scenarios_seed.json` are updated in lockstep.
+    - Both `scripts/validate_evidence_mapping.py` and `services.ValidateScenarioCandidate` enforce anti-repetition rules: banning legacy boilerplate log strings (`SIEM Alert Rule [CORR-9901]`, `Routine network telemetry event `, `Kerberos ticket TGT requested for user account user`) and capping identical `message` repetition (`<= 3` occurrences per scenario).
+    - On startup (`EnsureScenarioEvidenceQualityFromSeed`), active non-seed scenarios in PostgreSQL that still contain the legacy `CORR-9901` / 45-log sandwich boilerplate are automatically marked `status = 'archived'` without altering completed `simulation_sessions` or `scenario_snapshots`.
+    - See `workflows/scenario_telemetry_and_style_diversity.md`.

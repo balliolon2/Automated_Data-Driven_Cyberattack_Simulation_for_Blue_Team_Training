@@ -69,3 +69,30 @@ Any domain where the Learner's current Proficiency Score is below the 70% Profic
 _Avoid_: Failed subject, weak topic
 
 
+**Incident Event Chain**:
+The 4 to 8 contextual telemetry log entries generated for a specific Scenario's narrative, replacing the legacy hardcoded 5-row block.
+_Avoid_: Single attack log, static alert block
+
+**Environment Noise Pack**:
+A domain- and archetype-matched background telemetry generator producing varied operational Noise Logs across identity, endpoint, cloud, network, application, and governance sources without repetitive identical loops.
+_Avoid_: Dummy loop logs, filler rows
+
+**Decoy Warning Log**:
+A non-evidence Noise Log carrying `warning` or `medium` severity included in every Scenario so Learners cannot solve Detect & Analyze merely by filtering high/warning severity rows.
+_Avoid_: Fake evidence, penalty trap
+
+**Chronological Interleaving**:
+The timeline placement rule dispersing a Scenario's Incident Event Chain across a variable-length (`28–46` rows) log set with background Noise Logs before, between, and after key events, eliminating the fixed middle-block sandwich.
+_Avoid_: Positional chunking, middle clustering
+
+**Scenario Archetype**:
+The specific operational incident pattern paired with a CompTIA Security+ (SY0-701) Theory Sub-Topic (`1.1`–`5.6`) and rotated across a Learner's Simulation Sessions to prevent plot repetition.
+_Avoid_: Generic prompt, static template
+
+**Briefing Style**:
+One of the five SOC case-opening narrative formats (`siem_escalation_ticket`, `shift_handover_brief`, `threat_hunting_lead`, `helpdesk_user_report`, `cloud_guardrail_alert`) used to present a Scenario's Incident Narrative without a uniform footer block.
+_Avoid_: Hardcoded clue block, boilerplate description
+
+**Context-Aware SIEM Shortcuts**:
+The four dynamic filter chips on the Scenario investigation view derived from the Scenario's actual target host, actor IP/user, and primary telemetry sources.
+_Avoid_: Hardcoded firewall shortcut, first-row host shortcut

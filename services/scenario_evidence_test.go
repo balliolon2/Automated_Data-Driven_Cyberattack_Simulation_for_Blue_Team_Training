@@ -71,14 +71,24 @@ func TestEvidenceMessageMapping_ExactThenTrimmedCaseInsensitive(t *testing.T) {
 	ai := evidenceTestMicro(true)
 	logs := buildScenarioLogs(ai, time.Unix(1700000000, 0).UTC())
 
-	exactMessage, _ := logs[16]["message"].(string)
-	if index, ok := resolveEvidenceMessageIndex(logs, exactMessage); !ok || index != 16 {
-		t.Fatalf("exact message resolved to (%d, %v), want (16, true)", index, ok)
+	exactMessage := ai.AttackLogMessage
+	expectedIdx := -1
+	for i, entry := range logs {
+		if msg, _ := entry["message"].(string); msg == exactMessage {
+			expectedIdx = i
+			break
+		}
+	}
+	if expectedIdx < 0 {
+		t.Fatalf("expected attack log message %q to appear in interleaved logs", exactMessage)
+	}
+	if index, ok := resolveEvidenceMessageIndex(logs, exactMessage); !ok || index != expectedIdx {
+		t.Fatalf("exact message resolved to (%d, %v), want (%d, true)", index, ok, expectedIdx)
 	}
 
 	loose := "  " + strings.ToUpper(exactMessage) + "  "
-	if index, ok := resolveEvidenceMessageIndex(logs, loose); !ok || index != 16 {
-		t.Fatalf("trimmed/case-insensitive message resolved to (%d, %v), want (16, true)", index, ok)
+	if index, ok := resolveEvidenceMessageIndex(logs, loose); !ok || index != expectedIdx {
+		t.Fatalf("trimmed/case-insensitive message resolved to (%d, %v), want (%d, true)", index, ok, expectedIdx)
 	}
 
 	if _, ok := resolveEvidenceMessageIndex(logs, "this message was never generated"); ok {
@@ -162,15 +172,21 @@ func TestSynthesizeFullScenario_FalsePositiveAppendsSuppliedBenignMessage(t *tes
 	}
 
 	logs := normalizePhaseStepSlice(scenario.InitialLogs)
-	if len(logs) <= 45 {
-		t.Fatalf("expected the benign context log to be appended, got %d logs", len(logs))
+	if len(logs) < 28 || len(logs) > 46 {
+		t.Fatalf("expected 28..46 interleaved logs, got %d logs", len(logs))
 	}
-	appended := logs[len(logs)-1]
-	if message, _ := appended["message"].(string); message != benignMessage {
-		t.Fatalf("appended message = %q, want %q", message, benignMessage)
+	benignIdx := -1
+	for i, entry := range logs {
+		if msg, _ := entry["message"].(string); msg == benignMessage {
+			benignIdx = i
+			if source, _ := entry["source"].(string); source != "change_management" {
+				t.Fatalf("benign log source = %q, want change_management", source)
+			}
+			break
+		}
 	}
-	if source, _ := appended["source"].(string); source != "change_management" {
-		t.Fatalf("appended source = %q, want change_management", source)
+	if benignIdx < 0 {
+		t.Fatalf("expected supplied benign context message %q in interleaved logs", benignMessage)
 	}
 
 	findings := findingsForScenario(t, scenario)
@@ -178,8 +194,8 @@ func TestSynthesizeFullScenario_FalsePositiveAppendsSuppliedBenignMessage(t *tes
 		t.Fatalf("expected 1 finding, got %d", len(findings))
 	}
 	indices := evidenceIndicesForFinding(t, findings[0])
-	if len(indices) != 1 || indices[0] != len(logs)-1 {
-		t.Fatalf("benign evidence = %v, want [%d]", indices, len(logs)-1)
+	if len(indices) != 1 || indices[0] != benignIdx {
+		t.Fatalf("benign evidence = %v, want [%d]", indices, benignIdx)
 	}
 }
 
@@ -311,8 +327,21 @@ func TestSynthesizeWithEvidenceRetry_UsesSingleRetryAndFallsBack(t *testing.T) {
 			t.Fatalf("expected one fallback finding, got %d", len(findings))
 		}
 		indices := evidenceIndicesForFinding(t, findings[0])
-		if len(indices) != 5 || indices[0] != 15 || indices[4] != 19 {
-			t.Fatalf("TP fallback evidence = %v, want attack block 15..19", indices)
+		if len(indices) == 0 {
+			t.Fatalf("expected non-empty TP fallback evidence")
+		}
+		logs := normalizePhaseStepSlice(scenario.InitialLogs)
+		for _, idx := range indices {
+			if idx < 0 || idx >= len(logs) {
+				t.Fatalf("fallback index %d out of range for %d logs", idx, len(logs))
+			}
+			msg, _ := logs[idx]["message"].(string)
+			if strings.Contains(strings.ToLower(msg), "corr-9901") {
+				t.Fatalf("fallback evidence contains legacy CORR-9901 boilerplate: %q", msg)
+			}
+		}
+		if len(indices) >= 2 && indices[len(indices)-1]-indices[0]+1 == len(indices) {
+			t.Fatalf("expected interleaved non-contiguous fallback evidence indices, got contiguous %v", indices)
 		}
 	})
 
@@ -442,13 +471,23 @@ func TestValidateScenarioCandidate_RejectsInvalidEvidenceContracts(t *testing.T)
 	t.Run("rejects false positive without benign context log", func(t *testing.T) {
 		s := deepCloneScenarioForTest(t, base)
 		s.IsTruePositive = false
+		highIdx := -1
+		for idx, entry := range normalizePhaseStepSlice(s.InitialLogs) {
+			if scenarioLogSeverityBucket(entry) == "high" {
+				highIdx = idx
+				break
+			}
+		}
+		if highIdx < 0 {
+			t.Fatalf("expected at least one high-severity log in base scenario")
+		}
 		replaceFindingsForTest(t, s, []map[string]interface{}{
 			{
 				"id":                   "f1",
 				"description":          "alert-only benign finding",
 				"domain_id":            "domain4",
 				"points":               10,
-				"evidence_log_indices": []int{15, 16, 17, 18, 19},
+				"evidence_log_indices": []int{highIdx},
 				"verdict_support":      "benign",
 			},
 		})
@@ -469,8 +508,8 @@ func TestNormalizeAIFindings_LegacyKeyFindingCompatibility(t *testing.T) {
 		if findings[0].VerdictSupport != "malicious" {
 			t.Fatalf("verdict support = %q, want malicious", findings[0].VerdictSupport)
 		}
-		if len(findings[0].EvidenceLogMessages) != 5 || !containsString(findings[0].EvidenceLogMessages, ai.AttackLogMessage) {
-			t.Fatalf("evidence messages = %v, want the legacy attack-log block including %q", findings[0].EvidenceLogMessages, ai.AttackLogMessage)
+		if len(findings[0].EvidenceLogMessages) < 2 || !containsString(findings[0].EvidenceLogMessages, ai.AttackLogMessage) {
+			t.Fatalf("evidence messages = %v, want contextual attack chain including %q", findings[0].EvidenceLogMessages, ai.AttackLogMessage)
 		}
 
 		scenario, errs := synthesizeFullScenarioWithErrors(ai, "domain4", "Security Operations")
@@ -560,17 +599,41 @@ func TestShouldArchiveScenarioEvidence(t *testing.T) {
 		}
 	})
 
+	t.Run("keeps valid multi-event non-seed TP and FP scenarios active", func(t *testing.T) {
+		tp := synthesizeFullScenario(evidenceTestMicro(true), "domain4", "Security Operations")
+		tp.Title = "Valid Non-Seed TP"
+		if shouldArchive, err := shouldArchiveScenarioEvidence(tp, seedTitles); shouldArchive || err != nil {
+			t.Fatalf("expected valid TP scenario to stay active, got shouldArchive=%v err=%v", shouldArchive, err)
+		}
+
+		fp := synthesizeFullScenario(evidenceTestMicro(false), "domain1", "General Security Concepts")
+		fp.Title = "Valid Non-Seed FP"
+		if shouldArchive, err := shouldArchiveScenarioEvidence(fp, seedTitles); shouldArchive || err != nil {
+			t.Fatalf("expected valid FP scenario to stay active, got shouldArchive=%v err=%v", shouldArchive, err)
+		}
+	})
+
 	t.Run("archives an AI false positive without benign context", func(t *testing.T) {
 		ai := evidenceTestMicro(false)
 		scenario := synthesizeFullScenario(ai, "domain4", "Security Operations")
 		scenario.Title = "AI FP Without Context"
+		alertIdx := -1
+		for idx, entry := range normalizePhaseStepSlice(scenario.InitialLogs) {
+			if !isBenignContextLog(entry) {
+				alertIdx = idx
+				break
+			}
+		}
+		if alertIdx < 0 {
+			t.Fatalf("expected at least one alert-severity log in scenario")
+		}
 		replaceFindingsForTest(t, scenario, []map[string]interface{}{
 			{
 				"id":                   "f1",
 				"description":          "alert-only benign finding",
 				"domain_id":            "domain4",
 				"points":               10,
-				"evidence_log_indices": []int{15, 16, 17, 18, 19},
+				"evidence_log_indices": []int{alertIdx},
 				"verdict_support":      "benign",
 			},
 		})
@@ -580,11 +643,17 @@ func TestShouldArchiveScenarioEvidence(t *testing.T) {
 		}
 	})
 
-	t.Run("keeps a pre-T7 AI true positive with attack-log evidence and no verdict support", func(t *testing.T) {
-		scenario := legacyPreT7Scenario(t, true)
-		shouldArchive, err := shouldArchiveScenarioEvidence(scenario, seedTitles)
-		if shouldArchive || err != nil {
-			t.Fatalf("expected legacy AI TP with attack-log evidence to remain active, got shouldArchive=%v err=%v", shouldArchive, err)
+	t.Run("archives legacy non-seed TP and FP rows containing CORR-9901 or routine boilerplate", func(t *testing.T) {
+		for _, isTP := range []bool{true, false} {
+			scenario := synthesizeFullScenario(evidenceTestMicro(isTP), "domain4", "Security Operations")
+			scenario.Title = "Legacy CORR-9901 AI Scenario"
+			logs := normalizePhaseStepSlice(scenario.InitialLogs)
+			logs[5]["message"] = "SIEM Alert Rule [CORR-9901]: Multi-stage incident correlation triggered on host SRV-WEB01 involving IP 198.51.100.7"
+			scenario.InitialLogs = logs
+			shouldArchive, err := shouldArchiveScenarioEvidence(scenario, seedTitles)
+			if !shouldArchive || err == nil {
+				t.Fatalf("expected legacy CORR-9901 scenario (isTP=%v) to be archived, got shouldArchive=%v err=%v", isTP, shouldArchive, err)
+			}
 		}
 	})
 
@@ -598,35 +667,7 @@ func TestShouldArchiveScenarioEvidence(t *testing.T) {
 		}
 	})
 
-	t.Run("archives a pre-T7 AI false positive with attack-log evidence and no verdict support", func(t *testing.T) {
-		scenario := legacyPreT7Scenario(t, false)
-		shouldArchive, err := shouldArchiveScenarioEvidence(scenario, seedTitles)
-		if !shouldArchive || err == nil {
-			t.Fatalf("expected legacy AI FP without benign context to be archived, got shouldArchive=%v err=%v", shouldArchive, err)
-		}
-	})
-
-	t.Run("keeps a non-seed static false positive that only lacks verdict support", func(t *testing.T) {
-		scenario := synthesizeFullScenario(evidenceTestMicro(false), "domain4", "Security Operations")
-		scenario.Title = "Non-Seed Static FP"
-		logs := normalizePhaseStepSlice(scenario.InitialLogs)
-		contextIndex := len(logs) - 1
-		replaceFindingsForTest(t, scenario, []map[string]interface{}{
-			{
-				"id":                   "f1",
-				"description":          "approved change context",
-				"domain_id":            "domain5",
-				"points":               10,
-				"evidence_log_indices": []int{contextIndex},
-			},
-		})
-		shouldArchive, err := shouldArchiveScenarioEvidence(scenario, seedTitles)
-		if shouldArchive || err != nil {
-			t.Fatalf("expected non-seed static FP with benign context to remain active, got shouldArchive=%v err=%v", shouldArchive, err)
-		}
-	})
-
-	t.Run("never archives a true positive row", func(t *testing.T) {
+	t.Run("archives non-seed scenarios failing ValidateScenarioCandidate", func(t *testing.T) {
 		ai := evidenceTestMicro(true)
 		scenario := synthesizeFullScenario(ai, "domain4", "Security Operations")
 		scenario.Title = "Invalid AI TP"
@@ -639,11 +680,119 @@ func TestShouldArchiveScenarioEvidence(t *testing.T) {
 				"verdict_support": "malicious",
 			},
 		})
-		shouldArchive, _ := shouldArchiveScenarioEvidence(scenario, seedTitles)
-		if shouldArchive {
-			t.Fatalf("expected only False Positive rows to be archived")
+		shouldArchive, err := shouldArchiveScenarioEvidence(scenario, seedTitles)
+		if !shouldArchive || err == nil {
+			t.Fatalf("expected scenario failing ValidateScenarioCandidate to be archived, got shouldArchive=%v err=%v", shouldArchive, err)
 		}
 	})
+}
+
+func TestHybridMultiEventInterleavedLogs_DiversityAndDecoys(t *testing.T) {
+	ai := aiMicroScenario{
+		Title:           "KMS Key Enumeration and S3 Data Staging",
+		Description:     "Unusual AWS KMS key listing followed by S3 object staging by a developer role.",
+		IsTruePositive:  true,
+		TpFpExplanation: "Unauthorized role assumption used to enumerate KMS keys and stage S3 archives.",
+		AttackerIP:      "198.51.100.84",
+		TargetHost:      "aws-s3-finance",
+		PrimaryUser:     "dev_ci_runner",
+		IncidentLogs: []aiIncidentLog{
+			{Source: "iam_service", Severity: "info", Host: "aws-iam-global", SrcIP: "198.51.100.84", User: "dev_ci_runner", Message: "AssumeRole succeeded for role prod-s3-auditor from external source 198.51.100.84"},
+			{Source: "aws_cloudtrail", Severity: "warning", Host: "aws-kms-us-east", SrcIP: "198.51.100.84", User: "dev_ci_runner", Message: "ListAliases executed across 14 customer master keys by dev_ci_runner"},
+			{Source: "s3_access", Severity: "high", Host: "aws-s3-finance", SrcIP: "198.51.100.84", User: "dev_ci_runner", Message: "GetObject batch downloaded 42 payroll archives from s3://corp-fin-staging"},
+			{Source: "aws_cloudtrail", Severity: "critical", Host: "aws-s3-finance", SrcIP: "198.51.100.84", User: "dev_ci_runner", Message: "PutBucketReplication configured toward external account 998877665544"},
+		},
+		Findings: []aiFinding{
+			{
+				Description:         "External IAM role assumption and KMS enumeration",
+				DomainID:            "domain3",
+				Points:              10,
+				EvidenceLogMessages: []string{"AssumeRole succeeded for role prod-s3-auditor from external source 198.51.100.84", "ListAliases executed across 14 customer master keys by dev_ci_runner"},
+				VerdictSupport:      "malicious",
+				Explanation:         "Reconnaissance of KMS keys followed unusual external role assumption.",
+			},
+			{
+				Description:         "Unauthorized S3 replication staging",
+				DomainID:            "domain3",
+				Points:              10,
+				EvidenceLogMessages: []string{"GetObject batch downloaded 42 payroll archives from s3://corp-fin-staging", "PutBucketReplication configured toward external account 998877665544"},
+				VerdictSupport:      "malicious",
+				Explanation:         "Bucket replication to an unrecognized account indicates staging for exfiltration.",
+			},
+		},
+	}
+
+	scenario, errs := synthesizeFullScenarioWithErrors(ai, "domain3", "Security Architecture")
+	if len(errs) > 0 {
+		t.Fatalf("expected multi-event scenario to synthesize cleanly, got %v", errs)
+	}
+	if err := ValidateScenarioCandidate(scenario); err != nil {
+		t.Fatalf("expected multi-event scenario to pass ValidateScenarioCandidate, got %v", err)
+	}
+
+	logs := normalizePhaseStepSlice(scenario.InitialLogs)
+	if len(logs) < 28 || len(logs) > 46 {
+		t.Fatalf("expected 28..46 logs, got %d", len(logs))
+	}
+
+	// Verify monotonic timestamps, <= 2 message repetitions, zero legacy boilerplate
+	evidenceSet := make(map[int]bool)
+	for _, f := range findingsForScenario(t, scenario) {
+		for _, idx := range evidenceIndicesForFinding(t, f) {
+			evidenceSet[idx] = true
+		}
+	}
+	if len(evidenceSet) != 4 {
+		t.Fatalf("expected 4 mapped evidence indices, got %d", len(evidenceSet))
+	}
+	var sortedEv []int
+	for idx := range evidenceSet {
+		sortedEv = append(sortedEv, idx)
+	}
+	// Sort to verify interleaving (non-contiguous)
+	for i := 0; i < len(sortedEv); i++ {
+		for j := i + 1; j < len(sortedEv); j++ {
+			if sortedEv[j] < sortedEv[i] {
+				sortedEv[i], sortedEv[j] = sortedEv[j], sortedEv[i]
+			}
+		}
+	}
+	if sortedEv[len(sortedEv)-1]-sortedEv[0]+1 == len(sortedEv) {
+		t.Fatalf("expected interleaved non-contiguous evidence indices, got %v", sortedEv)
+	}
+
+	decoyCount := 0
+	msgCounts := make(map[string]int)
+	var prevTS time.Time
+	for i, entry := range logs {
+		tsStr, _ := entry["timestamp"].(string)
+		ts, parseErr := time.Parse(time.RFC3339, tsStr)
+		if parseErr != nil {
+			t.Fatalf("log %d invalid RFC3339 timestamp %q: %v", i, tsStr, parseErr)
+		}
+		if i > 0 && !ts.After(prevTS) {
+			t.Fatalf("log %d timestamp %s is not strictly after previous %s", i, tsStr, prevTS.Format(time.RFC3339))
+		}
+		prevTS = ts
+
+		msg, _ := entry["message"].(string)
+		norm := strings.ToLower(strings.TrimSpace(msg))
+		msgCounts[norm]++
+		if msgCounts[norm] > 2 {
+			t.Fatalf("message %q repeated %d times (want <= 2)", msg, msgCounts[norm])
+		}
+		for _, banned := range BannedLegacyLogSubstrings {
+			if strings.Contains(norm, banned) {
+				t.Fatalf("found banned legacy boilerplate %q in %q", banned, msg)
+			}
+		}
+		if !evidenceSet[i] && scenarioLogSeverityBucket(entry) == "medium" {
+			decoyCount++
+		}
+	}
+	if decoyCount < 2 || decoyCount > 4 {
+		t.Fatalf("expected 2..4 non-evidence decoy warning/medium logs, got %d", decoyCount)
+	}
 }
 
 func TestEnsureScenarioEvidenceQuality_RequiresSeed(t *testing.T) {

@@ -14,15 +14,18 @@ MAPPING_PATH = SCRIPT_DIR / "evidence_mapping.json"
 
 
 def make_logs(count, severity="info"):
-    return [
-        {
-            "timestamp": f"2026-07-13T08:00:{index:02d}Z",
-            "source": "test_source",
-            "severity": severity,
-            "message": f"log message {index}",
-        }
-        for index in range(count)
-    ]
+    logs = []
+    for index in range(count):
+        row_severity = "warning" if count >= 6 and index >= count - 2 else severity
+        logs.append(
+            {
+                "timestamp": f"2026-07-13T08:00:{index:02d}Z",
+                "source": "test_source",
+                "severity": row_severity,
+                "message": f"log message {index}",
+            }
+        )
+    return logs
 
 
 def make_base_scenario(title="Scenario One", is_true_positive=True, log_count=10, findings=None):
@@ -342,7 +345,7 @@ class VerdictSupportTests(ValidatorTestCase):
 class CoverageTests(ValidatorTestCase):
     def test_union_at_fifty_percent_passes(self):
         base = [make_base_scenario(log_count=100)]
-        mapping = make_mapping([make_finding("f1", list(range(50))), make_finding("f2", [49])])
+        mapping = make_mapping([make_finding("f1", list(range(0, 96, 2)) + [95, 97]), make_finding("f2", [97])])
         self.assert_valid(self.validate(mapping, base))
 
     def test_union_above_fifty_percent_fails(self):
@@ -853,9 +856,107 @@ class SeedApplicationTests(unittest.TestCase):
     def test_authored_mapping_chooses_semantic_logs(self):
         entry = self.mapping["scenarios"][0]
         self.assertEqual("Multi-Factor Authentication Bypass (Push Fatigue)", entry["scenario_title"])
+        base = next(
+            item for item in generate_scenarios.create_scenarios()
+            if item["title"] == entry["scenario_title"]
+        )
+        logs = base["initial_logs"]
         by_id = {f["finding_id"]: f for f in entry["findings"]}
-        self.assertEqual([15, 16, 17, 18], by_id["d1_f1"]["evidence_log_indices"])
-        self.assertTrue(set(by_id["d1_f2"]["evidence_log_indices"]).intersection({18, 19, 20}))
+        f1_messages = [logs[i]["message"].lower() for i in by_id["d1_f1"]["evidence_log_indices"]]
+        f2_messages = [logs[i]["message"].lower() for i in by_id["d1_f2"]["evidence_log_indices"]]
+        self.assertTrue(any("mfa push sent to user 'ajones'" in msg for msg in f1_messages))
+        self.assertTrue(any("hijacked session token" in msg for msg in f2_messages))
+        self.assertNotEqual([15, 16, 17, 18], by_id["d1_f1"]["evidence_log_indices"])
+
+
+class AntiRepetitionTests(ValidatorTestCase):
+    def test_rejects_banned_legacy_boilerplate_substrings_in_mapping_and_seed(self):
+        banned_samples = [
+            "SIEM Alert Rule [CORR-9901]: Multi-stage incident correlation triggered on host SRV-WEB01 involving IP 198.51.100.10",
+            "Routine network telemetry event 21 logged for internal-service-21.corp.local",
+            "Kerberos ticket TGT requested for user account user0@corp.local",
+        ]
+        for sample in banned_samples:
+            with self.subTest(sample=sample):
+                base = [make_base_scenario(log_count=10)]
+                base[0]["initial_logs"][6]["message"] = sample
+                mapping = make_mapping([make_finding("f1", [0, 1]), make_finding("f2", [2, 3])])
+                self.assert_invalid(self.validate(mapping, base), "boilerplate")
+
+                seed_scenario = make_seed_fixture()
+                seed_scenario["initial_logs"][6]["message"] = sample
+                approved = mapping_from_seed([seed_scenario])
+                self.assert_invalid(
+                    validator.validate_seed([seed_scenario], [seed_scenario], mapping=approved),
+                    "boilerplate",
+                )
+
+    def test_rejects_message_repeated_more_than_three_times(self):
+        base = [make_base_scenario(log_count=10)]
+        for idx in (4, 5, 6, 7):
+            base[0]["initial_logs"][idx]["message"] = "  User login successful  "
+        base[0]["initial_logs"][4]["message"] = "user login successful"
+        mapping = make_mapping([make_finding("f1", [0, 1]), make_finding("f2", [2, 3])])
+        self.assert_invalid(self.validate(mapping, base), "repeated")
+
+        seed_scenario = copy.deepcopy(base[0])
+        seed_scenario["expected_outcomes"]["key_findings"] = [
+            {"id": "f1", "points": 10, "evidence_log_indices": [0, 1], "verdict_support": "malicious"},
+            {"id": "f2", "points": 10, "evidence_log_indices": [2, 3], "verdict_support": "supporting"},
+        ]
+        approved = mapping_from_seed([seed_scenario])
+        self.assert_invalid(
+            validator.validate_seed([seed_scenario], [seed_scenario], mapping=approved),
+            "repeated",
+        )
+
+    def test_allows_message_repeated_three_times(self):
+        base = [make_base_scenario(log_count=10)]
+        for idx in (4, 5, 6):
+            base[0]["initial_logs"][idx]["message"] = "Heartbeat ping ok"
+        mapping = make_mapping([make_finding("f1", [0, 1]), make_finding("f2", [2, 3])])
+        self.assert_valid(self.validate(mapping, base))
+
+    def test_requires_at_least_two_non_evidence_decoy_warning_or_medium_logs(self):
+        base = [make_base_scenario(log_count=10)]
+        # Make only 1 non-evidence log warning; evidence logs being warning must not count
+        base[0]["initial_logs"][0]["severity"] = "warning"
+        base[0]["initial_logs"][1]["severity"] = "warning"
+        base[0]["initial_logs"][8]["severity"] = "info"
+        mapping = make_mapping([make_finding("f1", [0, 1]), make_finding("f2", [2, 3])])
+        self.assert_invalid(self.validate(mapping, base), "decoy")
+
+        seed_scenario = copy.deepcopy(base[0])
+        seed_scenario["expected_outcomes"]["key_findings"] = [
+            {"id": "f1", "points": 10, "evidence_log_indices": [0, 1], "verdict_support": "malicious"},
+            {"id": "f2", "points": 10, "evidence_log_indices": [2, 3], "verdict_support": "supporting"},
+        ]
+        approved = mapping_from_seed([seed_scenario])
+        self.assert_invalid(
+            validator.validate_seed([seed_scenario], [seed_scenario], mapping=approved),
+            "decoy",
+        )
+
+    def test_rejects_contiguous_evidence_clustering_on_multi_finding_scenario(self):
+        base = [make_base_scenario(log_count=28)]
+        mapping = make_mapping(
+            [
+                make_finding("f1", [15, 16], support="malicious"),
+                make_finding("f2", [17, 18], support="supporting"),
+            ]
+        )
+        self.assert_invalid(self.validate(mapping, base), "contiguous")
+
+        seed_scenario = copy.deepcopy(base[0])
+        seed_scenario["expected_outcomes"]["key_findings"] = [
+            {"id": "f1", "points": 10, "evidence_log_indices": [15, 16], "verdict_support": "malicious"},
+            {"id": "f2", "points": 10, "evidence_log_indices": [17, 18], "verdict_support": "supporting"},
+        ]
+        approved = mapping_from_seed([seed_scenario])
+        self.assert_invalid(
+            validator.validate_seed([seed_scenario], [seed_scenario], mapping=approved),
+            "contiguous",
+        )
 
 
 class NoChunkingTests(unittest.TestCase):
@@ -911,7 +1012,36 @@ class FinalSeedTests(unittest.TestCase):
         self.assertFalse(scenario["is_true_positive"])
         finding = scenario["expected_outcomes"]["key_findings"][0]
         self.assertEqual("benign", finding["verdict_support"])
-        self.assertEqual({0, 25, 26}, set(finding["evidence_log_indices"]))
+        logs = scenario["initial_logs"]
+        evidence_msgs = [logs[i]["message"].lower() for i in finding["evidence_log_indices"]]
+        self.assertTrue(any("youtube.com" in msg for msg in evidence_msgs))
+        self.assertTrue(any("netflix.com" in msg for msg in evidence_msgs))
+        self.assertTrue(any("excessive outbound bandwidth" in msg for msg in evidence_msgs))
+
+    def test_committed_seed_telemetry_is_interleaved_and_varied(self):
+        lengths = set()
+        for scenario in self.seed:
+            logs = scenario["initial_logs"]
+            lengths.add(len(logs))
+            self.assertGreaterEqual(len(logs), 28, scenario["title"])
+            self.assertLessEqual(len(logs), 42, scenario["title"])
+
+            union = set()
+            for finding in scenario["expected_outcomes"]["key_findings"]:
+                union.update(finding["evidence_log_indices"])
+            sorted_union = sorted(union)
+            if len(sorted_union) >= 2:
+                # Ensure evidence logs are not all packed in one contiguous range
+                span = sorted_union[-1] - sorted_union[0] + 1
+                self.assertGreater(span, len(sorted_union), scenario["title"])
+
+            decoy_count = sum(
+                1 for idx, log in enumerate(logs)
+                if idx not in union and str(log.get("severity", "")).lower() in {"warning", "medium"}
+            )
+            self.assertGreaterEqual(decoy_count, 2, scenario["title"])
+            self.assertLessEqual(decoy_count, 4, scenario["title"])
+        self.assertGreater(len(lengths), 1, "scenarios should vary in total log count")
 
 
 if __name__ == "__main__":

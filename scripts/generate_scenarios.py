@@ -4,41 +4,205 @@ import sys
 from datetime import datetime, timedelta
 from pathlib import Path
 
+
+_NOISE_USERS = [
+    "tchen", "lnguyen", "dpatel", "srodriguez", "bwilson", "kpark",
+    "amartinez", "jkim", "cmiller", "rthomas", "npatel", "edavis",
+    "lwhite", "mgarcia", "hlee", "cwright", "psanchez", "vtorres",
+]
+_NOISE_HOSTS = [
+    "FIN-WS-101", "ENG-MAC-204", "HR-LAP-309", "OPS-SRV-412", "MKT-WS-118",
+    "DEV-LIN-221", "SUP-WS-105", "QA-NODE-330", "SEC-MON-04", "BUILD-AG-09",
+    "APP-NODE-07", "AUTH-REP-02", "PROXY-EDGE-03", "MAIL-GW-01",
+]
+_NOISE_DOMAINS = [
+    "api.github.com", "packages.ubuntu.com", "login.microsoftonline.com",
+    "telemetry.datadoghq.com", "cdn.cloudflare.com", "slack.com",
+    "updates.mozilla.org", "registry.npmjs.org", "docs.corp.internal",
+    "repo.python.org", "zoom.us", "status.aws.amazon.com",
+]
+
+
+def _make_noise_entry(pack, idx, scenario_idx):
+    n = idx + scenario_idx * 7
+    user = _NOISE_USERS[n % len(_NOISE_USERS)]
+    host = _NOISE_HOSTS[(n * 3) % len(_NOISE_HOSTS)]
+    ip = f"10.{(20 + (n % 5))}.{(10 + (n * 3) % 40)}.{(15 + (n * 7) % 210)}"
+    domain = _NOISE_DOMAINS[n % len(_NOISE_DOMAINS)]
+    req_id = 4100 + n * 13 + idx
+
+    if pack == "identity":
+        templates = [
+            ("ad_controller", f"Kerberos service ticket TGS issued for principal {user}@corp.local on {host} (kvno={(idx % 4) + 1})"),
+            ("okta", f"OAuth2 refresh token rotated cleanly for {user}@corp.local via trusted device #{req_id}"),
+            ("vpn_gateway", f"Split-tunnel VPN keepalive acknowledged for {user} from {ip} (session #{req_id})"),
+            ("ad_controller", f"Group Policy background refresh completed on {host} in {110 + (idx * 9)}ms"),
+            ("sso_idp", f"SAML assertion validated for {user}@corp.local accessing hr-benefits portal"),
+        ]
+    elif pack == "endpoint":
+        templates = [
+            ("edr", f"Signed system utility svchost.exe verified on {host} (PID {2100 + idx * 17})"),
+            ("sysmon", f"Process create: MicrosoftEdgeUpdate.exe /ua on {host} under {user} (hash verified)"),
+            ("windows_event", f"Scheduled Defender definition update KB2267602-v{1400 + idx} installed on {host}"),
+            ("file_integrity", f"Baseline checksum verified on {host}: /etc/systemd/system/agent.service unchanged"),
+            ("edr", f"Temporary installer cache cleanup completed on {host} ({12 + idx} files removed)"),
+        ]
+    elif pack == "cloud":
+        templates = [
+            ("aws_cloudtrail", f"AssumeRole succeeded for CI runner role-deploy-{(idx % 5) + 1} (RequestId=req-{req_id})"),
+            ("s3_access", f"S3 HeadObject on bucket 'static-assets-cdn' key=css/app-v{idx}.css HTTP 200"),
+            ("k8s_audit", f"EKS kubelet liveness probe passed for pod api-worker-{10 + idx} in namespace prod"),
+            ("iam_service", f"KMS key alias/app-secrets-prod automated health verification passed by svc-kms"),
+            ("aws_cloudtrail", f"CloudWatch PutMetricData batch #{req_id} committed for cluster prod-east-{(idx % 3) + 1}"),
+        ]
+    elif pack == "network":
+        templates = [
+            ("dns_server", f"DNS Query {domain} Type=AAAA resolved cleanly from {ip} ({host})"),
+            ("firewall", f"Outbound HTTPS session closed cleanly: {ip} -> 198.18.{(idx % 8) + 1}.{20 + idx}:443 [bytes={2048 + idx * 512}]"),
+            ("proxy_gateway", f"CONNECT {domain}:443 TLS 1.3 handshake completed for {user} on {host}"),
+            ("dhcp_server", f"DHCP lease renewed for {host} ({ip}) on corporate workstation VLAN 20"),
+            ("nids", f"East-West health check probe allowed between {host} and monitor-collector-02:9100"),
+        ]
+    elif pack == "application":
+        templates = [
+            ("nginx", f"GET /api/v2/health?node={host} HTTP/1.1 200 OK (latency={9 + idx % 15}ms)"),
+            ("postgresql", f"Read-replica WAL checkpoint sync completed on replica-0{(idx % 3) + 1} (lag=4ms)"),
+            ("email_gateway", f"Inbound email SPF/DKIM/DMARC pass from notifications@{domain} to {user}@corp.local"),
+            ("dlp_sensor", f"Outbound attachment quarterly-summary-q{(idx % 4) + 1}.pdf passed DLP policy scan for {user}"),
+            ("web_app", f"POST /api/v1/telemetry/heartbeat from {host} returned HTTP 204 No Content"),
+        ]
+    else:  # governance
+        templates = [
+            ("change_management", f"ITSM routine ticket INC-{req_id} closed: printer driver update verified for {user}"),
+            ("backup_service", f"Nightly incremental snapshot snap-{req_id} completed for {host} (0 errors)"),
+            ("compliance_scanner", f"CIS benchmark check passed on {host}: auditd service active"),
+            ("itsm_ticketing", f"Access review attestation #AR-{req_id} completed by manager for {user}"),
+            ("change_management", f"Scheduled patch window heartbeat verified on {host} without pending reboots"),
+        ]
+
+    source, message = templates[idx % len(templates)]
+    return {
+        "source": source,
+        "severity": "info",
+        "severity_level": 1,
+        "message": message,
+        "src_ip": ip,
+        "user": user,
+        "host": host,
+    }
+
+
+def _build_decoy_warnings(scenario_idx, domain_id):
+    s = scenario_idx
+    pool = {
+        "domain1": [
+            {"source": "ad_controller", "severity": "warning", "severity_level": 2, "message": f"Single invalid password attempt for user kpark on FIN-WS-104 followed by successful MFA (#{910 + s})", "src_ip": "10.20.4.44", "user": "kpark", "host": "FIN-WS-104"},
+            {"source": "vpn_gateway", "severity": "medium", "severity_level": 2, "message": f"Idle VPN tunnel rekey warning for remote laptop ENG-MAC-209 (timeout 1800s, #{920 + s})", "src_ip": "10.20.4.81", "user": "lnguyen", "host": "ENG-MAC-209"},
+            {"source": "compliance_scanner", "severity": "warning", "severity_level": 2, "message": f"Internal TLS certificate on intranet-staging.corp.local expires in 14 days (notice #{930 + s})", "host": "SEC-MON-04", "user": "cert_bot"},
+        ],
+        "domain2": [
+            {"source": "firewall", "severity": "medium", "severity_level": 2, "message": f"Perimeter firewall dropped unsolicited external probe from 198.51.100.201 to port 23 (noise #{910 + s})", "src_ip": "198.51.100.201", "dst_ip": "10.20.1.5", "host": "FW-PERIM-01"},
+            {"source": "web_app", "severity": "warning", "severity_level": 2, "message": f"Transient HTTP 429 rate-limit triggered by marketing crawler on /public/catalog (#{920 + s})", "src_ip": "10.20.5.33", "host": "PROXY-EDGE-03", "user": "svc_crawler"},
+            {"source": "edr", "severity": "warning", "severity_level": 3, "message": f"Sandboxed EICAR test signature quarantined on QA-NODE-330 during weekly AV check (#{930 + s})", "host": "QA-NODE-330", "user": "qa_runner"},
+        ],
+        "domain3": [
+            {"source": "aws_cloudtrail", "severity": "warning", "severity_level": 2, "message": f"CloudWatch CPU utilization briefly hit 82% on staging-worker-03 during batch resize (#{910 + s})", "host": "staging-worker-03", "user": "autoscaler"},
+            {"source": "firewall", "severity": "medium", "severity_level": 2, "message": f"Perimeter firewall denied routine internet Shodan scan targeting unused DMZ VIP 203.0.113.250 (#{920 + s})", "src_ip": "198.51.100.219", "host": "FW-DMZ-02"},
+            {"source": "k8s_audit", "severity": "warning", "severity_level": 2, "message": f"Pod image pull backoff resolved after registry mirror retry in namespace dev-sandbox (#{930 + s})", "host": "BUILD-AG-09", "user": "kubelet"},
+        ],
+        "domain4": [
+            {"source": "dns_server", "severity": "warning", "severity_level": 2, "message": f"Upstream DNS forwarder latency spike 310ms observed for user dpatel querying gmal.com typo (#{910 + s})", "src_ip": "10.20.6.41", "user": "dpatel", "host": "HR-LAP-309"},
+            {"source": "dhcp_server", "severity": "medium", "severity_level": 2, "message": f"DHCP scope utilization reached 81% on building-B corporate wireless pool (#{920 + s})", "host": "DHCP-CORP-02", "user": "net_ops"},
+            {"source": "postgresql", "severity": "warning", "severity_level": 2, "message": f"Reporting query slow-execution threshold exceeded (1420ms) on analytics-ro-02 (#{930 + s})", "host": "analytics-ro-02", "user": "bi_reader"},
+        ],
+        "domain5": [
+            {"source": "dlp_sensor", "severity": "warning", "severity_level": 2, "message": f"DLP soft-prompt acknowledged by user cmiller uploading anonymized brochure to vendor portal (#{910 + s})", "src_ip": "10.20.7.19", "user": "cmiller", "host": "MKT-WS-118"},
+            {"source": "backup_service", "severity": "medium", "severity_level": 2, "message": f"Archival tape verification retry succeeded on second pass for dev-archive volume (#{920 + s})", "host": "OPS-SRV-412", "user": "svc_backup_ops"},
+            {"source": "compliance_scanner", "severity": "warning", "severity_level": 2, "message": f"Non-critical patch reboot pending reminder for developer VM DEV-LIN-221 (#{930 + s})", "host": "DEV-LIN-221", "user": "bwilson"},
+        ],
+    }
+    return list(pool.get(domain_id, pool["domain4"]))
+
+
+def _interleave_scenario_logs(
+    base_time,
+    scenario_idx,
+    domain_id,
+    noise_packs,
+    incident_events,
+    total_count,
+    incident_slots,
+    decoy_warnings=None,
+):
+    """Interleave incident events, decoy warnings, and unique background noise."""
+    if len(incident_slots) != len(incident_events):
+        raise ValueError(
+            f"Scenario {scenario_idx}: incident_slots ({len(incident_slots)}) != incident_events ({len(incident_events)})"
+        )
+
+    decoys = list(decoy_warnings) if decoy_warnings is not None else _build_decoy_warnings(scenario_idx, domain_id)
+    slots = [None] * total_count
+    used = set()
+
+    for pos, ev in zip(incident_slots, incident_events):
+        slots[pos] = dict(ev)
+        used.add(pos)
+
+    available = [i for i in range(total_count) if i not in used]
+    # Place decoys across early, middle, and late free slots
+    decoy_picks = []
+    if len(available) >= len(decoys):
+        step = max(1, len(available) // (len(decoys) + 1))
+        for d_idx in range(len(decoys)):
+            pick_idx = min(len(available) - 1, (d_idx + 1) * step)
+            while available[pick_idx] in decoy_picks:
+                pick_idx = (pick_idx + 1) % len(available)
+            decoy_picks.append(available[pick_idx])
+    for pos, dec in zip(decoy_picks, decoys):
+        slots[pos] = dict(dec)
+        used.add(pos)
+
+    noise_idx = 0
+    for pos in range(total_count):
+        if slots[pos] is None:
+            pack = noise_packs[(pos + noise_idx) % len(noise_packs)]
+            slots[pos] = _make_noise_entry(pack, noise_idx + pos, scenario_idx)
+            noise_idx += 1
+
+    # Assign monotonic timestamps with deterministic non-uniform intervals
+    offset = 0
+    for pos, entry in enumerate(slots):
+        step_sec = 7 + ((pos * 5 + scenario_idx * 3) % 17)
+        offset += step_sec if pos > 0 else 0
+        entry["timestamp"] = (base_time + timedelta(seconds=offset)).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+    return slots
+
+
 def create_scenarios():
     scenarios = []
-
-    # Helper to generate timestamps
-    base_time = datetime(2026, 7, 13, 8, 0, 0)
-    def t(offset_seconds):
-        return (base_time + timedelta(seconds=offset_seconds)).isoformat() + "Z"
 
     # =========================================================================
     # DOMAIN 1: Security Concepts (domain1)
     # =========================================================================
-    
+
     # 1. TP: MFA Session Hijacking / Push Fatigue
-    logs_1 = []
-    # Noise
-    for i in range(15):
-        logs_1.append({
-            "timestamp": t(i * 10), "source": "ad_controller", "severity": "info", "severity_level": 1,
-            "message": "User login successful", "src_ip": f"10.0.1.{10+i}", "user": f"user{i}", "host": f"PC-{100+i}"
-        })
-    # Evidence
-    logs_1.extend([
-        {"timestamp": t(180), "source": "okta", "severity": "warning", "severity_level": 3, "message": "MFA push sent to user 'ajones' - rejected by user", "src_ip": "198.51.100.42", "user": "ajones", "host": "External-IP"},
-        {"timestamp": t(190), "source": "okta", "severity": "warning", "severity_level": 3, "message": "MFA push sent to user 'ajones' - rejected by user", "src_ip": "198.51.100.42", "user": "ajones", "host": "External-IP"},
-        {"timestamp": t(200), "source": "okta", "severity": "warning", "severity_level": 3, "message": "MFA push sent to user 'ajones' - rejected by user", "src_ip": "198.51.100.42", "user": "ajones", "host": "External-IP"},
-        {"timestamp": t(210), "source": "okta", "severity": "high", "severity_level": 4, "message": "MFA push sent to user 'ajones' - approved", "src_ip": "198.51.100.42", "user": "ajones", "host": "External-IP"},
-        {"timestamp": t(220), "source": "ad_controller", "severity": "high", "severity_level": 4, "message": "Admin session established with hijacked session token", "src_ip": "198.51.100.42", "user": "ajones", "host": "DC-01"},
-        {"timestamp": t(230), "source": "ad_controller", "severity": "high", "severity_level": 4, "message": "Password changed for user 'admin_backup'", "src_ip": "198.51.100.42", "user": "ajones", "host": "DC-01"}
-    ])
-    # More noise
-    for i in range(15):
-        logs_1.append({
-            "timestamp": t(240 + i * 15), "source": "firewall", "severity": "info", "severity_level": 1,
-            "message": "Outbound connection allowed", "src_ip": f"10.0.2.{50+i}", "dst_ip": "8.8.8.8", "action": "allow"
-        })
+    logs_1 = _interleave_scenario_logs(
+        base_time=datetime(2026, 7, 13, 8, 12, 0),
+        scenario_idx=1,
+        domain_id="domain1",
+        noise_packs=["identity", "network", "endpoint"],
+        incident_events=[
+            {"source": "okta", "severity": "warning", "severity_level": 3, "message": "MFA push sent to user 'ajones' - rejected by user (push #1)", "src_ip": "198.51.100.42", "user": "ajones", "host": "External-IP"},
+            {"source": "okta", "severity": "warning", "severity_level": 3, "message": "MFA push sent to user 'ajones' - rejected by user (push #2)", "src_ip": "198.51.100.42", "user": "ajones", "host": "External-IP"},
+            {"source": "okta", "severity": "warning", "severity_level": 3, "message": "MFA push sent to user 'ajones' - rejected by user (push #3)", "src_ip": "198.51.100.42", "user": "ajones", "host": "External-IP"},
+            {"source": "okta", "severity": "high", "severity_level": 4, "message": "MFA push sent to user 'ajones' - approved", "src_ip": "198.51.100.42", "user": "ajones", "host": "External-IP"},
+            {"source": "ad_controller", "severity": "high", "severity_level": 4, "message": "Admin session established with hijacked session token", "src_ip": "198.51.100.42", "user": "ajones", "host": "DC-01"},
+            {"source": "ad_controller", "severity": "high", "severity_level": 4, "message": "Password changed for user 'admin_backup'", "src_ip": "198.51.100.42", "user": "ajones", "host": "DC-01"},
+        ],
+        total_count=31,
+        incident_slots=[3, 7, 11, 18, 22, 26],
+    )
 
     scenarios.append({
         "title": "Multi-Factor Authentication Bypass (Push Fatigue)",
@@ -87,23 +251,21 @@ def create_scenarios():
     })
 
     # 2. FP: VPN login from uncommon country (legitimate business trip)
-    logs_2 = []
-    for i in range(15):
-        logs_2.append({
-            "timestamp": t(i * 10), "source": "firewall", "severity": "info", "severity_level": 1,
-            "message": "Outbound HTTP allow", "src_ip": "10.0.1.200", "dst_ip": "104.244.42.1"
-        })
-    logs_2.extend([
-        {"timestamp": t(180), "source": "vpn_gateway", "severity": "warning", "severity_level": 2, "message": "VPN connection attempt from atypical location: France", "src_ip": "195.154.122.90", "user": "mroberts", "host": "VPN-Client"},
-        {"timestamp": t(190), "source": "vpn_gateway", "severity": "info", "severity_level": 1, "message": "MFA prompt completed successfully via SMS verification code", "src_ip": "195.154.122.90", "user": "mroberts", "host": "VPN-Client"},
-        {"timestamp": t(200), "source": "vpn_gateway", "severity": "info", "severity_level": 1, "message": "Device posture check passed: Company asset Tag #4288", "src_ip": "195.154.122.90", "user": "mroberts", "host": "VPN-Client"},
-        {"timestamp": t(210), "source": "hr_portal", "severity": "info", "severity_level": 1, "message": "Out of Office / Travel notification logged for user mroberts: Paris Summit (Jul 12 - Jul 18)", "user": "mroberts"}
-    ])
-    for i in range(15):
-        logs_2.append({
-            "timestamp": t(220 + i * 10), "source": "file_share", "severity": "info", "severity_level": 1,
-            "message": "Read access allowed for marketing_strategy.pdf", "user": "mroberts", "src_ip": "195.154.122.90"
-        })
+    logs_2 = _interleave_scenario_logs(
+        base_time=datetime(2026, 7, 13, 14, 15, 0),
+        scenario_idx=2,
+        domain_id="domain1",
+        noise_packs=["identity", "network", "governance"],
+        incident_events=[
+            {"source": "vpn_gateway", "severity": "warning", "severity_level": 2, "message": "VPN connection attempt from atypical location: France", "src_ip": "195.154.122.90", "user": "mroberts", "host": "VPN-Client"},
+            {"source": "vpn_gateway", "severity": "info", "severity_level": 1, "message": "MFA prompt completed successfully via SMS verification code", "src_ip": "195.154.122.90", "user": "mroberts", "host": "VPN-Client"},
+            {"source": "vpn_gateway", "severity": "info", "severity_level": 1, "message": "Device posture check passed: Company asset Tag #4288", "src_ip": "195.154.122.90", "user": "mroberts", "host": "VPN-Client"},
+            {"source": "hr_portal", "severity": "info", "severity_level": 1, "message": "Out of Office / Travel notification logged for user mroberts: Paris Summit (Jul 12 - Jul 18)", "user": "mroberts", "host": "HR-PORTAL-01"},
+            {"source": "file_share", "severity": "info", "severity_level": 1, "message": "Read access allowed for marketing_strategy.pdf", "user": "mroberts", "src_ip": "195.154.122.90", "host": "FS-CORP-01"},
+        ],
+        total_count=34,
+        incident_slots=[5, 11, 18, 24, 29],
+    )
 
     scenarios.append({
         "title": "Atypical Travel VPN Connection Alert",
@@ -151,23 +313,20 @@ def create_scenarios():
     })
 
     # 3. TP: Privilege Escalation via DACL Modification
-    logs_3 = []
-    for i in range(15):
-        logs_3.append({
-            "timestamp": t(i * 10), "source": "ad_controller", "severity": "info", "severity_level": 1,
-            "message": "Authentication package loaded", "user": f"worker{i}"
-        })
-    logs_3.extend([
-        {"timestamp": t(180), "source": "file_server", "severity": "warning", "severity_level": 2, "message": "Access denied for folder 'Payroll_Confidential' user 'jsmith'", "user": "jsmith", "src_ip": "10.0.2.14"},
-        {"timestamp": t(190), "source": "ad_controller", "severity": "high", "severity_level": 4, "message": "Object permissions modified: DACL changed on CN=Payroll_Confidential,OU=Shares by user 'svc_backup'", "user": "svc_backup"},
-        {"timestamp": t(200), "source": "file_server", "severity": "high", "severity_level": 4, "message": "Access granted: read folder 'Payroll_Confidential' user 'jsmith'", "user": "jsmith", "src_ip": "10.0.2.14"},
-        {"timestamp": t(210), "source": "file_server", "severity": "warning", "severity_level": 3, "message": "File read: 'salary_matrix_2026.xlsx' by user 'jsmith'", "user": "jsmith", "src_ip": "10.0.2.14"}
-    ])
-    for i in range(15):
-        logs_3.append({
-            "timestamp": t(220 + i * 10), "source": "firewall", "severity": "info", "severity_level": 1,
-            "message": "Inbound connection allowed", "src_ip": f"10.0.1.{30+i}", "dst_ip": "10.0.2.14"
-        })
+    logs_3 = _interleave_scenario_logs(
+        base_time=datetime(2026, 7, 14, 9, 30, 0),
+        scenario_idx=3,
+        domain_id="domain1",
+        noise_packs=["identity", "endpoint", "governance"],
+        incident_events=[
+            {"source": "file_server", "severity": "warning", "severity_level": 2, "message": "Access denied for folder 'Payroll_Confidential' user 'jsmith'", "user": "jsmith", "src_ip": "10.0.2.14", "host": "FS-PAYROLL-01"},
+            {"source": "ad_controller", "severity": "high", "severity_level": 4, "message": "Object permissions modified: DACL changed on CN=Payroll_Confidential,OU=Shares by user 'svc_backup'", "user": "svc_backup", "host": "DC-01"},
+            {"source": "file_server", "severity": "high", "severity_level": 4, "message": "Access granted: read folder 'Payroll_Confidential' user 'jsmith'", "user": "jsmith", "src_ip": "10.0.2.14", "host": "FS-PAYROLL-01"},
+            {"source": "file_server", "severity": "warning", "severity_level": 3, "message": "File read: 'salary_matrix_2026.xlsx' by user 'jsmith'", "user": "jsmith", "src_ip": "10.0.2.14", "host": "FS-PAYROLL-01"},
+        ],
+        total_count=33,
+        incident_slots=[4, 12, 19, 27],
+    )
 
     scenarios.append({
         "title": "Unauthorized Privileged Access / DACL Abuse",
@@ -219,23 +378,20 @@ def create_scenarios():
     # =========================================================================
 
     # 4. TP: SQL Injection leading to exfiltration
-    logs_4 = []
-    for i in range(15):
-        logs_4.append({
-            "timestamp": t(i * 10), "source": "nginx", "severity": "info", "severity_level": 1,
-            "message": "GET /index.html HTTP/1.1 200 OK", "src_ip": "198.51.100.77"
-        })
-    logs_4.extend([
-        {"timestamp": t(180), "source": "nginx", "severity": "warning", "severity_level": 3, "message": "GET /users/search?q=1%%27%%20UNION%%20SELECT%%20username,password_hash%%20FROM%%20users-- HTTP/1.1 200 OK", "src_ip": "198.51.100.77"},
-        {"timestamp": t(190), "source": "postgresql", "severity": "warning", "severity_level": 3, "message": "Query: SELECT * FROM products WHERE name LIKE '%1' UNION SELECT username,password_hash FROM users--%'", "src_ip": "127.0.0.1"},
-        {"timestamp": t(200), "source": "postgresql", "severity": "warning", "severity_level": 3, "message": "Database output payload size: 1.2MB returned to webapp server", "src_ip": "127.0.0.1"},
-        {"timestamp": t(210), "source": "nginx", "severity": "high", "severity_level": 4, "message": "GET /users/search - Response size 1205300 bytes HTTP/1.1 200 OK", "src_ip": "198.51.100.77"}
-    ])
-    for i in range(15):
-        logs_4.append({
-            "timestamp": t(220 + i * 10), "source": "waf", "severity": "info", "severity_level": 1,
-            "message": "Request inspected: status pass", "src_ip": f"198.51.100.{100+i}"
-        })
+    logs_4 = _interleave_scenario_logs(
+        base_time=datetime(2026, 7, 15, 11, 5, 0),
+        scenario_idx=4,
+        domain_id="domain2",
+        noise_packs=["application", "network", "endpoint"],
+        incident_events=[
+            {"source": "nginx", "severity": "warning", "severity_level": 3, "message": "GET /users/search?q=1%%27%%20UNION%%20SELECT%%20username,password_hash%%20FROM%%20users-- HTTP/1.1 200 OK", "src_ip": "198.51.100.77", "host": "WEB-PROD-01"},
+            {"source": "postgresql", "severity": "warning", "severity_level": 3, "message": "Query: SELECT * FROM products WHERE name LIKE '%1' UNION SELECT username,password_hash FROM users--%'", "src_ip": "127.0.0.1", "host": "DB-PROD-01"},
+            {"source": "postgresql", "severity": "warning", "severity_level": 3, "message": "Database output payload size: 1.2MB returned to webapp server", "src_ip": "127.0.0.1", "host": "DB-PROD-01"},
+            {"source": "nginx", "severity": "high", "severity_level": 4, "message": "GET /users/search - Response size 1205300 bytes HTTP/1.1 200 OK", "src_ip": "198.51.100.77", "host": "WEB-PROD-01"},
+        ],
+        total_count=35,
+        incident_slots=[6, 14, 22, 29],
+    )
 
     scenarios.append({
         "title": "SQL Injection & Database Exfiltration",
@@ -283,21 +439,20 @@ def create_scenarios():
     })
 
     # 5. FP: Port scanning from authorized internal penetration tester
-    logs_5 = []
-    for i in range(25):
-        logs_5.append({
-            "timestamp": t(i * 2), "source": "nids", "severity": "medium", "severity_level": 2,
-            "message": f"TCP Port scan detected from 10.0.99.12 to 10.0.1.{i} on Port {80+i}"
-        })
-    logs_5.extend([
-        {"timestamp": t(60), "source": "nids", "severity": "medium", "severity_level": 2, "message": "SYN Flood Scan from 10.0.99.12 targeting Active Directory", "src_ip": "10.0.99.12"},
-        {"timestamp": t(70), "source": "change_management", "severity": "info", "severity_level": 1, "message": "CR-4099 Approved: Authorized internal vulnerability scanning from test subnet (10.0.99.0/24) scheduled Jul 13 08:00 - 12:00", "user": "sysadmin"}
-    ])
-    for i in range(15):
-        logs_5.append({
-            "timestamp": t(80 + i * 5), "source": "ad_controller", "severity": "info", "severity_level": 1,
-            "message": "Normal audit logon event", "user": f"user{i}"
-        })
+    logs_5 = _interleave_scenario_logs(
+        base_time=datetime(2026, 7, 13, 9, 10, 0),
+        scenario_idx=5,
+        domain_id="domain2",
+        noise_packs=["network", "identity", "governance"],
+        incident_events=[
+            {"source": "nids", "severity": "medium", "severity_level": 2, "message": "TCP Port scan detected from 10.0.99.12 to 10.0.1.0 on Port 80", "src_ip": "10.0.99.12", "dst_ip": "10.0.1.0", "host": "SCAN-NODE-99"},
+            {"source": "nids", "severity": "medium", "severity_level": 2, "message": "TCP Port scan detected from 10.0.99.12 to 10.0.1.14 on Port 443", "src_ip": "10.0.99.12", "dst_ip": "10.0.1.14", "host": "SCAN-NODE-99"},
+            {"source": "nids", "severity": "medium", "severity_level": 2, "message": "SYN Flood Scan from 10.0.99.12 targeting Active Directory", "src_ip": "10.0.99.12", "host": "DC-01"},
+            {"source": "change_management", "severity": "info", "severity_level": 1, "message": "CR-4099 Approved: Authorized internal vulnerability scanning from test subnet (10.0.99.0/24) scheduled Jul 13 08:00 - 12:00", "user": "sysadmin", "host": "ITSM-CMDB-01"},
+        ],
+        total_count=38,
+        incident_slots=[4, 11, 20, 30],
+    )
 
     scenarios.append({
         "title": "Internal Port Scan and SYN Flood Alarm",
@@ -345,23 +500,20 @@ def create_scenarios():
     })
 
     # 6. TP: Ransomware attack execution
-    logs_6 = []
-    for i in range(15):
-        logs_6.append({
-            "timestamp": t(i * 10), "source": "edr", "severity": "info", "severity_level": 1,
-            "message": "Registry queried: CurrentVersion", "host": "WS-FIN-08"
-        })
-    logs_6.extend([
-        {"timestamp": t(180), "source": "edr", "severity": "high", "severity_level": 4, "message": "Command line execution: 'vssadmin.exe delete shadows /all /quiet'", "host": "WS-FIN-08", "user": "mclark"},
-        {"timestamp": t(190), "source": "edr", "severity": "high", "severity_level": 4, "message": "Command line execution: 'wmic shadowcopy delete'", "host": "WS-FIN-08", "user": "mclark"},
-        {"timestamp": t(200), "source": "file_integrity", "severity": "critical", "severity_level": 5, "message": "Rapid file modification: 145 files renamed to extension '.locked' in 3 seconds", "host": "WS-FIN-08"},
-        {"timestamp": t(210), "source": "edr", "severity": "critical", "severity_level": 5, "message": "Process block: 'ransom_decrypt_instruction.txt' created on desktop", "host": "WS-FIN-08"}
-    ])
-    for i in range(15):
-        logs_6.append({
-            "timestamp": t(220 + i * 10), "source": "firewall", "severity": "info", "severity_level": 1,
-            "message": "Outbound HTTP allow", "src_ip": "10.0.1.55"
-        })
+    logs_6 = _interleave_scenario_logs(
+        base_time=datetime(2026, 7, 16, 13, 40, 0),
+        scenario_idx=6,
+        domain_id="domain2",
+        noise_packs=["endpoint", "network", "identity"],
+        incident_events=[
+            {"source": "edr", "severity": "high", "severity_level": 4, "message": "Command line execution: 'vssadmin.exe delete shadows /all /quiet'", "host": "WS-FIN-08", "user": "mclark"},
+            {"source": "edr", "severity": "high", "severity_level": 4, "message": "Command line execution: 'wmic shadowcopy delete'", "host": "WS-FIN-08", "user": "mclark"},
+            {"source": "file_integrity", "severity": "critical", "severity_level": 5, "message": "Rapid file modification: 145 files renamed to extension '.locked' in 3 seconds", "host": "WS-FIN-08"},
+            {"source": "edr", "severity": "critical", "severity_level": 5, "message": "Process block: 'ransom_decrypt_instruction.txt' created on desktop", "host": "WS-FIN-08"},
+        ],
+        total_count=36,
+        incident_slots=[5, 12, 21, 29],
+    )
 
     scenarios.append({
         "title": "Ransomware Execution & Volume Shadow Copy Deletion",
@@ -413,23 +565,20 @@ def create_scenarios():
     # =========================================================================
 
     # 7. TP: Guest VLAN segmentation bypass
-    logs_7 = []
-    for i in range(15):
-        logs_7.append({
-            "timestamp": t(i * 10), "source": "dhcp", "severity": "info", "severity_level": 1,
-            "message": "IP assigned: 192.168.10.145 on Guest-WiFi", "host": "Guest-Device-11"
-        })
-    logs_7.extend([
-        {"timestamp": t(180), "source": "firewall", "severity": "high", "severity_level": 4, "message": "Inbound TCP connection allowed: 192.168.10.145:49810 -> 10.0.50.12:5432 (DB-Server-Prod)", "src_ip": "192.168.10.145", "dst_ip": "10.0.50.12"},
-        {"timestamp": t(190), "source": "postgresql", "severity": "warning", "severity_level": 3, "message": "Database login failed for user 'sa' from host 192.168.10.145", "src_ip": "192.168.10.145"},
-        {"timestamp": t(200), "source": "postgresql", "severity": "warning", "severity_level": 3, "message": "Database login failed for user 'admin' from host 192.168.10.145", "src_ip": "192.168.10.145"},
-        {"timestamp": t(210), "source": "firewall", "severity": "high", "severity_level": 4, "message": "Inbound TCP connection allowed: 192.168.10.145:49812 -> 10.0.50.12:5432 (DB-Server-Prod)", "src_ip": "192.168.10.145", "dst_ip": "10.0.50.12"}
-    ])
-    for i in range(15):
-        logs_7.append({
-            "timestamp": t(220 + i * 10), "source": "firewall", "severity": "info", "severity_level": 1,
-            "message": "Outbound HTTP allow from 192.168.10.145", "src_ip": "192.168.10.145"
-        })
+    logs_7 = _interleave_scenario_logs(
+        base_time=datetime(2026, 7, 17, 10, 25, 0),
+        scenario_idx=7,
+        domain_id="domain3",
+        noise_packs=["network", "application", "identity"],
+        incident_events=[
+            {"source": "firewall", "severity": "high", "severity_level": 4, "message": "Inbound TCP connection allowed: 192.168.10.145:49810 -> 10.0.50.12:5432 (DB-Server-Prod)", "src_ip": "192.168.10.145", "dst_ip": "10.0.50.12", "host": "DB-Server-Prod"},
+            {"source": "postgresql", "severity": "warning", "severity_level": 3, "message": "Database login failed for user 'sa' from host 192.168.10.145", "src_ip": "192.168.10.145", "host": "DB-Server-Prod"},
+            {"source": "postgresql", "severity": "warning", "severity_level": 3, "message": "Database login failed for user 'admin' from host 192.168.10.145", "src_ip": "192.168.10.145", "host": "DB-Server-Prod"},
+            {"source": "firewall", "severity": "high", "severity_level": 4, "message": "Inbound TCP connection allowed: 192.168.10.145:49812 -> 10.0.50.12:5432 (DB-Server-Prod)", "src_ip": "192.168.10.145", "dst_ip": "10.0.50.12", "host": "DB-Server-Prod"},
+        ],
+        total_count=37,
+        incident_slots=[4, 13, 22, 31],
+    )
 
     scenarios.append({
         "title": "VLAN Segmentation Failure / Guest Network Bypass",
@@ -477,21 +626,20 @@ def create_scenarios():
     })
 
     # 8. FP: Guest user accessing video streaming services
-    logs_8 = []
-    for i in range(25):
-        logs_8.append({
-            "timestamp": t(i * 5), "source": "proxy", "severity": "info", "severity_level": 1,
-            "message": "CONNECT youtube.com:443 HTTP/1.1", "src_ip": "192.168.10.12", "bytes_sent": 842000
-        })
-    logs_8.extend([
-        {"timestamp": t(130), "source": "nids", "severity": "medium", "severity_level": 2, "message": "Excessive outbound bandwidth usage: 192.168.10.12 on Port 443", "src_ip": "192.168.10.12"},
-        {"timestamp": t(140), "source": "proxy", "severity": "info", "severity_level": 1, "message": "CONNECT netflix.com:443 HTTP/1.1", "src_ip": "192.168.10.12", "bytes_sent": 1205300}
-    ])
-    for i in range(10):
-        logs_8.append({
-            "timestamp": t(150 + i * 5), "source": "dhcp", "severity": "info", "severity_level": 1,
-            "message": "DHCP renew 192.168.10.12"
-        })
+    logs_8 = _interleave_scenario_logs(
+        base_time=datetime(2026, 7, 18, 15, 45, 0),
+        scenario_idx=8,
+        domain_id="domain3",
+        noise_packs=["network", "governance", "application"],
+        incident_events=[
+            {"source": "proxy", "severity": "info", "severity_level": 1, "message": "CONNECT youtube.com:443 HTTP/1.1", "src_ip": "192.168.10.12", "bytes_sent": 842000, "host": "Guest-Endpoint-12"},
+            {"source": "nids", "severity": "medium", "severity_level": 2, "message": "Excessive outbound bandwidth usage: 192.168.10.12 on Port 443", "src_ip": "192.168.10.12", "host": "Guest-Endpoint-12"},
+            {"source": "proxy", "severity": "info", "severity_level": 1, "message": "URL category check: youtube.com / netflix.com classified under Guest-WiFi allowed consumer streaming", "src_ip": "192.168.10.12", "host": "PROXY-GUEST-01"},
+            {"source": "proxy", "severity": "info", "severity_level": 1, "message": "CONNECT netflix.com:443 HTTP/1.1", "src_ip": "192.168.10.12", "bytes_sent": 1205300, "host": "Guest-Endpoint-12"},
+        ],
+        total_count=32,
+        incident_slots=[5, 14, 21, 25],
+    )
 
     scenarios.append({
         "title": "Exorbitant Bandwidth Consumption on Guest Network",
@@ -532,23 +680,20 @@ def create_scenarios():
     })
 
     # 9. TP: Public AWS S3 Bucket Misconfiguration
-    logs_9 = []
-    for i in range(15):
-        logs_9.append({
-            "timestamp": t(i * 10), "source": "aws_cloudtrail", "severity": "info", "severity_level": 1,
-            "message": "AssumeRole: Role=ReadOnlyUser", "src_ip": "10.0.1.15"
-        })
-    logs_9.extend([
-        {"timestamp": t(180), "source": "aws_cloudtrail", "severity": "high", "severity_level": 4, "message": "PutBucketAcl: S3Bucket=customer-contracts-prod Policy=PublicReadOwnerAuthorizedAll", "src_ip": "10.0.1.15", "user": "temp_admin"},
-        {"timestamp": t(190), "source": "aws_cloudtrail", "severity": "critical", "severity_level": 5, "message": "ListObjects: S3Bucket=customer-contracts-prod", "src_ip": "198.51.100.99", "user": "Anonymous"},
-        {"timestamp": t(200), "source": "aws_cloudtrail", "severity": "critical", "severity_level": 5, "message": "GetObject: S3Bucket=customer-contracts-prod Key=contract_99420.pdf", "src_ip": "198.51.100.99", "user": "Anonymous"},
-        {"timestamp": t(210), "source": "aws_cloudtrail", "severity": "critical", "severity_level": 5, "message": "GetObject: S3Bucket=customer-contracts-prod Key=contract_99421.pdf", "src_ip": "198.51.100.99", "user": "Anonymous"}
-    ])
-    for i in range(15):
-        logs_9.append({
-            "timestamp": t(220 + i * 10), "source": "aws_cloudtrail", "severity": "info", "severity_level": 1,
-            "message": "ListObjects allowed", "src_ip": "10.0.1.15"
-        })
+    logs_9 = _interleave_scenario_logs(
+        base_time=datetime(2026, 7, 19, 12, 10, 0),
+        scenario_idx=9,
+        domain_id="domain3",
+        noise_packs=["cloud", "governance", "network"],
+        incident_events=[
+            {"source": "aws_cloudtrail", "severity": "high", "severity_level": 4, "message": "PutBucketAcl: S3Bucket=customer-contracts-prod Policy=PublicReadOwnerAuthorizedAll", "src_ip": "10.0.1.15", "user": "temp_admin", "host": "aws-s3-prod"},
+            {"source": "aws_cloudtrail", "severity": "critical", "severity_level": 5, "message": "ListObjects: S3Bucket=customer-contracts-prod", "src_ip": "198.51.100.99", "user": "Anonymous", "host": "aws-s3-prod"},
+            {"source": "aws_cloudtrail", "severity": "critical", "severity_level": 5, "message": "GetObject: S3Bucket=customer-contracts-prod Key=contract_99420.pdf", "src_ip": "198.51.100.99", "user": "Anonymous", "host": "aws-s3-prod"},
+            {"source": "aws_cloudtrail", "severity": "critical", "severity_level": 5, "message": "GetObject: S3Bucket=customer-contracts-prod Key=contract_99421.pdf", "src_ip": "198.51.100.99", "user": "Anonymous", "host": "aws-s3-prod"},
+        ],
+        total_count=39,
+        incident_slots=[6, 15, 24, 32],
+    )
 
     scenarios.append({
         "title": "AWS S3 Cloud Storage Misconfiguration",
@@ -600,23 +745,20 @@ def create_scenarios():
     # =========================================================================
 
     # 10. TP: DNS Tunneling exfiltration
-    logs_10 = []
-    for i in range(15):
-        logs_10.append({
-            "timestamp": t(i * 10), "source": "dns_server", "severity": "info", "severity_level": 1,
-            "message": "Query: mail.google.com Type=A", "src_ip": "10.0.1.44"
-        })
-    logs_10.extend([
-        {"timestamp": t(180), "source": "dns_server", "severity": "warning", "severity_level": 3, "message": "Query: aGVs...bG8.malicious-tunnel.com Type=TXT", "src_ip": "10.0.1.44"},
-        {"timestamp": t(190), "source": "dns_server", "severity": "warning", "severity_level": 3, "message": "Query: d29y...bGQ.malicious-tunnel.com Type=TXT", "src_ip": "10.0.1.44"},
-        {"timestamp": t(200), "source": "dns_server", "severity": "warning", "severity_level": 3, "message": "Query: c2Vj...dXJl.malicious-tunnel.com Type=TXT", "src_ip": "10.0.1.44"},
-        {"timestamp": t(210), "source": "dns_server", "severity": "warning", "severity_level": 3, "message": "Query: cGFz...c3dk.malicious-tunnel.com Type=TXT", "src_ip": "10.0.1.44"}
-    ])
-    for i in range(15):
-        logs_10.append({
-            "timestamp": t(220 + i * 10), "source": "dns_server", "severity": "info", "severity_level": 1,
-            "message": "Query: internal-wiki.corp Type=A", "src_ip": "10.0.1.44"
-        })
+    logs_10 = _interleave_scenario_logs(
+        base_time=datetime(2026, 7, 20, 9, 50, 0),
+        scenario_idx=10,
+        domain_id="domain4",
+        noise_packs=["network", "endpoint", "identity"],
+        incident_events=[
+            {"source": "dns_server", "severity": "warning", "severity_level": 3, "message": "Query: aGVs...bG8.malicious-tunnel.com Type=TXT", "src_ip": "10.0.1.44", "host": "WS-ENG-44"},
+            {"source": "dns_server", "severity": "warning", "severity_level": 3, "message": "Query: d29y...bGQ.malicious-tunnel.com Type=TXT", "src_ip": "10.0.1.44", "host": "WS-ENG-44"},
+            {"source": "dns_server", "severity": "warning", "severity_level": 3, "message": "Query: c2Vj...dXJl.malicious-tunnel.com Type=TXT", "src_ip": "10.0.1.44", "host": "WS-ENG-44"},
+            {"source": "dns_server", "severity": "warning", "severity_level": 3, "message": "Query: cGFz...c3dk.malicious-tunnel.com Type=TXT", "src_ip": "10.0.1.44", "host": "WS-ENG-44"},
+        ],
+        total_count=34,
+        incident_slots=[4, 11, 19, 27],
+    )
 
     scenarios.append({
         "title": "DNS Tunneling / Data Exfiltration via DNS TXT Queries",
@@ -664,16 +806,21 @@ def create_scenarios():
     })
 
     # 11. FP: High volume of internal NTP requests
-    logs_11 = []
-    for i in range(35):
-        logs_11.append({
-            "timestamp": t(i), "source": "firewall", "severity": "medium", "severity_level": 2,
-            "message": "High frequency NTP request permitted: 10.0.3.15 -> time.nist.gov:123 UDP", "src_ip": "10.0.3.15", "dst_ip": "129.6.15.28"
-        })
-    logs_11.extend([
-        {"timestamp": t(40), "source": "edr", "severity": "info", "severity_level": 1, "message": "Process activity: w32time.exe syncing time configuration loop", "host": "srv-sync-time-02"},
-        {"timestamp": t(45), "source": "change_management", "severity": "info", "severity_level": 1, "message": "CR-3212: Configure NTP sync interval to 1s on time-server-backup due to oscillator failure", "user": "sysadmin"}
-    ])
+    logs_11 = _interleave_scenario_logs(
+        base_time=datetime(2026, 7, 21, 7, 30, 0),
+        scenario_idx=11,
+        domain_id="domain4",
+        noise_packs=["network", "governance", "endpoint"],
+        incident_events=[
+            {"source": "firewall", "severity": "medium", "severity_level": 2, "message": "High frequency NTP request permitted: 10.0.3.15 -> time.nist.gov:123 UDP (burst #101)", "src_ip": "10.0.3.15", "dst_ip": "129.6.15.28", "host": "srv-sync-time-02"},
+            {"source": "firewall", "severity": "medium", "severity_level": 2, "message": "High frequency NTP request permitted: 10.0.3.15 -> time.nist.gov:123 UDP (burst #102)", "src_ip": "10.0.3.15", "dst_ip": "129.6.15.28", "host": "srv-sync-time-02"},
+            {"source": "edr", "severity": "info", "severity_level": 1, "message": "Process activity: w32time.exe syncing time configuration loop", "host": "srv-sync-time-02", "src_ip": "10.0.3.15"},
+            {"source": "firewall", "severity": "medium", "severity_level": 2, "message": "High frequency NTP request permitted: 10.0.3.15 -> time.nist.gov:123 UDP (burst #103)", "src_ip": "10.0.3.15", "dst_ip": "129.6.15.28", "host": "srv-sync-time-02"},
+            {"source": "change_management", "severity": "info", "severity_level": 1, "message": "CR-3212: Configure NTP sync interval to 1s on time-server-backup due to oscillator failure", "user": "sysadmin", "host": "srv-sync-time-02"},
+        ],
+        total_count=40,
+        incident_slots=[4, 10, 17, 24, 33],
+    )
 
     scenarios.append({
         "title": "Anomalous Volume of NTP Network Requests",
@@ -714,23 +861,20 @@ def create_scenarios():
     })
 
     # 12. TP: Malicious Phishing email with link clicked
-    logs_12 = []
-    for i in range(15):
-        logs_12.append({
-            "timestamp": t(i * 10), "source": "email_gateway", "severity": "info", "severity_level": 1,
-            "message": "Inbound email cleared: Sender=support@legit.com Recipient=kwilliams@corp.com"
-        })
-    logs_12.extend([
-        {"timestamp": t(180), "source": "email_gateway", "severity": "warning", "severity_level": 3, "message": "Inbound email: Sender=admin@secure-office365-portal.com Recipient=kwilliams@corp.com Subject='Urgent: MFA Reset Required'", "src_ip": "192.0.2.14"},
-        {"timestamp": t(190), "source": "proxy", "severity": "high", "severity_level": 4, "message": "Outbound HTTP connection: 10.0.2.77 -> secure-office365-portal.com:80", "src_ip": "10.0.2.77", "dst_ip": "192.0.2.14"},
-        {"timestamp": t(200), "source": "edr", "severity": "high", "severity_level": 4, "message": "Credential theft attempt signature match: input fields detected on unsecured form", "host": "WS-HR-11", "user": "kwilliams"},
-        {"timestamp": t(210), "source": "ad_controller", "severity": "critical", "severity_level": 5, "message": "New admin account registered: 'adm_backdoor' created by local machine WS-HR-11 privilege process", "host": "DC-01"}
-    ])
-    for i in range(15):
-        logs_12.append({
-            "timestamp": t(220 + i * 10), "source": "firewall", "severity": "info", "severity_level": 1,
-            "message": "Outbound TCP connection allowed", "src_ip": "10.0.2.77"
-        })
+    logs_12 = _interleave_scenario_logs(
+        base_time=datetime(2026, 7, 22, 16, 15, 0),
+        scenario_idx=12,
+        domain_id="domain4",
+        noise_packs=["application", "network", "identity"],
+        incident_events=[
+            {"source": "email_gateway", "severity": "warning", "severity_level": 3, "message": "Inbound email: Sender=admin@secure-office365-portal.com Recipient=kwilliams@corp.com Subject='Urgent: MFA Reset Required'", "src_ip": "192.0.2.14", "user": "kwilliams", "host": "MAIL-GW-01"},
+            {"source": "proxy", "severity": "high", "severity_level": 4, "message": "Outbound HTTP connection: 10.0.2.77 -> secure-office365-portal.com:80", "src_ip": "10.0.2.77", "dst_ip": "192.0.2.14", "user": "kwilliams", "host": "WS-HR-11"},
+            {"source": "edr", "severity": "high", "severity_level": 4, "message": "Credential theft attempt signature match: input fields detected on unsecured form", "host": "WS-HR-11", "user": "kwilliams"},
+            {"source": "ad_controller", "severity": "critical", "severity_level": 5, "message": "New admin account registered: 'adm_backdoor' created by local machine WS-HR-11 privilege process", "host": "DC-01", "user": "kwilliams"},
+        ],
+        total_count=33,
+        incident_slots=[5, 12, 20, 28],
+    )
 
     scenarios.append({
         "title": "Spear Phishing leading to Credential Harvesting",
@@ -782,23 +926,20 @@ def create_scenarios():
     # =========================================================================
 
     # 13. TP: Disgruntled employee exfiltrating customer list
-    logs_13 = []
-    for i in range(15):
-        logs_13.append({
-            "timestamp": t(i * 10), "source": "crm_app", "severity": "info", "severity_level": 1,
-            "message": "View customer account", "user": "rharper"
-        })
-    logs_13.extend([
-        {"timestamp": t(180), "source": "crm_app", "severity": "high", "severity_level": 4, "message": "Bulk report exported: Customer_Billing_Details_All.csv", "user": "rharper"},
-        {"timestamp": t(190), "source": "proxy", "severity": "high", "severity_level": 4, "message": "Outbound HTTP POST to mail.personal-gmail.com bytes_sent=4508200", "src_ip": "10.0.1.18", "user": "rharper"},
-        {"timestamp": t(200), "source": "edr", "severity": "warning", "severity_level": 3, "message": "File deleted: Customer_Billing_Details_All.csv from desktop", "host": "WS-SALES-15", "user": "rharper"},
-        {"timestamp": t(210), "source": "ad_controller", "severity": "info", "severity_level": 1, "message": "User session closed: rharper logged off", "user": "rharper"}
-    ])
-    for i in range(15):
-        logs_13.append({
-            "timestamp": t(220 + i * 10), "source": "firewall", "severity": "info", "severity_level": 1,
-            "message": "Normal outbound connection allowed", "src_ip": f"10.0.1.{40+i}"
-        })
+    logs_13 = _interleave_scenario_logs(
+        base_time=datetime(2026, 7, 23, 17, 5, 0),
+        scenario_idx=13,
+        domain_id="domain5",
+        noise_packs=["application", "endpoint", "governance"],
+        incident_events=[
+            {"source": "crm_app", "severity": "high", "severity_level": 4, "message": "Bulk report exported: Customer_Billing_Details_All.csv", "user": "rharper", "host": "WS-SALES-15"},
+            {"source": "proxy", "severity": "high", "severity_level": 4, "message": "Outbound HTTP POST to mail.personal-gmail.com bytes_sent=4508200", "src_ip": "10.0.1.18", "user": "rharper", "host": "WS-SALES-15"},
+            {"source": "edr", "severity": "warning", "severity_level": 3, "message": "File deleted: Customer_Billing_Details_All.csv from desktop", "host": "WS-SALES-15", "user": "rharper"},
+            {"source": "ad_controller", "severity": "info", "severity_level": 1, "message": "User session closed: rharper logged off", "user": "rharper", "host": "WS-SALES-15"},
+        ],
+        total_count=41,
+        incident_slots=[6, 14, 23, 33],
+    )
 
     scenarios.append({
         "title": "Insider Threat: Customer Database Exfiltration",
@@ -846,22 +987,20 @@ def create_scenarios():
     })
 
     # 14. FP: Pre-approved data backup archiving job
-    logs_14 = []
-    for i in range(15):
-        logs_14.append({
-            "timestamp": t(i * 10), "source": "aws_cloudtrail", "severity": "info", "severity_level": 1,
-            "message": "API Call: DescribeInstances", "user": "backup_agent_04"
-        })
-    logs_14.extend([
-        {"timestamp": t(180), "source": "aws_cloudtrail", "severity": "medium", "severity_level": 2, "message": "High volume data synchronization: S3 bucket 'audit-logs-archive' copied to Glacier storage", "user": "backup_agent_04"},
-        {"timestamp": t(190), "source": "change_management", "severity": "info", "severity_level": 1, "message": "CR-9022 Approved: Standard monthly compliance audit archiving job scheduled Jul 13 08:30", "user": "compliance_lead"},
-        {"timestamp": t(200), "source": "aws_cloudtrail", "severity": "info", "severity_level": 1, "message": "Glacier transfer complete: 45.2 GB archived successfully", "user": "backup_agent_04"}
-    ])
-    for i in range(15):
-        logs_14.append({
-            "timestamp": t(210 + i * 10), "source": "aws_cloudtrail", "severity": "info", "severity_level": 1,
-            "message": "API Call: GetObject", "user": "backup_agent_04"
-        })
+    logs_14 = _interleave_scenario_logs(
+        base_time=datetime(2026, 7, 13, 8, 30, 0),
+        scenario_idx=14,
+        domain_id="domain5",
+        noise_packs=["cloud", "governance", "network"],
+        incident_events=[
+            {"source": "aws_cloudtrail", "severity": "medium", "severity_level": 2, "message": "High volume data synchronization: S3 bucket 'audit-logs-archive' copied to Glacier storage", "user": "backup_agent_04", "host": "audit-logs-archive"},
+            {"source": "change_management", "severity": "info", "severity_level": 1, "message": "CR-9022 Approved: Standard monthly compliance audit archiving job scheduled Jul 13 08:30", "user": "compliance_lead", "host": "ITSM-CMDB-01"},
+            {"source": "s3_access", "severity": "info", "severity_level": 1, "message": "S3 Glacier lifecycle transition batch verified against scheduled retention policy CR-9022", "user": "backup_agent_04", "host": "audit-logs-archive"},
+            {"source": "aws_cloudtrail", "severity": "info", "severity_level": 1, "message": "Glacier transfer complete: 45.2 GB archived successfully", "user": "backup_agent_04", "host": "audit-logs-archive"},
+        ],
+        total_count=29,
+        incident_slots=[4, 13, 18, 22],
+    )
 
     scenarios.append({
         "title": "Anomalous Cloud Data Archiving Alert",
@@ -902,23 +1041,20 @@ def create_scenarios():
     })
 
     # 15. TP: Rogue Access Point installation
-    logs_15 = []
-    for i in range(15):
-        logs_15.append({
-            "timestamp": t(i * 10), "source": "dhcp_server", "severity": "info", "severity_level": 1,
-            "message": "IP assigned: 10.0.4.155 to MAC 00:e0:4c:00:a1:05", "host": "corporate-device"
-        })
-    logs_15.extend([
-        {"timestamp": t(180), "source": "switch_core", "severity": "high", "severity_level": 4, "message": "Port Security violation: 12 MAC addresses detected on single port interface Gi1/0/22 (Port allowed 1 MAC)", "host": "SW-HQ-02"},
-        {"timestamp": t(190), "source": "dhcp_server", "severity": "warning", "severity_level": 3, "message": "IP requests: 8 unauthenticated devices requested IPs from port Gi1/0/22", "host": "SW-HQ-02"},
-        {"timestamp": t(200), "source": "ids_wifi", "severity": "high", "severity_level": 4, "message": "Unauthorized SSIDs detected broadcasting: 'CORP-GUEST-FAST' broadcasting on channel 6, MAC 00:e0:4c:00:a1:05", "host": "W-AP-3"},
-        {"timestamp": t(210), "source": "switch_core", "severity": "critical", "severity_level": 5, "message": "MAC spoofing signatures matched on switch interface Gi1/0/22", "host": "SW-HQ-02"}
-    ])
-    for i in range(15):
-        logs_15.append({
-            "timestamp": t(220 + i * 10), "source": "dhcp_server", "severity": "info", "severity_level": 1,
-            "message": "IP assigned normal host", "host": "PC-502"
-        })
+    logs_15 = _interleave_scenario_logs(
+        base_time=datetime(2026, 7, 24, 10, 45, 0),
+        scenario_idx=15,
+        domain_id="domain5",
+        noise_packs=["network", "identity", "governance"],
+        incident_events=[
+            {"source": "switch_core", "severity": "high", "severity_level": 4, "message": "Port Security violation: 12 MAC addresses detected on single port interface Gi1/0/22 (Port allowed 1 MAC)", "host": "SW-HQ-02"},
+            {"source": "dhcp_server", "severity": "warning", "severity_level": 3, "message": "IP requests: 8 unauthenticated devices requested IPs from port Gi1/0/22", "host": "SW-HQ-02"},
+            {"source": "ids_wifi", "severity": "high", "severity_level": 4, "message": "Unauthorized SSIDs detected broadcasting: 'CORP-GUEST-FAST' broadcasting on channel 6, MAC 00:e0:4c:00:a1:05", "host": "W-AP-3"},
+            {"source": "switch_core", "severity": "critical", "severity_level": 5, "message": "MAC spoofing signatures matched on switch interface Gi1/0/22", "host": "SW-HQ-02"},
+        ],
+        total_count=35,
+        incident_slots=[5, 13, 21, 29],
+    )
 
     scenarios.append({
         "title": "Rogue Wireless Access Point Detection",

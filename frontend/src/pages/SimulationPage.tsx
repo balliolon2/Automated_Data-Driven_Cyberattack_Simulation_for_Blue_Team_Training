@@ -6,6 +6,7 @@ import KqlSearchBar from "../components/KqlSearchBar";
 import LogTable from "../components/LogTable";
 import ResponsePanel from "../components/ResponsePanel";
 import ScenarioLoadingState from "../components/ScenarioLoadingState";
+import { buildInvestigationShortcuts } from "../lib/siemShortcuts";
 import { cn } from "../lib/utils";
 
 interface ActionOption {
@@ -543,42 +544,27 @@ export default function SimulationPage() {
                 </p>
 
                 <div className="flex flex-wrap gap-2 pt-1">
-                  {/* Extract clues dynamically from initial_logs if present */}
-                  {Array.isArray(scenario.initial_logs) && scenario.initial_logs.find((l: any) => l.host) && (
-                    <button
-                      onClick={() => handleQuickSiemSearch(scenario.initial_logs.find((l: any) => l.host)?.host)}
-                      className="px-3 py-1.5 rounded bg-graphite-950 border border-graphite-800 hover:border-emerald-500/40 font-mono text-xs text-emerald-400 flex items-center gap-1.5 transition-all"
-                    >
-                      <span className="text-graphite-500 text-[10px]">Host:</span>
-                      {scenario.initial_logs.find((l: any) => l.host)?.host}
-                    </button>
-                  )}
-
-                  {Array.isArray(scenario.initial_logs) && scenario.initial_logs.find((l: any) => l.dst_ip || l.src_ip) && (
-                    <button
-                      onClick={() => handleQuickSiemSearch(scenario.initial_logs.find((l: any) => l.dst_ip)?.dst_ip || scenario.initial_logs.find((l: any) => l.src_ip)?.src_ip)}
-                      className="px-3 py-1.5 rounded bg-graphite-950 border border-graphite-800 hover:border-emerald-500/40 font-mono text-xs text-emerald-400 flex items-center gap-1.5 transition-all"
-                    >
-                      <span className="text-graphite-500 text-[10px]">IP:</span>
-                      {scenario.initial_logs.find((l: any) => l.dst_ip)?.dst_ip || scenario.initial_logs.find((l: any) => l.src_ip)?.src_ip}
-                    </button>
-                  )}
-
-                  <button
-                    onClick={() => handleQuickSiemSearch('severity == "high"')}
-                    className="px-3 py-1.5 rounded bg-graphite-950 border border-graphite-800 hover:border-amber-500/40 font-mono text-xs text-amber-400 flex items-center gap-1.5 transition-all"
-                  >
-                    <span className="text-graphite-500 text-[10px]">Filter:</span>
-                    High Severity Alerts
-                  </button>
-
-                  <button
-                    onClick={() => handleQuickSiemSearch('source == "firewall"')}
-                    className="px-3 py-1.5 rounded bg-graphite-950 border border-graphite-800 hover:border-sky-500/40 font-mono text-xs text-sky-400 flex items-center gap-1.5 transition-all"
-                  >
-                    <span className="text-graphite-500 text-[10px]">Filter:</span>
-                    Firewall Logs
-                  </button>
+                  {buildInvestigationShortcuts(scenario).map((shortcut) => {
+                    const toneClasses =
+                      shortcut.tone === "amber"
+                        ? "hover:border-amber-500/40 text-amber-400"
+                        : shortcut.tone === "sky"
+                        ? "hover:border-sky-500/40 text-sky-400"
+                        : "hover:border-emerald-500/40 text-emerald-400";
+                    return (
+                      <button
+                        key={`${shortcut.labelPrefix}:${shortcut.query}`}
+                        onClick={() => handleQuickSiemSearch(shortcut.query)}
+                        className={cn(
+                          "px-3 py-1.5 rounded bg-graphite-950 border border-graphite-800 font-mono text-xs flex items-center gap-1.5 transition-all",
+                          toneClasses
+                        )}
+                      >
+                        <span className="text-graphite-500 text-[10px]">{shortcut.labelPrefix}</span>
+                        {shortcut.label}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             </div>
