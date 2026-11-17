@@ -579,8 +579,15 @@ func callChatCompletion(ctx context.Context, url string, apiKey string, model st
 			break
 		}
 		log.Printf("[LLM] Attempt %d/%d failed: %v", attempt, maxRetries, err)
+		if ctx.Err() != nil {
+			break
+		}
 		if attempt < maxRetries {
-			time.Sleep(3 * time.Second)
+			select {
+			case <-ctx.Done():
+				return "", fmt.Errorf("LLM request failed after %d attempt(s): %w", attempt, ctx.Err())
+			case <-time.After(3 * time.Second):
+			}
 		}
 	}
 	if err != nil {

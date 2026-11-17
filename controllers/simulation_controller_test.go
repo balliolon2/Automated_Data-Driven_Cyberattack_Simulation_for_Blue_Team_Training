@@ -3,7 +3,10 @@ package controllers
 import (
 	"fmt"
 	"reflect"
+	"sync"
+	"sync/atomic"
 	"testing"
+	"time"
 
 	"cybersim/models"
 	"cybersim/services"
@@ -211,4 +214,68 @@ func TestBuildHistoryEntriesFromSessions_ExtractsSubtopicStyleAndEntities(t *tes
 	if len(unresolved) != 1 || !unresolved[0].SkipCadenceVote {
 		t.Fatalf("expected unresolved session scenario to mark SkipCadenceVote=true, got %+v", unresolved)
 	}
+}
+
+func TestSimulationController_LockUserStartSerializesSameUser(t *testing.T) {
+	sc := &SimulationController{}
+
+	t.Run("serializes concurrent calls for the same user and cleans up lock entries", func(t *testing.T) {
+		var inFlight atomic.Int32
+		var maxInFlight atomic.Int32
+		var wg sync.WaitGroup
+
+		for i := 0; i < 4; i++ {
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				unlock := sc.lockUserStart("user-same")
+				cur := inFlight.Add(1)
+				for {
+					prev := maxInFlight.Load()
+					if cur <= prev || maxInFlight.CompareAndSwap(prev, cur) {
+						break
+					}
+				}
+				time.Sleep(15 * time.Millisecond)
+				inFlight.Add(-1)
+				unlock()
+			}()
+		}
+		wg.Wait()
+
+		if maxInFlight.Load() != 1 {
+			t.Fatalf("expected max concurrent calls for same user to be 1, got %d", maxInFlight.Load())
+		}
+		sc.startMu.Lock()
+		remaining := len(sc.userStartLocks)
+		sc.startMu.Unlock()
+		if remaining != 0 {
+			t.Fatalf("expected userStartLocks map to clean up after unlock, got %d entry(ies)", remaining)
+		}
+	})
+
+	t.Run("allows distinct users to start scenarios concurrently", func(t *testing.T) {
+		enteredBoth := make(chan struct{})
+		var arrived atomic.Int32
+		var wg sync.WaitGroup
+
+		for _, uid := range []string{"user-a", "user-b"} {
+			uid := uid
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				unlock := sc.lockUserStart(uid)
+				defer unlock()
+				if arrived.Add(1) == 2 {
+					close(enteredBoth)
+				}
+				select {
+				case <-enteredBoth:
+				case <-time.After(1 * time.Second):
+					t.Errorf("distinct users blocked each other on %s", uid)
+				}
+			}()
+		}
+		wg.Wait()
+	})
 }

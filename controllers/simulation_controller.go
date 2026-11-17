@@ -14,6 +14,7 @@ import (
 	"reflect"
 	"sort"
 	"strings"
+	"sync"
 	"time"
 
 	"cybersim/dto"
@@ -37,8 +38,15 @@ const (
 	ScoreWeightResponse  = 0.40 // 40% of scenario score
 )
 
+type userLockEntry struct {
+	mu   sync.Mutex
+	refs int
+}
+
 type SimulationController struct {
-	DB *gorm.DB
+	DB             *gorm.DB
+	startMu        sync.Mutex
+	userStartLocks map[string]*userLockEntry
 }
 
 func NewSimulationController(db *gorm.DB) *SimulationController {
@@ -46,7 +54,38 @@ func NewSimulationController(db *gorm.DB) *SimulationController {
 		_ = db.AutoMigrate(&models.SimulationSession{}, &models.ScenarioSnapshot{})
 		_ = services.EnsureScenarioPlaybookQuality(db, "scenarios_seed.json")
 	}
-	return &SimulationController{DB: db}
+	return &SimulationController{
+		DB:             db,
+		userStartLocks: make(map[string]*userLockEntry),
+	}
+}
+
+// lockUserStart serializes StartScenario calls per user so concurrent browser reloads,
+// React StrictMode double-mounts, or manual retries cannot launch parallel LLM scenario
+// generation runs or create duplicate in_progress sessions for the same learner.
+func (sc *SimulationController) lockUserStart(userKey string) func() {
+	sc.startMu.Lock()
+	if sc.userStartLocks == nil {
+		sc.userStartLocks = make(map[string]*userLockEntry)
+	}
+	entry, ok := sc.userStartLocks[userKey]
+	if !ok {
+		entry = &userLockEntry{}
+		sc.userStartLocks[userKey] = entry
+	}
+	entry.refs++
+	sc.startMu.Unlock()
+
+	entry.mu.Lock()
+	return func() {
+		entry.mu.Unlock()
+		sc.startMu.Lock()
+		entry.refs--
+		if entry.refs <= 0 && sc.userStartLocks[userKey] == entry {
+			delete(sc.userStartLocks, userKey)
+		}
+		sc.startMu.Unlock()
+	}
 }
 
 var (
@@ -502,9 +541,14 @@ func (sc *SimulationController) StartScenario(c *gin.Context) {
 		return
 	}
 
+	unlock := sc.lockUserStart(fmt.Sprint(userID))
+	defer unlock()
+
 	// Check for existing in-progress session
 	var activeSession models.SimulationSession
-	err := sc.DB.Where("user_id = ? AND status = 'in_progress'", userID).First(&activeSession).Error
+	err := sc.DB.Where("user_id = ? AND status = 'in_progress'", userID).
+		Order("started_at DESC").
+		First(&activeSession).Error
 	if err == nil {
 		// Return existing active session with scenario data
 		scenario, fromSnapshot, scenarioErr := sc.sessionScenario(activeSession)
@@ -790,7 +834,9 @@ func (sc *SimulationController) GetActiveSession(c *gin.Context) {
 
 	// First, check for an in-progress session
 	var activeSession models.SimulationSession
-	err := sc.DB.Where("user_id = ? AND status = 'in_progress'", userID).First(&activeSession).Error
+	err := sc.DB.Where("user_id = ? AND status = 'in_progress'", userID).
+		Order("started_at DESC").
+		First(&activeSession).Error
 	if err == nil {
 		scenario, fromSnapshot, scenarioErr := sc.sessionScenario(activeSession)
 		if scenarioErr != nil {

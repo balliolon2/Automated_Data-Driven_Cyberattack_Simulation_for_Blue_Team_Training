@@ -76,6 +76,7 @@ export default function SimulationPage() {
   const [siemQuery, setSiemQuery] = useState("");
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [theoryGateInfo, setTheoryGateInfo] = useState<{
     completedCount: number;
@@ -210,7 +211,9 @@ export default function SimulationPage() {
   const navigate = useNavigate();
 
   useEffect(() => {
+    let cancelled = false;
     const initSimulation = async () => {
+      let preTestVerified = false;
       try {
         const token = localStorage.getItem("token");
         if (!token) {
@@ -223,6 +226,7 @@ export default function SimulationPage() {
           const activeRes = await axios.get("/api/simulation/session", {
             headers: { Authorization: `Bearer ${token}` }
           });
+          if (cancelled) return;
 
           if (activeRes.data.type === "completed") {
             const isAck = localStorage.getItem(`ack_session_${activeRes.data.session_id}`);
@@ -255,21 +259,25 @@ export default function SimulationPage() {
         const statusRes = await axios.get("/api/simulation/status", {
           headers: { Authorization: `Bearer ${token}` }
         });
+        if (cancelled) return;
 
         if (statusRes.data.error) {
           navigate("/pre-test");
           return;
         }
+        preTestVerified = true;
 
         if (!statusRes.data.needs_training) {
           navigate("/simulation/complete");
           return;
         }
 
-        // 3. Start a new scenario
+        // 3. Start a new scenario (allow full backend 120s LLM budget + retry headroom)
         const startRes = await axios.post("/api/simulation/start", {}, {
-          headers: { Authorization: `Bearer ${token}` }
+          headers: { Authorization: `Bearer ${token}` },
+          timeout: 185000,
         });
+        if (cancelled) return;
 
         if (startRes.data.status === "scenario_unavailable" || startRes.data.error) {
           setErrorMessage(startRes.data.error || "The simulation scenario is temporarily unavailable. Your progress has been preserved, and this will not impact your score. Please retry in a few moments.");
@@ -292,6 +300,7 @@ export default function SimulationPage() {
         setFilteredLogs(hydratedLogs);
         setSelectedLogIndices(restoredSelection);
       } catch (err: any) {
+        if (cancelled) return;
         console.error("Failed to initialize simulation:", err);
         if (err.response?.status === 403 && err.response?.data?.reason === "theory_incomplete") {
           setTheoryGateInfo({
@@ -307,14 +316,30 @@ export default function SimulationPage() {
           );
           return;
         }
+        if (err.response?.status === 504 || err.code === "ECONNABORTED") {
+          setErrorMessage("Scenario generation took longer than expected and timed out. Click Retry to resume your active session.");
+          return;
+        }
+        if (preTestVerified) {
+          setErrorMessage(
+            err.response?.data?.error ||
+              "Temporary issue initializing the simulation scenario. Your pre-test progress is saved — please click Retry."
+          );
+          return;
+        }
         setErrorMessage("An error occurred while loading the simulation. Please ensure your pre-test is completed.");
       } finally {
-        setLoading(false);
+        if (!cancelled) {
+          setLoading(false);
+        }
       }
     };
 
     initSimulation();
-  }, [navigate]);
+    return () => {
+      cancelled = true;
+    };
+  }, [navigate, retryCount]);
 
   const handleSubmit = async () => {
     if (!session || !scenario) return;
@@ -415,7 +440,12 @@ export default function SimulationPage() {
         <p className="text-xs text-graphite-400 font-mono leading-relaxed">{errorMessage}</p>
         <div className="flex flex-col gap-2">
           <button
-            onClick={() => window.location.reload()}
+            onClick={() => {
+              setErrorMessage(null);
+              setTheoryGateInfo(null);
+              setLoading(true);
+              setRetryCount((prev) => prev + 1);
+            }}
             className="w-full py-2.5 bg-emerald-500 hover:bg-emerald-600 text-black font-semibold text-xs rounded-md transition-all duration-200"
           >
             Retry Loading Simulation
