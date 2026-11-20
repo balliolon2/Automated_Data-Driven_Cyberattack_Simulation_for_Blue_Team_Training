@@ -8,6 +8,7 @@ import {
   formatDate,
   resolveApiError,
   resolveDomainName,
+  resolveNotificationLocale,
   resolveScenarioLocale,
 } from "../src/i18n/format.ts";
 
@@ -98,6 +99,52 @@ test("canonical M1 error codes and bilingual domain names are present", () => {
     "SIM_SESSION_UPDATE_FAILED",
     "SPECIALIST_BIO_REQUIRED",
     "SPECIALIST_RESUME_REQUIRED",
+    "SPECIALIST_INVALID_PAYLOAD",
+    "SPECIALIST_FILE_TOO_LARGE",
+    "SPECIALIST_INVALID_FILE_TYPE",
+    "SPECIALIST_ALREADY_PENDING",
+    "SPECIALIST_ALREADY_APPROVED",
+    "SPECIALIST_APPLICATION_FAILED",
+    "SPECIALIST_APPLICATION_NOT_FOUND",
+    "SPECIALIST_SUBMISSIONS_FETCH_FAILED",
+    "SPECIALIST_SESSION_NOT_FOUND",
+    "SPECIALIST_SCENARIO_NOT_FOUND",
+    "ADMIN_APPLICATIONS_FETCH_FAILED",
+    "ADMIN_APPLICATION_NOT_FOUND",
+    "ADMIN_INVALID_FILE_TYPE",
+    "ADMIN_DOCUMENT_NOT_FOUND",
+    "ADMIN_DOCUMENT_MISSING",
+    "ADMIN_ALREADY_APPROVED",
+    "ADMIN_APPROVE_FAILED",
+    "ADMIN_REJECTION_REASON_REQUIRED",
+    "ADMIN_REJECT_FAILED",
+    "THREAD_INVALID_PAYLOAD",
+    "THREAD_TITLE_TOO_SHORT",
+    "THREAD_CONTENT_TOO_SHORT",
+    "THREAD_SCENARIO_NOT_FOUND",
+    "THREAD_CREATE_FAILED",
+    "THREAD_FETCH_FAILED",
+    "THREAD_NOT_FOUND",
+    "THREAD_FORBIDDEN",
+    "THREAD_UPDATE_FAILED",
+    "THREAD_DELETE_FAILED",
+    "THREAD_UPVOTE_FAILED",
+    "COMMENT_INVALID_PAYLOAD",
+    "COMMENT_LENGTH_INVALID",
+    "COMMENT_PARENT_NOT_FOUND",
+    "COMMENT_CREATE_FAILED",
+    "COMMENT_FETCH_FAILED",
+    "COMMENT_NOT_FOUND",
+    "COMMENT_FORBIDDEN",
+    "COMMENT_UPDATE_FAILED",
+    "COMMENT_DELETE_FAILED",
+    "COMMENT_MODERATION_FORBIDDEN",
+    "COMMENT_PIN_TOP_LEVEL_ONLY",
+    "COMMENT_PIN_LIMIT_REACHED",
+    "COMMENT_MODERATION_FAILED",
+    "COMMENT_UPVOTE_FAILED",
+    "NOTIF_FETCH_FAILED",
+    "NOTIF_UPDATE_FAILED",
   ] as const;
 
   for (const code of requiredCodes) {
@@ -112,6 +159,33 @@ test("canonical M1 error codes and bilingual domain names are present", () => {
   assert.equal(resolveDomainName("domain5", "Fallback", "th"), "การบริหารจัดการและกำกับดูแลความปลอดภัย (Security Program Management and Oversight)");
   assert.equal(resolveDomainName("domain1", "Fallback", "en"), "General Security Concepts");
   assert.equal(resolveDomainName("unknown_domain", "Custom Fallback", "th"), "Custom Fallback");
+});
+
+test("resolveNotificationLocale renders dynamic templated notifications in en/th and falls back on legacy rows", () => {
+  const commentNotif = {
+    title: "New reply to your comment",
+    message: "alice replied to your comment on 'DNS Tunneling Notes'",
+    template_key: "comment_reply",
+    template_params: { actor: "alice", thread_title: "DNS Tunneling Notes" },
+  };
+
+  const resolvedTh = resolveNotificationLocale(commentNotif, "th");
+  assert.ok(/[\u0E00-\u0E7F]/.test(resolvedTh.title), "Expected Thai notification title");
+  assert.ok(resolvedTh.message.includes("alice"), "Expected actor interpolation");
+  assert.ok(resolvedTh.message.includes("DNS Tunneling Notes"), "Expected verbatim thread title");
+
+  const resolvedEn = resolveNotificationLocale(commentNotif, "en");
+  assert.equal(resolvedEn.title, "New reply to your comment");
+  assert.equal(resolvedEn.message, "alice replied to your comment on 'DNS Tunneling Notes'");
+
+  const legacyNotif = {
+    title: "Legacy alert",
+    message: "Pre-Spec-11 notification",
+  };
+  assert.deepEqual(resolveNotificationLocale(legacyNotif, "th"), {
+    title: "Legacy alert",
+    message: "Pre-Spec-11 notification",
+  });
 });
 
 test("interpolate and translate handle placeholders and unknown keys safely", () => {

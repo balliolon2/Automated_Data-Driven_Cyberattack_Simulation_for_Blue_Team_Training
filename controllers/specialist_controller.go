@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"crypto/rand"
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -18,6 +19,44 @@ import (
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
+
+func decodeAnyJSONMap(raw any) any {
+	switch v := raw.(type) {
+	case nil:
+		return nil
+	case map[string]any:
+		return v
+	case []byte:
+		if len(v) == 0 {
+			return nil
+		}
+		var out map[string]any
+		if err := json.Unmarshal(v, &out); err == nil {
+			return out
+		}
+		return nil
+	case json.RawMessage:
+		if len(v) == 0 {
+			return nil
+		}
+		var out map[string]any
+		if err := json.Unmarshal(v, &out); err == nil {
+			return out
+		}
+		return nil
+	case string:
+		if strings.TrimSpace(v) == "" {
+			return nil
+		}
+		var out map[string]any
+		if err := json.Unmarshal([]byte(v), &out); err == nil {
+			return out
+		}
+		return nil
+	default:
+		return v
+	}
+}
 
 func generateUUID() string {
 	b := make([]byte, 16)
@@ -51,19 +90,19 @@ var allowedExtensions = map[string]bool{
 func (sc *SpecialistController) Apply(c *gin.Context) {
 	userID, exists := c.Get("user_id")
 	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		respondAPIError(c, http.StatusUnauthorized, "AUTH_UNAUTHORIZED", "Unauthorized")
 		return
 	}
 
 	// Parse multipart form
 	if err := c.Request.ParseMultipartForm(MaxFileSize * 2); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Payload too large or invalid multipart form"})
+		respondAPIError(c, http.StatusBadRequest, "SPECIALIST_INVALID_PAYLOAD", "Payload too large or invalid multipart form")
 		return
 	}
 
 	bio := strings.TrimSpace(c.PostForm("bio"))
 	if bio == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Bio is required"})
+		respondAPIError(c, http.StatusBadRequest, "SPECIALIST_BIO_REQUIRED", "Bio is required")
 		return
 	}
 
@@ -73,18 +112,18 @@ func (sc *SpecialistController) Apply(c *gin.Context) {
 	// Validate resume file
 	resumeHeader, err := c.FormFile("resume")
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Resume file is required"})
+		respondAPIError(c, http.StatusBadRequest, "SPECIALIST_RESUME_REQUIRED", "Resume file is required")
 		return
 	}
 
 	if resumeHeader.Size > MaxFileSize {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Resume file exceeds 10MB limit"})
+		respondAPIError(c, http.StatusBadRequest, "SPECIALIST_FILE_TOO_LARGE", "Resume file exceeds 10MB limit")
 		return
 	}
 
 	resumeExt := strings.ToLower(filepath.Ext(resumeHeader.Filename))
 	if !allowedExtensions[resumeExt] {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid resume file type. Allowed: PDF, PNG, JPG, JPEG"})
+		respondAPIError(c, http.StatusBadRequest, "SPECIALIST_INVALID_FILE_TYPE", "Invalid resume file type. Allowed: PDF, PNG, JPG, JPEG")
 		return
 	}
 
@@ -92,7 +131,7 @@ func (sc *SpecialistController) Apply(c *gin.Context) {
 	appID := generateUUID()
 	appDir := filepath.Join(UploadBaseDir, appID)
 	if err := os.MkdirAll(appDir, 0755); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create upload storage directory"})
+		respondAPIError(c, http.StatusInternalServerError, "SPECIALIST_APPLICATION_FAILED", "Failed to create upload storage directory")
 		return
 	}
 
@@ -100,7 +139,7 @@ func (sc *SpecialistController) Apply(c *gin.Context) {
 	resumeFilename := fmt.Sprintf("resume_%s%s", generateUUID(), resumeExt)
 	resumeSavePath := filepath.Join(appDir, resumeFilename)
 	if err := c.SaveUploadedFile(resumeHeader, resumeSavePath); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save resume file"})
+		respondAPIError(c, http.StatusInternalServerError, "SPECIALIST_APPLICATION_FAILED", "Failed to save resume file")
 		return
 	}
 
@@ -109,18 +148,18 @@ func (sc *SpecialistController) Apply(c *gin.Context) {
 	certHeader, err := c.FormFile("certificate")
 	if err == nil && certHeader != nil {
 		if certHeader.Size > MaxFileSize {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Certificate file exceeds 10MB limit"})
+			respondAPIError(c, http.StatusBadRequest, "SPECIALIST_FILE_TOO_LARGE", "Certificate file exceeds 10MB limit")
 			return
 		}
 		certExt := strings.ToLower(filepath.Ext(certHeader.Filename))
 		if !allowedExtensions[certExt] {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid certificate file type. Allowed: PDF, PNG, JPG, JPEG"})
+			respondAPIError(c, http.StatusBadRequest, "SPECIALIST_INVALID_FILE_TYPE", "Invalid certificate file type. Allowed: PDF, PNG, JPG, JPEG")
 			return
 		}
 		certFilename := fmt.Sprintf("certificate_%s%s", generateUUID(), certExt)
 		certSavePath = filepath.Join(appDir, certFilename)
 		if err := c.SaveUploadedFile(certHeader, certSavePath); err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save certificate file"})
+			respondAPIError(c, http.StatusInternalServerError, "SPECIALIST_APPLICATION_FAILED", "Failed to save certificate file")
 			return
 		}
 	}
@@ -130,11 +169,11 @@ func (sc *SpecialistController) Apply(c *gin.Context) {
 	now := time.Now()
 	if err := sc.DB.Where("user_id = ?", userID).Order("created_at desc").First(&existing).Error; err == nil {
 		if existing.Status == models.ApplicationStatusPending {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "An application is already pending administrator review"})
+			respondAPIError(c, http.StatusBadRequest, "SPECIALIST_ALREADY_PENDING", "An application is already pending administrator review")
 			return
 		}
 		if existing.Status == models.ApplicationStatusApproved {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "You are already an approved Specialist"})
+			respondAPIError(c, http.StatusBadRequest, "SPECIALIST_ALREADY_APPROVED", "You are already an approved Specialist")
 			return
 		}
 		if existing.Status == models.ApplicationStatusRejected {
@@ -152,7 +191,7 @@ func (sc *SpecialistController) Apply(c *gin.Context) {
 			existing.ReviewedAt = nil
 			existing.UpdatedAt = now
 			if err := sc.DB.Save(&existing).Error; err != nil {
-				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update application"})
+				respondAPIError(c, http.StatusInternalServerError, "SPECIALIST_APPLICATION_FAILED", "Failed to update application")
 				return
 			}
 			c.JSON(http.StatusOK, gin.H{
@@ -179,7 +218,7 @@ func (sc *SpecialistController) Apply(c *gin.Context) {
 
 	if err := sc.DB.Create(&application).Error; err != nil {
 		log.Printf("Failed to create specialist application: %v", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create application"})
+		respondAPIError(c, http.StatusInternalServerError, "SPECIALIST_APPLICATION_FAILED", "Failed to create application")
 		return
 	}
 
@@ -194,13 +233,16 @@ func (sc *SpecialistController) Apply(c *gin.Context) {
 func (sc *SpecialistController) GetApplicationStatus(c *gin.Context) {
 	userID, exists := c.Get("user_id")
 	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		respondAPIError(c, http.StatusUnauthorized, "AUTH_UNAUTHORIZED", "Unauthorized")
 		return
 	}
 
 	var app models.SpecialistApplication
 	if err := sc.DB.Where("user_id = ?", userID).Order("created_at desc").First(&app).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"message": "No specialist application found"})
+		c.JSON(http.StatusNotFound, gin.H{
+			"message": "No specialist application found",
+			"code":    "SPECIALIST_APPLICATION_NOT_FOUND",
+		})
 		return
 	}
 
@@ -242,7 +284,7 @@ func (sc *SpecialistController) GetSubmissions(c *gin.Context) {
 	offset := (page - 1) * pageSize
 
 	query := sc.DB.Table("simulation_sessions").
-		Select("simulation_sessions.session_id, simulation_sessions.scenario_id, simulation_sessions.final_score, simulation_sessions.completed_at, simulation_sessions.total_actions, simulation_sessions.rubric_version, simulation_sessions.skill_gap, scenarios.title as scenario_title, scenarios.domain_id, users.nickname as learner_nickname, users.current_tier as learner_tier").
+		Select("simulation_sessions.session_id, simulation_sessions.scenario_id, simulation_sessions.final_score, simulation_sessions.completed_at, simulation_sessions.total_actions, simulation_sessions.rubric_version, simulation_sessions.skill_gap, scenarios.title as scenario_title, scenarios.translations as scenario_translations, scenarios.domain_id, users.nickname as learner_nickname, users.current_tier as learner_tier").
 		Joins("JOIN scenarios ON scenarios.scenario_id = simulation_sessions.scenario_id").
 		Joins("JOIN users ON users.user_id = simulation_sessions.user_id").
 		Where("simulation_sessions.status = 'completed'")
@@ -261,22 +303,23 @@ func (sc *SpecialistController) GetSubmissions(c *gin.Context) {
 	}
 
 	type submissionRow struct {
-		SessionID       string     `json:"session_id"`
-		ScenarioID      string     `json:"scenario_id"`
-		ScenarioTitle   string     `json:"scenario_title"`
-		DomainID        string     `json:"domain_id"`
-		LearnerNickname string     `json:"learner_nickname"`
-		LearnerTier     int        `json:"learner_tier"`
-		FinalScore      *float64   `json:"final_score"`
-		TotalActions    int        `json:"total_actions"`
-		RubricVersion   string     `json:"rubric_version"`
-		SkillGap        any        `json:"skill_gap"`
-		CompletedAt     *time.Time `json:"completed_at"`
+		SessionID            string     `json:"session_id"`
+		ScenarioID           string     `json:"scenario_id"`
+		ScenarioTitle        string     `json:"scenario_title"`
+		ScenarioTranslations any        `json:"scenario_translations"`
+		DomainID             string     `json:"domain_id"`
+		LearnerNickname      string     `json:"learner_nickname"`
+		LearnerTier          int        `json:"learner_tier"`
+		FinalScore           *float64   `json:"final_score"`
+		TotalActions         int        `json:"total_actions"`
+		RubricVersion        string     `json:"rubric_version"`
+		SkillGap             any        `json:"skill_gap"`
+		CompletedAt          *time.Time `json:"completed_at"`
 	}
 
 	var rows []submissionRow
 	if err := query.Order("simulation_sessions.completed_at desc").Offset(offset).Limit(pageSize).Find(&rows).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch submissions"})
+		respondAPIError(c, http.StatusInternalServerError, "SPECIALIST_SUBMISSIONS_FETCH_FAILED", "Failed to fetch submissions")
 		return
 	}
 
@@ -333,6 +376,13 @@ func (sc *SpecialistController) GetSubmissions(c *gin.Context) {
 			}
 		}
 
+		scenarioTranslations := decodeAnyJSONMap(r.ScenarioTranslations)
+		if scenarioErr == nil && scenario.Translations != nil {
+			if decoded := decodeAnyJSONMap(scenario.Translations); decoded != nil {
+				scenarioTranslations = decoded
+			}
+		}
+
 		domainName := domainNames[r.DomainID]
 		if domainName == "" {
 			domainName = r.DomainID
@@ -344,6 +394,7 @@ func (sc *SpecialistController) GetSubmissions(c *gin.Context) {
 			LearnerTier:           r.LearnerTier,
 			ScenarioID:            r.ScenarioID,
 			ScenarioTitle:         r.ScenarioTitle,
+			ScenarioTranslations:  scenarioTranslations,
 			DomainID:              r.DomainID,
 			DomainName:            domainName,
 			FinalScore:            score,
@@ -378,7 +429,7 @@ func (sc *SpecialistController) GetSubmissionDetail(c *gin.Context) {
 
 	var session models.SimulationSession
 	if err := sc.DB.Where("session_id = ?", sessionID).First(&session).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Session not found"})
+		respondAPIError(c, http.StatusNotFound, "SPECIALIST_SESSION_NOT_FOUND", "Session not found")
 		return
 	}
 
@@ -387,13 +438,13 @@ func (sc *SpecialistController) GetSubmissionDetail(c *gin.Context) {
 	// live scenario row inside sessionScenarioFromDB.
 	scenario, _, err := sessionScenarioFromDB(sc.DB, session)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Scenario not found"})
+		respondAPIError(c, http.StatusNotFound, "SPECIALIST_SCENARIO_NOT_FOUND", "Scenario not found")
 		return
 	}
 
 	var user models.User
 	if err := sc.DB.Where("user_id = ?", session.UserID).First(&user).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+		respondAPIError(c, http.StatusNotFound, "USER_NOT_FOUND", "User not found")
 		return
 	}
 
@@ -469,6 +520,7 @@ func (sc *SpecialistController) GetSubmissionDetail(c *gin.Context) {
 		ScenarioID:              scenario.ScenarioID,
 		ScenarioTitle:           scenario.Title,
 		ScenarioDescription:     scenario.Description,
+		ScenarioTranslations:    decodeAnyJSONMap(scenario.Translations),
 		DomainID:                scenario.DomainID,
 		IsTruePositive:          scenario.IsTruePositive,
 		TpFpExplanation:         scenario.TpFpExplanation,

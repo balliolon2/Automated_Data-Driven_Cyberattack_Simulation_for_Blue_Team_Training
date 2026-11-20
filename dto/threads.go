@@ -9,6 +9,7 @@ type SpecialistSubmissionSummary struct {
 	LearnerTier           int     `json:"learner_tier"`
 	ScenarioID            string  `json:"scenario_id"`
 	ScenarioTitle         string  `json:"scenario_title"`
+	ScenarioTranslations  any     `json:"scenario_translations,omitempty"`
 	DomainID              string  `json:"domain_id"`
 	DomainName            string  `json:"domain_name"`
 	FinalScore            float64 `json:"final_score"`
@@ -30,6 +31,7 @@ type SpecialistSubmissionDetail struct {
 	ScenarioID              string                     `json:"scenario_id"`
 	ScenarioTitle           string                     `json:"scenario_title"`
 	ScenarioDescription     string                     `json:"scenario_description"`
+	ScenarioTranslations    any                        `json:"scenario_translations,omitempty"`
 	DomainID                string                     `json:"domain_id"`
 	IsTruePositive          bool                       `json:"is_true_positive"`
 	TpFpExplanation         string                     `json:"tp_fp_explanation"`
@@ -114,6 +116,7 @@ type ThreadScenarioDTO struct {
 	Title          string `json:"title"`
 	DomainID       string `json:"domain_id"`
 	MitreTechnique string `json:"mitre_technique,omitempty"`
+	Translations   any    `json:"translations,omitempty"`
 }
 
 // ThreadResponse represents a serialized analysis thread

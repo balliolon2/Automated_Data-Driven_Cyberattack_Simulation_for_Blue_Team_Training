@@ -8,6 +8,8 @@ type UserNotification struct {
 	User           *User     `gorm:"foreignKey:UserID;references:UserID;constraint:-" json:"user,omitempty"`
 	Title          string    `gorm:"type:varchar(120);not null" json:"title"`
 	Message        string    `gorm:"type:text;not null" json:"message"`
+	TemplateKey    string    `gorm:"type:varchar(64)" json:"template_key,omitempty"`
+	TemplateParams any       `gorm:"type:jsonb;serializer:json;not null;default:'{}'" json:"template_params,omitempty"`
 	LinkURL        string    `gorm:"type:varchar(255)" json:"link_url"`
 	IsRead         bool      `gorm:"default:false;index" json:"is_read"`
 	CreatedAt      time.Time `gorm:"default:now()" json:"created_at"`

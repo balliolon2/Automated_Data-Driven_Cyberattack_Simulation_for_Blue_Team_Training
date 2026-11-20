@@ -44,6 +44,7 @@ func (t *AnalysisThread) ToResponseDTO() dto.ThreadResponse {
 			Title:          t.Scenario.Title,
 			DomainID:       t.Scenario.DomainID,
 			MitreTechnique: mitre,
+			Translations:   t.Scenario.Translations,
 		}
 	}
 

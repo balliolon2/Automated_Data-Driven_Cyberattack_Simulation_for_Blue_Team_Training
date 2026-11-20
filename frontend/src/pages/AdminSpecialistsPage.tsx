@@ -4,6 +4,8 @@ import {
   ExternalLink, Loader2, Clock 
 } from "lucide-react";
 import axios from "axios";
+import { useI18n } from "../i18n";
+import { resolveApiError } from "../i18n/format";
 
 interface SpecialistApplication {
   application_id: string;
@@ -23,6 +25,7 @@ interface SpecialistApplication {
 }
 
 export default function AdminSpecialistsPage() {
+  const { t, formatDate } = useI18n();
   const [applications, setApplications] = useState<SpecialistApplication[]>([]);
   const [statusFilter, setStatusFilter] = useState<string>("pending");
   const [loading, setLoading] = useState(true);
@@ -48,8 +51,8 @@ export default function AdminSpecialistsPage() {
         params,
       });
       setApplications(res.data);
-    } catch (err: any) {
-      setError(err.response?.data?.error || "Failed to load specialist applications");
+    } catch (err: unknown) {
+      setError(resolveApiError(err, t, t("admin.loadFailed")));
     } finally {
       setLoading(false);
     }
@@ -73,13 +76,13 @@ export default function AdminSpecialistsPage() {
       document.body.appendChild(link);
       link.click();
       link.remove();
-    } catch (err) {
-      alert("Failed to download document. File may not exist on server.");
+    } catch {
+      alert(t("admin.downloadFailed"));
     }
   };
 
   const handleApprove = async (appId: string) => {
-    if (!confirm("Are you sure you want to approve this candidate as a Specialist?")) return;
+    if (!confirm(t("admin.confirmApprove"))) return;
     setSubmittingAction(true);
     setError("");
     setActionSuccess("");
@@ -88,10 +91,10 @@ export default function AdminSpecialistsPage() {
       await axios.post(`/api/admin/applications/${appId}/approve`, {}, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      setActionSuccess("Application approved successfully! Candidate is now a Specialist.");
+      setActionSuccess(t("admin.approveSuccess"));
       fetchApplications();
-    } catch (err: any) {
-      setError(err.response?.data?.error || "Failed to approve application");
+    } catch (err: unknown) {
+      setError(resolveApiError(err, t, t("admin.approveFailed")));
     } finally {
       setSubmittingAction(false);
     }
@@ -109,12 +112,12 @@ export default function AdminSpecialistsPage() {
         { reason: rejectionReason.trim() },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      setActionSuccess("Application rejected with feedback.");
+      setActionSuccess(t("admin.rejectSuccess"));
       setRejectingAppId(null);
       setRejectionReason("");
       fetchApplications();
-    } catch (err: any) {
-      setError(err.response?.data?.error || "Failed to reject application");
+    } catch (err: unknown) {
+      setError(resolveApiError(err, t, t("admin.rejectFailed")));
     } finally {
       setSubmittingAction(false);
     }
@@ -124,13 +127,15 @@ export default function AdminSpecialistsPage() {
     return (
       <div className="min-h-[50vh] flex flex-col items-center justify-center space-y-4">
         <ShieldAlert className="w-12 h-12 text-rose-500" />
-        <h2 className="text-xl font-bold text-white">Access Denied</h2>
+        <h2 className="text-xl font-bold text-white">{t("admin.accessDeniedTitle")}</h2>
         <p className="text-xs text-graphite-400">
-          This portal is strictly restricted to platform administrators.
+          {t("admin.accessDeniedDesc")}
         </p>
       </div>
     );
   }
+
+  const filterLabel = t(`admin.tabs.${statusFilter}`);
 
   return (
     <div className="max-w-6xl mx-auto space-y-8 animate-fade-in">
@@ -139,16 +144,16 @@ export default function AdminSpecialistsPage() {
         <div>
           <div className="flex items-center gap-2">
             <ShieldAlert className="w-6 h-6 text-amber-400" />
-            <h1 className="text-2xl font-bold text-white tracking-tight">Specialist Accreditation Portal</h1>
+            <h1 className="text-2xl font-bold text-white tracking-tight">{t("admin.title")}</h1>
           </div>
           <p className="text-xs text-graphite-400 mt-1 font-light">
-            Review candidate qualifications, inspect submitted resumes/certs, and approve or decline Specialist privileges.
+            {t("admin.subtitle")}
           </p>
         </div>
 
         {/* Filter Tabs */}
         <div className="flex gap-1 p-1 bg-graphite-900 border border-graphite-800 rounded-lg self-start">
-          {["pending", "approved", "rejected", "all"].map((tab) => (
+          {(["pending", "approved", "rejected", "all"] as const).map((tab) => (
             <button
               key={tab}
               onClick={() => setStatusFilter(tab)}
@@ -158,7 +163,7 @@ export default function AdminSpecialistsPage() {
                   : "text-graphite-400 hover:text-white"
               }`}
             >
-              {tab}
+              {t(`admin.tabs.${tab}`)}
             </button>
           ))}
         </div>
@@ -185,8 +190,8 @@ export default function AdminSpecialistsPage() {
       ) : applications.length === 0 ? (
         <div className="py-16 text-center bg-graphite-900 border border-graphite-800 rounded-xl space-y-2">
           <Clock className="w-8 h-8 text-graphite-600 mx-auto" />
-          <p className="text-sm text-graphite-300 font-medium">No applications found</p>
-          <p className="text-xs text-graphite-500">There are no applications matching the "{statusFilter}" status filter.</p>
+          <p className="text-sm text-graphite-300 font-medium">{t("admin.emptyTitle")}</p>
+          <p className="text-xs text-graphite-500">{t("admin.emptyDesc", { status: filterLabel })}</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-6">
@@ -210,7 +215,7 @@ export default function AdminSpecialistsPage() {
                           ? "bg-rose-500/10 text-rose-400 border border-rose-500/30"
                           : "bg-amber-500/10 text-amber-400 border border-amber-500/30"
                       }`}>
-                        {app.status}
+                        {t(`admin.statusLabels.${app.status}`)}
                       </span>
                     </div>
                     <span className="text-xs text-graphite-400 font-mono">{app.email}</span>
@@ -218,14 +223,22 @@ export default function AdminSpecialistsPage() {
                 </div>
 
                 <div className="text-xs text-graphite-500 font-mono">
-                  Applied on {new Date(app.created_at).toLocaleString()}
+                  {t("admin.appliedOn", {
+                    date: formatDate(app.created_at, {
+                      year: "numeric",
+                      month: "short",
+                      day: "numeric",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    }),
+                  })}
                 </div>
               </div>
 
               {/* Bio Section */}
               <div>
                 <span className="text-[11px] font-mono uppercase tracking-wider text-graphite-400 block mb-1">
-                  Candidate Bio & Experience
+                  {t("admin.candidateBio")}
                 </span>
                 <p className="text-xs text-graphite-200 bg-graphite-950 p-3 rounded border border-graphite-800 font-light leading-relaxed whitespace-pre-wrap">
                   {app.bio}
@@ -240,7 +253,7 @@ export default function AdminSpecialistsPage() {
                     className="flex items-center gap-1.5 px-3 py-1.5 bg-graphite-950 border border-graphite-700 hover:border-white rounded text-xs text-graphite-200 transition-colors cursor-pointer"
                   >
                     <Download size={13} />
-                    <span>Download Resume</span>
+                    <span>{t("admin.downloadResume")}</span>
                   </button>
 
                   {app.certificate_path && (
@@ -249,7 +262,7 @@ export default function AdminSpecialistsPage() {
                       className="flex items-center gap-1.5 px-3 py-1.5 bg-graphite-950 border border-graphite-700 hover:border-white rounded text-xs text-graphite-200 transition-colors cursor-pointer"
                     >
                       <Download size={13} />
-                      <span>Download Certificate</span>
+                      <span>{t("admin.downloadCert")}</span>
                     </button>
                   )}
 
@@ -261,7 +274,7 @@ export default function AdminSpecialistsPage() {
                       className="flex items-center gap-1 text-xs text-graphite-400 hover:text-white transition-colors"
                     >
                       <ExternalLink size={12} />
-                      <span>LinkedIn</span>
+                      <span>{t("admin.linkedin")}</span>
                     </a>
                   )}
 
@@ -273,7 +286,7 @@ export default function AdminSpecialistsPage() {
                       className="flex items-center gap-1 text-xs text-graphite-400 hover:text-white transition-colors"
                     >
                       <ExternalLink size={12} />
-                      <span>Portfolio / Credly</span>
+                      <span>{t("admin.portfolio")}</span>
                     </a>
                   )}
                 </div>
@@ -286,7 +299,7 @@ export default function AdminSpecialistsPage() {
                       disabled={submittingAction}
                       className="px-3 py-1.5 bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 border border-rose-500/30 rounded text-xs font-semibold transition-all cursor-pointer"
                     >
-                      Reject...
+                      {t("admin.rejectBtn")}
                     </button>
                     <button
                       onClick={() => handleApprove(app.application_id)}
@@ -294,7 +307,7 @@ export default function AdminSpecialistsPage() {
                       className="px-4 py-1.5 bg-white text-black hover:bg-white/90 rounded text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer shadow"
                     >
                       <CheckCircle2 size={13} />
-                      <span>Approve Specialist</span>
+                      <span>{t("admin.approveBtn")}</span>
                     </button>
                   </div>
                 )}
@@ -303,7 +316,7 @@ export default function AdminSpecialistsPage() {
               {/* Display Rejection Reason if Rejected */}
               {app.status === "rejected" && app.rejection_reason && (
                 <div className="p-3 bg-rose-500/5 border border-rose-500/20 rounded text-xs text-rose-300">
-                  <span className="font-semibold block mb-0.5">Rejection Feedback:</span>
+                  <span className="font-semibold block mb-0.5">{t("admin.rejectionFeedbackLabel")}</span>
                   <p className="font-mono text-[11px]">{app.rejection_reason}</p>
                 </div>
               )}
@@ -317,7 +330,7 @@ export default function AdminSpecialistsPage() {
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-graphite-900 border border-graphite-800 rounded-xl max-w-md w-full p-6 space-y-4 shadow-2xl animate-fade-in">
             <div className="flex items-center justify-between">
-              <h3 className="text-base font-bold text-white">Decline Specialist Application</h3>
+              <h3 className="text-base font-bold text-white">{t("admin.rejectModalTitle")}</h3>
               <button
                 onClick={() => setRejectingAppId(null)}
                 className="text-graphite-400 hover:text-white"
@@ -327,13 +340,13 @@ export default function AdminSpecialistsPage() {
             </div>
 
             <p className="text-xs text-graphite-400 font-light">
-              Please provide feedback explaining why the candidate was not approved. The applicant will be able to see this reason and re-apply.
+              {t("admin.rejectModalDesc")}
             </p>
 
             <form onSubmit={handleRejectSubmit} className="space-y-4">
               <div>
                 <label className="block text-xs font-medium text-graphite-300 mb-1">
-                  Rejection Reason <span className="text-red-400">*</span>
+                  {t("admin.rejectionReasonLabel")} <span className="text-red-400">*</span>
                 </label>
                 <textarea
                   value={rejectionReason}
@@ -342,7 +355,7 @@ export default function AdminSpecialistsPage() {
                   minLength={3}
                   rows={4}
                   className="w-full px-3 py-2 bg-graphite-950 border border-graphite-800 rounded text-xs text-white placeholder-graphite-600 focus:outline-none focus:border-white font-light"
-                  placeholder="e.g. Please provide proof of CompTIA Security+ or at least 2 years SOC analyst experience..."
+                  placeholder={t("admin.rejectionReasonPlaceholder")}
                 />
               </div>
 
@@ -352,14 +365,14 @@ export default function AdminSpecialistsPage() {
                   onClick={() => setRejectingAppId(null)}
                   className="px-3 py-1.5 border border-graphite-800 rounded text-xs text-graphite-400 hover:text-white"
                 >
-                  Cancel
+                  {t("admin.cancel")}
                 </button>
                 <button
                   type="submit"
                   disabled={submittingAction || !rejectionReason.trim()}
                   className="px-4 py-1.5 bg-rose-600 text-white font-semibold rounded text-xs hover:bg-rose-500 disabled:opacity-50"
                 >
-                  {submittingAction ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : "Confirm Rejection"}
+                  {submittingAction ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : t("admin.confirmReject")}
                 </button>
               </div>
             </form>

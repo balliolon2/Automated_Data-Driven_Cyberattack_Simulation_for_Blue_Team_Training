@@ -2,6 +2,7 @@ import { en } from "./en.ts";
 import { th } from "./th.ts";
 import type {
   ApiErrorLike,
+  LocalizableNotification,
   LocalizableScenario,
   Locale,
   ScenarioTranslationPayload,
@@ -143,5 +144,27 @@ export function resolveScenarioLocale(
       tr?.findings?.[findingId]?.description?.trim() || fallback,
     findingExplanation: (findingId: string, fallback: string) =>
       tr?.findings?.[findingId]?.explanation?.trim() || fallback,
+  };
+}
+
+export function resolveNotificationLocale(
+  notif: LocalizableNotification | null | undefined,
+  locale: Locale,
+): { title: string; message: string } {
+  const activeLocale = normalizeLocale(locale);
+  const templateKey = typeof notif?.template_key === "string" ? notif.template_key.trim() : "";
+  if (templateKey) {
+    const titleKey = `notifications.templates.${templateKey}.title`;
+    const msgKey = `notifications.templates.${templateKey}.message`;
+    const params = sanitizeParams(notif?.template_params);
+    const localizedTitle = translate(activeLocale, titleKey, params);
+    const localizedMsg = translate(activeLocale, msgKey, params);
+    if (localizedTitle !== titleKey && localizedMsg !== msgKey) {
+      return { title: localizedTitle, message: localizedMsg };
+    }
+  }
+  return {
+    title: notif?.title ?? "",
+    message: notif?.message ?? "",
   };
 }

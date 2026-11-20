@@ -3,17 +3,22 @@ import { useNavigate, useLocation } from "react-router-dom";
 import axios from "axios";
 import { Bell, CheckCheck, Clock } from "lucide-react";
 import { cn } from "../lib/utils";
+import { useI18n } from "../i18n";
+import { resolveNotificationLocale } from "../i18n/format";
 
 interface NotificationItem {
   notification_id: string;
   title: string;
   message: string;
+  template_key?: string;
+  template_params?: Record<string, unknown>;
   link_url: string;
   is_read: boolean;
   created_at: string;
 }
 
 export default function NotificationBell() {
+  const { locale, t, formatDate } = useI18n();
   const navigate = useNavigate();
   const location = useLocation();
   const token = localStorage.getItem("token");
@@ -119,7 +124,7 @@ export default function NotificationBell() {
           setIsOpen(!isOpen);
           if (!isOpen) fetchNotifications();
         }}
-        aria-label="Notifications"
+        aria-label={t("notifications.ariaLabel")}
         className="relative p-1.5 rounded-md text-graphite-400 hover:text-white hover:bg-graphite-900 transition-colors cursor-pointer"
       >
         <Bell className="w-4 h-4" />
@@ -136,10 +141,10 @@ export default function NotificationBell() {
           {/* Header */}
           <div className="flex items-center justify-between p-3.5 border-b border-graphite-800 bg-graphite-900/70">
             <div className="flex items-center gap-2">
-              <span className="font-bold text-white text-xs">Notifications</span>
+              <span className="font-bold text-white text-xs">{t("notifications.title")}</span>
               {unreadCount > 0 && (
                 <span className="px-1.5 py-0.2 rounded bg-indigo-500/20 text-indigo-400 font-mono text-[10px] font-semibold">
-                  {unreadCount} new
+                  {t("notifications.newBadge", { count: unreadCount })}
                 </span>
               )}
             </div>
@@ -151,7 +156,7 @@ export default function NotificationBell() {
                 className="flex items-center gap-1 text-[11px] text-graphite-400 hover:text-white transition-colors cursor-pointer disabled:opacity-50"
               >
                 <CheckCheck className="w-3.5 h-3.5" />
-                <span>Mark all read</span>
+                <span>{t("notifications.markAllRead")}</span>
               </button>
             )}
           </div>
@@ -160,44 +165,47 @@ export default function NotificationBell() {
           <div className="max-h-80 overflow-y-auto divide-y divide-graphite-800/60">
             {notifications.length === 0 ? (
               <div className="py-10 text-center text-graphite-500 font-mono text-xs">
-                No notifications yet.
+                {t("notifications.empty")}
               </div>
             ) : (
-              notifications.map((notif) => (
-                <div
-                  key={notif.notification_id}
-                  onClick={() => markAsRead(notif)}
-                  className={cn(
-                    "p-3.5 hover:bg-graphite-900/60 transition-colors cursor-pointer space-y-1 relative",
-                    !notif.is_read && "bg-indigo-950/15"
-                  )}
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-1.5">
-                      {!notif.is_read && (
-                        <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 shrink-0" />
-                      )}
-                      <span
-                        className={cn(
-                          "font-medium truncate",
-                          notif.is_read ? "text-graphite-300" : "text-white font-semibold"
+              notifications.map((notif) => {
+                const localized = resolveNotificationLocale(notif, locale);
+                return (
+                  <div
+                    key={notif.notification_id}
+                    onClick={() => markAsRead(notif)}
+                    className={cn(
+                      "p-3.5 hover:bg-graphite-900/60 transition-colors cursor-pointer space-y-1 relative",
+                      !notif.is_read && "bg-indigo-950/15"
+                    )}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-1.5">
+                        {!notif.is_read && (
+                          <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 shrink-0" />
                         )}
-                      >
-                        {notif.title}
-                      </span>
+                        <span
+                          className={cn(
+                            "font-medium truncate",
+                            notif.is_read ? "text-graphite-300" : "text-white font-semibold"
+                          )}
+                        >
+                          {localized.title}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center gap-1 text-[10px] font-mono text-graphite-500 shrink-0">
+                        <Clock className="w-3 h-3" />
+                        <span>{formatDate(notif.created_at)}</span>
+                      </div>
                     </div>
 
-                    <div className="flex items-center gap-1 text-[10px] font-mono text-graphite-500 shrink-0">
-                      <Clock className="w-3 h-3" />
-                      <span>{new Date(notif.created_at).toLocaleDateString()}</span>
-                    </div>
+                    <p className="text-[11px] text-graphite-400 leading-relaxed line-clamp-2">
+                      {localized.message}
+                    </p>
                   </div>
-
-                  <p className="text-[11px] text-graphite-400 leading-relaxed line-clamp-2">
-                    {notif.message}
-                  </p>
-                </div>
-              ))
+                );
+              })
             )}
           </div>
         </div>

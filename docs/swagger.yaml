@@ -64,6 +64,9 @@ definitions:
       nickname:
         example: cyber_defender
         type: string
+      preferred_language:
+        example: en
+        type: string
       role:
         example: learner
         type: string
@@ -225,6 +228,9 @@ definitions:
       message:
         example: Detailed error description
         type: string
+      params:
+        additionalProperties: {}
+        type: object
     type: object
   dto.EvidenceFindingDTO:
     properties:
@@ -513,6 +519,9 @@ definitions:
         example: Secret123!
         minLength: 6
         type: string
+      preferred_language:
+        example: en
+        type: string
     required:
     - email
     - password
@@ -609,6 +618,7 @@ definitions:
           indices, finding descriptions, and verdict markers stay server-side.
         example: 2
         type: integer
+      translations: {}
     type: object
   dto.SelectLogRequest:
     properties:
@@ -720,6 +730,7 @@ definitions:
         type: string
       scenario_title:
         type: string
+      scenario_translations: {}
       selected_actions:
         items:
           type: string
@@ -769,6 +780,7 @@ definitions:
         type: string
       scenario_title:
         type: string
+      scenario_translations: {}
       session_id:
         type: string
       total_findings_count:
@@ -919,6 +931,9 @@ definitions:
     type: object
   dto.TheoryGateErrorResponse:
     properties:
+      code:
+        example: LEARN_PRETEST_REQUIRED
+        type: string
       completed_count:
         example: 2
         type: integer
@@ -940,6 +955,9 @@ definitions:
         items:
           type: string
         type: array
+      params:
+        additionalProperties: {}
+        type: object
       reason:
         example: pre_test_required
         type: string
@@ -977,6 +995,23 @@ definitions:
         type: string
       title:
         example: Compare and contrast various types of security controls
+        type: string
+    type: object
+  dto.UpdateLanguageRequest:
+    properties:
+      language:
+        example: th
+        type: string
+    required:
+    - language
+    type: object
+  dto.UpdateLanguageResponse:
+    properties:
+      message:
+        example: Language preference updated
+        type: string
+      preferred_language:
+        example: th
         type: string
     type: object
   models.DomainScoreDetail:
@@ -1274,6 +1309,11 @@ paths:
       description: Returns the 5 CompTIA Security+ domain Theory Modules, learner
         proficiency context, and completion state. Learners must finish the Pre-Test
         first; Specialists and Admins always have access.
+      parameters:
+      - description: Language locale (en or th)
+        in: query
+        name: lang
+        type: string
       produces:
       - application/json
       responses:
@@ -1353,6 +1393,10 @@ paths:
         in: path
         name: subTopicId
         required: true
+        type: string
+      - description: Language locale (en or th)
+        in: query
+        name: lang
         type: string
       produces:
       - application/json
@@ -1523,7 +1567,8 @@ paths:
     post:
       consumes:
       - application/json
-      description: Creates a new learner account with email, password, and nickname
+      description: Creates a new learner account with email, password, nickname, and
+        optional preferred_language
       parameters:
       - description: User Registration Info
         in: body
@@ -1939,6 +1984,47 @@ paths:
       summary: Get specialist submission detail
       tags:
       - Specialist
+  /user/language:
+    put:
+      consumes:
+      - application/json
+      description: Updates the authenticated user's preferred UI language ('en' or
+        'th')
+      parameters:
+      - description: Language Preference
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdateLanguageRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.UpdateLanguageResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Update user language preference
+      tags:
+      - User
 securityDefinitions:
   BearerAuth:
     description: 'Type "Bearer" followed by a space and JWT token. Example: "Bearer

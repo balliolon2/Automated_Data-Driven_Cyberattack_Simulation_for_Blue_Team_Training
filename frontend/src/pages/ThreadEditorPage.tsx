@@ -16,11 +16,18 @@ import {
   Loader2,
 } from "lucide-react";
 import MarkdownView from "../components/MarkdownView";
+import { useI18n } from "../i18n";
+import { resolveApiError, resolveScenarioLocale } from "../i18n/format";
+import type { ScenarioTranslationPayload } from "../i18n/types";
 
 interface ScenarioOption {
   scenario_id: string;
   title: string;
   domain_id: string;
+  translations?: {
+    th?: ScenarioTranslationPayload;
+    [locale: string]: ScenarioTranslationPayload | undefined;
+  };
 }
 
 interface EvidenceLog {
@@ -118,6 +125,7 @@ function buildEvidenceReviewMarkdown(detail: EvidenceReviewSubmission): string {
 }
 
 export default function ThreadEditorPage() {
+  const { locale, t } = useI18n();
   const { id } = useParams<{ id: string }>();
   const isEditing = Boolean(id);
   const [searchParams] = useSearchParams();
@@ -195,11 +203,13 @@ export default function ThreadEditorPage() {
 
       if (Array.isArray(res.data)) {
         for (const item of res.data) {
-          if (item.scenario_id && !map.has(item.scenario_id)) {
+          if (item.scenario_id) {
+            const existing = map.get(item.scenario_id);
             map.set(item.scenario_id, {
               scenario_id: item.scenario_id,
-              title: item.scenario_title,
-              domain_id: item.domain_id,
+              title: item.scenario_title || existing?.title || "",
+              domain_id: item.domain_id || existing?.domain_id || "Simulation",
+              translations: item.scenario_translations || existing?.translations,
             });
           }
         }
@@ -214,18 +224,31 @@ export default function ThreadEditorPage() {
     setInitialLoading(true);
     try {
       const res = await axios.get(`/api/threads/${threadId}`);
-      const t = res.data;
-      setTitle(t.title);
-      setContent(t.content);
-      if (t.scenario?.scenario_id) {
-        setScenarioId(t.scenario.scenario_id);
+      const threadData = res.data;
+      setTitle(threadData.title);
+      setContent(threadData.content);
+      if (threadData.scenario?.scenario_id) {
+        setScenarioId(threadData.scenario.scenario_id);
+        setScenarios((prev) => {
+          const exists = prev.some((s) => s.scenario_id === threadData.scenario.scenario_id);
+          if (exists) return prev;
+          return [
+            {
+              scenario_id: threadData.scenario.scenario_id,
+              title: threadData.scenario.title,
+              domain_id: threadData.scenario.domain_id,
+              translations: threadData.scenario.translations,
+            },
+            ...prev,
+          ];
+        });
       }
-      if (Array.isArray(t.tags)) {
-        setTags(t.tags);
+      if (Array.isArray(threadData.tags)) {
+        setTags(threadData.tags);
       }
-    } catch (err) {
+    } catch (err: unknown) {
       console.error("Failed to load thread:", err);
-      setErrorMsg("Failed to load thread details.");
+      setErrorMsg(resolveApiError(err, t, t("discussions.editor.loadFailed")));
     } finally {
       setInitialLoading(false);
     }
@@ -240,7 +263,7 @@ export default function ThreadEditorPage() {
   };
 
   const handleRemoveTag = (tagToRemove: string) => {
-    setTags(tags.filter((t) => t !== tagToRemove));
+    setTags(tags.filter((tag) => tag !== tagToRemove));
   };
 
   const insertSnippet = (snippet: string) => {
@@ -252,11 +275,11 @@ export default function ThreadEditorPage() {
     setErrorMsg("");
 
     if (title.trim().length < 5) {
-      setErrorMsg("Title must be at least 5 characters long.");
+      setErrorMsg(t("discussions.editor.titleTooShort"));
       return;
     }
     if (content.trim().length < 20) {
-      setErrorMsg("Content must be at least 20 characters long.");
+      setErrorMsg(t("discussions.editor.contentTooShort"));
       return;
     }
 
@@ -274,7 +297,7 @@ export default function ThreadEditorPage() {
         );
         navigate(`/discussions/${id}`);
       } else {
-        const payload: any = {
+        const payload: { title: string; content: string; tags: string[]; scenario_id?: string } = {
           title: title.trim(),
           content: content.trim(),
           tags,
@@ -287,9 +310,9 @@ export default function ThreadEditorPage() {
         });
         navigate(`/discussions/${res.data.thread_id}`);
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Submit thread error:", err);
-      setErrorMsg(err.response?.data?.error || "Failed to publish analysis post.");
+      setErrorMsg(resolveApiError(err, t, t("discussions.editor.submitFailed")));
     } finally {
       setLoading(false);
     }
@@ -298,7 +321,7 @@ export default function ThreadEditorPage() {
   if (initialLoading) {
     return (
       <div className="py-24 text-center text-graphite-500 font-mono text-xs">
-        Loading post editor...
+        {t("discussions.editor.loading")}
       </div>
     );
   }
@@ -316,10 +339,10 @@ export default function ThreadEditorPage() {
           </button>
           <div>
             <h1 className="text-xl font-bold tracking-tight text-white">
-              {isEditing ? "Edit Analysis Post" : "Author New Specialist Analysis"}
+              {isEditing ? t("discussions.editor.editTitle") : t("discussions.editor.newTitle")}
             </h1>
             <p className="text-xs text-graphite-400">
-              Share your tactical breakdown, triage methodology, and playbook guidance.
+              {t("discussions.editor.subtitle")}
             </p>
           </div>
         </div>
@@ -334,7 +357,7 @@ export default function ThreadEditorPage() {
             }`}
           >
             <Edit3 className="w-3.5 h-3.5 inline mr-1" />
-            Write
+            {t("discussions.editor.writeTab")}
           </button>
           <button
             type="button"
@@ -344,7 +367,7 @@ export default function ThreadEditorPage() {
             }`}
           >
             <Eye className="w-3.5 h-3.5 inline mr-1" />
-            Preview
+            {t("discussions.editor.previewTab")}
           </button>
           <button
             type="button"
@@ -353,7 +376,7 @@ export default function ThreadEditorPage() {
               activeTab === "split" ? "bg-graphite-800 text-white" : "text-graphite-400 hover:text-white"
             }`}
           >
-            Split
+            {t("discussions.editor.splitTab")}
           </button>
         </div>
       </div>
@@ -370,7 +393,7 @@ export default function ThreadEditorPage() {
         <div className="space-y-1.5">
           <label className="text-xs font-semibold text-graphite-300 flex items-center gap-1.5">
             <Crosshair className="w-3.5 h-3.5 text-indigo-400" />
-            <span>Link to Scenario (Optional)</span>
+            <span>{t("discussions.editor.linkScenarioLabel")}</span>
           </label>
           <select
             value={scenarioId}
@@ -378,27 +401,30 @@ export default function ThreadEditorPage() {
             disabled={isEditing}
             className="w-full px-3 py-2 rounded-lg bg-graphite-950 border border-graphite-800 text-graphite-200 text-xs focus:outline-none focus:border-graphite-600 disabled:opacity-60"
           >
-            <option value="">-- General Analysis / Theoretical Concept --</option>
-            {scenarios.map((sc) => (
-              <option key={sc.scenario_id} value={sc.scenario_id}>
-                {sc.title} ({sc.domain_id})
-              </option>
-            ))}
+            <option value="">{t("discussions.editor.generalAnalysisOption")}</option>
+            {scenarios.map((sc) => {
+              const loc = resolveScenarioLocale(sc, locale);
+              return (
+                <option key={sc.scenario_id} value={sc.scenario_id}>
+                  {loc.title} ({sc.domain_id})
+                </option>
+              );
+            })}
           </select>
           <p className="text-[11px] text-graphite-500">
-            Linking a scenario embeds this post directly beneath the scenario's simulation evaluation page.
+            {t("discussions.editor.linkScenarioHint")}
           </p>
         </div>
 
         {/* Title */}
         <div className="space-y-1.5">
           <label className="text-xs font-semibold text-graphite-300">
-            Post Title <span className="text-red-400">*</span>
+            {t("discussions.editor.postTitleLabel")} <span className="text-red-400">*</span>
           </label>
           <input
             type="text"
             required
-            placeholder="e.g., Tactical Deconstruction: Identifying False-Positive SIEM Alerts in Domain 4"
+            placeholder={t("discussions.editor.postTitlePlaceholder")}
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             className="w-full px-3.5 py-2.5 rounded-lg bg-graphite-950 border border-graphite-800 text-white placeholder-graphite-600 text-sm focus:outline-none focus:border-graphite-600"
@@ -407,7 +433,7 @@ export default function ThreadEditorPage() {
 
         {/* Tags */}
         <div className="space-y-1.5">
-          <label className="text-xs font-semibold text-graphite-300">Tags</label>
+          <label className="text-xs font-semibold text-graphite-300">{t("discussions.editor.tagsLabel")}</label>
           <div className="flex flex-wrap items-center gap-1.5 p-2 rounded-lg bg-graphite-950 border border-graphite-800">
             {tags.map((tag) => (
               <span
@@ -426,7 +452,7 @@ export default function ThreadEditorPage() {
             ))}
             <input
               type="text"
-              placeholder="Type tag and press Enter..."
+              placeholder={t("discussions.editor.tagsPlaceholder")}
               value={tagInput}
               onChange={(e) => setTagInput(e.target.value)}
               onKeyDown={(e) => {
@@ -443,7 +469,7 @@ export default function ThreadEditorPage() {
         {/* Quick-Insert Toolbar */}
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-graphite-400">Quick-Insert Blue Team Templates</span>
+            <span className="text-xs font-semibold text-graphite-400">{t("discussions.editor.templatesLabel")}</span>
           </div>
 
           <div className="flex flex-wrap gap-2 text-xs">
@@ -457,7 +483,7 @@ export default function ThreadEditorPage() {
               className="px-2.5 py-1.5 rounded bg-graphite-900 hover:bg-graphite-800 border border-graphite-800 text-graphite-300 hover:text-white flex items-center gap-1.5 text-xs transition-colors cursor-pointer"
             >
               <Clock className="w-3.5 h-3.5 text-indigo-400" />
-              <span>Timeline Table</span>
+              <span>{t("discussions.editor.timelineBtn")}</span>
             </button>
 
             <button
@@ -470,7 +496,7 @@ export default function ThreadEditorPage() {
               className="px-2.5 py-1.5 rounded bg-graphite-900 hover:bg-graphite-800 border border-graphite-800 text-graphite-300 hover:text-white flex items-center gap-1.5 text-xs transition-colors cursor-pointer"
             >
               <Search className="w-3.5 h-3.5 text-amber-400" />
-              <span>IOC Table</span>
+              <span>{t("discussions.editor.iocBtn")}</span>
             </button>
 
             <button
@@ -483,7 +509,7 @@ export default function ThreadEditorPage() {
               className="px-2.5 py-1.5 rounded bg-graphite-900 hover:bg-graphite-800 border border-graphite-800 text-graphite-300 hover:text-white flex items-center gap-1.5 text-xs transition-colors cursor-pointer"
             >
               <Shield className="w-3.5 h-3.5 text-emerald-400" />
-              <span>Sigma Rule</span>
+              <span>{t("discussions.editor.sigmaBtn")}</span>
             </button>
 
             <button
@@ -496,7 +522,7 @@ export default function ThreadEditorPage() {
               className="px-2.5 py-1.5 rounded bg-graphite-900 hover:bg-graphite-800 border border-graphite-800 text-graphite-300 hover:text-white flex items-center gap-1.5 text-xs transition-colors cursor-pointer"
             >
               <Lightbulb className="w-3.5 h-3.5 text-amber-400" />
-              <span>Key Takeaways</span>
+              <span>{t("discussions.editor.takeawaysBtn")}</span>
             </button>
 
             {evidenceReview?.evidence_review_available && (
@@ -506,7 +532,7 @@ export default function ThreadEditorPage() {
                 className="px-2.5 py-1.5 rounded bg-cyan-950/40 hover:bg-cyan-900/50 border border-cyan-500/30 text-cyan-200 hover:text-white flex items-center gap-1.5 text-xs transition-colors cursor-pointer"
               >
                 <Search className="w-3.5 h-3.5 text-cyan-400" />
-                <span>Evidence Review</span>
+                <span>{t("discussions.editor.evidenceReviewBtn")}</span>
               </button>
             )}
           </div>
@@ -515,14 +541,14 @@ export default function ThreadEditorPage() {
         {/* Content Area */}
         <div className="space-y-1.5">
           <label className="text-xs font-semibold text-graphite-300">
-            Post Body (Markdown Supported) <span className="text-red-400">*</span>
+            {t("discussions.editor.postBodyLabel")} <span className="text-red-400">*</span>
           </label>
 
           {activeTab === "write" && (
             <textarea
               required
               rows={16}
-              placeholder="Write comprehensive analysis, steps to triage, playbook recommendations, and evidence notes..."
+              placeholder={t("discussions.editor.writePlaceholder")}
               value={content}
               onChange={(e) => setContent(e.target.value)}
               className="w-full p-4 rounded-lg bg-graphite-950 border border-graphite-800 text-white placeholder-graphite-600 text-xs font-mono leading-relaxed focus:outline-none focus:border-graphite-600 resize-y"
@@ -534,7 +560,7 @@ export default function ThreadEditorPage() {
               {content.trim() ? (
                 <MarkdownView content={content} />
               ) : (
-                <p className="text-xs text-graphite-500 italic">No content to preview.</p>
+                <p className="text-xs text-graphite-500 italic">{t("discussions.editor.previewEmpty")}</p>
               )}
             </div>
           )}
@@ -544,7 +570,7 @@ export default function ThreadEditorPage() {
               <textarea
                 required
                 rows={16}
-                placeholder="Write markdown here..."
+                placeholder={t("discussions.editor.splitPlaceholder")}
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
                 className="w-full p-4 rounded-lg bg-graphite-950 border border-graphite-800 text-white placeholder-graphite-600 text-xs font-mono leading-relaxed focus:outline-none focus:border-graphite-600 resize-y"
@@ -553,7 +579,7 @@ export default function ThreadEditorPage() {
                 {content.trim() ? (
                   <MarkdownView content={content} />
                 ) : (
-                  <p className="text-xs text-graphite-500 italic">Preview will appear here.</p>
+                  <p className="text-xs text-graphite-500 italic">{t("discussions.editor.splitPreviewEmpty")}</p>
                 )}
               </div>
             </div>
@@ -567,7 +593,7 @@ export default function ThreadEditorPage() {
             onClick={() => navigate(-1)}
             className="px-4 py-2 rounded-md border border-graphite-800 text-graphite-300 hover:text-white hover:bg-graphite-900 text-xs font-medium transition-colors"
           >
-            Cancel
+            {t("discussions.editor.cancel")}
           </button>
 
           <button
@@ -578,12 +604,12 @@ export default function ThreadEditorPage() {
             {loading ? (
               <>
                 <Loader2 className="w-4 h-4 animate-spin" />
-                <span>Saving...</span>
+                <span>{t("discussions.editor.saving")}</span>
               </>
             ) : (
               <>
                 <Save className="w-4 h-4" />
-                <span>{isEditing ? "Update Post" : "Publish Post"}</span>
+                <span>{isEditing ? t("discussions.editor.updatePost") : t("discussions.editor.publishPost")}</span>
               </>
             )}
           </button>

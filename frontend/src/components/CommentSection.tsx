@@ -16,6 +16,8 @@ import {
 import MarkdownView from "./MarkdownView";
 import RoleBadge from "./RoleBadge";
 import { cn } from "../lib/utils";
+import { useI18n } from "../i18n";
+import { resolveApiError } from "../i18n/format";
 
 interface CommentAuthor {
   user_id: string;
@@ -44,6 +46,7 @@ interface CommentSectionProps {
 }
 
 export default function CommentSection({ threadId, threadAuthorId }: CommentSectionProps) {
+  const { t, formatDate } = useI18n();
   const token = localStorage.getItem("token");
   const currentUserId = localStorage.getItem("userId");
   const currentUserRole = localStorage.getItem("userRole") || "learner";
@@ -116,9 +119,9 @@ export default function CommentSection({ threadId, threadAuthorId }: CommentSect
       );
       setNewCommentContent("");
       fetchComments();
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Failed to post comment:", err);
-      setErrorMsg(err.response?.data?.error || "Failed to post comment.");
+      setErrorMsg(resolveApiError(err, t, t("discussions.comments.postFailed")));
     } finally {
       setSubmitting(false);
     }
@@ -168,7 +171,7 @@ export default function CommentSection({ threadId, threadAuthorId }: CommentSect
   };
 
   const handleDeleteComment = async (commentId: string) => {
-    if (!token || !window.confirm("Are you sure you want to delete this comment?")) return;
+    if (!token || !window.confirm(t("discussions.comments.confirmDelete"))) return;
 
     try {
       await axios.delete(`/api/comments/${commentId}`, {
@@ -189,8 +192,8 @@ export default function CommentSection({ threadId, threadAuthorId }: CommentSect
         { headers: { Authorization: `Bearer ${token}` } }
       );
       fetchComments();
-    } catch (err: any) {
-      alert(err.response?.data?.error || "Failed to pin comment.");
+    } catch (err: unknown) {
+      alert(resolveApiError(err, t, t("discussions.comments.pinFailed")));
     }
   };
 
@@ -241,6 +244,7 @@ export default function CommentSection({ threadId, threadAuthorId }: CommentSect
 
   const canModerate =
     Boolean(currentUserId && threadAuthorId === currentUserId) || currentUserRole === "admin";
+  const totalComments = comments.reduce((acc, curr) => acc + 1 + (curr.replies?.length || 0), 0);
 
   return (
     <div className="space-y-6 pt-6 border-t border-graphite-800 animate-fade-in" id="comments">
@@ -248,10 +252,10 @@ export default function CommentSection({ threadId, threadAuthorId }: CommentSect
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <MessageSquare className="w-4 h-4 text-indigo-400" />
-          <h3 className="text-base font-bold text-white">Community Discussion & Follow-ups</h3>
+          <h3 className="text-base font-bold text-white">{t("discussions.comments.title")}</h3>
         </div>
         <span className="text-xs font-mono text-graphite-500">
-          {comments.reduce((acc, curr) => acc + 1 + (curr.replies?.length || 0), 0)} comments
+          {t("discussions.comments.count", { count: totalComments })}
         </span>
       </div>
 
@@ -268,14 +272,14 @@ export default function CommentSection({ threadId, threadAuthorId }: CommentSect
           <div className="relative rounded-lg bg-graphite-950 border border-graphite-800 focus-within:border-graphite-600 transition-colors">
             <textarea
               rows={3}
-              placeholder="Ask a technical question, suggest an alternative containment rule, or share insights..."
+              placeholder={t("discussions.comments.inputPlaceholder")}
               value={newCommentContent}
               onChange={(e) => setNewCommentContent(e.target.value)}
               className="w-full p-3 bg-transparent text-xs text-graphite-200 placeholder-graphite-600 focus:outline-none resize-y"
             />
             <div className="flex items-center justify-between px-3 py-2 border-t border-graphite-800/80 text-xs">
               <span className="text-[10px] font-mono text-graphite-500">
-                Markdown & code blocks supported
+                {t("discussions.comments.markdownSupported")}
               </span>
               <button
                 type="submit"
@@ -287,26 +291,26 @@ export default function CommentSection({ threadId, threadAuthorId }: CommentSect
                 ) : (
                   <Send className="w-3 h-3" />
                 )}
-                <span>Comment</span>
+                <span>{t("discussions.comments.submit")}</span>
               </button>
             </div>
           </div>
         </form>
       ) : (
         <div className="p-4 rounded-lg bg-graphite-950 border border-graphite-800 text-center space-y-2">
-          <p className="text-xs text-graphite-400">Sign in to join the technical discussion.</p>
+          <p className="text-xs text-graphite-400">{t("discussions.comments.signInPrompt")}</p>
         </div>
       )}
 
       {/* Comments Listing */}
       {loading ? (
         <div className="py-12 text-center text-graphite-500 font-mono text-xs">
-          Loading discussion comments...
+          {t("discussions.comments.loading")}
         </div>
       ) : comments.length === 0 ? (
         <div className="py-10 text-center border border-dashed border-graphite-800/80 rounded-lg space-y-1 text-xs">
-          <p className="font-medium text-graphite-300">No comments yet</p>
-          <p className="text-graphite-500">Be the first to ask a question or leave feedback!</p>
+          <p className="font-medium text-graphite-300">{t("discussions.comments.emptyTitle")}</p>
+          <p className="text-graphite-500">{t("discussions.comments.emptyDesc")}</p>
         </div>
       ) : (
         <div className="space-y-4">
@@ -325,7 +329,7 @@ export default function CommentSection({ threadId, threadAuthorId }: CommentSect
               {rootComment.is_pinned && (
                 <div className="flex items-center gap-1 text-[10px] font-mono font-bold text-amber-400">
                   <Pin className="w-3 h-3" />
-                  <span>PINNED BY AUTHOR</span>
+                  <span>{t("discussions.comments.pinnedByAuthor")}</span>
                 </div>
               )}
 
@@ -338,7 +342,7 @@ export default function CommentSection({ threadId, threadAuthorId }: CommentSect
                   <RoleBadge role={rootComment.author.role} />
                   <span className="text-graphite-600">•</span>
                   <span className="text-[11px] font-mono text-graphite-500">
-                    {new Date(rootComment.created_at).toLocaleDateString()}
+                    {formatDate(rootComment.created_at)}
                   </span>
                 </div>
 
@@ -348,7 +352,7 @@ export default function CommentSection({ threadId, threadAuthorId }: CommentSect
                     <>
                       <button
                         onClick={() => handleTogglePin(rootComment.comment_id)}
-                        title={rootComment.is_pinned ? "Unpin comment" : "Pin comment to top"}
+                        title={rootComment.is_pinned ? t("discussions.comments.unpinTooltip") : t("discussions.comments.pinTooltip")}
                         className={cn(
                           "p-1 rounded hover:bg-graphite-800 text-xs transition-colors",
                           rootComment.is_pinned ? "text-amber-400" : "text-graphite-500 hover:text-white"
@@ -359,7 +363,7 @@ export default function CommentSection({ threadId, threadAuthorId }: CommentSect
 
                       <button
                         onClick={() => handleToggleHide(rootComment.comment_id)}
-                        title={rootComment.is_hidden ? "Unhide comment" : "Hide comment as spam"}
+                        title={rootComment.is_hidden ? t("discussions.comments.unhideTooltip") : t("discussions.comments.hideTooltip")}
                         className={cn(
                           "p-1 rounded hover:bg-graphite-800 text-xs transition-colors",
                           rootComment.is_hidden ? "text-red-400" : "text-graphite-500 hover:text-white"
@@ -377,7 +381,7 @@ export default function CommentSection({ threadId, threadAuthorId }: CommentSect
                           setEditingCommentId(rootComment.comment_id);
                           setEditContent(rootComment.content);
                         }}
-                        title="Edit comment"
+                        title={t("discussions.comments.editTooltip")}
                         className="p-1 rounded text-graphite-500 hover:text-white hover:bg-graphite-800 transition-colors"
                       >
                         <Edit2 className="w-3.5 h-3.5" />
@@ -385,7 +389,7 @@ export default function CommentSection({ threadId, threadAuthorId }: CommentSect
 
                       <button
                         onClick={() => handleDeleteComment(rootComment.comment_id)}
-                        title="Delete comment"
+                        title={t("discussions.comments.deleteTooltip")}
                         className="p-1 rounded text-graphite-500 hover:text-red-400 hover:bg-graphite-800 transition-colors"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
@@ -409,14 +413,14 @@ export default function CommentSection({ threadId, threadAuthorId }: CommentSect
                       onClick={() => setEditingCommentId(null)}
                       className="px-2.5 py-1 rounded border border-graphite-800 text-graphite-300 text-xs hover:bg-graphite-800"
                     >
-                      Cancel
+                      {t("discussions.comments.cancel")}
                     </button>
                     <button
                       onClick={() => handleUpdateComment(rootComment.comment_id)}
                       disabled={editSubmitting}
                       className="px-3 py-1 rounded bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs transition-colors"
                     >
-                      {editSubmitting ? "Saving..." : "Save Changes"}
+                      {editSubmitting ? t("discussions.comments.saving") : t("discussions.comments.saveChanges")}
                     </button>
                   </div>
                 </div>
@@ -459,7 +463,7 @@ export default function CommentSection({ threadId, threadAuthorId }: CommentSect
                     className="flex items-center gap-1 text-[11px] text-graphite-400 hover:text-indigo-400 transition-colors cursor-pointer"
                   >
                     <Reply className="w-3 h-3" />
-                    <span>Reply</span>
+                    <span>{t("discussions.comments.replyBtn")}</span>
                   </button>
                 )}
               </div>
@@ -469,7 +473,7 @@ export default function CommentSection({ threadId, threadAuthorId }: CommentSect
                 <div className="mt-3 p-3 rounded-lg bg-graphite-900/50 border border-graphite-800 space-y-2">
                   <div className="flex items-center justify-between text-[11px] text-graphite-400">
                     <span>
-                      Replying to <span className="text-white font-mono">@{replyTarget.authorNickname}</span>
+                      {t("discussions.comments.replyingTo")} <span className="text-white font-mono">@{replyTarget.authorNickname}</span>
                     </span>
                     <button
                       onClick={() => setReplyTarget(null)}
@@ -480,7 +484,7 @@ export default function CommentSection({ threadId, threadAuthorId }: CommentSect
                   </div>
                   <textarea
                     rows={2}
-                    placeholder="Write your reply..."
+                    placeholder={t("discussions.comments.replyPlaceholder")}
                     value={replyContent}
                     onChange={(e) => setReplyContent(e.target.value)}
                     className="w-full p-2 bg-graphite-950 border border-graphite-800 rounded text-xs text-white placeholder-graphite-600 focus:outline-none focus:border-graphite-600 resize-y"
@@ -490,7 +494,7 @@ export default function CommentSection({ threadId, threadAuthorId }: CommentSect
                       onClick={() => setReplyTarget(null)}
                       className="px-2.5 py-1 rounded text-graphite-400 hover:text-white text-xs"
                     >
-                      Cancel
+                      {t("discussions.comments.cancel")}
                     </button>
                     <button
                       onClick={() => handleCreateReply(rootComment.comment_id)}
@@ -502,7 +506,7 @@ export default function CommentSection({ threadId, threadAuthorId }: CommentSect
                       ) : (
                         <Send className="w-3 h-3" />
                       )}
-                      <span>Send Reply</span>
+                      <span>{t("discussions.comments.sendReply")}</span>
                     </button>
                   </div>
                 </div>
@@ -525,7 +529,7 @@ export default function CommentSection({ threadId, threadAuthorId }: CommentSect
                           <RoleBadge role={reply.author.role} />
                           <span className="text-graphite-600">•</span>
                           <span className="text-[10px] font-mono text-graphite-500">
-                            {new Date(reply.created_at).toLocaleDateString()}
+                            {formatDate(reply.created_at)}
                           </span>
                         </div>
 
@@ -534,7 +538,7 @@ export default function CommentSection({ threadId, threadAuthorId }: CommentSect
                           {canModerate && (
                             <button
                               onClick={() => handleToggleHide(reply.comment_id)}
-                              title={reply.is_hidden ? "Unhide reply" : "Hide reply as spam"}
+                              title={reply.is_hidden ? t("discussions.comments.unhideReplyTooltip") : t("discussions.comments.hideReplyTooltip")}
                               className={cn(
                                 "p-1 rounded hover:bg-graphite-800 text-xs transition-colors",
                                 reply.is_hidden ? "text-red-400" : "text-graphite-500 hover:text-white"
@@ -551,7 +555,7 @@ export default function CommentSection({ threadId, threadAuthorId }: CommentSect
                                   setEditingCommentId(reply.comment_id);
                                   setEditContent(reply.content);
                                 }}
-                                title="Edit reply"
+                                title={t("discussions.comments.editReplyTooltip")}
                                 className="p-1 rounded text-graphite-500 hover:text-white hover:bg-graphite-800 transition-colors"
                               >
                                 <Edit2 className="w-3 h-3" />
@@ -559,7 +563,7 @@ export default function CommentSection({ threadId, threadAuthorId }: CommentSect
 
                               <button
                                 onClick={() => handleDeleteComment(reply.comment_id)}
-                                title="Delete reply"
+                                title={t("discussions.comments.deleteReplyTooltip")}
                                 className="p-1 rounded text-graphite-500 hover:text-red-400 hover:bg-graphite-800 transition-colors"
                               >
                                 <Trash2 className="w-3 h-3" />
@@ -583,14 +587,14 @@ export default function CommentSection({ threadId, threadAuthorId }: CommentSect
                               onClick={() => setEditingCommentId(null)}
                               className="px-2 py-0.5 rounded border border-graphite-800 text-graphite-400 text-xs"
                             >
-                              Cancel
+                              {t("discussions.comments.cancel")}
                             </button>
                             <button
                               onClick={() => handleUpdateComment(reply.comment_id)}
                               disabled={editSubmitting}
                               className="px-2.5 py-0.5 rounded bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs"
                             >
-                              {editSubmitting ? "Saving..." : "Save"}
+                              {editSubmitting ? t("discussions.comments.saving") : t("discussions.comments.saveBtn")}
                             </button>
                           </div>
                         </div>
@@ -627,7 +631,7 @@ export default function CommentSection({ threadId, threadAuthorId }: CommentSect
                             className="text-[10px] text-graphite-400 hover:text-indigo-400 transition-colors flex items-center gap-1 cursor-pointer"
                           >
                             <Reply className="w-2.5 h-2.5" />
-                            <span>Reply</span>
+                            <span>{t("discussions.comments.replyBtn")}</span>
                           </button>
                         )}
                       </div>

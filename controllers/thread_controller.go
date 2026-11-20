@@ -23,16 +23,16 @@ func NewThreadController(db *gorm.DB) *ThreadController {
 }
 
 // validateThreadContent validates and cleans title and content
-func validateThreadContent(title, content string) (string, string, error) {
+func validateThreadContent(title, content string) (string, string, string, error) {
 	cleanTitle := strings.TrimSpace(title)
 	if len(cleanTitle) < 5 {
-		return "", "", fmt.Errorf("Title must be at least 5 characters long")
+		return "", "", "THREAD_TITLE_TOO_SHORT", fmt.Errorf("Title must be at least 5 characters long")
 	}
 	cleanContent := strings.TrimSpace(content)
 	if len(cleanContent) < 20 {
-		return "", "", fmt.Errorf("Content must be at least 20 characters long")
+		return "", "", "THREAD_CONTENT_TOO_SHORT", fmt.Errorf("Content must be at least 20 characters long")
 	}
-	return cleanTitle, cleanContent, nil
+	return cleanTitle, cleanContent, "", nil
 }
 
 // buildThreadFilterScope constructs reusable query filters for listing threads
@@ -59,26 +59,26 @@ func buildThreadFilterScope(scenarioID, domainID, authorID, tag string) func(db 
 func (tc *ThreadController) CreateThread(c *gin.Context) {
 	userID, exists := c.Get("user_id")
 	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		respondAPIError(c, http.StatusUnauthorized, "AUTH_UNAUTHORIZED", "Unauthorized")
 		return
 	}
 
 	var req dto.CreateThreadRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		respondAPIError(c, http.StatusBadRequest, "THREAD_INVALID_PAYLOAD", err.Error())
 		return
 	}
 
-	cleanTitle, cleanContent, err := validateThreadContent(req.Title, req.Content)
+	cleanTitle, cleanContent, errCode, err := validateThreadContent(req.Title, req.Content)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		respondAPIError(c, http.StatusBadRequest, errCode, err.Error())
 		return
 	}
 
 	if req.ScenarioID != nil && *req.ScenarioID != "" {
 		var scenario models.Scenario
 		if err := tc.DB.Where("scenario_id = ?", *req.ScenarioID).First(&scenario).Error; err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Referenced scenario does not exist"})
+			respondAPIError(c, http.StatusBadRequest, "THREAD_SCENARIO_NOT_FOUND", "Referenced scenario does not exist")
 			return
 		}
 	} else {
@@ -105,7 +105,7 @@ func (tc *ThreadController) CreateThread(c *gin.Context) {
 	}
 
 	if err := tc.DB.Create(&thread).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create thread"})
+		respondAPIError(c, http.StatusInternalServerError, "THREAD_CREATE_FAILED", "Failed to create thread")
 		return
 	}
 
@@ -152,7 +152,7 @@ func (tc *ThreadController) ListThreads(c *gin.Context) {
 
 	var threads []models.AnalysisThread
 	if err := query.Offset(offset).Limit(pageSize).Find(&threads).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch threads"})
+		respondAPIError(c, http.StatusInternalServerError, "THREAD_FETCH_FAILED", "Failed to fetch threads")
 		return
 	}
 
@@ -199,7 +199,7 @@ func (tc *ThreadController) GetThread(c *gin.Context) {
 
 	var thread models.AnalysisThread
 	if err := tc.DB.Preload("Author").Preload("Scenario").Where("thread_id = ?", threadID).First(&thread).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Thread not found"})
+		respondAPIError(c, http.StatusNotFound, "THREAD_NOT_FOUND", "Thread not found")
 		return
 	}
 
@@ -223,31 +223,31 @@ func (tc *ThreadController) UpdateThread(c *gin.Context) {
 	userID, exists := c.Get("user_id")
 	userRole, _ := c.Get("role")
 	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		respondAPIError(c, http.StatusUnauthorized, "AUTH_UNAUTHORIZED", "Unauthorized")
 		return
 	}
 
 	threadID := c.Param("id")
 	var thread models.AnalysisThread
 	if err := tc.DB.Where("thread_id = ?", threadID).First(&thread).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Thread not found"})
+		respondAPIError(c, http.StatusNotFound, "THREAD_NOT_FOUND", "Thread not found")
 		return
 	}
 
 	if thread.AuthorID != userID.(string) && userRole != "admin" {
-		c.JSON(http.StatusForbidden, gin.H{"error": "You do not have permission to edit this thread"})
+		respondAPIError(c, http.StatusForbidden, "THREAD_FORBIDDEN", "You do not have permission to edit this thread")
 		return
 	}
 
 	var req dto.UpdateThreadRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		respondAPIError(c, http.StatusBadRequest, "THREAD_INVALID_PAYLOAD", err.Error())
 		return
 	}
 
-	cleanTitle, cleanContent, err := validateThreadContent(req.Title, req.Content)
+	cleanTitle, cleanContent, errCode, err := validateThreadContent(req.Title, req.Content)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		respondAPIError(c, http.StatusBadRequest, errCode, err.Error())
 		return
 	}
 
@@ -259,7 +259,7 @@ func (tc *ThreadController) UpdateThread(c *gin.Context) {
 	thread.UpdatedAt = time.Now()
 
 	if err := tc.DB.Save(&thread).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update thread"})
+		respondAPIError(c, http.StatusInternalServerError, "THREAD_UPDATE_FAILED", "Failed to update thread")
 		return
 	}
 
@@ -272,24 +272,24 @@ func (tc *ThreadController) DeleteThread(c *gin.Context) {
 	userID, exists := c.Get("user_id")
 	userRole, _ := c.Get("role")
 	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		respondAPIError(c, http.StatusUnauthorized, "AUTH_UNAUTHORIZED", "Unauthorized")
 		return
 	}
 
 	threadID := c.Param("id")
 	var thread models.AnalysisThread
 	if err := tc.DB.Where("thread_id = ?", threadID).First(&thread).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Thread not found"})
+		respondAPIError(c, http.StatusNotFound, "THREAD_NOT_FOUND", "Thread not found")
 		return
 	}
 
 	if thread.AuthorID != userID.(string) && userRole != "admin" {
-		c.JSON(http.StatusForbidden, gin.H{"error": "You do not have permission to delete this thread"})
+		respondAPIError(c, http.StatusForbidden, "THREAD_FORBIDDEN", "You do not have permission to delete this thread")
 		return
 	}
 
 	if err := tc.DB.Delete(&thread).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete thread"})
+		respondAPIError(c, http.StatusInternalServerError, "THREAD_DELETE_FAILED", "Failed to delete thread")
 		return
 	}
 

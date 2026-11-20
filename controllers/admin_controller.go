@@ -34,7 +34,7 @@ func (ac *AdminController) ListApplications(c *gin.Context) {
 
 	var applications []models.SpecialistApplication
 	if err := query.Order("created_at desc").Find(&applications).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to query applications"})
+		respondAPIError(c, http.StatusInternalServerError, "ADMIN_APPLICATIONS_FETCH_FAILED", "Failed to query applications")
 		return
 	}
 
@@ -62,13 +62,13 @@ func (ac *AdminController) StreamDocument(c *gin.Context) {
 
 	var app models.SpecialistApplication
 	if err := ac.DB.Where("application_id = ?", appID).First(&app).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Application not found"})
+		respondAPIError(c, http.StatusNotFound, "ADMIN_APPLICATION_NOT_FOUND", "Application not found")
 		return
 	}
 
 	// Security check: must be admin or applicant owner
 	if callerRole != "admin" && callerID != app.UserID {
-		c.JSON(http.StatusForbidden, gin.H{"error": "Access denied"})
+		respondAPIError(c, http.StatusForbidden, "AUTH_FORBIDDEN", "Access denied")
 		return
 	}
 
@@ -78,17 +78,17 @@ func (ac *AdminController) StreamDocument(c *gin.Context) {
 	} else if fileType == "certificate" {
 		targetPath = app.CertificatePath
 	} else {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid file type. Must be 'resume' or 'certificate'"})
+		respondAPIError(c, http.StatusBadRequest, "ADMIN_INVALID_FILE_TYPE", "Invalid file type. Must be 'resume' or 'certificate'")
 		return
 	}
 
 	if targetPath == "" {
-		c.JSON(http.StatusNotFound, gin.H{"error": "No document associated with this request"})
+		respondAPIError(c, http.StatusNotFound, "ADMIN_DOCUMENT_NOT_FOUND", "No document associated with this request")
 		return
 	}
 
 	if _, err := os.Stat(targetPath); os.IsNotExist(err) {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Document file not found on server"})
+		respondAPIError(c, http.StatusNotFound, "ADMIN_DOCUMENT_MISSING", "Document file not found on server")
 		return
 	}
 
@@ -103,12 +103,12 @@ func (ac *AdminController) Approve(c *gin.Context) {
 
 	var app models.SpecialistApplication
 	if err := ac.DB.Where("application_id = ?", appID).First(&app).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Application not found"})
+		respondAPIError(c, http.StatusNotFound, "ADMIN_APPLICATION_NOT_FOUND", "Application not found")
 		return
 	}
 
 	if app.Status == "approved" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Application is already approved"})
+		respondAPIError(c, http.StatusBadRequest, "ADMIN_ALREADY_APPROVED", "Application is already approved")
 		return
 	}
 
@@ -124,14 +124,14 @@ func (ac *AdminController) Approve(c *gin.Context) {
 	app.UpdatedAt = now
 	if err := tx.Save(&app).Error; err != nil {
 		tx.Rollback()
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update application status"})
+		respondAPIError(c, http.StatusInternalServerError, "ADMIN_APPROVE_FAILED", "Failed to update application status")
 		return
 	}
 
 	// 2. Elevate user role to specialist
 	if err := tx.Model(&models.User{}).Where("user_id = ?", app.UserID).Update("role", "specialist").Error; err != nil {
 		tx.Rollback()
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update user role"})
+		respondAPIError(c, http.StatusInternalServerError, "ADMIN_APPROVE_FAILED", "Failed to update user role")
 		return
 	}
 
@@ -139,14 +139,15 @@ func (ac *AdminController) Approve(c *gin.Context) {
 
 	// 3. Dispatch in-app notification to applicant
 	go func(targetUserID string) {
-		ac.DB.Create(&models.UserNotification{
-			UserID:    targetUserID,
-			Title:     "Specialist Application Approved",
-			Message:   "Congratulations! Your application has been approved. You now have full specialist permissions.",
-			LinkURL:   "/specialist/reviews",
-			IsRead:    false,
-			CreatedAt: time.Now(),
-		})
+		notif := newTemplatedNotification(
+			targetUserID,
+			"Specialist Application Approved",
+			"Congratulations! Your application has been approved. You now have full specialist permissions.",
+			"specialist_approved",
+			nil,
+			"/specialist/reviews",
+		)
+		ac.DB.Create(&notif)
 	}(app.UserID)
 
 	c.JSON(http.StatusOK, gin.H{
@@ -164,13 +165,13 @@ func (ac *AdminController) Reject(c *gin.Context) {
 
 	var input dto.AdminRejectRequest
 	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "A rejection reason is required (minimum 3 characters)"})
+		respondAPIError(c, http.StatusBadRequest, "ADMIN_REJECTION_REASON_REQUIRED", "A rejection reason is required (minimum 3 characters)")
 		return
 	}
 
 	var app models.SpecialistApplication
 	if err := ac.DB.Where("application_id = ?", appID).First(&app).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Application not found"})
+		respondAPIError(c, http.StatusNotFound, "ADMIN_APPLICATION_NOT_FOUND", "Application not found")
 		return
 	}
 
@@ -184,20 +185,21 @@ func (ac *AdminController) Reject(c *gin.Context) {
 	app.UpdatedAt = now
 
 	if err := ac.DB.Save(&app).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update application status"})
+		respondAPIError(c, http.StatusInternalServerError, "ADMIN_REJECT_FAILED", "Failed to update application status")
 		return
 	}
 
 	// Dispatch in-app notification to applicant
 	go func(targetUserID, reason string) {
-		ac.DB.Create(&models.UserNotification{
-			UserID:    targetUserID,
-			Title:     "Specialist Application Update",
-			Message:   fmt.Sprintf("Your specialist application was reviewed and declined. Reason: %s", reason),
-			LinkURL:   "/profile",
-			IsRead:    false,
-			CreatedAt: time.Now(),
-		})
+		notif := newTemplatedNotification(
+			targetUserID,
+			"Specialist Application Update",
+			fmt.Sprintf("Your specialist application was reviewed and declined. Reason: %s", reason),
+			"specialist_rejected",
+			map[string]any{"reason": reason},
+			"/profile",
+		)
+		ac.DB.Create(&notif)
 	}(app.UserID, input.Reason)
 
 	c.JSON(http.StatusOK, gin.H{

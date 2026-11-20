@@ -19,6 +19,9 @@ import MarkdownView from "../components/MarkdownView";
 import RoleBadge from "../components/RoleBadge";
 import CommentSection from "../components/CommentSection";
 import { cn } from "../lib/utils";
+import { useI18n } from "../i18n";
+import { resolveApiError, resolveScenarioLocale } from "../i18n/format";
+import type { ScenarioTranslationPayload } from "../i18n/types";
 
 interface ThreadAuthor {
   user_id: string;
@@ -31,6 +34,10 @@ interface ThreadScenario {
   title: string;
   domain_id: string;
   mitre_technique?: string;
+  translations?: {
+    th?: ScenarioTranslationPayload;
+    [locale: string]: ScenarioTranslationPayload | undefined;
+  };
 }
 
 interface ThreadDetail {
@@ -50,6 +57,7 @@ interface ThreadDetail {
 }
 
 export default function ThreadDetailPage() {
+  const { locale, t, formatDate } = useI18n();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
@@ -123,7 +131,7 @@ export default function ThreadDetailPage() {
       navigate("/discussions");
     } catch (err) {
       console.error("Failed to delete thread:", err);
-      alert("Failed to delete thread.");
+      alert(resolveApiError(err, t, t("discussions.detail.deleteFailed")));
     } finally {
       setDeleteLoading(false);
       setShowDeleteConfirm(false);
@@ -144,7 +152,7 @@ export default function ThreadDetailPage() {
     return (
       <div className="py-24 text-center text-graphite-500 font-mono text-xs">
         <Loader2 className="w-5 h-5 animate-spin mx-auto mb-2 text-indigo-400" />
-        Loading analysis post...
+        {t("discussions.detail.loading")}
       </div>
     );
   }
@@ -152,19 +160,21 @@ export default function ThreadDetailPage() {
   if (!thread) {
     return (
       <div className="max-w-xl mx-auto text-center py-20 space-y-4">
-        <h2 className="text-xl font-bold text-white">Analysis Thread Not Found</h2>
+        <h2 className="text-xl font-bold text-white">{t("discussions.detail.notFoundTitle")}</h2>
         <p className="text-xs text-graphite-400">
-          This post may have been removed or does not exist.
+          {t("discussions.detail.notFoundDesc")}
         </p>
         <button
           onClick={() => navigate("/discussions")}
           className="px-4 py-2 rounded-md bg-graphite-900 hover:bg-graphite-800 text-graphite-200 border border-graphite-800 font-semibold text-xs transition-colors cursor-pointer"
         >
-          Back to Discussions
+          {t("discussions.detail.backToDiscussions")}
         </button>
       </div>
     );
   }
+
+  const localizedScenario = thread.scenario ? resolveScenarioLocale(thread.scenario, locale) : null;
 
   return (
     <div className="max-w-4xl mx-auto space-y-8 animate-fade-in pb-16">
@@ -175,7 +185,7 @@ export default function ThreadDetailPage() {
           className="inline-flex items-center gap-2 text-xs font-medium text-graphite-400 hover:text-white transition-colors cursor-pointer"
         >
           <ArrowLeft className="w-4 h-4" />
-          <span>Back to Discussions</span>
+          <span>{t("discussions.detail.backToDiscussions")}</span>
         </button>
 
         <div className="flex items-center gap-2">
@@ -190,7 +200,7 @@ export default function ThreadDetailPage() {
             )}
           >
             <ThumbsUp className={cn("w-3.5 h-3.5", threadUpvoted ? "fill-emerald-400 text-emerald-400" : "")} />
-            <span>Helpful ({threadUpvoteCount})</span>
+            <span>{t("discussions.detail.helpfulCount", { count: threadUpvoteCount })}</span>
           </button>
 
           <button
@@ -198,7 +208,7 @@ export default function ThreadDetailPage() {
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-graphite-800 text-graphite-300 hover:text-white hover:bg-graphite-900 text-xs transition-colors cursor-pointer"
           >
             <Share2 className="w-3.5 h-3.5" />
-            <span>{copied ? "Copied Link!" : "Share"}</span>
+            <span>{copied ? t("discussions.detail.copiedLink") : t("discussions.detail.share")}</span>
           </button>
 
           {isAuthorOrAdmin && (
@@ -208,7 +218,7 @@ export default function ThreadDetailPage() {
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-graphite-800 text-graphite-300 hover:text-white hover:bg-graphite-900 text-xs transition-colors"
               >
                 <Edit className="w-3.5 h-3.5" />
-                <span>Edit</span>
+                <span>{t("discussions.detail.edit")}</span>
               </Link>
 
               <button
@@ -216,7 +226,7 @@ export default function ThreadDetailPage() {
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-red-500/30 text-red-400 hover:bg-red-950/40 text-xs transition-colors cursor-pointer"
               >
                 <Trash2 className="w-3.5 h-3.5" />
-                <span>Delete</span>
+                <span>{t("discussions.detail.delete")}</span>
               </button>
             </>
           )}
@@ -227,23 +237,23 @@ export default function ThreadDetailPage() {
       {showDeleteConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
           <div className="max-w-sm w-full bg-graphite-950 border border-graphite-800 rounded-xl p-5 space-y-4 shadow-2xl">
-            <h3 className="text-base font-bold text-white">Delete Analysis Post?</h3>
+            <h3 className="text-base font-bold text-white">{t("discussions.detail.deleteModalTitle")}</h3>
             <p className="text-xs text-graphite-400 leading-relaxed">
-              Are you sure you want to delete this analysis thread? This action cannot be undone.
+              {t("discussions.detail.deleteModalDesc")}
             </p>
             <div className="flex items-center justify-end gap-2 pt-2">
               <button
                 onClick={() => setShowDeleteConfirm(false)}
                 className="px-3.5 py-1.5 rounded border border-graphite-800 text-graphite-300 text-xs hover:bg-graphite-900"
               >
-                Cancel
+                {t("discussions.detail.cancel")}
               </button>
               <button
                 onClick={handleDelete}
                 disabled={deleteLoading}
                 className="px-4 py-1.5 rounded bg-red-600 hover:bg-red-500 text-white font-semibold text-xs transition-colors"
               >
-                {deleteLoading ? "Deleting..." : "Confirm Delete"}
+                {deleteLoading ? t("discussions.detail.deleting") : t("discussions.detail.confirmDelete")}
               </button>
             </div>
           </div>
@@ -254,7 +264,7 @@ export default function ThreadDetailPage() {
       <div className="space-y-4">
         {thread.is_pinned && (
           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20 text-[10px] font-mono font-bold">
-            <Pin className="w-3 h-3" /> PINNED BY SPECIALIST
+            <Pin className="w-3 h-3" /> {t("discussions.detail.pinnedBySpecialist")}
           </span>
         )}
 
@@ -282,7 +292,7 @@ export default function ThreadDetailPage() {
               </div>
               <div className="flex items-center gap-1.5 text-graphite-500 text-[11px] font-mono mt-0.5">
                 <Calendar className="w-3 h-3" />
-                <span>Published {new Date(thread.created_at).toLocaleDateString()}</span>
+                <span>{t("discussions.detail.publishedOn", { date: formatDate(thread.created_at) })}</span>
               </div>
             </div>
           </div>
@@ -290,7 +300,7 @@ export default function ThreadDetailPage() {
           <div className="flex items-center gap-4 text-graphite-400 font-mono text-xs">
             <span className="flex items-center gap-1">
               <Eye className="w-3.5 h-3.5" />
-              {thread.view_count} views
+              {t("discussions.detail.viewsCount", { count: thread.view_count })}
             </span>
             <button
               onClick={handleToggleThreadUpvote}
@@ -303,14 +313,14 @@ export default function ThreadDetailPage() {
               )}
             >
               <ThumbsUp className={cn("w-3.5 h-3.5", threadUpvoted ? "fill-emerald-400 text-emerald-400" : "")} />
-              <span>{threadUpvoteCount} helpful</span>
+              <span>{t("discussions.detail.helpfulStat", { count: threadUpvoteCount })}</span>
             </button>
           </div>
         </div>
       </div>
 
       {/* Linked Scenario Banner (if applicable) */}
-      {thread.scenario && (
+      {thread.scenario && localizedScenario && (
         <div className="p-4 rounded-lg bg-indigo-950/20 border border-indigo-500/30 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-lg bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center shrink-0">
@@ -318,9 +328,14 @@ export default function ThreadDetailPage() {
             </div>
             <div>
               <div className="text-[10px] font-mono text-indigo-400 uppercase font-semibold">
-                LINKED SCENARIO DEBRIEF
+                {t("discussions.detail.linkedScenarioDebrief")}
               </div>
-              <div className="text-sm font-bold text-white mt-0.5">{thread.scenario.title}</div>
+              <div className="text-sm font-bold text-white mt-0.5">{localizedScenario.title}</div>
+              {locale === "th" && localizedScenario.title !== thread.scenario.title && (
+                <div className="text-[10px] font-mono text-graphite-400 mt-0.5">
+                  {t("discussions.detail.canonicalTitleLabel", { title: thread.scenario.title })}
+                </div>
+              )}
             </div>
           </div>
 
@@ -338,7 +353,7 @@ export default function ThreadDetailPage() {
       {/* Tags */}
       {thread.tags && thread.tags.length > 0 && (
         <div className="pt-6 border-t border-graphite-800 flex flex-wrap items-center gap-2">
-          <span className="text-xs text-graphite-500 font-mono">TAGS:</span>
+          <span className="text-xs text-graphite-500 font-mono">{t("discussions.detail.tagsLabel")}</span>
           {thread.tags.map((tag) => (
             <Link
               key={tag}

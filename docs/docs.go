@@ -315,6 +315,14 @@ const docTemplate = `{
                     "Learn"
                 ],
                 "summary": "List all five Security+ Theory Modules",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Language locale (en or th)",
+                        "name": "lang",
+                        "in": "query"
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -429,6 +437,12 @@ const docTemplate = `{
                         "name": "subTopicId",
                         "in": "path",
                         "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Language locale (en or th)",
+                        "name": "lang",
+                        "in": "query"
                     }
                 ],
                 "responses": {
@@ -669,7 +683,7 @@ const docTemplate = `{
         },
         "/register": {
             "post": {
-                "description": "Creates a new learner account with email, password, and nickname",
+                "description": "Creates a new learner account with email, password, nickname, and optional preferred_language",
                 "consumes": [
                     "application/json"
                 ],
@@ -1319,6 +1333,69 @@ const docTemplate = `{
                     }
                 }
             }
+        },
+        "/user/language": {
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Updates the authenticated user's preferred UI language ('en' or 'th')",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "User"
+                ],
+                "summary": "Update user language preference",
+                "parameters": [
+                    {
+                        "description": "Language Preference",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.UpdateLanguageRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.UpdateLanguageResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
@@ -1411,6 +1488,10 @@ const docTemplate = `{
                 "nickname": {
                     "type": "string",
                     "example": "cyber_defender"
+                },
+                "preferred_language": {
+                    "type": "string",
+                    "example": "en"
                 },
                 "role": {
                     "type": "string",
@@ -1635,6 +1716,10 @@ const docTemplate = `{
                 "message": {
                     "type": "string",
                     "example": "Detailed error description"
+                },
+                "params": {
+                    "type": "object",
+                    "additionalProperties": {}
                 }
             }
         },
@@ -2054,6 +2139,10 @@ const docTemplate = `{
                     "type": "string",
                     "minLength": 6,
                     "example": "Secret123!"
+                },
+                "preferred_language": {
+                    "type": "string",
+                    "example": "en"
                 }
             }
         },
@@ -2179,7 +2268,8 @@ const docTemplate = `{
                     "description": "TotalFindings is the only pre-submission finding disclosure. Evidence\nindices, finding descriptions, and verdict markers stay server-side.",
                     "type": "integer",
                     "example": 2
-                }
+                },
+                "translations": {}
             }
         },
         "dto.SelectLogRequest": {
@@ -2339,6 +2429,7 @@ const docTemplate = `{
                 "scenario_title": {
                     "type": "string"
                 },
+                "scenario_translations": {},
                 "selected_actions": {
                     "type": "array",
                     "items": {
@@ -2413,6 +2504,7 @@ const docTemplate = `{
                 "scenario_title": {
                     "type": "string"
                 },
+                "scenario_translations": {},
                 "session_id": {
                     "type": "string"
                 },
@@ -2626,6 +2718,10 @@ const docTemplate = `{
         "dto.TheoryGateErrorResponse": {
             "type": "object",
             "properties": {
+                "code": {
+                    "type": "string",
+                    "example": "LEARN_PRETEST_REQUIRED"
+                },
                 "completed_count": {
                     "type": "integer",
                     "example": 2
@@ -2655,6 +2751,10 @@ const docTemplate = `{
                     "items": {
                         "type": "string"
                     }
+                },
+                "params": {
+                    "type": "object",
+                    "additionalProperties": {}
                 },
                 "reason": {
                     "type": "string",
@@ -2707,6 +2807,31 @@ const docTemplate = `{
                 "title": {
                     "type": "string",
                     "example": "Compare and contrast various types of security controls"
+                }
+            }
+        },
+        "dto.UpdateLanguageRequest": {
+            "type": "object",
+            "required": [
+                "language"
+            ],
+            "properties": {
+                "language": {
+                    "type": "string",
+                    "example": "th"
+                }
+            }
+        },
+        "dto.UpdateLanguageResponse": {
+            "type": "object",
+            "properties": {
+                "message": {
+                    "type": "string",
+                    "example": "Language preference updated"
+                },
+                "preferred_language": {
+                    "type": "string",
+                    "example": "th"
                 }
             }
         },

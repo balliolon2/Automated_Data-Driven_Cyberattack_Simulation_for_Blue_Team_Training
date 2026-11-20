@@ -159,6 +159,8 @@ func RunMigrations(db *gorm.DB) error {
 			user_id UUID REFERENCES users(user_id) ON DELETE CASCADE,
 			title VARCHAR(120) NOT NULL,
 			message TEXT NOT NULL,
+			template_key VARCHAR(64),
+			template_params JSONB NOT NULL DEFAULT '{}'::jsonb,
 			link_url VARCHAR(255),
 			is_read BOOLEAN DEFAULT false,
 			created_at TIMESTAMP DEFAULT now()
@@ -215,6 +217,8 @@ func RunMigrations(db *gorm.DB) error {
 			UNIQUE (user_id, question_id)
 		)`,
 		`CREATE INDEX IF NOT EXISTS idx_user_theory_sample_q_user ON user_theory_sample_questions(user_id)`,
+		`ALTER TABLE user_notifications ADD COLUMN IF NOT EXISTS template_key VARCHAR(64)`,
+		`ALTER TABLE user_notifications ADD COLUMN IF NOT EXISTS template_params JSONB NOT NULL DEFAULT '{}'::jsonb`,
 	}
 
 	for _, stmt := range ddl {

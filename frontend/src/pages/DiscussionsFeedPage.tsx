@@ -15,6 +15,9 @@ import {
   Crosshair,
 } from "lucide-react";
 import RoleBadge from "../components/RoleBadge";
+import { useI18n } from "../i18n";
+import { resolveScenarioLocale } from "../i18n/format";
+import type { ScenarioTranslationPayload } from "../i18n/types";
 
 interface ThreadAuthor {
   user_id: string;
@@ -27,6 +30,10 @@ interface ThreadScenario {
   title: string;
   domain_id: string;
   mitre_technique?: string;
+  translations?: {
+    th?: ScenarioTranslationPayload;
+    [locale: string]: ScenarioTranslationPayload | undefined;
+  };
 }
 
 interface Thread {
@@ -45,6 +52,7 @@ interface Thread {
 }
 
 export default function DiscussionsFeedPage() {
+  const { locale, t, formatDate } = useI18n();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -107,14 +115,15 @@ export default function DiscussionsFeedPage() {
     setSearchQuery("");
   };
 
-  const filteredThreads = threads.filter((t) => {
+  const filteredThreads = threads.filter((tItem) => {
     if (!searchQuery) return true;
     const q = searchQuery.toLowerCase();
     return (
-      t.title.toLowerCase().includes(q) ||
-      t.content.toLowerCase().includes(q) ||
-      t.author.nickname.toLowerCase().includes(q) ||
-      (t.tags && t.tags.some((tag) => tag.toLowerCase().includes(q)))
+      tItem.title.toLowerCase().includes(q) ||
+      tItem.content.toLowerCase().includes(q) ||
+      tItem.author.nickname.toLowerCase().includes(q) ||
+      (tItem.scenario && resolveScenarioLocale(tItem.scenario, locale).title.toLowerCase().includes(q)) ||
+      (tItem.tags && tItem.tags.some((tag) => tag.toLowerCase().includes(q)))
     );
   });
 
@@ -125,10 +134,10 @@ export default function DiscussionsFeedPage() {
         <div>
           <div className="flex items-center gap-2.5 mb-1">
             <MessageSquare className="w-6 h-6 text-indigo-400" />
-            <h1 className="text-2xl font-bold tracking-tight text-white">Discussions & Specialist Insights</h1>
+            <h1 className="text-2xl font-bold tracking-tight text-white">{t("discussions.feed.title")}</h1>
           </div>
           <p className="text-xs text-graphite-400">
-            Peer learning, scenario debriefs, and deep-dive attack post-mortems authored by Cyber Specialists.
+            {t("discussions.feed.subtitle")}
           </p>
         </div>
 
@@ -138,7 +147,7 @@ export default function DiscussionsFeedPage() {
             className="flex items-center gap-2 px-4 py-2 rounded-md bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs shadow-sm transition-all cursor-pointer self-start sm:self-auto"
           >
             <Plus className="w-4 h-4" />
-            <span>New Analysis Post</span>
+            <span>{t("discussions.feed.newPost")}</span>
           </button>
         )}
       </div>
@@ -150,7 +159,7 @@ export default function DiscussionsFeedPage() {
           <Search className="w-3.5 h-3.5 text-graphite-500 absolute left-3 top-1/2 -translate-y-1/2" />
           <input
             type="text"
-            placeholder="Search topics, tags..."
+            placeholder={t("discussions.feed.searchPlaceholder")}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full pl-9 pr-3 py-1.5 rounded bg-graphite-950 border border-graphite-800 text-graphite-200 placeholder-graphite-500 focus:outline-none focus:border-graphite-600 text-xs font-mono"
@@ -173,12 +182,12 @@ export default function DiscussionsFeedPage() {
             }}
             className="w-full px-2.5 py-1.5 rounded bg-graphite-950 border border-graphite-800 text-graphite-200 focus:outline-none focus:border-graphite-600 text-xs"
           >
-            <option value="">All Domains</option>
-            <option value="domain1">Domain 1: Security Concepts</option>
-            <option value="domain2">Domain 2: Threats & Mitigations</option>
-            <option value="domain3">Domain 3: Security Architecture</option>
-            <option value="domain4">Domain 4: Security Operations</option>
-            <option value="domain5">Domain 5: Security Management</option>
+            <option value="">{t("discussions.feed.allDomains")}</option>
+            <option value="domain1">{t("discussions.feed.domainOption1")}</option>
+            <option value="domain2">{t("discussions.feed.domainOption2")}</option>
+            <option value="domain3">{t("discussions.feed.domainOption3")}</option>
+            <option value="domain4">{t("discussions.feed.domainOption4")}</option>
+            <option value="domain5">{t("discussions.feed.domainOption5")}</option>
           </select>
         </div>
 
@@ -190,8 +199,8 @@ export default function DiscussionsFeedPage() {
             onChange={(e) => handleSortChange(e.target.value)}
             className="w-full px-2.5 py-1.5 rounded bg-graphite-950 border border-graphite-800 text-graphite-200 focus:outline-none focus:border-graphite-600 text-xs"
           >
-            <option value="recent">Sort by Most Recent</option>
-            <option value="popular">Sort by Most Helpful (Popular)</option>
+            <option value="recent">{t("discussions.feed.sortRecent")}</option>
+            <option value="popular">{t("discussions.feed.sortPopular")}</option>
           </select>
         </div>
 
@@ -207,7 +216,7 @@ export default function DiscussionsFeedPage() {
             {currentScenarioId && (
               <span className="px-2 py-1 rounded bg-amber-950/40 border border-amber-500/30 text-amber-300 font-mono text-[11px] flex items-center gap-1">
                 <Crosshair className="w-3 h-3" />
-                Scenario
+                {t("discussions.feed.scenarioBadge")}
               </span>
             )}
           </div>
@@ -217,7 +226,7 @@ export default function DiscussionsFeedPage() {
               onClick={clearFilters}
               className="text-[11px] text-graphite-400 hover:text-white underline underline-offset-2 ml-auto cursor-pointer"
             >
-              Reset
+              {t("discussions.feed.reset")}
             </button>
           )}
         </div>
@@ -226,113 +235,116 @@ export default function DiscussionsFeedPage() {
       {/* Feed List */}
       {loading ? (
         <div className="py-20 text-center text-graphite-500 font-mono text-xs">
-          Loading discussion threads...
+          {t("discussions.feed.loading")}
         </div>
       ) : filteredThreads.length === 0 ? (
         <div className="py-16 text-center border border-dashed border-graphite-800 rounded-lg space-y-3">
           <FileText className="w-8 h-8 text-graphite-600 mx-auto" />
-          <p className="text-sm font-semibold text-graphite-300">No discussion posts yet</p>
+          <p className="text-sm font-semibold text-graphite-300">{t("discussions.feed.emptyTitle")}</p>
           <p className="text-xs text-graphite-500 max-w-sm mx-auto">
             {isSpecialistOrAdmin
-              ? "Be the first to share an attack analysis or playbook debrief for the community!"
-              : "Check back soon for expert analysis and mitigation breakdowns."}
+              ? t("discussions.feed.emptySpecialist")
+              : t("discussions.feed.emptyLearner")}
           </p>
           {isSpecialistOrAdmin && (
             <button
               onClick={() => navigate("/discussions/new")}
               className="mt-2 px-4 py-2 rounded-md bg-graphite-100 hover:bg-white text-graphite-950 font-semibold text-xs transition-colors cursor-pointer"
             >
-              Create First Post
+              {t("discussions.feed.createFirst")}
             </button>
           )}
         </div>
       ) : (
         <div className="space-y-3">
-          {filteredThreads.map((thread) => (
-            <div
-              key={thread.thread_id}
-              onClick={() => navigate(`/discussions/${thread.thread_id}`)}
-              className="group p-5 rounded-lg border border-graphite-800 hover:border-graphite-700 bg-graphite-950 hover:bg-graphite-900/40 transition-all cursor-pointer space-y-3"
-            >
-              {/* Top metadata */}
-              <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
-                <div className="flex items-center gap-2">
-                  {thread.is_pinned && (
-                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20 text-[10px] font-mono font-bold">
-                      <Pin className="w-3 h-3" /> PINNED
-                    </span>
-                  )}
-
-                  {/* Author badge */}
-                  <div className="flex items-center gap-1.5">
-                    <span className="font-mono text-xs font-medium text-graphite-200">
-                      {thread.author.nickname}
-                    </span>
-                    <RoleBadge role={thread.author.role} />
-                  </div>
-
-                  <span className="text-graphite-600">•</span>
-                  <span className="text-graphite-500 text-[11px] font-mono">
-                    {new Date(thread.created_at).toLocaleDateString()}
-                  </span>
-                </div>
-
-                {/* Linked Scenario Badge */}
-                {thread.scenario && (
-                  <div className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-graphite-900 border border-graphite-800 text-[11px] text-graphite-300">
-                    <Crosshair className="w-3 h-3 text-indigo-400" />
-                    <span className="font-medium truncate max-w-xs">{thread.scenario.title}</span>
-                    <span className="text-graphite-500 font-mono text-[9px]">{thread.scenario.domain_id}</span>
-                  </div>
-                )}
-              </div>
-
-              {/* Title & Preview */}
-              <div>
-                <h3 className="text-base font-bold text-white group-hover:text-indigo-300 transition-colors">
-                  {thread.title}
-                </h3>
-                <p className="text-xs text-graphite-400 line-clamp-2 mt-1 leading-relaxed">
-                  {thread.content.replace(/[#*`>|]/g, "").slice(0, 180)}...
-                </p>
-              </div>
-
-              {/* Tags & Bottom Stats */}
-              <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-graphite-800/60 text-xs">
-                {/* Tags */}
-                <div className="flex flex-wrap gap-1.5">
-                  {thread.tags &&
-                    thread.tags.map((tag) => (
-                      <span
-                        key={tag}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleTagClick(tag);
-                        }}
-                        className="px-2 py-0.5 rounded bg-graphite-900 hover:bg-graphite-800 border border-graphite-800 text-graphite-300 text-[10px] font-mono transition-colors"
-                      >
-                        #{tag}
+          {filteredThreads.map((thread) => {
+            const localizedScenario = thread.scenario ? resolveScenarioLocale(thread.scenario, locale) : null;
+            return (
+              <div
+                key={thread.thread_id}
+                onClick={() => navigate(`/discussions/${thread.thread_id}`)}
+                className="group p-5 rounded-lg border border-graphite-800 hover:border-graphite-700 bg-graphite-950 hover:bg-graphite-900/40 transition-all cursor-pointer space-y-3"
+              >
+                {/* Top metadata */}
+                <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
+                  <div className="flex items-center gap-2">
+                    {thread.is_pinned && (
+                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20 text-[10px] font-mono font-bold">
+                        <Pin className="w-3 h-3" /> {t("discussions.feed.pinnedBadge")}
                       </span>
-                    ))}
+                    )}
+
+                    {/* Author badge */}
+                    <div className="flex items-center gap-1.5">
+                      <span className="font-mono text-xs font-medium text-graphite-200">
+                        {thread.author.nickname}
+                      </span>
+                      <RoleBadge role={thread.author.role} />
+                    </div>
+
+                    <span className="text-graphite-600">•</span>
+                    <span className="text-graphite-500 text-[11px] font-mono">
+                      {formatDate(thread.created_at)}
+                    </span>
+                  </div>
+
+                  {/* Linked Scenario Badge */}
+                  {thread.scenario && localizedScenario && (
+                    <div className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-graphite-900 border border-graphite-800 text-[11px] text-graphite-300">
+                      <Crosshair className="w-3 h-3 text-indigo-400" />
+                      <span className="font-medium truncate max-w-xs">{localizedScenario.title}</span>
+                      <span className="text-graphite-500 font-mono text-[9px]">{thread.scenario.domain_id}</span>
+                    </div>
+                  )}
                 </div>
 
-                {/* Counters */}
-                <div className="flex items-center gap-4 text-graphite-400 font-mono text-xs">
-                  <span className="flex items-center gap-1">
-                    <ThumbsUp className="w-3.5 h-3.5" />
-                    {thread.upvote_count}
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <Eye className="w-3.5 h-3.5" />
-                    {thread.view_count}
-                  </span>
-                  <span className="text-indigo-400 font-medium group-hover:translate-x-0.5 transition-transform flex items-center gap-0.5">
-                    Read <ArrowRight className="w-3 h-3" />
-                  </span>
+                {/* Title & Preview (preserved verbatim in author's language) */}
+                <div>
+                  <h3 className="text-base font-bold text-white group-hover:text-indigo-300 transition-colors">
+                    {thread.title}
+                  </h3>
+                  <p className="text-xs text-graphite-400 line-clamp-2 mt-1 leading-relaxed">
+                    {thread.content.replace(/[#*`>|]/g, "").slice(0, 180)}...
+                  </p>
+                </div>
+
+                {/* Tags & Bottom Stats */}
+                <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-graphite-800/60 text-xs">
+                  {/* Tags */}
+                  <div className="flex flex-wrap gap-1.5">
+                    {thread.tags &&
+                      thread.tags.map((tag) => (
+                        <span
+                          key={tag}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleTagClick(tag);
+                          }}
+                          className="px-2 py-0.5 rounded bg-graphite-900 hover:bg-graphite-800 border border-graphite-800 text-graphite-300 text-[10px] font-mono transition-colors"
+                        >
+                          #{tag}
+                        </span>
+                      ))}
+                  </div>
+
+                  {/* Counters */}
+                  <div className="flex items-center gap-4 text-graphite-400 font-mono text-xs">
+                    <span className="flex items-center gap-1">
+                      <ThumbsUp className="w-3.5 h-3.5" />
+                      {thread.upvote_count}
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <Eye className="w-3.5 h-3.5" />
+                      {thread.view_count}
+                    </span>
+                    <span className="text-indigo-400 font-medium group-hover:translate-x-0.5 transition-transform flex items-center gap-0.5">
+                      {t("discussions.feed.readAction")} <ArrowRight className="w-3 h-3" />
+                    </span>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>

@@ -57,3 +57,10 @@ export interface LocalizableScenario {
     [locale: string]: ScenarioTranslationPayload | undefined;
   };
 }
+
+export interface LocalizableNotification {
+  title?: string;
+  message?: string;
+  template_key?: string;
+  template_params?: Record<string, unknown>;
+}

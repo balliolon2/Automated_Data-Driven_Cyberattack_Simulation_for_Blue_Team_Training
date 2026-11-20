@@ -25,7 +25,7 @@ func NewCommentController(db *gorm.DB) *CommentController {
 func (cc *CommentController) CreateComment(c *gin.Context) {
 	userID, exists := c.Get("user_id")
 	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		respondAPIError(c, http.StatusUnauthorized, "AUTH_UNAUTHORIZED", "Unauthorized")
 		return
 	}
 	userNickname, _ := c.Get("nickname")
@@ -34,19 +34,19 @@ func (cc *CommentController) CreateComment(c *gin.Context) {
 	threadID := c.Param("id")
 	var thread models.AnalysisThread
 	if err := cc.DB.Where("thread_id = ?", threadID).First(&thread).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Analysis thread not found"})
+		respondAPIError(c, http.StatusNotFound, "THREAD_NOT_FOUND", "Analysis thread not found")
 		return
 	}
 
 	var req dto.CreateCommentRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		respondAPIError(c, http.StatusBadRequest, "COMMENT_INVALID_PAYLOAD", err.Error())
 		return
 	}
 
 	cleanContent := strings.TrimSpace(req.Content)
 	if len(cleanContent) < 1 || len(cleanContent) > 2000 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Comment must be between 1 and 2000 characters"})
+		respondAPIError(c, http.StatusBadRequest, "COMMENT_LENGTH_INVALID", "Comment must be between 1 and 2000 characters")
 		return
 	}
 
@@ -56,7 +56,7 @@ func (cc *CommentController) CreateComment(c *gin.Context) {
 
 	if req.ParentCommentID != nil && *req.ParentCommentID != "" {
 		if err := cc.DB.Where("comment_id = ? AND thread_id = ?", *req.ParentCommentID, threadID).First(&parentComment).Error; err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Parent comment not found in this thread"})
+			respondAPIError(c, http.StatusBadRequest, "COMMENT_PARENT_NOT_FOUND", "Parent comment not found in this thread")
 			return
 		}
 		isReply = true
@@ -83,7 +83,7 @@ func (cc *CommentController) CreateComment(c *gin.Context) {
 	}
 
 	if err := cc.DB.Create(&comment).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create comment"})
+		respondAPIError(c, http.StatusInternalServerError, "COMMENT_CREATE_FAILED", "Failed to create comment")
 		return
 	}
 
@@ -99,24 +99,26 @@ func (cc *CommentController) CreateComment(c *gin.Context) {
 
 		if isReply && parentComment.UserID != userID.(string) {
 			// Notify parent comment author
-			cc.DB.Create(&models.UserNotification{
-				UserID:    parentComment.UserID,
-				Title:     "New reply to your comment",
-				Message:   fmt.Sprintf("%s replied to your comment on '%s'", nickStr, thread.Title),
-				LinkURL:   fmt.Sprintf("/discussions/%s#comment-%s", thread.ThreadID, comment.CommentID),
-				IsRead:    false,
-				CreatedAt: time.Now(),
-			})
+			notif := newTemplatedNotification(
+				parentComment.UserID,
+				"New reply to your comment",
+				fmt.Sprintf("%s replied to your comment on '%s'", nickStr, thread.Title),
+				"comment_reply",
+				map[string]any{"actor": nickStr, "thread_title": thread.Title},
+				fmt.Sprintf("/discussions/%s#comment-%s", thread.ThreadID, comment.CommentID),
+			)
+			cc.DB.Create(&notif)
 		} else if !isReply && thread.AuthorID != userID.(string) {
 			// Notify thread author
-			cc.DB.Create(&models.UserNotification{
-				UserID:    thread.AuthorID,
-				Title:     "New comment on your analysis post",
-				Message:   fmt.Sprintf("%s commented on '%s'", nickStr, thread.Title),
-				LinkURL:   fmt.Sprintf("/discussions/%s#comment-%s", thread.ThreadID, comment.CommentID),
-				IsRead:    false,
-				CreatedAt: time.Now(),
-			})
+			notif := newTemplatedNotification(
+				thread.AuthorID,
+				"New comment on your analysis post",
+				fmt.Sprintf("%s commented on '%s'", nickStr, thread.Title),
+				"thread_comment",
+				map[string]any{"actor": nickStr, "thread_title": thread.Title},
+				fmt.Sprintf("/discussions/%s#comment-%s", thread.ThreadID, comment.CommentID),
+			)
+			cc.DB.Create(&notif)
 		}
 	}()
 
@@ -158,7 +160,7 @@ func (cc *CommentController) ListComments(c *gin.Context) {
 
 	var thread models.AnalysisThread
 	if err := cc.DB.Where("thread_id = ?", threadID).First(&thread).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Analysis thread not found"})
+		respondAPIError(c, http.StatusNotFound, "THREAD_NOT_FOUND", "Analysis thread not found")
 		return
 	}
 
@@ -168,7 +170,7 @@ func (cc *CommentController) ListComments(c *gin.Context) {
 		Where("thread_id = ? AND parent_comment_id IS NULL", threadID).
 		Order("is_pinned desc, upvote_count desc, created_at asc").
 		Find(&rootComments).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch comments"})
+		respondAPIError(c, http.StatusInternalServerError, "COMMENT_FETCH_FAILED", "Failed to fetch comments")
 		return
 	}
 
@@ -287,31 +289,31 @@ func (cc *CommentController) UpdateComment(c *gin.Context) {
 	userID, exists := c.Get("user_id")
 	userRole, _ := c.Get("role")
 	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		respondAPIError(c, http.StatusUnauthorized, "AUTH_UNAUTHORIZED", "Unauthorized")
 		return
 	}
 
 	commentID := c.Param("id")
 	var comment models.ThreadComment
 	if err := cc.DB.Where("comment_id = ?", commentID).First(&comment).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Comment not found"})
+		respondAPIError(c, http.StatusNotFound, "COMMENT_NOT_FOUND", "Comment not found")
 		return
 	}
 
 	if comment.UserID != userID.(string) && userRole != "admin" {
-		c.JSON(http.StatusForbidden, gin.H{"error": "You do not have permission to edit this comment"})
+		respondAPIError(c, http.StatusForbidden, "COMMENT_FORBIDDEN", "You do not have permission to edit this comment")
 		return
 	}
 
 	var req dto.UpdateCommentRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		respondAPIError(c, http.StatusBadRequest, "COMMENT_INVALID_PAYLOAD", err.Error())
 		return
 	}
 
 	cleanContent := strings.TrimSpace(req.Content)
 	if len(cleanContent) < 1 || len(cleanContent) > 2000 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Comment must be between 1 and 2000 characters"})
+		respondAPIError(c, http.StatusBadRequest, "COMMENT_LENGTH_INVALID", "Comment must be between 1 and 2000 characters")
 		return
 	}
 
@@ -319,7 +321,7 @@ func (cc *CommentController) UpdateComment(c *gin.Context) {
 	comment.UpdatedAt = time.Now()
 
 	if err := cc.DB.Save(&comment).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update comment"})
+		respondAPIError(c, http.StatusInternalServerError, "COMMENT_UPDATE_FAILED", "Failed to update comment")
 		return
 	}
 
@@ -331,14 +333,14 @@ func (cc *CommentController) DeleteComment(c *gin.Context) {
 	userID, exists := c.Get("user_id")
 	userRole, _ := c.Get("role")
 	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		respondAPIError(c, http.StatusUnauthorized, "AUTH_UNAUTHORIZED", "Unauthorized")
 		return
 	}
 
 	commentID := c.Param("id")
 	var comment models.ThreadComment
 	if err := cc.DB.Where("comment_id = ?", commentID).First(&comment).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Comment not found"})
+		respondAPIError(c, http.StatusNotFound, "COMMENT_NOT_FOUND", "Comment not found")
 		return
 	}
 
@@ -350,12 +352,12 @@ func (cc *CommentController) DeleteComment(c *gin.Context) {
 	isAdmin := userRole == "admin"
 
 	if !isAuthor && !isThreadAuthor && !isAdmin {
-		c.JSON(http.StatusForbidden, gin.H{"error": "You do not have permission to delete this comment"})
+		respondAPIError(c, http.StatusForbidden, "COMMENT_FORBIDDEN", "You do not have permission to delete this comment")
 		return
 	}
 
 	if err := cc.DB.Delete(&comment).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete comment"})
+		respondAPIError(c, http.StatusInternalServerError, "COMMENT_DELETE_FAILED", "Failed to delete comment")
 		return
 	}
 
@@ -367,30 +369,30 @@ func (cc *CommentController) TogglePinComment(c *gin.Context) {
 	userID, exists := c.Get("user_id")
 	userRole, _ := c.Get("role")
 	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		respondAPIError(c, http.StatusUnauthorized, "AUTH_UNAUTHORIZED", "Unauthorized")
 		return
 	}
 
 	commentID := c.Param("id")
 	var comment models.ThreadComment
 	if err := cc.DB.Where("comment_id = ?", commentID).First(&comment).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Comment not found"})
+		respondAPIError(c, http.StatusNotFound, "COMMENT_NOT_FOUND", "Comment not found")
 		return
 	}
 
 	var thread models.AnalysisThread
 	if err := cc.DB.Where("thread_id = ?", comment.ThreadID).First(&thread).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Thread not found"})
+		respondAPIError(c, http.StatusNotFound, "THREAD_NOT_FOUND", "Thread not found")
 		return
 	}
 
 	if thread.AuthorID != userID.(string) && userRole != "admin" {
-		c.JSON(http.StatusForbidden, gin.H{"error": "Only the thread author or admin can pin comments"})
+		respondAPIError(c, http.StatusForbidden, "COMMENT_MODERATION_FORBIDDEN", "Only the thread author or admin can pin comments")
 		return
 	}
 
 	if comment.ParentCommentID != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Only top-level comments can be pinned"})
+		respondAPIError(c, http.StatusBadRequest, "COMMENT_PIN_TOP_LEVEL_ONLY", "Only top-level comments can be pinned")
 		return
 	}
 
@@ -399,7 +401,7 @@ func (cc *CommentController) TogglePinComment(c *gin.Context) {
 		var pinnedCount int64
 		cc.DB.Model(&models.ThreadComment{}).Where("thread_id = ? AND is_pinned = true", comment.ThreadID).Count(&pinnedCount)
 		if pinnedCount >= 3 {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Maximum of 3 comments can be pinned per thread"})
+			respondAPIError(c, http.StatusBadRequest, "COMMENT_PIN_LIMIT_REACHED", "Maximum of 3 comments can be pinned per thread")
 			return
 		}
 		comment.IsPinned = true
@@ -408,7 +410,7 @@ func (cc *CommentController) TogglePinComment(c *gin.Context) {
 	}
 
 	if err := cc.DB.Save(&comment).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to toggle pin"})
+		respondAPIError(c, http.StatusInternalServerError, "COMMENT_MODERATION_FAILED", "Failed to toggle pin")
 		return
 	}
 
@@ -420,14 +422,14 @@ func (cc *CommentController) ToggleHideComment(c *gin.Context) {
 	userID, exists := c.Get("user_id")
 	userRole, _ := c.Get("role")
 	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		respondAPIError(c, http.StatusUnauthorized, "AUTH_UNAUTHORIZED", "Unauthorized")
 		return
 	}
 
 	commentID := c.Param("id")
 	var comment models.ThreadComment
 	if err := cc.DB.Where("comment_id = ?", commentID).First(&comment).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Comment not found"})
+		respondAPIError(c, http.StatusNotFound, "COMMENT_NOT_FOUND", "Comment not found")
 		return
 	}
 
@@ -435,13 +437,13 @@ func (cc *CommentController) ToggleHideComment(c *gin.Context) {
 	cc.DB.Where("thread_id = ?", comment.ThreadID).First(&thread)
 
 	if thread.AuthorID != userID.(string) && userRole != "admin" {
-		c.JSON(http.StatusForbidden, gin.H{"error": "Only thread author or admin can hide comments"})
+		respondAPIError(c, http.StatusForbidden, "COMMENT_MODERATION_FORBIDDEN", "Only thread author or admin can hide comments")
 		return
 	}
 
 	comment.IsHidden = !comment.IsHidden
 	if err := cc.DB.Save(&comment).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update comment moderation state"})
+		respondAPIError(c, http.StatusInternalServerError, "COMMENT_MODERATION_FAILED", "Failed to update comment moderation state")
 		return
 	}
 

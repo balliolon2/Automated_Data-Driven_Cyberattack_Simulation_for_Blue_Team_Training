@@ -10,6 +10,8 @@ type NotificationResponse struct {
 	NotificationID string `json:"notification_id"`
 	Title          string `json:"title"`
 	Message        string `json:"message"`
+	TemplateKey    string `json:"template_key,omitempty"`
+	TemplateParams any    `json:"template_params,omitempty"`
 	LinkURL        string `json:"link_url"`
 	IsRead         bool   `json:"is_read"`
 	CreatedAt      string `json:"created_at"`

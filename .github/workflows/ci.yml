@@ -36,7 +36,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '24'
           cache: 'npm'
           cache-dependency-path: frontend/package-lock.json
 
@@ -44,6 +44,11 @@ jobs:
         run: |
           cd frontend
           npm ci
+
+      - name: Frontend Unit Tests (i18n & SIEM shortcuts)
+        run: |
+          cd frontend
+          npm test
 
       - name: Frontend TypeScript Typecheck
         run: |
@@ -72,15 +77,16 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Scenario Evidence Authoring Gate
+      - name: Scenario Evidence & Bilingual Authoring Gate
         run: |
           python scripts/test_evidence_authoring.py
           python scripts/test_evidence_drafting.py
           python scripts/validate_evidence_mapping.py --mapping scripts/evidence_mapping.json --require-complete
-          python scripts/validate_evidence_mapping.py --seed scenarios_seed.json
+          python scripts/validate_evidence_mapping.py --seed scenarios_seed.json --require-all-th
 
-      - name: Learning Theory Curriculum Gate
+      - name: Learning Theory Bilingual Curriculum Gate
         run: |
+          python scripts/load_theory_to_db.py --validate-only --require-all-th
           python scripts/test_theory_seeding.py
 
   integration-test:
@@ -139,7 +145,8 @@ jobs:
           DATABASE_URL: "postgres://postgres:password123@localhost:5432/cyber_sim?sslmode=disable"
         run: |
           python scripts/load_exams_to_db.py
-          python scripts/load_theory_to_db.py
+          python scripts/load_theory_to_db.py --require-all-th
+          python scripts/load_scenarios_to_db.py
 
       - name: Start Backend & Run Integration Test Harness
         env:
@@ -182,7 +189,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '24'
           cache: 'npm'
           cache-dependency-path: frontend/package-lock.json
 

@@ -23,14 +23,14 @@ func NewUpvoteController(db *gorm.DB) *UpvoteController {
 func (uc *UpvoteController) ToggleThreadUpvote(c *gin.Context) {
 	userID, exists := c.Get("user_id")
 	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		respondAPIError(c, http.StatusUnauthorized, "AUTH_UNAUTHORIZED", "Unauthorized")
 		return
 	}
 
 	threadID := c.Param("id")
 	var thread models.AnalysisThread
 	if err := uc.DB.Where("thread_id = ?", threadID).First(&thread).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Analysis thread not found"})
+		respondAPIError(c, http.StatusNotFound, "THREAD_NOT_FOUND", "Analysis thread not found")
 		return
 	}
 
@@ -76,7 +76,7 @@ func (uc *UpvoteController) ToggleThreadUpvote(c *gin.Context) {
 	})
 
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to toggle upvote"})
+		respondAPIError(c, http.StatusInternalServerError, "THREAD_UPVOTE_FAILED", "Failed to toggle upvote")
 		return
 	}
 
@@ -91,14 +91,14 @@ func (uc *UpvoteController) ToggleThreadUpvote(c *gin.Context) {
 func (uc *UpvoteController) ToggleCommentUpvote(c *gin.Context) {
 	userID, exists := c.Get("user_id")
 	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		respondAPIError(c, http.StatusUnauthorized, "AUTH_UNAUTHORIZED", "Unauthorized")
 		return
 	}
 
 	commentID := c.Param("id")
 	var comment models.ThreadComment
 	if err := uc.DB.Where("comment_id = ?", commentID).First(&comment).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Comment not found"})
+		respondAPIError(c, http.StatusNotFound, "COMMENT_NOT_FOUND", "Comment not found")
 		return
 	}
 
@@ -143,7 +143,7 @@ func (uc *UpvoteController) ToggleCommentUpvote(c *gin.Context) {
 	})
 
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to toggle comment upvote"})
+		respondAPIError(c, http.StatusInternalServerError, "COMMENT_UPVOTE_FAILED", "Failed to toggle comment upvote")
 		return
 	}
 

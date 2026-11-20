@@ -335,6 +335,8 @@ CREATE TABLE user_notifications (
   user_id UUID REFERENCES users(user_id) ON DELETE CASCADE,
   title VARCHAR(120) NOT NULL,
   message TEXT NOT NULL,
+  template_key VARCHAR(64),
+  template_params JSONB NOT NULL DEFAULT '{}'::jsonb,
   link_url VARCHAR(255),
   is_read BOOLEAN DEFAULT false,
   created_at TIMESTAMP DEFAULT now()
