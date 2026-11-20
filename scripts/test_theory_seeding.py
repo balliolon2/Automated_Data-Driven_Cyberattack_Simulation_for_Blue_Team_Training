@@ -98,17 +98,18 @@ Concepts only without practice or web references.
         for sub_id in sorted(valid_ids):
             self.assertGreaterEqual(subtopic_counts.get(sub_id, 0), 2, f"Sub-topic {sub_id} has < 2 questions")
 
-    def test_domain1_thai_pilot_translations_pass_validation(self):
+    def test_all_thirty_three_thai_translations_pass_validation(self):
         repo_theory_dir = os.path.join(SCRIPT_DIR, "..", "theory")
         th_modules, th_subtopics = load_theory_to_db.load_and_validate_thai_translations(
-            repo_theory_dir, locale="th", require_all=False, require_pilot=True
+            repo_theory_dir, locale="th", require_all=True, require_pilot=True
         )
-        self.assertGreaterEqual(len(th_modules), 1)
-        self.assertIn("domain1", [m["entity_id"] for m in th_modules])
-        self.assertGreaterEqual(len(th_subtopics), 4)
+        self.assertEqual(5, len(th_modules))
+        for dom_id in ("domain1", "domain2", "domain3", "domain4", "domain5"):
+            self.assertIn(dom_id, [m["entity_id"] for m in th_modules])
+        self.assertEqual(28, len(th_subtopics))
         sub_ids = {s["entity_id"] for s in th_subtopics}
-        for pilot_id in ("1.1", "1.2", "1.3", "1.4"):
-            self.assertIn(pilot_id, sub_ids)
+        for sub_id in ("1.1", "1.4", "2.1", "2.5", "3.1", "3.4", "4.1", "4.9", "5.1", "5.6"):
+            self.assertIn(sub_id, sub_ids)
         for item in th_modules + th_subtopics:
             self.assertEqual(item["locale"], "th")
             self.assertRegex(item["title"], r"[\u0E00-\u0E7F]")

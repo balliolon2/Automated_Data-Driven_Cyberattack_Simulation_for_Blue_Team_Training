@@ -261,7 +261,7 @@ def validate_thai_subtopic_content(sub_topic_id, title, en_content, th_content):
     return errors
 
 
-def load_and_validate_thai_translations(theory_dir=None, locale="th", require_all=False, require_pilot=True):
+def load_and_validate_thai_translations(theory_dir=None, locale="th", require_all=True, require_pilot=True):
     resolved_dir = resolve_theory_dir(theory_dir)
     en_modules = {m["domain_id"]: m for m in load_and_validate_modules(resolved_dir)}
     en_subtopics = {s["sub_topic_id"]: s for s in load_and_validate_subtopics(resolved_dir)}
@@ -317,7 +317,7 @@ def load_and_validate_thai_translations(theory_dir=None, locale="th", require_al
     return thai_modules, thai_subtopics
 
 
-def load_theory_to_db(db_connection_string, theory_dir=None, require_all_th=False):
+def load_theory_to_db(db_connection_string, theory_dir=None, require_all_th=True):
     import psycopg2
 
     modules = load_and_validate_modules(theory_dir)
@@ -468,7 +468,7 @@ if __name__ == "__main__":
             mods = load_and_validate_modules(args.theory_dir)
             subs = load_and_validate_subtopics(args.theory_dir)
             th_mods, th_subs = load_and_validate_thai_translations(
-                args.theory_dir, locale="th", require_all=args.require_all_th, require_pilot=True
+                args.theory_dir, locale="th", require_all=True if args.require_all_th or args.theory_dir is None else args.require_all_th, require_pilot=True
             )
             print(
                 f"Theory validation passed: {len(mods)} EN domains, {len(subs)} EN sub-topics, {len(th_mods)} TH domains, {len(th_subs)} TH sub-topics."

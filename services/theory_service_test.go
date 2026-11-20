@@ -196,7 +196,7 @@ func containsThaiScript(s string) bool {
 	return false
 }
 
-func TestTheoryLocalization_Domain1PilotAndGracefulFallback(t *testing.T) {
+func TestTheoryLocalization_AllThirtyThreeDocsAndGracefulFallback(t *testing.T) {
 	modules, err := LoadTheoryModulesByLocale(nil, "th")
 	if err != nil {
 		t.Fatalf("LoadTheoryModulesByLocale(nil, th) failed: %v", err)
@@ -204,16 +204,13 @@ func TestTheoryLocalization_Domain1PilotAndGracefulFallback(t *testing.T) {
 	if len(modules) != 5 {
 		t.Fatalf("expected 5 modules, got %d", len(modules))
 	}
-	if !containsThaiScript(modules[0].Title) || !containsThaiScript(modules[0].Content) {
-		t.Errorf("domain1 module should be translated in Thai, got title=%q", modules[0].Title)
-	}
 	enModules, _ := LoadTheoryModules(nil)
-	if err := ValidateThaiTheoryModuleContent("domain1", enModules[0].Content, modules[0].Content); err != nil {
-		t.Errorf("domain1 Thai validation failed: %v", err)
-	}
-	for i := 1; i < len(modules); i++ {
-		if modules[i].Content == "" || !strings.HasPrefix(modules[i].Title, "Domain ") {
-			t.Errorf("domain%d should gracefully fall back to EN when unauthored, got title=%q", i+1, modules[i].Title)
+	for i := range modules {
+		if !containsThaiScript(modules[i].Title) || !containsThaiScript(modules[i].Content) {
+			t.Errorf("%s module should be translated in Thai, got title=%q", modules[i].DomainID, modules[i].Title)
+		}
+		if err := ValidateThaiTheoryModuleContent(modules[i].DomainID, enModules[i].Content, modules[i].Content); err != nil {
+			t.Errorf("%s Thai validation failed: %v", modules[i].DomainID, err)
 		}
 	}
 
@@ -225,16 +222,22 @@ func TestTheoryLocalization_Domain1PilotAndGracefulFallback(t *testing.T) {
 		t.Fatalf("expected 28 subtopics, got %d", len(subtopics))
 	}
 	enSubtopics, _ := LoadTheorySubtopics(nil)
-	for i := 0; i < 4; i++ {
+	for i := range subtopics {
 		if !containsThaiScript(subtopics[i].Title) || !containsThaiScript(subtopics[i].Content) {
-			t.Errorf("pilot subtopic %s should be translated in Thai, got title=%q", subtopics[i].SubTopicID, subtopics[i].Title)
+			t.Errorf("subtopic %s should be translated in Thai, got title=%q", subtopics[i].SubTopicID, subtopics[i].Title)
 		}
 		if err := ValidateThaiTheorySubtopicContent(subtopics[i].SubTopicID, enSubtopics[i].Content, subtopics[i].Content); err != nil {
-			t.Errorf("pilot subtopic %s failed validation: %v", subtopics[i].SubTopicID, err)
+			t.Errorf("subtopic %s failed validation: %v", subtopics[i].SubTopicID, err)
 		}
 	}
 	if err := ValidateThaiTheorySubtopicContent("1.1", enSubtopics[0].Content, enSubtopics[0].Content); err == nil {
 		t.Errorf("expected error when passing English-only stub to ValidateThaiTheorySubtopicContent")
+	}
+
+	// Graceful fallback to English when locale has no translations
+	fallbackModules, err := LoadTheoryModulesByLocale(nil, "fr")
+	if err != nil || len(fallbackModules) != 5 || fallbackModules[0].Title != enModules[0].Title {
+		t.Errorf("expected unsupported locale to gracefully fall back to English, err=%v", err)
 	}
 
 	// Accept-Language parsing
