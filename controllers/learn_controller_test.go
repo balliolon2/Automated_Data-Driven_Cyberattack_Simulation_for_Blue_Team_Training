@@ -25,6 +25,7 @@ type fakeLearnStore struct {
 	sampleBySubtopic  map[string][]models.Question
 	sampleByDomain    map[string][]models.Question
 	sampleAssignments map[string]map[string][]models.UserTheorySampleQuestionDetail
+	preferredLangs    map[string]string
 }
 
 func newFakeLearnStore() *fakeLearnStore {
@@ -199,6 +200,21 @@ func (f *fakeLearnStore) LoadModules() ([]services.TheoryModuleContent, error) {
 
 func (f *fakeLearnStore) LoadSubtopics() ([]services.TheorySubtopicContent, error) {
 	return services.LoadTheorySubtopics(nil)
+}
+
+func (f *fakeLearnStore) LoadModulesByLocale(locale string) ([]services.TheoryModuleContent, error) {
+	return services.LoadTheoryModulesByLocale(nil, locale)
+}
+
+func (f *fakeLearnStore) LoadSubtopicsByLocale(locale string) ([]services.TheorySubtopicContent, error) {
+	return services.LoadTheorySubtopicsByLocale(nil, locale)
+}
+
+func (f *fakeLearnStore) GetUserPreferredLanguage(userID string) string {
+	if lang, ok := f.preferredLangs[userID]; ok {
+		return lang
+	}
+	return "en"
 }
 
 func (f *fakeLearnStore) GetOrAssignSampleQuestions(userID, role, subTopicID, domainID string) ([]models.UserTheorySampleQuestionDetail, error) {
@@ -817,5 +833,135 @@ func TestLearnController_LegacyDomainProgressIgnoredUntilSubtopicsComplete(t *te
 	}
 	if !after.Domains[0].IsCompleted || after.Domains[1].IsCompleted {
 		t.Fatalf("unexpected domain states after domain1 completion: dom1=%v dom2=%v", after.Domains[0].IsCompleted, after.Domains[1].IsCompleted)
+	}
+}
+
+func TestLearnController_LocalizationPrecedenceErrorCodesAndEnglishOnlySamples(t *testing.T) {
+	store := newFakeLearnStore()
+	userID := "bilingual-learner"
+	store.profiles[userID] = []models.UserSkillProfile{
+		{UserID: userID, DomainID: "domain1", ProficiencyScore: 60.0},
+	}
+	store.seedSamplePool("domain1", "1.1", []models.Question{
+		{
+			QuestionID:    "q-en-11-a",
+			DomainID:      "domain1",
+			Type:          "multiple_choice",
+			QuestionText:  "Which control category includes firewalls and encryption?",
+			Options:       map[string]any{"A": "Technical", "B": "Managerial", "C": "Physical", "D": "Operational"},
+			CorrectAnswer: "A",
+			Explanation:   "Firewalls and encryption are technical controls.",
+			IsActive:      true,
+		},
+		{
+			QuestionID:    "q-en-11-b",
+			DomainID:      "domain1",
+			Type:          "multiple_choice",
+			QuestionText:  "Which control type stops unauthorized access before impact?",
+			Options:       map[string]any{"A": "Detective", "B": "Preventive", "C": "Deterrent", "D": "Corrective"},
+			CorrectAnswer: "B",
+			Explanation:   "Preventive controls stop unauthorized actions before they occur.",
+			IsActive:      true,
+		},
+	})
+	store.preferredLangs = map[string]string{userID: "th"}
+
+	lc := NewLearnControllerWithStore(store)
+	r := setupLearnRouter(lc, userID, "learner")
+
+	// 1. DB preferred_language="th" wins when ?lang and Accept-Language omitted
+	wDB := httptest.NewRecorder()
+	reqDB, _ := http.NewRequest("GET", "/api/learn/domains", nil)
+	r.ServeHTTP(wDB, reqDB)
+	if wDB.Code != http.StatusOK {
+		t.Fatalf("GET /api/learn/domains status = %d", wDB.Code)
+	}
+	var dbResp dto.LearnDomainsResponse
+	_ = json.Unmarshal(wDB.Body.Bytes(), &dbResp)
+	if !containsThaiRune(dbResp.Domains[0].Title) || !containsThaiRune(dbResp.Domains[0].Subtopics[0].Title) {
+		t.Fatalf("expected Thai domain1 and subtopic 1.1 from user preferred_language=th, got dom=%q sub=%q",
+			dbResp.Domains[0].Title, dbResp.Domains[0].Subtopics[0].Title)
+	}
+
+	// 2. ?lang=en overrides DB preferred_language=th and Accept-Language=th
+	wEnOverride := httptest.NewRecorder()
+	reqEn, _ := http.NewRequest("GET", "/api/learn/domains?lang=en", nil)
+	reqEn.Header.Set("Accept-Language", "th")
+	r.ServeHTTP(wEnOverride, reqEn)
+	var enResp dto.LearnDomainsResponse
+	_ = json.Unmarshal(wEnOverride.Body.Bytes(), &enResp)
+	if containsThaiRune(enResp.Domains[0].Title) || containsThaiRune(enResp.Domains[0].Content) {
+		t.Fatalf("?lang=en must override Accept-Language and DB to return English, got title=%q", enResp.Domains[0].Title)
+	}
+
+	// 3. ?lang=th returns Thai markdown while keeping sample_questions 100% English (zero Thai runes)
+	wSub := httptest.NewRecorder()
+	reqSub, _ := http.NewRequest("GET", "/api/learn/subtopics/1.1?lang=th", nil)
+	r.ServeHTTP(wSub, reqSub)
+	if wSub.Code != http.StatusOK {
+		t.Fatalf("GET /api/learn/subtopics/1.1?lang=th status = %d", wSub.Code)
+	}
+	var subResp dto.LearnSubtopicDetailResponse
+	_ = json.Unmarshal(wSub.Body.Bytes(), &subResp)
+	if !containsThaiRune(subResp.Title) || !containsThaiRune(subResp.Content) {
+		t.Fatalf("expected Thai subtopic 1.1 title and content, got title=%q", subResp.Title)
+	}
+	if len(subResp.SampleQuestions) != 2 {
+		t.Fatalf("expected 2 sample questions, got %d", len(subResp.SampleQuestions))
+	}
+	for _, sq := range subResp.SampleQuestions {
+		sqJSON, _ := json.Marshal(sq)
+		if containsThaiRune(string(sqJSON)) {
+			t.Fatalf("sample_questions must remain strictly English (zero Thai runes): %s", string(sqJSON))
+		}
+	}
+
+	// Attempting sample question returns English explanation under Accept-Language: th
+	attemptBody, _ := json.Marshal(dto.AttemptSampleQuestionRequest{Answer: "A"})
+	wAtt := httptest.NewRecorder()
+	reqAtt, _ := http.NewRequest("POST", "/api/learn/subtopics/1.1/sample-questions/"+subResp.SampleQuestions[0].QuestionID+"/attempt", bytes.NewReader(attemptBody))
+	reqAtt.Header.Set("Content-Type", "application/json")
+	reqAtt.Header.Set("Accept-Language", "th")
+	r.ServeHTTP(wAtt, reqAtt)
+	if wAtt.Code != http.StatusOK || containsThaiRune(wAtt.Body.String()) {
+		t.Fatalf("sample attempt response must stay strictly English: code=%d body=%s", wAtt.Code, wAtt.Body.String())
+	}
+
+	// 4. Canonical Learn error codes
+	wIncomplete := httptest.NewRecorder()
+	reqInc, _ := http.NewRequest("POST", "/api/learn/subtopics/1.1/complete", nil)
+	r.ServeHTTP(wIncomplete, reqInc)
+	var incBody map[string]any
+	_ = json.Unmarshal(wIncomplete.Body.Bytes(), &incBody)
+	if wIncomplete.Code != http.StatusBadRequest || incBody["code"] != "LEARN_SAMPLE_INCOMPLETE" {
+		t.Fatalf("expected 400 LEARN_SAMPLE_INCOMPLETE, got %d %+v", wIncomplete.Code, incBody)
+	}
+
+	wBadSub := httptest.NewRecorder()
+	reqBadSub, _ := http.NewRequest("GET", "/api/learn/subtopics/9.9", nil)
+	r.ServeHTTP(wBadSub, reqBadSub)
+	var badSubBody map[string]any
+	_ = json.Unmarshal(wBadSub.Body.Bytes(), &badSubBody)
+	if wBadSub.Code != http.StatusNotFound || badSubBody["code"] != "LEARN_SUBTOPIC_NOT_FOUND" {
+		t.Fatalf("expected 404 LEARN_SUBTOPIC_NOT_FOUND, got %d %+v", wBadSub.Code, badSubBody)
+	}
+
+	wBadDom := httptest.NewRecorder()
+	reqBadDom, _ := http.NewRequest("POST", "/api/learn/domains/domain9/complete", nil)
+	r.ServeHTTP(wBadDom, reqBadDom)
+	var badDomBody map[string]any
+	_ = json.Unmarshal(wBadDom.Body.Bytes(), &badDomBody)
+	if wBadDom.Code != http.StatusBadRequest || badDomBody["code"] != "LEARN_DOMAIN_NOT_FOUND" {
+		t.Fatalf("expected 400 LEARN_DOMAIN_NOT_FOUND, got %d %+v", wBadDom.Code, badDomBody)
+	}
+
+	wPreGate := httptest.NewRecorder()
+	rLocked := setupLearnRouter(lc, "no-pretest-user", "learner")
+	reqPre, _ := http.NewRequest("GET", "/api/learn/domains", nil)
+	rLocked.ServeHTTP(wPreGate, reqPre)
+	var preBody map[string]any
+	_ = json.Unmarshal(wPreGate.Body.Bytes(), &preBody)
+	if wPreGate.Code != http.StatusForbidden || preBody["code"] != "LEARN_PRETEST_REQUIRED" {
+		t.Fatalf("expected 403 LEARN_PRETEST_REQUIRED, got %d %+v", wPreGate.Code, preBody)
 	}
 }

@@ -46,7 +46,7 @@ import (
 //go:embed scenarios_seed.json
 var scenarioSeedJSON []byte
 
-//go:embed theory/*.md theory/domain1/*.md theory/domain2/*.md theory/domain3/*.md theory/domain4/*.md theory/domain5/*.md
+//go:embed theory
 var theoryMarkdownFS embed.FS
 
 func main() {

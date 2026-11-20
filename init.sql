@@ -222,6 +222,17 @@ CREATE TABLE theory_subtopics (
 );
 CREATE INDEX idx_theory_subtopics_domain ON theory_subtopics(domain_id, order_index);
 
+CREATE TABLE theory_translations (
+  entity_type VARCHAR(16) NOT NULL CHECK (entity_type IN ('domain_overview', 'subtopic')),
+  entity_id VARCHAR(32) NOT NULL,
+  locale VARCHAR(10) NOT NULL,
+  title VARCHAR(255) NOT NULL,
+  content TEXT NOT NULL,
+  updated_at TIMESTAMP DEFAULT now(),
+  PRIMARY KEY (entity_type, entity_id, locale)
+);
+CREATE INDEX idx_theory_translations_locale ON theory_translations(locale, entity_type);
+
 CREATE TABLE user_theory_subtopic_progress (
   user_id UUID REFERENCES users(user_id) ON DELETE CASCADE,
   sub_topic_id VARCHAR(16) REFERENCES theory_subtopics(sub_topic_id) ON DELETE CASCADE,

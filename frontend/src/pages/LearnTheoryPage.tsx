@@ -22,6 +22,8 @@ import {
 } from "lucide-react";
 import MarkdownView from "../components/MarkdownView";
 import { cn } from "../lib/utils";
+import { useI18n } from "../i18n/index.tsx";
+import { resolveApiError, resolveDomainName } from "../i18n/format.ts";
 
 interface TheorySubtopicSummary {
   sub_topic_id: string;
@@ -125,57 +127,67 @@ interface CompleteSubtopicResponse {
   preview_mode: boolean;
 }
 
+type UnlockNoticeState =
+  | { kind: "staff_preview" }
+  | { kind: "all_complete" }
+  | { kind: "domain_auto"; domainId: string }
+  | null;
+
 export default function LearnTheoryPage() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
+  const { locale, t } = useI18n();
 
   const [loading, setLoading] = useState(true);
-  const [lockedMessage, setLockedMessage] = useState<string | null>(null);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [lockedErr, setLockedErr] = useState<unknown>(null);
+  const [loadErr, setLoadErr] = useState<unknown>(null);
   const [data, setData] = useState<LearnDomainsPayload | null>(null);
 
   const [selectedDomainId, setSelectedDomainId] = useState<string>(
     searchParams.get("domain") || "domain1"
   );
   const [selectedTopicId, setSelectedTopicId] = useState<string | null>(
-    searchParams.get("topic")
+    searchParams.get("topic") === "overview" ? null : searchParams.get("topic")
   );
   const [expandedDomains, setExpandedDomains] = useState<Record<string, boolean>>({});
 
   const [subDetail, setSubDetail] = useState<LearnSubtopicDetail | null>(null);
   const [subLoading, setSubLoading] = useState(false);
-  const [subError, setSubError] = useState<string | null>(null);
+  const [subErrorObj, setSubErrorObj] = useState<unknown>(null);
 
   // Local radio choice per question before clicking Submit
   const [draftAnswers, setDraftAnswers] = useState<Record<string, string>>({});
   const [submittingQuestionId, setSubmittingQuestionId] = useState<string | null>(null);
   const [completingSubtopicId, setCompletingSubtopicId] = useState<string | null>(null);
-  const [actionError, setActionError] = useState<string | null>(null);
-  const [unlockNotice, setUnlockNotice] = useState<{
-    title: string;
-    detail: string;
-    allComplete: boolean;
-  } | null>(null);
+  const [actionErrorObj, setActionErrorObj] = useState<unknown>(null);
+  const [unlockNotice, setUnlockNotice] = useState<UnlockNoticeState>(null);
 
   const userRole = localStorage.getItem("userRole") || "learner";
   const initialQueryDomainRef = useRef<string | null>(searchParams.get("domain"));
   const initialQueryTopicRef = useRef<string | null>(searchParams.get("topic"));
+  const hasInitializedSelectionRef = useRef(false);
+  const activeTopicRef = useRef<string | null>(selectedTopicId);
+  activeTopicRef.current = selectedTopicId;
 
   const loadSubtopicDetail = useCallback(
-    async (subTopicId: string) => {
+    async (subTopicId: string, langOverride?: string) => {
       const token = localStorage.getItem("token");
       if (!token) {
         navigate("/login");
         return;
       }
 
+      const activeLang = langOverride || locale;
       setSubLoading(true);
-      setSubError(null);
-      setActionError(null);
+      setSubErrorObj(null);
+      setActionErrorObj(null);
       try {
         const res = await axios.get<LearnSubtopicDetail>(
           `/api/learn/subtopics/${encodeURIComponent(subTopicId)}`,
-          { headers: { Authorization: `Bearer ${token}` } }
+          {
+            params: { lang: activeLang },
+            headers: { Authorization: `Bearer ${token}` },
+          }
         );
         setSubDetail(res.data);
 
@@ -204,19 +216,16 @@ export default function LearnTheoryPage() {
           return;
         }
         console.error("Failed to load sub-topic detail:", err);
-        setSubError(
-          axios.isAxiosError(err)
-            ? err.response?.data?.error || "Unable to load this Sub-topic right now."
-            : "Unable to load this Sub-topic right now."
-        );
+        setSubErrorObj(err);
       } finally {
         setSubLoading(false);
       }
     },
-    [navigate]
+    [navigate, locale]
   );
 
   useEffect(() => {
+    let cancelled = false;
     const fetchTheory = async () => {
       const token = localStorage.getItem("token");
       if (!token) {
@@ -226,47 +235,57 @@ export default function LearnTheoryPage() {
 
       try {
         const res = await axios.get<LearnDomainsPayload>("/api/learn/domains", {
+          params: { lang: locale },
           headers: { Authorization: `Bearer ${token}` },
         });
+        if (cancelled) return;
+        setLockedErr(null);
+        setLoadErr(null);
         setData(res.data);
 
-        const domains = res.data.domains || [];
-        const requestedTopic = initialQueryTopicRef.current;
-        const requestedDomain = initialQueryDomainRef.current;
+        if (!hasInitializedSelectionRef.current) {
+          hasInitializedSelectionRef.current = true;
+          const domains = res.data.domains || [];
+          const requestedTopic = initialQueryTopicRef.current;
+          const requestedDomain = initialQueryDomainRef.current;
 
-        let targetDomainId = domains[0]?.domain_id || "domain1";
-        let targetTopicId: string | null = null;
+          let targetDomainId = domains[0]?.domain_id || "domain1";
+          let targetTopicId: string | null = null;
 
-        if (requestedTopic && requestedTopic !== "overview") {
-          for (const d of domains) {
-            if (d.subtopics?.some((s) => s.sub_topic_id === requestedTopic)) {
-              targetDomainId = d.domain_id;
-              targetTopicId = requestedTopic;
-              break;
+          if (requestedTopic && requestedTopic !== "overview") {
+            for (const d of domains) {
+              if (d.subtopics?.some((s) => s.sub_topic_id === requestedTopic)) {
+                targetDomainId = d.domain_id;
+                targetTopicId = requestedTopic;
+                break;
+              }
             }
           }
-        }
 
-        if (!targetTopicId) {
-          if (requestedDomain && domains.some((d) => d.domain_id === requestedDomain)) {
-            targetDomainId = requestedDomain;
-          } else if (domains.length > 0) {
-            const firstRecIncomplete = domains.find(
-              (d) => d.recommended_focus && !d.is_completed
-            );
-            const firstIncomplete = domains.find((d) => !d.is_completed);
-            targetDomainId = (firstRecIncomplete || firstIncomplete || domains[0]).domain_id;
+          if (!targetTopicId) {
+            if (requestedDomain && domains.some((d) => d.domain_id === requestedDomain)) {
+              targetDomainId = requestedDomain;
+            } else if (domains.length > 0) {
+              const firstRecIncomplete = domains.find(
+                (d) => d.recommended_focus && !d.is_completed
+              );
+              const firstIncomplete = domains.find((d) => !d.is_completed);
+              targetDomainId = (firstRecIncomplete || firstIncomplete || domains[0]).domain_id;
+            }
           }
-        }
 
-        setSelectedDomainId(targetDomainId);
-        setSelectedTopicId(targetTopicId);
-        setExpandedDomains({ [targetDomainId]: true });
+          setSelectedDomainId(targetDomainId);
+          setSelectedTopicId(targetTopicId);
+          setExpandedDomains({ [targetDomainId]: true });
 
-        if (targetTopicId) {
-          loadSubtopicDetail(targetTopicId);
+          if (targetTopicId) {
+            loadSubtopicDetail(targetTopicId, locale);
+          }
+        } else if (activeTopicRef.current) {
+          loadSubtopicDetail(activeTopicRef.current, locale);
         }
       } catch (err: unknown) {
+        if (cancelled) return;
         const errPayload = axios.isAxiosError(err) ? err.response : undefined;
         if (errPayload?.status === 401) {
           navigate("/login");
@@ -276,31 +295,30 @@ export default function LearnTheoryPage() {
           errPayload?.status === 403 &&
           errPayload?.data?.reason === "pre_test_required"
         ) {
-          setLockedMessage(
-            errPayload.data.error ||
-              "Please complete the Diagnostic Pre-Test first to unlock Learning Theory."
-          );
+          setLockedErr(err);
         } else {
           console.error("Failed to load learning theory:", err);
-          setErrorMessage(
-            errPayload?.data?.error ||
-              "Unable to load Learning Theory modules right now. Please try again."
-          );
+          setLoadErr(err);
         }
       } finally {
-        setLoading(false);
+        if (!cancelled) {
+          setLoading(false);
+        }
       }
     };
 
     fetchTheory();
-  }, [navigate, loadSubtopicDetail]);
+    return () => {
+      cancelled = true;
+    };
+  }, [navigate, locale, loadSubtopicDetail]);
 
   const handleSelectOverview = (domainId: string) => {
     setSelectedDomainId(domainId);
     setSelectedTopicId(null);
     setSubDetail(null);
-    setSubError(null);
-    setActionError(null);
+    setSubErrorObj(null);
+    setActionErrorObj(null);
     setUnlockNotice(null);
     setExpandedDomains((prev) => ({ ...prev, [domainId]: true }));
     setSearchParams({ domain: domainId, topic: "overview" }, { replace: true });
@@ -338,7 +356,7 @@ export default function LearnTheoryPage() {
     }
 
     setSubmittingQuestionId(questionId);
-    setActionError(null);
+    setActionErrorObj(null);
     try {
       const res = await axios.post<AttemptSampleResponse>(
         `/api/learn/subtopics/${encodeURIComponent(
@@ -395,8 +413,7 @@ export default function LearnTheoryPage() {
       });
     } catch (err: unknown) {
       console.error("Failed to submit sample question answer:", err);
-      const errMsg = axios.isAxiosError(err) ? err.response?.data?.error : undefined;
-      setActionError(errMsg || "Could not evaluate your answer. Please retry.");
+      setActionErrorObj(err);
     } finally {
       setSubmittingQuestionId(null);
     }
@@ -407,7 +424,7 @@ export default function LearnTheoryPage() {
     if (!token || !data) return;
 
     setCompletingSubtopicId(subTopicId);
-    setActionError(null);
+    setActionErrorObj(null);
     setUnlockNotice(null);
     try {
       const res = await axios.post<CompleteSubtopicResponse>(
@@ -419,11 +436,7 @@ export default function LearnTheoryPage() {
 
       if (payload.preview_mode) {
         setSubDetail((prev) => (prev ? { ...prev, is_completed: true } : prev));
-        setUnlockNotice({
-          title: "Staff Preview Mode",
-          detail: "Completion check simulated without writing to learner tracking tables.",
-          allComplete: false,
-        });
+        setUnlockNotice({ kind: "staff_preview" });
         return;
       }
 
@@ -466,23 +479,13 @@ export default function LearnTheoryPage() {
       });
 
       if (payload.theory_completed) {
-        setUnlockNotice({
-          title: "28 / 28 Sub-topics Completed — Simulation Unlocked!",
-          detail:
-            "All 5 Security+ domains are now complete. You are ready to enter Adaptive SOC Scenarios.",
-          allComplete: true,
-        });
+        setUnlockNotice({ kind: "all_complete" });
       } else if (payload.domain_auto_completed) {
-        setUnlockNotice({
-          title: `Parent Domain Auto-Completed (${payload.domain_id.toUpperCase()})`,
-          detail: `Every Sub-topic in ${payload.domain_id} is finished. Continue to the next Sub-topic to unlock Simulations.`,
-          allComplete: false,
-        });
+        setUnlockNotice({ kind: "domain_auto", domainId: payload.domain_id });
       }
     } catch (err: unknown) {
       console.error("Failed to complete sub-topic:", err);
-      const errMsg = axios.isAxiosError(err) ? err.response?.data?.error : undefined;
-      setActionError(errMsg || "Could not record sub-topic completion. Please retry.");
+      setActionErrorObj(err);
     } finally {
       setCompletingSubtopicId(null);
     }
@@ -493,13 +496,14 @@ export default function LearnTheoryPage() {
       <div className="min-h-[60vh] flex flex-col items-center justify-center gap-3">
         <Loader2 className="w-6 h-6 text-white animate-spin" />
         <p className="text-xs font-mono text-graphite-500">
-          Loading 5-domain / 28-subtopic Security+ curriculum...
+          {t("learn.loadingCurriculum")}
         </p>
       </div>
     );
   }
 
-  if (lockedMessage) {
+  if (lockedErr) {
+    const lockedMessage = resolveApiError(lockedErr, t, t("errors.LEARN_PRETEST_REQUIRED"));
     return (
       <div className="max-w-lg mx-auto mt-12 bg-graphite-900 p-8 rounded-lg border border-graphite-800 text-center space-y-6 animate-fade-in">
         <div className="w-12 h-12 rounded-full bg-amber-500/10 border border-amber-500/30 flex items-center justify-center mx-auto">
@@ -507,31 +511,30 @@ export default function LearnTheoryPage() {
         </div>
         <div className="space-y-2">
           <h2 className="text-lg font-bold tracking-tight text-white">
-            Pre-Test Required to Unlock Theory
+            {t("learn.preTestRequiredTitle")}
           </h2>
           <p className="text-xs text-graphite-400 leading-relaxed">
-            {lockedMessage} Completing the 30-question Diagnostic Pre-Test builds your baseline
-            skill profile across all 5 CompTIA Security+ domains so you know which areas to focus
-            on.
+            {lockedMessage} {t("learn.preTestRequiredBody")}
           </p>
         </div>
         <button
           onClick={() => navigate("/pre-test")}
           className="w-full py-2.5 bg-white text-black font-semibold text-xs rounded-md hover:bg-white/90 transition-all duration-200 cursor-pointer"
         >
-          Take Diagnostic Pre-Test
+          {t("learn.takePreTest")}
         </button>
       </div>
     );
   }
 
-  if (errorMessage || !data || data.domains.length === 0) {
+  if (loadErr || !data || data.domains.length === 0) {
+    const errorMessage = loadErr ? resolveApiError(loadErr, t, t("learn.loadError")) : t("learn.unavailableEmpty");
     return (
       <div className="max-w-lg mx-auto mt-12 bg-graphite-900 p-8 rounded-lg border border-graphite-800 text-center space-y-4">
         <AlertTriangle className="w-8 h-8 text-amber-400 mx-auto" />
-        <h2 className="text-base font-bold text-white">Learning Theory Unavailable</h2>
+        <h2 className="text-base font-bold text-white">{t("learn.unavailableTitle")}</h2>
         <p className="text-xs font-mono text-graphite-400">
-          {errorMessage || "No curriculum modules were found."}
+          {errorMessage}
         </p>
       </div>
     );
@@ -571,6 +574,10 @@ export default function LearnTheoryPage() {
   const showProficiencyMetrics =
     userRole === "learner" || data.domains.some((d) => d.proficiency_score > 0);
 
+  const subError = subErrorObj ? resolveApiError(subErrorObj, t, t("learn.subtopicLoadError")) : null;
+  const actionError = actionErrorObj ? resolveApiError(actionErrorObj, t, t("learn.completeError")) : null;
+  const activeDomainDisplayName = resolveDomainName(activeDomain.domain_id, activeDomain.domain_name, locale);
+
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Header & Progress Gate Banner */}
@@ -579,29 +586,27 @@ export default function LearnTheoryPage() {
           <div className="flex items-center gap-2 text-xs font-mono text-emerald-400">
             <BookOpen className="w-4 h-4" />
             <span className="uppercase tracking-wider font-semibold">
-              CompTIA Security+ (SY0-701) Curriculum
+              {t("learn.curriculumBadge")}
             </span>
           </div>
           <h1 className="text-2xl font-bold tracking-tight text-white">
-            Learning Theory Hub
+            {t("learn.hubTitle")}
           </h1>
           <p className="text-xs text-graphite-400 max-w-2xl leading-relaxed">
-            Study all 5 Domain Overviews and 28 web-grounded Sub-topics with formative Security+
-            practice questions. Completing both practice questions unlocks each Sub-topic; finish
-            all 28 Sub-topics to unlock Adaptive Simulations.
+            {t("learn.hubSubtitle")}
           </p>
         </div>
 
         <div className="w-full lg:w-80 space-y-3 bg-graphite-950/70 border border-graphite-800 rounded-lg p-4 shrink-0">
           <div className="flex items-center justify-between text-xs font-mono">
-            <span className="text-graphite-400">Study Progress</span>
+            <span className="text-graphite-400">{t("learn.studyProgress")}</span>
             <span
               className={cn(
                 "font-bold",
                 data.theory_completed ? "text-emerald-400" : "text-white"
               )}
             >
-              {completedSubtopicsCount} / {totalSubtopics} Sub-topics
+              {t("learn.subtopicsRatio", { completed: completedSubtopicsCount, total: totalSubtopics })}
             </span>
           </div>
           <div className="h-2 w-full bg-graphite-900 rounded overflow-hidden border border-graphite-800">
@@ -615,7 +620,7 @@ export default function LearnTheoryPage() {
           </div>
           <div className="flex items-center justify-between text-[11px] font-mono text-graphite-400">
             <span>
-              Domains Auto-Completed: {data.completed_count} / {data.total_domains}
+              {t("learn.domainsAutoCompleted", { completed: data.completed_count, total: data.total_domains })}
             </span>
             <span>{progressPct}%</span>
           </div>
@@ -626,12 +631,11 @@ export default function LearnTheoryPage() {
               className="w-full py-2 px-3 bg-white text-black font-semibold text-xs rounded-md hover:bg-white/90 transition-all flex items-center justify-center gap-2 cursor-pointer"
             >
               <PlayCircle className="w-4 h-4" />
-              Start Adaptive Simulation
+              {t("learn.startAdaptiveSimulation")}
             </button>
           ) : (
             <p className="text-[11px] font-mono text-graphite-400">
-              Complete all {totalSubtopics} Sub-topics & their sample questions to unlock Adaptive
-              Simulations.
+              {t("learn.unlockRequirementHint", { total: totalSubtopics })}
             </p>
           )}
         </div>
@@ -644,6 +648,7 @@ export default function LearnTheoryPage() {
             const isDomainSelected = domain.domain_id === activeDomain.domain_id;
             const isOverviewActive = isDomainSelected && !effectiveTopicId;
             const isExpanded = Boolean(expandedDomains[domain.domain_id] ?? isDomainSelected);
+            const domainDisplayName = resolveDomainName(domain.domain_id, domain.domain_name, locale);
 
             return (
               <div
@@ -671,10 +676,10 @@ export default function LearnTheoryPage() {
                       />
                       <div className="min-w-0">
                         <span className="text-[10px] font-mono uppercase tracking-wider text-graphite-500 block">
-                          Domain {idx + 1}
+                          {t("learn.domainNumberLabel", { index: idx + 1 })}
                         </span>
                         <h3 className="text-sm font-semibold text-white leading-snug group-hover:text-indigo-200 transition-colors">
-                          {domain.domain_name}
+                          {domainDisplayName}
                         </h3>
                       </div>
                     </button>
@@ -715,7 +720,7 @@ export default function LearnTheoryPage() {
                     {domain.recommended_focus && (
                       <span className="px-2 py-0.5 rounded text-[10px] font-mono font-semibold bg-indigo-500/15 text-indigo-300 border border-indigo-500/30 flex items-center gap-1">
                         <Sparkles className="w-2.5 h-2.5" />
-                        Recommended
+                        {t("learn.recommendedBadge")}
                       </span>
                     )}
                   </div>
@@ -736,10 +741,10 @@ export default function LearnTheoryPage() {
                     >
                       <span className="flex items-center gap-2 min-w-0">
                         <Layers className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
-                        <span className="truncate">Domain Overview</span>
+                        <span className="truncate">{t("learn.domainOverviewLabel")}</span>
                       </span>
                       <span className="text-[10px] font-mono text-graphite-500 shrink-0">
-                        Roadmap
+                        {t("learn.roadmapBadge")}
                       </span>
                     </button>
 
@@ -796,16 +801,16 @@ export default function LearnTheoryPage() {
               <div className="px-6 py-4 border-b border-graphite-800 bg-graphite-950/60 flex flex-wrap items-center justify-between gap-3">
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="px-2 py-0.5 rounded bg-graphite-900 border border-graphite-800 text-[10px] font-mono text-graphite-300 uppercase">
-                    {activeDomain.domain_id} • Overview
+                    {t("learn.overviewPill", { domainId: activeDomain.domain_id })}
                   </span>
                   {activeDomain.recommended_focus && (
                     <span className="px-2 py-0.5 rounded bg-indigo-500/15 border border-indigo-500/30 text-[10px] font-mono text-indigo-300 font-semibold">
-                      Recommended Focus Domain
+                      {t("learn.recommendedFocusBadge")}
                     </span>
                   )}
                   {showProficiencyMetrics && (
                     <span className="text-[11px] font-mono text-graphite-400">
-                      Current Proficiency:{" "}
+                      {t("learn.currentProficiency")}{" "}
                       <strong
                         className={
                           activeDomain.passed_threshold ? "text-emerald-400" : "text-amber-400"
@@ -827,13 +832,13 @@ export default function LearnTheoryPage() {
                       className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/30 text-[11px] font-mono text-indigo-300 transition-colors"
                     >
                       <ExternalLink className="w-3 h-3" />
-                      Primary Reference
+                      {t("learn.primaryReference")}
                     </a>
                   )}
                   {activeDomain.is_completed && (
                     <span className="inline-flex items-center gap-1.5 text-xs font-mono font-semibold text-emerald-400">
                       <CheckCircle2 className="w-3.5 h-3.5" />
-                      Domain Auto-Completed
+                      {t("learn.domainAutoCompletedBadge")}
                     </span>
                   )}
                 </div>
@@ -847,13 +852,13 @@ export default function LearnTheoryPage() {
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div>
                       <h3 className="text-sm font-bold text-white tracking-tight">
-                        SY0-701 Sub-topics in this Domain (
-                        {activeDomain.completed_subtopics_in_domain}/
-                        {activeDomain.total_subtopics_in_domain} Completed)
+                        {t("learn.subtopicsSectionTitle", {
+                          completed: activeDomain.completed_subtopics_in_domain,
+                          total: activeDomain.total_subtopics_in_domain,
+                        })}
                       </h3>
                       <p className="text-xs text-graphite-400 mt-0.5">
-                        Complete every Sub-topic and its 2 practice questions below to
-                        automatically complete {activeDomain.domain_name}.
+                        {t("learn.subtopicsSectionDesc", { domainName: activeDomainDisplayName })}
                       </p>
                     </div>
                     {activeDomain.subtopics?.[0] && (
@@ -867,7 +872,7 @@ export default function LearnTheoryPage() {
                         }
                         className="px-3 py-1.5 rounded-md bg-white text-black font-semibold text-xs hover:bg-white/90 transition-colors flex items-center gap-1.5 cursor-pointer"
                       >
-                        Start Sub-topic {activeDomain.subtopics[0].sub_topic_id}
+                        {t("learn.startSubtopicButton", { subTopicId: activeDomain.subtopics[0].sub_topic_id })}
                         <ChevronRight className="w-3.5 h-3.5" />
                       </button>
                     )}
@@ -889,7 +894,7 @@ export default function LearnTheoryPage() {
                         <div className="flex items-start justify-between gap-2">
                           <div className="space-y-1">
                             <span className="inline-block px-1.5 py-0.5 rounded bg-indigo-500/15 border border-indigo-500/30 text-[10px] font-mono text-indigo-300 font-semibold">
-                              Objective {sub.sub_topic_id}
+                              {t("learn.objectiveLabel", { subTopicId: sub.sub_topic_id })}
                             </span>
                             <h4 className="text-xs font-semibold text-white leading-snug">
                               {sub.title}
@@ -910,10 +915,13 @@ export default function LearnTheoryPage() {
                                 : "text-graphite-400"
                             }
                           >
-                            Questions: {sub.sample_attempted_count}/{sub.sample_total_count}
+                            {t("learn.questionsRatio", {
+                              attempted: sub.sample_attempted_count,
+                              total: sub.sample_total_count,
+                            })}
                           </span>
                           <span className="text-indigo-300 flex items-center gap-1">
-                            {sub.is_completed ? "Review" : "Study"}
+                            {sub.is_completed ? t("learn.reviewAction") : t("learn.studyAction")}
                             <ChevronRight className="w-3 h-3" />
                           </span>
                         </div>
@@ -931,7 +939,7 @@ export default function LearnTheoryPage() {
                   className="px-3 py-2 rounded-md border border-graphite-800 bg-graphite-900 text-xs font-mono text-graphite-300 hover:text-white hover:border-graphite-700 disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5 cursor-pointer"
                 >
                   <ChevronLeft className="w-3.5 h-3.5" />
-                  Previous Overview
+                  {t("learn.previousOverview")}
                 </button>
                 <button
                   type="button"
@@ -939,7 +947,7 @@ export default function LearnTheoryPage() {
                   onClick={() => nextDomain && handleSelectOverview(nextDomain.domain_id)}
                   className="px-3 py-2 rounded-md border border-graphite-800 bg-graphite-900 text-xs font-mono text-graphite-300 hover:text-white hover:border-graphite-700 disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5 cursor-pointer"
                 >
-                  Next Overview
+                  {t("learn.nextOverview")}
                   <ChevronRight className="w-3.5 h-3.5" />
                 </button>
               </div>
@@ -949,7 +957,7 @@ export default function LearnTheoryPage() {
             <div className="min-h-[420px] flex flex-col items-center justify-center gap-3 p-8">
               <Loader2 className="w-6 h-6 text-white animate-spin" />
               <p className="text-xs font-mono text-graphite-400">
-                Loading Sub-topic {effectiveTopicId} & formative sample questions...
+                {t("learn.loadingSubtopic", { subTopicId: effectiveTopicId })}
               </p>
             </div>
           ) : subError || !subDetail ? (
@@ -957,14 +965,14 @@ export default function LearnTheoryPage() {
             <div className="p-8 text-center space-y-4">
               <AlertTriangle className="w-8 h-8 text-amber-400 mx-auto" />
               <p className="text-xs font-mono text-graphite-300">
-                {subError || "Sub-topic details unavailable."}
+                {subError || t("learn.subtopicDetailsUnavailable")}
               </p>
               <button
                 type="button"
                 onClick={() => handleSelectOverview(activeDomain.domain_id)}
                 className="px-4 py-2 rounded-md bg-graphite-800 text-xs font-semibold text-white hover:bg-graphite-700 cursor-pointer"
               >
-                Back to Domain Overview
+                {t("learn.backToOverview")}
               </button>
             </div>
           ) : (
@@ -977,16 +985,16 @@ export default function LearnTheoryPage() {
                     onClick={() => handleSelectOverview(subDetail.domain_id)}
                     className="px-2 py-0.5 rounded bg-graphite-900 hover:bg-graphite-800 border border-graphite-800 text-[10px] font-mono text-graphite-300 uppercase cursor-pointer"
                   >
-                    {subDetail.domain_id} Overview
+                    {t("learn.overviewBreadcrumb", { domainId: subDetail.domain_id })}
                   </button>
                   <span className="text-graphite-600 text-xs">/</span>
                   <span className="px-2 py-0.5 rounded bg-indigo-500/15 border border-indigo-500/30 text-[10px] font-mono text-indigo-300 font-semibold">
-                    Sub-topic {subDetail.sub_topic_id}
+                    {t("learn.subtopicBadge", { subTopicId: subDetail.sub_topic_id })}
                   </span>
                   {subDetail.preview_mode && (
                     <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-amber-500/15 border border-amber-500/30 text-[10px] font-mono text-amber-300 font-semibold">
                       <Eye className="w-3 h-3" />
-                      Preview Mode (Staff)
+                      {t("learn.previewModeBadge")}
                     </span>
                   )}
                 </div>
@@ -1000,13 +1008,13 @@ export default function LearnTheoryPage() {
                       className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/30 text-[11px] font-mono text-indigo-300 transition-colors"
                     >
                       <ExternalLink className="w-3 h-3" />
-                      Web Reference
+                      {t("learn.webReference")}
                     </a>
                   )}
                   {subDetail.is_completed && (
                     <span className="inline-flex items-center gap-1.5 text-xs font-mono font-semibold text-emerald-400">
                       <CheckCircle2 className="w-3.5 h-3.5" />
-                      Sub-topic Completed
+                      {t("learn.subtopicCompletedBadge")}
                     </span>
                   )}
                 </div>
@@ -1016,18 +1024,18 @@ export default function LearnTheoryPage() {
               <div className="p-6 sm:p-8 space-y-8">
                 <MarkdownView content={subDetail.content} />
 
-                {/* Interactive Formative Sample Questions */}
+                {/* Interactive Formative Sample Questions (Strictly English-only content) */}
                 <div className="pt-6 border-t border-graphite-800 space-y-4">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div className="space-y-1">
                       <h3 className="text-sm font-bold text-white flex items-center gap-2">
                         <HelpCircle className="w-4 h-4 text-indigo-400" />
-                        Formative Sample Practice Questions
+                        {t("learn.sampleSectionTitle")}
                       </h3>
                       <p className="text-xs text-graphite-400">
                         {subDetail.preview_mode
-                          ? "Staff Preview Mode: answers are evaluated statelessly without recording learner attempts."
-                          : "Your first submitted answer locks cleanly for review and does not modify your Proficiency Score."}
+                          ? t("learn.samplePreviewDesc")
+                          : t("learn.sampleLearnerDesc")}
                       </p>
                     </div>
                     <span
@@ -1038,9 +1046,18 @@ export default function LearnTheoryPage() {
                           : "bg-graphite-950 text-graphite-300 border-graphite-800"
                       )}
                     >
-                      Attempted: {subDetail.attempted_count} / {subDetail.required_count}
+                      {t("learn.attemptedRatio", {
+                        attempted: subDetail.attempted_count,
+                        required: subDetail.required_count,
+                      })}
                     </span>
                   </div>
+
+                  {locale === "th" && (
+                    <div className="px-3 py-2 rounded bg-graphite-900/70 border border-graphite-800 text-graphite-300 text-xs">
+                      {t("learn.sampleEnglishOnlyNotice")}
+                    </div>
+                  )}
 
                   <div className="space-y-4">
                     {subDetail.sample_questions.map((q, qIdx) => {
@@ -1057,16 +1074,16 @@ export default function LearnTheoryPage() {
                         >
                           <div className="flex flex-wrap items-center justify-between gap-2">
                             <span className="text-xs font-mono font-semibold text-graphite-300">
-                              Sample Question #{qIdx + 1}
+                              {t("learn.sampleQuestionNumber", { index: qIdx + 1 })}
                             </span>
                             <div className="flex items-center gap-2">
                               {q.is_fallback ? (
                                 <span className="px-2 py-0.5 rounded bg-amber-500/15 border border-amber-500/30 text-[10px] font-mono text-amber-300">
-                                  Domain Related Fallback
+                                  {t("learn.domainFallbackBadge")}
                                 </span>
                               ) : (
                                 <span className="px-2 py-0.5 rounded bg-indigo-500/15 border border-indigo-500/30 text-[10px] font-mono text-indigo-300">
-                                  Objective {subDetail.sub_topic_id}
+                                  {t("learn.objectiveLabel", { subTopicId: subDetail.sub_topic_id })}
                                 </span>
                               )}
 
@@ -1082,12 +1099,15 @@ export default function LearnTheoryPage() {
                                   {q.is_correct ? (
                                     <>
                                       <CheckCircle2 className="w-3 h-3" />
-                                      Correct ({q.submitted_answer})
+                                      {t("learn.correctLockedBadge", { answer: q.submitted_answer ?? "" })}
                                     </>
                                   ) : (
                                     <>
                                       <XCircle className="w-3 h-3" />
-                                      Locked ({q.submitted_answer}) • Correct: {q.correct_answer}
+                                      {t("learn.wrongLockedBadge", {
+                                        submitted: q.submitted_answer ?? "",
+                                        correct: q.correct_answer ?? "",
+                                      })}
                                     </>
                                   )}
                                 </span>
@@ -1140,8 +1160,8 @@ export default function LearnTheoryPage() {
                             <div className="flex items-center justify-between pt-1">
                               <span className="text-[11px] font-mono text-graphite-500">
                                 {draftAnswers[q.question_id]
-                                  ? `Selected option ${draftAnswers[q.question_id]}`
-                                  : "Select A, B, C, or D to check answer"}
+                                  ? t("learn.selectedOptionStatus", { answer: draftAnswers[q.question_id] })
+                                  : t("learn.selectedOptionHint")}
                               </span>
                               <button
                                 type="button"
@@ -1155,10 +1175,10 @@ export default function LearnTheoryPage() {
                                 {submittingQuestionId === q.question_id ? (
                                   <>
                                     <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                                    Checking...
+                                    {t("learn.checkingAnswer")}
                                   </>
                                 ) : (
-                                  "Check & Lock Answer"
+                                  t("learn.checkLockAnswer")
                                 )}
                               </button>
                             </div>
@@ -1166,7 +1186,7 @@ export default function LearnTheoryPage() {
                             q.explanation && (
                               <div className="p-3.5 rounded-md bg-graphite-900 border border-graphite-800 space-y-1">
                                 <span className="text-[10px] font-mono uppercase tracking-wider text-indigo-300 font-semibold">
-                                  Explanation
+                                  {t("learn.explanationLabel")}
                                 </span>
                                 <p className="text-xs text-graphite-300 leading-relaxed">
                                   {q.explanation}
@@ -1192,17 +1212,33 @@ export default function LearnTheoryPage() {
                 {unlockNotice && (
                   <div className="p-4 rounded-lg bg-emerald-950/40 border border-emerald-500/40 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div className="space-y-0.5">
-                      <p className="text-xs font-bold text-emerald-300">{unlockNotice.title}</p>
-                      <p className="text-xs text-graphite-300">{unlockNotice.detail}</p>
+                      <p className="text-xs font-bold text-emerald-300">
+                        {unlockNotice.kind === "staff_preview"
+                          ? t("learn.staffPreviewNoticeTitle")
+                          : unlockNotice.kind === "all_complete"
+                          ? t("learn.allCompleteNoticeTitle")
+                          : t("learn.domainAutoCompleteNoticeTitle", {
+                              domainUpper: unlockNotice.domainId.toUpperCase(),
+                            })}
+                      </p>
+                      <p className="text-xs text-graphite-300">
+                        {unlockNotice.kind === "staff_preview"
+                          ? t("learn.staffPreviewNoticeDetail")
+                          : unlockNotice.kind === "all_complete"
+                          ? t("learn.allCompleteNoticeDetail")
+                          : t("learn.domainAutoCompleteNoticeDetail", {
+                              domainName: resolveDomainName(unlockNotice.domainId, unlockNotice.domainId, locale),
+                            })}
+                      </p>
                     </div>
-                    {unlockNotice.allComplete && (
+                    {unlockNotice.kind === "all_complete" && (
                       <button
                         type="button"
                         onClick={() => navigate("/simulation")}
                         className="px-3.5 py-2 rounded-md bg-white text-black font-semibold text-xs hover:bg-white/90 flex items-center gap-1.5 shrink-0 cursor-pointer"
                       >
                         <PlayCircle className="w-4 h-4" />
-                        Enter Simulation
+                        {t("learn.enterSimulation")}
                       </button>
                     )}
                   </div>
@@ -1220,7 +1256,7 @@ export default function LearnTheoryPage() {
                       className="px-3 py-2 rounded-md border border-graphite-800 bg-graphite-900 text-xs font-mono text-graphite-300 hover:text-white hover:border-graphite-700 disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5 cursor-pointer"
                     >
                       <ChevronLeft className="w-3.5 h-3.5" />
-                      Previous Sub-topic
+                      {t("learn.previousSubtopic")}
                     </button>
                     <button
                       type="button"
@@ -1231,7 +1267,7 @@ export default function LearnTheoryPage() {
                       }
                       className="px-3 py-2 rounded-md border border-graphite-800 bg-graphite-900 text-xs font-mono text-graphite-300 hover:text-white hover:border-graphite-700 disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5 cursor-pointer"
                     >
-                      Next Sub-topic
+                      {t("learn.nextSubtopic")}
                       <ChevronRight className="w-3.5 h-3.5" />
                     </button>
                   </div>
@@ -1247,25 +1283,27 @@ export default function LearnTheoryPage() {
                         onClick={() => handleCompleteSubtopic(subDetail.sub_topic_id)}
                         title={
                           subDetail.ready_to_complete
-                            ? "Mark this Sub-topic completed"
-                            : "Attempt all assigned sample questions first"
+                            ? t("learn.markCompletedTitle")
+                            : t("learn.attemptFirstTitle")
                         }
                         className="px-4 py-2 rounded-md bg-emerald-500 hover:bg-emerald-400 text-black font-semibold text-xs transition-all flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
                       >
                         {completingSubtopicId === subDetail.sub_topic_id ? (
                           <>
                             <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                            Saving...
+                            {t("learn.saving")}
                           </>
                         ) : (
                           <>
                             <CheckCircle2 className="w-4 h-4" />
                             {subDetail.ready_to_complete
-                              ? "Mark Sub-topic as Completed"
-                              : `Attempt ${Math.max(
-                                  0,
-                                  subDetail.required_count - subDetail.attempted_count
-                                )} more question(s) to unlock`}
+                              ? t("learn.markSubtopicCompleted")
+                              : t("learn.attemptMoreToUnlock", {
+                                  remaining: Math.max(
+                                    0,
+                                    subDetail.required_count - subDetail.attempted_count
+                                  ),
+                                })}
                           </>
                         )}
                       </button>
@@ -1278,7 +1316,7 @@ export default function LearnTheoryPage() {
                         }
                         className="px-4 py-2 rounded-md bg-white hover:bg-white/90 text-black font-semibold text-xs transition-all flex items-center justify-center gap-2 cursor-pointer"
                       >
-                        Completed ✓ — Next Sub-topic ({subDetail.next_sub_topic_id})
+                        {t("learn.completedNextSubtopic", { subTopicId: subDetail.next_sub_topic_id })}
                         <ChevronRight className="w-4 h-4" />
                       </button>
                     ) : data.theory_completed ? (
@@ -1288,12 +1326,12 @@ export default function LearnTheoryPage() {
                         className="px-4 py-2 rounded-md bg-white hover:bg-white/90 text-black font-semibold text-xs transition-all flex items-center justify-center gap-2 cursor-pointer"
                       >
                         <PlayCircle className="w-4 h-4" />
-                        Start Adaptive Simulation
+                        {t("learn.startAdaptiveSimulation")}
                       </button>
                     ) : (
                       <span className="inline-flex items-center gap-1.5 px-3 py-2 rounded-md bg-emerald-500/10 border border-emerald-500/30 text-xs font-mono font-semibold text-emerald-400">
                         <CheckCircle2 className="w-4 h-4" />
-                        Sub-topic Completed
+                        {t("learn.subtopicCompletedBadge")}
                       </span>
                     )}
                   </div>

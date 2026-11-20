@@ -98,6 +98,63 @@ Concepts only without practice or web references.
         for sub_id in sorted(valid_ids):
             self.assertGreaterEqual(subtopic_counts.get(sub_id, 0), 2, f"Sub-topic {sub_id} has < 2 questions")
 
+    def test_domain1_thai_pilot_translations_pass_validation(self):
+        repo_theory_dir = os.path.join(SCRIPT_DIR, "..", "theory")
+        th_modules, th_subtopics = load_theory_to_db.load_and_validate_thai_translations(
+            repo_theory_dir, locale="th", require_all=False, require_pilot=True
+        )
+        self.assertGreaterEqual(len(th_modules), 1)
+        self.assertIn("domain1", [m["entity_id"] for m in th_modules])
+        self.assertGreaterEqual(len(th_subtopics), 4)
+        sub_ids = {s["entity_id"] for s in th_subtopics}
+        for pilot_id in ("1.1", "1.2", "1.3", "1.4"):
+            self.assertIn(pilot_id, sub_ids)
+        for item in th_modules + th_subtopics:
+            self.assertEqual(item["locale"], "th")
+            self.assertRegex(item["title"], r"[\u0E00-\u0E7F]")
+            self.assertRegex(item["content"], r"[\u0E00-\u0E7F]")
+
+    def test_thai_validator_rejects_untranslated_stub_mismatched_urls_and_thai_in_kql(self):
+        en_sample = """# 1.1 Example
+## 1. Core Security+ Theory
+See [NIST](https://csrc.nist.gov/pubs/sp/800/53/r5/final).
+## 2. SOC & Blue-Team Operational Practice
+```kql
+SigninLogs | where ResultType != "0"
+```
+## 3. References (Web Sources)
+- [NIST](https://csrc.nist.gov/pubs/sp/800/53/r5/final)
+"""
+        no_thai = en_sample
+        errs_no_thai = load_theory_to_db.validate_thai_subtopic_content("1.1", "Example", en_sample, no_thai)
+        self.assertTrue(any("Thai" in e for e in errs_no_thai))
+
+        bad_url = """# 1.1 ตัวอย่าง
+## 1. ทฤษฎีหลัก
+ดู [Unregistered](https://evil.example.com/nope)
+## 2. ปฏิบัติการ SOC
+```kql
+SigninLogs | where ResultType != "0"
+```
+## 3. แหล่งอ้างอิง
+- [Unregistered](https://evil.example.com/nope)
+"""
+        errs_url = load_theory_to_db.validate_thai_subtopic_content("1.1", "Example", en_sample, bad_url)
+        self.assertTrue(any("citation" in e.lower() or "https://" in e.lower() for e in errs_url))
+
+        thai_in_kql = """# 1.1 ตัวอย่าง
+## 1. ทฤษฎีหลัก
+ดู [NIST](https://csrc.nist.gov/pubs/sp/800/53/r5/final)
+## 2. ปฏิบัติการ SOC
+```kql
+SigninLogs | where Message == "ภาษาไทย"
+```
+## 3. แหล่งอ้างอิง
+- [NIST](https://csrc.nist.gov/pubs/sp/800/53/r5/final)
+"""
+        errs_kql = load_theory_to_db.validate_thai_subtopic_content("1.1", "Example", en_sample, thai_in_kql)
+        self.assertTrue(any("code block" in e.lower() for e in errs_kql))
+
 
 if __name__ == "__main__":
     unittest.main()

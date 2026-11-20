@@ -32,6 +32,9 @@ type LearnStore interface {
 	CompleteSubtopic(userID, role, subTopicID, domainID string) (dto.CompleteSubtopicResponse, error)
 	LoadModules() ([]services.TheoryModuleContent, error)
 	LoadSubtopics() ([]services.TheorySubtopicContent, error)
+	LoadModulesByLocale(locale string) ([]services.TheoryModuleContent, error)
+	LoadSubtopicsByLocale(locale string) ([]services.TheorySubtopicContent, error)
+	GetUserPreferredLanguage(userID string) string
 	GetOrAssignSampleQuestions(userID, role, subTopicID, domainID string) ([]models.UserTheorySampleQuestionDetail, error)
 	SubmitSampleQuestionAttempt(userID, role, subTopicID, questionID, answer string) (dto.AttemptSampleQuestionResponse, error)
 }
@@ -74,6 +77,22 @@ func (s *gormLearnStore) LoadModules() ([]services.TheoryModuleContent, error) {
 
 func (s *gormLearnStore) LoadSubtopics() ([]services.TheorySubtopicContent, error) {
 	return services.LoadTheorySubtopics(s.DB)
+}
+
+func (s *gormLearnStore) LoadModulesByLocale(locale string) ([]services.TheoryModuleContent, error) {
+	return services.LoadTheoryModulesByLocale(s.DB, locale)
+}
+
+func (s *gormLearnStore) LoadSubtopicsByLocale(locale string) ([]services.TheorySubtopicContent, error) {
+	return services.LoadTheorySubtopicsByLocale(s.DB, locale)
+}
+
+func (s *gormLearnStore) GetUserPreferredLanguage(userID string) string {
+	var user models.User
+	if err := s.DB.Select("preferred_language").Where("user_id = ?", userID).First(&user).Error; err != nil {
+		return "en"
+	}
+	return services.NormalizeLocale(user.PreferredLanguage)
 }
 
 func (s *gormLearnStore) GetSubtopicProgress(userID string) ([]models.UserTheorySubtopicProgress, error) {
@@ -541,10 +560,23 @@ func buildOrderedCompletedSubtopics(progress []models.UserTheorySubtopicProgress
 	return ordered, byID
 }
 
+func resolveRequestLocale(c *gin.Context, dbFallback func() string) string {
+	if q := strings.ToLower(strings.TrimSpace(c.Query("lang"))); q == "en" || q == "th" {
+		return q
+	}
+	if lang, ok := services.ParseAcceptLanguage(c.GetHeader("Accept-Language")); ok {
+		return lang
+	}
+	if dbFallback != nil {
+		return services.NormalizeLocale(dbFallback())
+	}
+	return "en"
+}
+
 func (lc *LearnController) requireStage1Access(c *gin.Context) (string, []models.UserSkillProfile, bool) {
 	userIDVal, exists := c.Get("user_id")
 	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		c.JSON(http.StatusUnauthorized, dto.ErrorResponse{Error: "Unauthorized", Code: "AUTH_UNAUTHORIZED"})
 		return "", nil, false
 	}
 	userID, _ := userIDVal.(string)
@@ -552,7 +584,7 @@ func (lc *LearnController) requireStage1Access(c *gin.Context) (string, []models
 
 	profiles, err := lc.Store.GetUserSkillProfiles(userID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to verify pre-test status"})
+		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Error: "Failed to verify pre-test status", Code: "INTERNAL_SERVER_ERROR"})
 		return "", nil, false
 	}
 
@@ -560,6 +592,7 @@ func (lc *LearnController) requireStage1Access(c *gin.Context) (string, []models
 		unlocked := false
 		c.JSON(http.StatusForbidden, dto.TheoryGateErrorResponse{
 			Error:    "Please complete the Pre-Test first to unlock Learning Theory.",
+			Code:     "LEARN_PRETEST_REQUIRED",
 			Reason:   "pre_test_required",
 			Unlocked: &unlocked,
 		})
@@ -576,6 +609,7 @@ func (lc *LearnController) requireStage1Access(c *gin.Context) (string, []models
 // @Accept json
 // @Produce json
 // @Security BearerAuth
+// @Param lang query string false "Language locale (en or th)"
 // @Success 200 {object} dto.LearnDomainsResponse
 // @Failure 401 {object} dto.ErrorResponse
 // @Failure 403 {object} dto.TheoryGateErrorResponse
@@ -587,33 +621,37 @@ func (lc *LearnController) GetDomains(c *gin.Context) {
 		return
 	}
 
-	modules, err := lc.Store.LoadModules()
+	locale := resolveRequestLocale(c, func() string {
+		return lc.Store.GetUserPreferredLanguage(userID)
+	})
+
+	modules, err := lc.Store.LoadModulesByLocale(locale)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to load theory modules"})
+		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Error: "Failed to load theory modules", Code: "INTERNAL_SERVER_ERROR"})
 		return
 	}
 
-	subtopics, err := lc.Store.LoadSubtopics()
+	subtopics, err := lc.Store.LoadSubtopicsByLocale(locale)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to load theory sub-topics"})
+		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Error: "Failed to load theory sub-topics", Code: "INTERNAL_SERVER_ERROR"})
 		return
 	}
 
 	progress, err := lc.Store.GetTheoryProgress(userID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to load theory progress"})
+		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Error: "Failed to load theory progress", Code: "INTERNAL_SERVER_ERROR"})
 		return
 	}
 
 	subProgress, err := lc.Store.GetSubtopicProgress(userID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to load sub-topic progress"})
+		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Error: "Failed to load sub-topic progress", Code: "INTERNAL_SERVER_ERROR"})
 		return
 	}
 
 	attemptedBySub, totalBySub, err := lc.Store.GetSubtopicSampleProgress(userID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to load sample question progress"})
+		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Error: "Failed to load sample question progress", Code: "INTERNAL_SERVER_ERROR"})
 		return
 	}
 
@@ -716,7 +754,7 @@ func (lc *LearnController) GetDomains(c *gin.Context) {
 func (lc *LearnController) CompleteDomain(c *gin.Context) {
 	domainID := c.Param("domainId")
 	if !services.IsValidTheoryDomain(domainID) {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid domain_id; expected domain1 through domain5"})
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: "Invalid domain_id; expected domain1 through domain5", Code: "LEARN_DOMAIN_NOT_FOUND"})
 		return
 	}
 
@@ -728,7 +766,7 @@ func (lc *LearnController) CompleteDomain(c *gin.Context) {
 
 	subProgress, err := lc.Store.GetSubtopicProgress(userID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to verify sub-topic progress"})
+		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Error: "Failed to verify sub-topic progress", Code: "INTERNAL_SERVER_ERROR"})
 		return
 	}
 	completedSubtopics, _ := buildOrderedCompletedSubtopics(subProgress)
@@ -739,6 +777,7 @@ func (lc *LearnController) CompleteDomain(c *gin.Context) {
 			totalSub := len(services.OrderedTheorySubtopics)
 			c.JSON(http.StatusForbidden, dto.TheoryGateErrorResponse{
 				Error:                  "Complete all Sub-topics in this domain before marking the domain complete.",
+				Code:                   "LEARN_SUBTOPICS_INCOMPLETE",
 				Reason:                 "subtopics_incomplete",
 				CompletedSubtopicCount: &doneSubCount,
 				TotalSubtopics:         &totalSub,
@@ -748,7 +787,7 @@ func (lc *LearnController) CompleteDomain(c *gin.Context) {
 			return
 		}
 		if err := lc.Store.MarkTheoryCompleted(userID, domainID); err != nil {
-			c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Error: "Failed to record domain completion"})
+			c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Error: "Failed to record domain completion", Code: "INTERNAL_SERVER_ERROR"})
 			return
 		}
 	} else {
@@ -765,7 +804,7 @@ func (lc *LearnController) CompleteDomain(c *gin.Context) {
 
 	progress, err := lc.Store.GetTheoryProgress(userID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to load updated theory progress"})
+		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Error: "Failed to load updated theory progress", Code: "INTERNAL_SERVER_ERROR"})
 		return
 	}
 
@@ -789,6 +828,7 @@ func (lc *LearnController) CompleteDomain(c *gin.Context) {
 // @Produce json
 // @Security BearerAuth
 // @Param subTopicId path string true "Sub-topic ID (e.g. 1.1..5.6)"
+// @Param lang query string false "Language locale (en or th)"
 // @Success 200 {object} dto.LearnSubtopicDetailResponse
 // @Failure 401 {object} dto.ErrorResponse
 // @Failure 403 {object} dto.TheoryGateErrorResponse
@@ -799,7 +839,7 @@ func (lc *LearnController) GetSubTopic(c *gin.Context) {
 	subTopicID := c.Param("subTopicId")
 	spec, okSpec := services.GetSubtopicSpec(subTopicID)
 	if !okSpec {
-		c.JSON(http.StatusNotFound, dto.ErrorResponse{Error: "Unknown sub_topic_id"})
+		c.JSON(http.StatusNotFound, dto.ErrorResponse{Error: "Unknown sub_topic_id", Code: "LEARN_SUBTOPIC_NOT_FOUND"})
 		return
 	}
 
@@ -809,9 +849,13 @@ func (lc *LearnController) GetSubTopic(c *gin.Context) {
 	}
 	role := c.GetString("role")
 
-	subtopics, err := lc.Store.LoadSubtopics()
+	locale := resolveRequestLocale(c, func() string {
+		return lc.Store.GetUserPreferredLanguage(userID)
+	})
+
+	subtopics, err := lc.Store.LoadSubtopicsByLocale(locale)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Error: "Failed to load theory sub-topics"})
+		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Error: "Failed to load theory sub-topics", Code: "INTERNAL_SERVER_ERROR"})
 		return
 	}
 
@@ -823,13 +867,13 @@ func (lc *LearnController) GetSubTopic(c *gin.Context) {
 		}
 	}
 	if matchedSub == nil {
-		c.JSON(http.StatusNotFound, dto.ErrorResponse{Error: "Sub-topic content not found"})
+		c.JSON(http.StatusNotFound, dto.ErrorResponse{Error: "Sub-topic content not found", Code: "LEARN_SUBTOPIC_NOT_FOUND"})
 		return
 	}
 
 	subProgress, err := lc.Store.GetSubtopicProgress(userID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Error: "Failed to load sub-topic progress"})
+		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Error: "Failed to load sub-topic progress", Code: "INTERNAL_SERVER_ERROR"})
 		return
 	}
 	var isCompleted bool
@@ -845,7 +889,7 @@ func (lc *LearnController) GetSubTopic(c *gin.Context) {
 
 	samples, err := lc.Store.GetOrAssignSampleQuestions(userID, role, subTopicID, spec.DomainID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Error: "Failed to assign sample questions"})
+		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Error: "Failed to assign sample questions", Code: "INTERNAL_SERVER_ERROR"})
 		return
 	}
 
@@ -915,7 +959,7 @@ func (lc *LearnController) GetSubTopic(c *gin.Context) {
 func (lc *LearnController) AttemptSampleQuestion(c *gin.Context) {
 	subTopicID := c.Param("subTopicId")
 	if _, okSpec := services.GetSubtopicSpec(subTopicID); !okSpec {
-		c.JSON(http.StatusNotFound, dto.ErrorResponse{Error: "Unknown sub_topic_id"})
+		c.JSON(http.StatusNotFound, dto.ErrorResponse{Error: "Unknown sub_topic_id", Code: "LEARN_SUBTOPIC_NOT_FOUND"})
 		return
 	}
 
@@ -927,7 +971,7 @@ func (lc *LearnController) AttemptSampleQuestion(c *gin.Context) {
 
 	var req dto.AttemptSampleQuestionRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: "Answer is required"})
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: "Answer is required", Code: "LEARN_INVALID_ANSWER"})
 		return
 	}
 
@@ -935,7 +979,7 @@ func (lc *LearnController) AttemptSampleQuestion(c *gin.Context) {
 	switch ans {
 	case "A", "B", "C", "D":
 	default:
-		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: "Answer must be one of A, B, C, or D"})
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: "Answer must be one of A, B, C, or D", Code: "LEARN_INVALID_ANSWER"})
 		return
 	}
 
@@ -943,10 +987,10 @@ func (lc *LearnController) AttemptSampleQuestion(c *gin.Context) {
 	resp, err := lc.Store.SubmitSampleQuestionAttempt(userID, role, subTopicID, questionID, ans)
 	if err != nil {
 		if errors.Is(err, errSampleNotFound) {
-			c.JSON(http.StatusNotFound, dto.ErrorResponse{Error: "Sample question not assigned to this user and sub-topic"})
+			c.JSON(http.StatusNotFound, dto.ErrorResponse{Error: "Sample question not assigned to this user and sub-topic", Code: "LEARN_SAMPLE_NOT_FOUND"})
 			return
 		}
-		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Error: "Failed to record sample question attempt"})
+		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Error: "Failed to record sample question attempt", Code: "INTERNAL_SERVER_ERROR"})
 		return
 	}
 
@@ -972,7 +1016,7 @@ func (lc *LearnController) CompleteSubTopic(c *gin.Context) {
 	subTopicID := c.Param("subTopicId")
 	spec, okSpec := services.GetSubtopicSpec(subTopicID)
 	if !okSpec {
-		c.JSON(http.StatusNotFound, dto.ErrorResponse{Error: "Unknown sub_topic_id"})
+		c.JSON(http.StatusNotFound, dto.ErrorResponse{Error: "Unknown sub_topic_id", Code: "LEARN_SUBTOPIC_NOT_FOUND"})
 		return
 	}
 
@@ -987,11 +1031,12 @@ func (lc *LearnController) CompleteSubTopic(c *gin.Context) {
 		if errors.Is(err, errSampleIncomplete) {
 			c.JSON(http.StatusBadRequest, dto.TheoryGateErrorResponse{
 				Error:  "Attempt all assigned sample questions for this Sub-topic before marking it completed.",
+				Code:   "LEARN_SAMPLE_INCOMPLETE",
 				Reason: "sample_questions_incomplete",
 			})
 			return
 		}
-		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Error: "Failed to record sub-topic completion"})
+		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Error: "Failed to record sub-topic completion", Code: "INTERNAL_SERVER_ERROR"})
 		return
 	}
 

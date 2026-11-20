@@ -79,3 +79,17 @@ type UserTheorySampleQuestionDetail struct {
 	Assignment UserTheorySampleQuestion
 	Question   Question
 }
+
+// TheoryTranslation stores localized title and Markdown content for a Domain Overview or Sub-topic.
+type TheoryTranslation struct {
+	EntityType string    `gorm:"type:varchar(16);primaryKey" json:"entity_type"`
+	EntityID   string    `gorm:"type:varchar(32);primaryKey" json:"entity_id"`
+	Locale     string    `gorm:"type:varchar(10);primaryKey" json:"locale"`
+	Title      string    `gorm:"type:varchar(255);not null" json:"title"`
+	Content    string    `gorm:"type:text;not null" json:"content"`
+	UpdatedAt  time.Time `gorm:"default:now()" json:"updated_at"`
+}
+
+func (TheoryTranslation) TableName() string {
+	return "theory_translations"
+}

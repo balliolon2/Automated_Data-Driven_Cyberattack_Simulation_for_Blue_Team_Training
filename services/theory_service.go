@@ -6,8 +6,11 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"sort"
+	"strconv"
 	"strings"
 	"sync"
+	"unicode"
 
 	"cybersim/models"
 
@@ -468,4 +471,283 @@ func loadTheorySubtopicsFromFS() ([]TheorySubtopicContent, error) {
 		})
 	}
 	return out, nil
+}
+
+// ContainsThaiRune reports whether s contains any Thai Unicode code point (U+0E00..U+0E7F).
+func ContainsThaiRune(s string) bool {
+	for _, r := range s {
+		if unicode.In(r, unicode.Thai) || (r >= 0x0E00 && r <= 0x0E7F) {
+			return true
+		}
+	}
+	return false
+}
+
+// NormalizeLocale maps supported locale identifiers to canonical "en" or "th" (defaulting to "en").
+func NormalizeLocale(raw string) string {
+	trimmed := strings.ToLower(strings.TrimSpace(raw))
+	if trimmed == "th" || strings.HasPrefix(trimmed, "th-") || strings.HasPrefix(trimmed, "th_") {
+		return "th"
+	}
+	return "en"
+}
+
+// ParseAcceptLanguage parses an HTTP Accept-Language header and returns the highest-priority
+// supported locale ("en" or "th"), returning ok=false when neither supported locale matches.
+func ParseAcceptLanguage(header string) (string, bool) {
+	if strings.TrimSpace(header) == "" {
+		return "", false
+	}
+	type langPref struct {
+		locale string
+		q      float64
+		idx    int
+	}
+	var prefs []langPref
+	for i, part := range strings.Split(header, ",") {
+		seg := strings.TrimSpace(part)
+		if seg == "" {
+			continue
+		}
+		pieces := strings.Split(seg, ";")
+		tag := strings.ToLower(strings.TrimSpace(pieces[0]))
+		var locale string
+		switch {
+		case tag == "th" || strings.HasPrefix(tag, "th-"):
+			locale = "th"
+		case tag == "en" || strings.HasPrefix(tag, "en-"):
+			locale = "en"
+		default:
+			continue
+		}
+		q := 1.0
+		for _, param := range pieces[1:] {
+			kv := strings.SplitN(strings.TrimSpace(param), "=", 2)
+			if len(kv) == 2 && strings.EqualFold(strings.TrimSpace(kv[0]), "q") {
+				if parsed, err := strconv.ParseFloat(strings.TrimSpace(kv[1]), 64); err == nil {
+					q = parsed
+				}
+			}
+		}
+		if q <= 0 {
+			continue
+		}
+		prefs = append(prefs, langPref{locale: locale, q: q, idx: i})
+	}
+	if len(prefs) == 0 {
+		return "", false
+	}
+	sort.SliceStable(prefs, func(i, j int) bool {
+		if prefs[i].q != prefs[j].q {
+			return prefs[i].q > prefs[j].q
+		}
+		return prefs[i].idx < prefs[j].idx
+	})
+	return prefs[0].locale, true
+}
+
+// ExtractMarkdownHeadingTitle extracts the top-level `# Title` from Markdown or returns fallback.
+func ExtractMarkdownHeadingTitle(content, fallback string) string {
+	normalized := strings.ReplaceAll(content, "\r\n", "\n")
+	for _, line := range strings.Split(strings.TrimLeft(normalized, " \t\r\n"), "\n") {
+		trimmed := strings.TrimSpace(line)
+		if strings.HasPrefix(trimmed, "# ") {
+			heading := strings.TrimSpace(strings.TrimPrefix(trimmed, "# "))
+			if heading != "" {
+				if len(heading) > 255 {
+					return heading[:255]
+				}
+				return heading
+			}
+			break
+		}
+	}
+	return fallback
+}
+
+var (
+	markdownHTTPSLinkPattern = regexp.MustCompile(`\]\((https://[^)\s]+)\)`)
+	markdownCodeBlockPattern = regexp.MustCompile("(?s)```.*?```")
+)
+
+func extractMarkdownHTTPSLinks(content string) map[string]bool {
+	links := make(map[string]bool)
+	for _, match := range markdownHTTPSLinkPattern.FindAllStringSubmatch(content, -1) {
+		if len(match) >= 2 {
+			links[match[1]] = true
+		}
+	}
+	return links
+}
+
+func validateThaiTheoryCommon(id, enContent, thContent string, sectionCount int) error {
+	normalized := strings.ReplaceAll(thContent, "\r\n", "\n")
+	if strings.TrimSpace(normalized) == "" {
+		return fmt.Errorf("%s: Thai theory content is empty", id)
+	}
+	if !ContainsThaiRune(normalized) {
+		return fmt.Errorf("%s: Thai theory content must contain Thai script", id)
+	}
+	for i := 1; i <= sectionCount; i++ {
+		secPattern := regexp.MustCompile(fmt.Sprintf(`(?m)^##\s+%d\.\s+`, i))
+		if !secPattern.MatchString(normalized) {
+			return fmt.Errorf("%s: missing required Thai section %d", id, i)
+		}
+	}
+	for _, block := range markdownCodeBlockPattern.FindAllString(normalized, -1) {
+		if ContainsThaiRune(block) {
+			return fmt.Errorf("%s: code blocks must remain strictly English (found Thai script)", id)
+		}
+	}
+	enLinks := extractMarkdownHTTPSLinks(enContent)
+	thLinks := extractMarkdownHTTPSLinks(normalized)
+	for url := range enLinks {
+		if !thLinks[url] {
+			return fmt.Errorf("%s: missing https:// citation from EN source: %s", id, url)
+		}
+	}
+	for url := range thLinks {
+		if !enLinks[url] {
+			return fmt.Errorf("%s: unregistered extra https:// citation not in EN source: %s", id, url)
+		}
+	}
+	return nil
+}
+
+// ValidateThaiTheoryModuleContent validates a Thai Domain Overview Markdown document against its EN counterpart.
+func ValidateThaiTheoryModuleContent(domainID, enContent, thContent string) error {
+	if err := validateThaiTheoryCommon(domainID, enContent, thContent, 4); err != nil {
+		return err
+	}
+	lower := strings.ToLower(thContent)
+	if !strings.Contains(lower, "kql") {
+		return fmt.Errorf("%s: missing KQL investigation patterns", domainID)
+	}
+	if !strings.Contains(lower, "true positive") || !strings.Contains(lower, "false positive") {
+		return fmt.Errorf("%s: missing True Positive / False Positive triage guidance", domainID)
+	}
+	return nil
+}
+
+// ValidateThaiTheorySubtopicContent validates a Thai Sub-topic Markdown document against its EN counterpart.
+func ValidateThaiTheorySubtopicContent(subTopicID, enContent, thContent string) error {
+	normalized := strings.ReplaceAll(thContent, "\r\n", "\n")
+	trimmed := strings.TrimSpace(normalized)
+	if !strings.HasPrefix(trimmed, "# "+subTopicID) {
+		return fmt.Errorf("%s: expected top heading starting with '# %s'", subTopicID, subTopicID)
+	}
+	return validateThaiTheoryCommon(subTopicID, enContent, normalized, 3)
+}
+
+func readLocalizedTheoryMarkdown(emb fs.FS, locale, filename string) (string, error) {
+	relSlash := filepath.ToSlash(filepath.Join("theory", locale, filename))
+	if emb != nil {
+		if data, err := fs.ReadFile(emb, relSlash); err == nil {
+			return string(data), nil
+		}
+	}
+	candidates := []string{
+		filepath.Join("theory", locale, filename),
+		filepath.Join("..", "theory", locale, filename),
+	}
+	for _, path := range candidates {
+		if data, err := os.ReadFile(path); err == nil {
+			return string(data), nil
+		}
+	}
+	return "", fmt.Errorf("localized theory file %s/%s not found", locale, filename)
+}
+
+func loadTheoryTranslationsByType(db *gorm.DB, entityType, locale string) map[string]models.TheoryTranslation {
+	out := make(map[string]models.TheoryTranslation)
+	if db == nil {
+		return out
+	}
+	var rows []models.TheoryTranslation
+	if err := db.Where("entity_type = ? AND locale = ?", entityType, locale).Find(&rows).Error; err != nil {
+		return out
+	}
+	for _, r := range rows {
+		if strings.TrimSpace(r.Content) != "" {
+			out[r.EntityID] = r
+		}
+	}
+	return out
+}
+
+// LoadTheoryModulesByLocale returns the 5 Domain Overviews localized to locale ("en" or "th"),
+// preferring theory_translations in DB, then embedded/local theory/<locale>/, then canonical EN.
+func LoadTheoryModulesByLocale(db *gorm.DB, locale string) ([]TheoryModuleContent, error) {
+	modules, err := LoadTheoryModules(db)
+	if err != nil {
+		return nil, err
+	}
+	normLocale := NormalizeLocale(locale)
+	if normLocale == "en" {
+		return modules, nil
+	}
+
+	dbTranslations := loadTheoryTranslationsByType(db, "domain_overview", normLocale)
+	emb := getEmbeddedTheoryFS()
+
+	for i := range modules {
+		id := modules[i].DomainID
+		if tr, ok := dbTranslations[id]; ok {
+			if strings.TrimSpace(tr.Title) != "" {
+				modules[i].Title = tr.Title
+			}
+			modules[i].Content = strings.ReplaceAll(tr.Content, "\r\n", "\n")
+			continue
+		}
+		var filename string
+		for _, spec := range OrderedTheoryDomains {
+			if spec.DomainID == id {
+				filename = spec.Filename
+				break
+			}
+		}
+		if filename != "" {
+			if raw, readErr := readLocalizedTheoryMarkdown(emb, normLocale, filename); readErr == nil && strings.TrimSpace(raw) != "" {
+				normalized := strings.ReplaceAll(raw, "\r\n", "\n")
+				modules[i].Title = ExtractMarkdownHeadingTitle(normalized, modules[i].Title)
+				modules[i].Content = normalized
+			}
+		}
+	}
+	return modules, nil
+}
+
+// LoadTheorySubtopicsByLocale returns all 28 Sub-topics localized to locale ("en" or "th"),
+// preferring theory_translations in DB, then embedded/local theory/<locale>/, then canonical EN.
+func LoadTheorySubtopicsByLocale(db *gorm.DB, locale string) ([]TheorySubtopicContent, error) {
+	subtopics, err := LoadTheorySubtopics(db)
+	if err != nil {
+		return nil, err
+	}
+	normLocale := NormalizeLocale(locale)
+	if normLocale == "en" {
+		return subtopics, nil
+	}
+
+	dbTranslations := loadTheoryTranslationsByType(db, "subtopic", normLocale)
+	emb := getEmbeddedTheoryFS()
+
+	for i := range subtopics {
+		id := subtopics[i].SubTopicID
+		if tr, ok := dbTranslations[id]; ok {
+			if strings.TrimSpace(tr.Title) != "" {
+				subtopics[i].Title = tr.Title
+			}
+			subtopics[i].Content = strings.ReplaceAll(tr.Content, "\r\n", "\n")
+			continue
+		}
+		if spec, ok := GetSubtopicSpec(id); ok {
+			if raw, readErr := readLocalizedTheoryMarkdown(emb, normLocale, spec.Filename); readErr == nil && strings.TrimSpace(raw) != "" {
+				normalized := strings.ReplaceAll(raw, "\r\n", "\n")
+				subtopics[i].Title = ExtractMarkdownHeadingTitle(normalized, subtopics[i].Title)
+				subtopics[i].Content = normalized
+			}
+		}
+	}
+	return subtopics, nil
 }

@@ -1,6 +1,13 @@
+import argparse
 import os
 import re
 import sys
+
+THAI_CHAR_RE = re.compile(r"[\u0E00-\u0E7F]")
+MARKDOWN_HTTPS_LINK_RE = re.compile(r"\]\((https://[^)\s]+)\)")
+CODE_BLOCK_RE = re.compile(r"```.*?```", flags=re.DOTALL)
+PILOT_DOMAIN_IDS = {"domain1"}
+PILOT_SUBTOPIC_IDS = {"1.1", "1.2", "1.3", "1.4"}
 
 
 DOMAIN_SPECS = [
@@ -183,11 +190,141 @@ def load_and_validate_subtopics(theory_dir=None):
     return subtopics
 
 
-def load_theory_to_db(db_connection_string, theory_dir=None):
+def extract_markdown_heading_title(content, fallback):
+    for line in content.lstrip().splitlines():
+        stripped = line.strip()
+        if stripped.startswith("# "):
+            heading = stripped[2:].strip()
+            if heading:
+                return heading[:255]
+            break
+    return fallback[:255]
+
+
+def extract_https_links(content):
+    return set(MARKDOWN_HTTPS_LINK_RE.findall(content))
+
+
+def _validate_thai_shared(label_id, en_content, th_content, expected_sections):
+    errors = []
+    if not th_content or not th_content.strip():
+        return [f"{label_id}: Thai markdown content is empty"]
+
+    if not THAI_CHAR_RE.search(th_content):
+        errors.append(f"{label_id}: Thai translation must contain Thai Unicode characters")
+
+    for idx in range(1, expected_sections + 1):
+        if not re.search(rf"^##\s+{idx}\.\s+", th_content, flags=re.MULTILINE):
+            errors.append(f"{label_id}: missing required Thai Section {idx}")
+
+    for block in CODE_BLOCK_RE.findall(th_content):
+        if THAI_CHAR_RE.search(block):
+            errors.append(f"{label_id}: code block must remain strictly English (found Thai characters)")
+            break
+
+    en_links = extract_https_links(en_content)
+    th_links = extract_https_links(th_content)
+    missing_links = sorted(en_links - th_links)
+    extra_links = sorted(th_links - en_links)
+    if missing_links:
+        errors.append(f"{label_id}: missing https:// citations from EN source: {', '.join(missing_links)}")
+    if extra_links:
+        errors.append(f"{label_id}: unregistered extra https:// citations not in EN source: {', '.join(extra_links)}")
+
+    return errors
+
+
+def validate_thai_theory_content(domain_id, title, en_content, th_content):
+    errors = []
+    if th_content and th_content.strip():
+        first_line = th_content.lstrip().splitlines()[0].strip()
+        if not first_line.startswith("# "):
+            errors.append(f"{domain_id}: expected top-level '# ' heading, got '{first_line[:40]}'")
+    errors.extend(_validate_thai_shared(domain_id, en_content, th_content, expected_sections=4))
+    lower = (th_content or "").lower()
+    if "kql" not in lower:
+        errors.append(f"{domain_id} ({title}): missing KQL investigation patterns")
+    if "false positive" not in lower or "true positive" not in lower:
+        errors.append(f"{domain_id} ({title}): missing True Positive / False Positive triage guidance")
+    return errors
+
+
+def validate_thai_subtopic_content(sub_topic_id, title, en_content, th_content):
+    errors = []
+    if th_content and th_content.strip():
+        first_line = th_content.lstrip().splitlines()[0].strip()
+        if not first_line.startswith(f"# {sub_topic_id}"):
+            errors.append(
+                f"{sub_topic_id}: expected heading starting with '# {sub_topic_id}', got '{first_line[:50]}'"
+            )
+    errors.extend(_validate_thai_shared(sub_topic_id, en_content, th_content, expected_sections=3))
+    return errors
+
+
+def load_and_validate_thai_translations(theory_dir=None, locale="th", require_all=False, require_pilot=True):
+    resolved_dir = resolve_theory_dir(theory_dir)
+    en_modules = {m["domain_id"]: m for m in load_and_validate_modules(resolved_dir)}
+    en_subtopics = {s["sub_topic_id"]: s for s in load_and_validate_subtopics(resolved_dir)}
+
+    locale_dir = os.path.join(resolved_dir, locale)
+    thai_modules = []
+    thai_subtopics = []
+    all_errors = []
+
+    for domain_id, title, filename, _ in DOMAIN_SPECS:
+        file_path = os.path.join(locale_dir, filename)
+        if not os.path.isfile(file_path):
+            if require_all or (require_pilot and domain_id in PILOT_DOMAIN_IDS):
+                all_errors.append(f"{domain_id}: missing {locale} translation file {file_path}")
+            continue
+        with open(file_path, "r", encoding="utf-8") as f:
+            th_content = f.read().replace("\r\n", "\n")
+        en_content = en_modules[domain_id]["content"]
+        all_errors.extend(validate_thai_theory_content(domain_id, title, en_content, th_content))
+        thai_modules.append(
+            {
+                "entity_type": "domain_overview",
+                "entity_id": domain_id,
+                "locale": locale,
+                "title": extract_markdown_heading_title(th_content, title),
+                "content": th_content,
+            }
+        )
+
+    for sub_topic_id, _, _, title, rel_path, _ in SUBTOPIC_SPECS:
+        file_path = os.path.join(locale_dir, rel_path)
+        if not os.path.isfile(file_path):
+            if require_all or (require_pilot and sub_topic_id in PILOT_SUBTOPIC_IDS):
+                all_errors.append(f"{sub_topic_id}: missing {locale} translation file {file_path}")
+            continue
+        with open(file_path, "r", encoding="utf-8") as f:
+            th_content = f.read().replace("\r\n", "\n")
+        en_content = en_subtopics[sub_topic_id]["content"]
+        all_errors.extend(validate_thai_subtopic_content(sub_topic_id, title, en_content, th_content))
+        thai_subtopics.append(
+            {
+                "entity_type": "subtopic",
+                "entity_id": sub_topic_id,
+                "locale": locale,
+                "title": extract_markdown_heading_title(th_content, title),
+                "content": th_content,
+            }
+        )
+
+    if all_errors:
+        raise ValueError(f"{locale.upper()} theory translation validation failed:\n- " + "\n- ".join(all_errors))
+
+    return thai_modules, thai_subtopics
+
+
+def load_theory_to_db(db_connection_string, theory_dir=None, require_all_th=False):
     import psycopg2
 
     modules = load_and_validate_modules(theory_dir)
     subtopics = load_and_validate_subtopics(theory_dir)
+    thai_modules, thai_subtopics = load_and_validate_thai_translations(
+        theory_dir, locale="th", require_all=require_all_th, require_pilot=True
+    )
     conn = psycopg2.connect(db_connection_string)
     cursor = conn.cursor()
 
@@ -202,7 +339,16 @@ def load_theory_to_db(db_connection_string, theory_dir=None):
                 content TEXT NOT NULL,
                 source_url TEXT,
                 updated_at TIMESTAMP DEFAULT now()
-            )
+            );
+            CREATE TABLE IF NOT EXISTS theory_translations (
+                entity_type VARCHAR(16) NOT NULL CHECK (entity_type IN ('domain_overview', 'subtopic')),
+                entity_id VARCHAR(32) NOT NULL,
+                locale VARCHAR(10) NOT NULL,
+                title VARCHAR(255) NOT NULL,
+                content TEXT NOT NULL,
+                updated_at TIMESTAMP DEFAULT now(),
+                PRIMARY KEY (entity_type, entity_id, locale)
+            );
             """
         )
         domains = [
@@ -279,9 +425,28 @@ def load_theory_to_db(db_connection_string, theory_dir=None):
                 ),
             )
 
+        for tr in thai_modules + thai_subtopics:
+            cursor.execute(
+                """
+                INSERT INTO theory_translations (entity_type, entity_id, locale, title, content, updated_at)
+                VALUES (%s, %s, %s, %s, %s, NOW())
+                ON CONFLICT (entity_type, entity_id, locale) DO UPDATE SET
+                    title = EXCLUDED.title,
+                    content = EXCLUDED.content,
+                    updated_at = NOW()
+                """,
+                (
+                    tr["entity_type"],
+                    tr["entity_id"],
+                    tr["locale"],
+                    tr["title"],
+                    tr["content"],
+                ),
+            )
+
         conn.commit()
         print(
-            f"Safe theory seed completed: {inserted_count} inserted, {updated_count} updated across {len(modules)} domains and {len(subtopics)} sub-topics."
+            f"Safe theory seed completed: {inserted_count} inserted, {updated_count} updated across {len(modules)} domains, {len(subtopics)} sub-topics, and {len(thai_modules) + len(thai_subtopics)} Thai translations."
         )
     except Exception:
         conn.rollback()
@@ -292,6 +457,27 @@ def load_theory_to_db(db_connection_string, theory_dir=None):
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Validate and seed English and Thai Security+ theory modules.")
+    parser.add_argument("--validate-only", action="store_true", help="Validate theory files without connecting to DB.")
+    parser.add_argument("--require-all-th", action="store_true", help="Require all 33 Thai translation files.")
+    parser.add_argument("--theory-dir", default=None, help="Path to theory root directory.")
+    args = parser.parse_args()
+
+    if args.validate_only:
+        try:
+            mods = load_and_validate_modules(args.theory_dir)
+            subs = load_and_validate_subtopics(args.theory_dir)
+            th_mods, th_subs = load_and_validate_thai_translations(
+                args.theory_dir, locale="th", require_all=args.require_all_th, require_pilot=True
+            )
+            print(
+                f"Theory validation passed: {len(mods)} EN domains, {len(subs)} EN sub-topics, {len(th_mods)} TH domains, {len(th_subs)} TH sub-topics."
+            )
+            sys.exit(0)
+        except Exception as e:
+            print(f"Theory validation failed: {e}", file=sys.stderr)
+            sys.exit(1)
+
     db_conn_str = os.environ.get("DATABASE_URL")
     if not db_conn_str:
         print(
@@ -301,7 +487,7 @@ if __name__ == "__main__":
         sys.exit(1)
 
     try:
-        load_theory_to_db(db_conn_str)
+        load_theory_to_db(db_conn_str, theory_dir=args.theory_dir, require_all_th=args.require_all_th)
     except Exception as e:
         print(f"Loading theory modules failed: {e}", file=sys.stderr)
         sys.exit(1)

@@ -58,16 +58,18 @@ type CompleteTheoryDomainResponse struct {
 
 // TheoryGateErrorResponse describes a blocked Theory Gate response.
 type TheoryGateErrorResponse struct {
-	Error                  string   `json:"error" example:"Please complete the Pre-Test first to unlock Learning Theory."`
-	Reason                 string   `json:"reason" example:"pre_test_required"`
-	Unlocked               *bool    `json:"unlocked,omitempty" example:"false"`
-	CompletedCount         *int     `json:"completed_count,omitempty" example:"2"`
-	TotalDomains           *int     `json:"total_domains,omitempty" example:"5"`
-	CompletedDomains       []string `json:"completed_domains,omitempty"`
-	CompletedSubtopicCount *int     `json:"completed_subtopic_count,omitempty" example:"12"`
-	TotalSubtopics         *int     `json:"total_subtopics,omitempty" example:"28"`
-	CompletedSubtopics     []string `json:"completed_subtopics,omitempty"`
-	MissingSubtopics       []string `json:"missing_subtopics,omitempty"`
+	Error                  string         `json:"error" example:"Please complete the Pre-Test first to unlock Learning Theory."`
+	Code                   string         `json:"code,omitempty" example:"LEARN_PRETEST_REQUIRED"`
+	Params                 map[string]any `json:"params,omitempty"`
+	Reason                 string         `json:"reason" example:"pre_test_required"`
+	Unlocked               *bool          `json:"unlocked,omitempty" example:"false"`
+	CompletedCount         *int           `json:"completed_count,omitempty" example:"2"`
+	TotalDomains           *int           `json:"total_domains,omitempty" example:"5"`
+	CompletedDomains       []string       `json:"completed_domains,omitempty"`
+	CompletedSubtopicCount *int           `json:"completed_subtopic_count,omitempty" example:"12"`
+	TotalSubtopics         *int           `json:"total_subtopics,omitempty" example:"28"`
+	CompletedSubtopics     []string       `json:"completed_subtopics,omitempty"`
+	MissingSubtopics       []string       `json:"missing_subtopics,omitempty"`
 }
 
 // CompleteSubtopicResponse confirms attempt-gated Sub-topic completion and reports domain auto-completion.

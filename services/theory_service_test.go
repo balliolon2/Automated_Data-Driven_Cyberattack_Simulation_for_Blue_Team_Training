@@ -186,3 +186,65 @@ func TestLoadTheorySubtopics_AllTwentyEightPassStructure(t *testing.T) {
 		t.Errorf("neighbors of 5.6 = (%q, %q), want (5.5, \"\")", prevLast, nextLast)
 	}
 }
+
+func containsThaiScript(s string) bool {
+	for _, r := range s {
+		if r >= 0x0E00 && r <= 0x0E7F {
+			return true
+		}
+	}
+	return false
+}
+
+func TestTheoryLocalization_Domain1PilotAndGracefulFallback(t *testing.T) {
+	modules, err := LoadTheoryModulesByLocale(nil, "th")
+	if err != nil {
+		t.Fatalf("LoadTheoryModulesByLocale(nil, th) failed: %v", err)
+	}
+	if len(modules) != 5 {
+		t.Fatalf("expected 5 modules, got %d", len(modules))
+	}
+	if !containsThaiScript(modules[0].Title) || !containsThaiScript(modules[0].Content) {
+		t.Errorf("domain1 module should be translated in Thai, got title=%q", modules[0].Title)
+	}
+	enModules, _ := LoadTheoryModules(nil)
+	if err := ValidateThaiTheoryModuleContent("domain1", enModules[0].Content, modules[0].Content); err != nil {
+		t.Errorf("domain1 Thai validation failed: %v", err)
+	}
+	for i := 1; i < len(modules); i++ {
+		if modules[i].Content == "" || !strings.HasPrefix(modules[i].Title, "Domain ") {
+			t.Errorf("domain%d should gracefully fall back to EN when unauthored, got title=%q", i+1, modules[i].Title)
+		}
+	}
+
+	subtopics, err := LoadTheorySubtopicsByLocale(nil, "th")
+	if err != nil {
+		t.Fatalf("LoadTheorySubtopicsByLocale(nil, th) failed: %v", err)
+	}
+	if len(subtopics) != 28 {
+		t.Fatalf("expected 28 subtopics, got %d", len(subtopics))
+	}
+	enSubtopics, _ := LoadTheorySubtopics(nil)
+	for i := 0; i < 4; i++ {
+		if !containsThaiScript(subtopics[i].Title) || !containsThaiScript(subtopics[i].Content) {
+			t.Errorf("pilot subtopic %s should be translated in Thai, got title=%q", subtopics[i].SubTopicID, subtopics[i].Title)
+		}
+		if err := ValidateThaiTheorySubtopicContent(subtopics[i].SubTopicID, enSubtopics[i].Content, subtopics[i].Content); err != nil {
+			t.Errorf("pilot subtopic %s failed validation: %v", subtopics[i].SubTopicID, err)
+		}
+	}
+	if err := ValidateThaiTheorySubtopicContent("1.1", enSubtopics[0].Content, enSubtopics[0].Content); err == nil {
+		t.Errorf("expected error when passing English-only stub to ValidateThaiTheorySubtopicContent")
+	}
+
+	// Accept-Language parsing
+	if got, ok := ParseAcceptLanguage("th-TH,th;q=0.9,en;q=0.8"); !ok || got != "th" {
+		t.Errorf("ParseAcceptLanguage(th-TH,...) = (%q, %v), want (th, true)", got, ok)
+	}
+	if got, ok := ParseAcceptLanguage("en-US,th;q=0.5"); !ok || got != "en" {
+		t.Errorf("ParseAcceptLanguage(en-US,th) = (%q, %v), want (en, true)", got, ok)
+	}
+	if _, ok := ParseAcceptLanguage("fr-FR"); ok {
+		t.Errorf("expected unsupported Accept-Language fr-FR to return ok=false")
+	}
+}
