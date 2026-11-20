@@ -299,3 +299,39 @@
     - Both `scripts/validate_evidence_mapping.py` and `services.ValidateScenarioCandidate` enforce anti-repetition rules: banning legacy boilerplate log strings (`SIEM Alert Rule [CORR-9901]`, `Routine network telemetry event `, `Kerberos ticket TGT requested for user account user`) and capping identical `message` repetition (`<= 3` occurrences per scenario).
     - On startup (`EnsureScenarioEvidenceQualityFromSeed`), active non-seed scenarios in PostgreSQL that still contain the legacy `CORR-9901` / 45-log sandwich boilerplate are automatically marked `status = 'archived'` without altering completed `simulation_sessions` or `scenario_snapshots`.
     - See `workflows/scenario_telemetry_and_style_diversity.md`.
+
+## Canonical Terms (Issue #39)
+
+- **UI Locale (`en` / `th`) (ภาษาแสดงผลของระบบ)**: The user's active interface language (`en` default, `th` supported, extensible via locale codes) synced across `localStorage` (`cybersim_lang`) and `users.preferred_language`, without changing URL paths.
+- **English-Only Realism Invariant (ข้อกำหนดคงภาษาอังกฤษเพื่อความสมจริง)**: The hard rule that CompTIA Security+ assessment items (Pre-Test, Post-Test, and `/learn` Formative Sample Questions), Simulation `initial_logs`, KQL syntax, IOCs, and MITRE ATT&CK IDs MUST remain 100% English (zero Thai Unicode `\u0E00–\u0E7F`) regardless of active UI Locale.
+- **Hybrid Bilingual Terminology (คำศัพท์เทคนิคไทยควบคู่อังกฤษ)**: Thai prose localization style that retains standard CompTIA Security+ and SOC technical terms/acronyms (`SIEM`, `KQL`, `True Positive`, `False Positive`, `Containment`, `Eradication`, `Recovery`, `MITRE ATT&CK`) alongside natural Thai explanations.
+- **Scenario Translation Payload (`translations.th`) (ข้อมูลคำแปลสถานการณ์สองภาษา)**: The structured JSONB translation map stored alongside canonical English fields in `scenarios` and immutable `scenario_snapshots`, covering `title`, `description`, `tp_fp_explanation`, `playbook_steps[action_id]`, and `findings[finding_id]` (sanitized pre-submission to prevent answer leaks).
+- **Theory Translation Mirror (`theory/th/` & `theory_translations`) (คลังบทเรียนทฤษฎีภาษาไทยคู่ขนาน)**: The 33 Thai Markdown files mirroring `theory/` (5 Domain Overviews + 28 Sub-topics), embedded in Go and seeded into the dedicated `theory_translations` table so `rag_documents` vector embeddings remain untouched.
+- **Additive Localization Contract (สัญญา API แบบเพิ่มฟิลด์ไม่กระทบของเดิม)**: Adding `code` + `params` to `dto.ErrorResponse` and `template_key` + `template_params` to `user_notifications` while keeping English `error`/`title`/`message` intact as backward-compatible fallbacks.
+
+## Settled Decisions (Issue #39: Bilingual Language Switching & Localization)
+
+46. **Locales, Strict Content Boundaries & Terminology**:
+    - Supports `en` (default) and `th` with zero URL prefix changes (`/learn`, `/simulation` stay unchanged).
+    - **Translated (`en`/`th`)**: Frontend UI chrome (all 16 pages & shared components), 33 Learning Theory Markdown files (5 Domain Overviews + 28 Sub-topics), Simulation Scenario non-log fields (Title, Narrative/Briefing, Playbook Options, Findings, Explanations across static & AI scenarios), API Errors, and In-App Notifications.
+    - **Strictly English-Only**: Pre-Test, Post-Test, `/learn` Formative Sample Questions, Simulation `initial_logs`, KQL syntax/queries, IOCs, and MITRE IDs — accompanied by a subtle explanatory info notice when `locale === "th"`.
+    - **Author-Language Preserved**: Analysis Threads, Comments, and Admin free-text rejection reasons are never auto-translated.
+    - Uses Hybrid Bilingual Terminology (Thai prose + standard English CompTIA/SOC terms) and Gregorian (ค.ศ.) Thai dates (`th-TH-u-ca-gregory`) for UI timestamps while keeping SIEM timestamps RFC3339/ISO.
+
+47. **Preference Persistence, Switcher UX & Zero-Dependency Frontend i18n**:
+    - Persisted in `localStorage` (`cybersim_lang`) + `users.preferred_language VARCHAR(10) NOT NULL DEFAULT 'en'`.
+    - Register inherits guest `localStorage` locale; Login adopts DB `users.preferred_language`; explicit toggle while logged in updates `localStorage` optimistically and persists via `PUT /api/user/language`.
+    - Compact `EN | TH` toggle in Top Navbar on every route + synced selector on ProfilePage; switches instantly without reload and preserves all active Exam, Simulation, Learn, and Discussion state.
+    - Zero-dependency typed TS dictionaries (`frontend/src/i18n/en.ts`, `th.ts`) enforced at compile time via `tsc -b`, paired with `IBM Plex Sans Thai` + `Geist` (`font-sans`) while keeping `Geist Mono` (`font-mono`) for SIEM/KQL.
+
+48. **Multilingual Theory, Bilingual Single-Call AI Scenarios & Additive Backend Contracts**:
+    - 33 Thai theory files live in `theory/th/`, embedded via `//go:embed`, validated & seeded into `theory_translations` (`entity_type`, `entity_id`, `locale`, `title`, `content`), and delivered via `GET /api/learn/domains?lang=` and `GET /api/learn/subtopics/:id?lang=`.
+    - 15 static scenario translations live in `scripts/scenario_translations_th.json` merged into `scenarios_seed.json` without touching `initial_logs` or `evidence_mapping.json`.
+    - Runtime AI scenarios use **Bilingual Single-Call** generation (`en` + `th` non-log fields, EN-only `incident_logs`) stored in `scenarios.translations` and immutable `scenario_snapshots`, delivered inline on Simulation/Result/Specialist Review endpoints for 0 ms toggling (with strict pre-submission sanitization omitting `tp_fp_explanation`, `findings`, and playbook `explanation`); `buildInvestigationShortcuts` always consumes canonical EN `title`/`description`.
+    - `ValidateScenarioCandidate` enforces **Strict Reject & Fallback** if `initial_logs` contain Thai Unicode or `translations.th` is incomplete; `EnsureScenarioEvidenceQualityFromSeed` archives legacy active non-seed AI scenarios missing valid `translations.th` on startup.
+    - Backend errors add `code` + `params` (preserving EN `error`); `user_notifications` adds `template_key` + `template_params` (preserving EN `title`/`message`).
+
+49. **Push-Right Translation Checkpoint & 3-Gate CI Verification**:
+    - Initial static translation uses **1 push-right Human Review Checkpoint**: author Pilot Batch (Domain 1 Theory [5 files] + 3 sample Static Scenarios) and present a compact Brief for tone/glossary approval before scaling to Domains 2–5 (28 files) and remaining 12 Static Scenarios.
+    - Full 3-gate CI verification: (1) Frontend `tsc -b` + dictionary key/`{{param}}` parity check, (2) 33 TH theory files + 15 static seeds `translations.th` completeness check, (3) Go & Python strict English-only invariant tests (zero `\u0E00–\u0E7F` in exams, sample questions, and `initial_logs`).
+    - See `workflows/language_switching_and_localization.md`.

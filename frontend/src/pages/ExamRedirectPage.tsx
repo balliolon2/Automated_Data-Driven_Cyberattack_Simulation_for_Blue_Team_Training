@@ -2,9 +2,11 @@ import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { Loader2 } from "lucide-react";
+import { useI18n } from "../i18n/index.tsx";
 
 export default function ExamRedirectPage() {
   const navigate = useNavigate();
+  const { t } = useI18n();
 
   useEffect(() => {
     const checkProgressAndRedirect = async () => {
@@ -58,7 +60,7 @@ export default function ExamRedirectPage() {
   return (
     <div className="min-h-[60vh] flex flex-col items-center justify-center gap-4">
       <Loader2 className="w-8 h-8 text-emerald-400 animate-spin" />
-      <p className="text-sm font-mono text-graphite-400">Redirecting to active assessment stage...</p>
+      <p className="text-sm font-mono text-graphite-400">{t("exam.redirecting")}</p>
     </div>
   );
 }

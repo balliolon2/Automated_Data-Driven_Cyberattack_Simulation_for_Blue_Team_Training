@@ -2,9 +2,10 @@ package dto
 
 // RegisterRequest defines the payload for learner registration
 type RegisterRequest struct {
-	Email    string `json:"email" binding:"required,email" example:"analyst@soc.local"`
-	Password string `json:"password" binding:"required,min=6" example:"Secret123!"`
-	Nickname string `json:"nickname" example:"cyber_defender"`
+	Email             string `json:"email" binding:"required,email" example:"analyst@soc.local"`
+	Password          string `json:"password" binding:"required,min=6" example:"Secret123!"`
+	Nickname          string `json:"nickname" example:"cyber_defender"`
+	PreferredLanguage string `json:"preferred_language,omitempty" example:"en"`
 }
 
 // LoginRequest defines the payload for user login
@@ -15,11 +16,12 @@ type LoginRequest struct {
 
 // AuthResponse defines the successful authentication response containing JWT
 type AuthResponse struct {
-	Token    string `json:"token" example:"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."`
-	Email    string `json:"email" example:"analyst@soc.local"`
-	Nickname string `json:"nickname" example:"cyber_defender"`
-	Role     string `json:"role" example:"learner"`
-	UserID   string `json:"user_id" example:"a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11"`
+	Token             string `json:"token" example:"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."`
+	Email             string `json:"email" example:"analyst@soc.local"`
+	Nickname          string `json:"nickname" example:"cyber_defender"`
+	Role              string `json:"role" example:"learner"`
+	UserID            string `json:"user_id" example:"a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11"`
+	PreferredLanguage string `json:"preferred_language" example:"en"`
 }
 
 // UserProfileResponse defines user profile details and application status
@@ -29,6 +31,7 @@ type UserProfileResponse struct {
 	Nickname          string                    `json:"nickname"`
 	Role              string                    `json:"role"`
 	CurrentTier       int                       `json:"current_tier"`
+	PreferredLanguage string                    `json:"preferred_language" example:"en"`
 	LatestApplication *SpecialistApplicationDTO `json:"latest_application,omitempty"`
 }
 
@@ -53,6 +56,17 @@ type SpecialistApplicationDTO struct {
 // UpdateNicknameRequest defines the payload for changing user nickname
 type UpdateNicknameRequest struct {
 	Nickname string `json:"nickname" binding:"required,min=2,max=30" example:"soc_rookie"`
+}
+
+// UpdateLanguageRequest defines the payload for updating user language preference
+type UpdateLanguageRequest struct {
+	Language string `json:"language" binding:"required" example:"th"`
+}
+
+// UpdateLanguageResponse defines the response after updating user language preference
+type UpdateLanguageResponse struct {
+	Message           string `json:"message" example:"Language preference updated"`
+	PreferredLanguage string `json:"preferred_language" example:"th"`
 }
 
 // AdminRejectRequest defines the payload for rejecting a specialist application

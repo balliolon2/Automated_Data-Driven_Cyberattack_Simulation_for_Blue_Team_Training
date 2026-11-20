@@ -2,9 +2,10 @@ package dto
 
 // ErrorResponse represents a standardized error response body
 type ErrorResponse struct {
-	Error   string `json:"error" example:"Invalid request payload"`
-	Message string `json:"message,omitempty" example:"Detailed error description"`
-	Code    string `json:"code,omitempty" example:"BAD_REQUEST"`
+	Error   string         `json:"error" example:"Invalid request payload"`
+	Message string         `json:"message,omitempty" example:"Detailed error description"`
+	Code    string         `json:"code,omitempty" example:"BAD_REQUEST"`
+	Params  map[string]any `json:"params,omitempty"`
 }
 
 // MessageResponse represents a generic success or informational response

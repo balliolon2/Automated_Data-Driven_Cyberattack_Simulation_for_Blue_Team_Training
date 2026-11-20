@@ -7,7 +7,7 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        sans: ['Geist', 'sans-serif'],
+        sans: ['Geist', '"IBM Plex Sans Thai"', 'sans-serif'],
         mono: ['"Geist Mono"', 'monospace'],
       },
       colors: {

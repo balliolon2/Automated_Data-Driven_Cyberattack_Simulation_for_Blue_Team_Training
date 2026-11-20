@@ -1,9 +1,12 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { 
   User, Shield, Award, Clock, AlertTriangle, CheckCircle2, 
-  Upload, Edit2, Loader2, ArrowRight 
+  Upload, Edit2, Loader2, ArrowRight, Globe 
 } from "lucide-react";
 import axios from "axios";
+import { useI18n } from "../i18n/index.tsx";
+import { resolveApiError } from "../i18n/format.ts";
+import type { Locale } from "../i18n/types.ts";
 
 interface SpecialistApplication {
   application_id: string;
@@ -24,14 +27,21 @@ interface UserProfile {
   nickname: string;
   role: "learner" | "specialist" | "admin";
   current_tier: number;
+  preferred_language?: Locale;
   latest_application?: SpecialistApplication;
 }
 
+type ProfileErrorState =
+  | { kind: "key"; key: string }
+  | { kind: "api"; err: unknown; fallbackKey: string }
+  | null;
+
 export default function ProfilePage() {
+  const { locale, setLocale, syncLocaleFromUser, t, formatDate } = useI18n();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
+  const [errorState, setErrorState] = useState<ProfileErrorState>(null);
+  const [successKey, setSuccessKey] = useState<string | null>(null);
 
   // Edit nickname state
   const [isEditingNickname, setIsEditingNickname] = useState(false);
@@ -49,8 +59,11 @@ export default function ProfilePage() {
 
   const token = localStorage.getItem("token");
 
-  const fetchProfile = async () => {
-    if (!token) return;
+  const fetchProfile = useCallback(async () => {
+    if (!token) {
+      setLoading(false);
+      return;
+    }
     try {
       setLoading(true);
       const res = await axios.get("/api/user/profile", {
@@ -59,9 +72,10 @@ export default function ProfilePage() {
       setProfile(res.data);
       setNewNickname(res.data.nickname);
       
-      // Update local storage
+      // Update local storage and sync language from DB
       localStorage.setItem("userNickname", res.data.nickname);
       localStorage.setItem("userRole", res.data.role);
+      syncLocaleFromUser(res.data.preferred_language);
 
       // If rejected application exists, prefill fields for easy re-apply
       if (res.data.latest_application?.status === "rejected") {
@@ -69,23 +83,29 @@ export default function ProfilePage() {
         setLinkedinUrl(res.data.latest_application.linkedin_url || "");
         setPortfolioUrl(res.data.latest_application.portfolio_url || "");
       }
-    } catch (err: any) {
-      setError(err.response?.data?.error || "Failed to load user profile");
+    } catch (err: unknown) {
+      setErrorState({ kind: "api", err, fallbackKey: "profile.loadError" });
     } finally {
       setLoading(false);
     }
-  };
+  }, [token, syncLocaleFromUser]);
 
   useEffect(() => {
     fetchProfile();
-  }, []);
+  }, [fetchProfile]);
+
+  const handleLanguageSelect = (next: Locale) => {
+    setErrorState(null);
+    setLocale(next);
+    setSuccessKey("profile.languageSaved");
+  };
 
   const handleUpdateNickname = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newNickname.trim()) return;
     setSavingNickname(true);
-    setError("");
-    setSuccess("");
+    setErrorState(null);
+    setSuccessKey(null);
 
     try {
       await axios.put(
@@ -93,11 +113,11 @@ export default function ProfilePage() {
         { nickname: newNickname.trim() },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      setSuccess("Nickname updated successfully!");
+      setSuccessKey("profile.nicknameUpdated");
       setIsEditingNickname(false);
       fetchProfile();
-    } catch (err: any) {
-      setError(err.response?.data?.error || "Failed to update nickname");
+    } catch (err: unknown) {
+      setErrorState({ kind: "api", err, fallbackKey: "profile.nicknameUpdateError" });
     } finally {
       setSavingNickname(false);
     }
@@ -105,16 +125,16 @@ export default function ProfilePage() {
 
   const handleApplySpecialist = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError("");
-    setSuccess("");
+    setErrorState(null);
+    setSuccessKey(null);
 
     if (!resumeFile) {
-      setError("Please attach your Resume file (PDF or image).");
+      setErrorState({ kind: "key", key: "errors.SPECIALIST_RESUME_REQUIRED" });
       return;
     }
 
     if (!bio.trim()) {
-      setError("Please provide a professional bio summary.");
+      setErrorState({ kind: "key", key: "errors.SPECIALIST_BIO_REQUIRED" });
       return;
     }
 
@@ -134,11 +154,11 @@ export default function ProfilePage() {
         }
       });
 
-      setSuccess("Specialist application submitted successfully!");
+      setSuccessKey("profile.applicationSubmitted");
       setShowApplyForm(false);
       fetchProfile();
-    } catch (err: any) {
-      setError(err.response?.data?.error || "Application submission failed");
+    } catch (err: unknown) {
+      setErrorState({ kind: "api", err, fallbackKey: "profile.applicationError" });
     } finally {
       setSubmittingApp(false);
     }
@@ -155,12 +175,25 @@ export default function ProfilePage() {
   if (!profile) {
     return (
       <div className="p-8 text-center text-graphite-400">
-        Profile unavailable. Please log in again.
+        {t("profile.unavailable")}
       </div>
     );
   }
 
   const app = profile.latest_application;
+  const error = errorState
+    ? errorState.kind === "key"
+      ? t(errorState.key)
+      : resolveApiError(errorState.err, t, t(errorState.fallbackKey))
+    : "";
+  const success = successKey ? t(successKey) : "";
+
+  const roleLabel =
+    profile.role === "admin"
+      ? t("common.roles.admin")
+      : profile.role === "specialist"
+      ? t("common.roles.specialist")
+      : t("common.roles.learner");
 
   return (
     <div className="max-w-4xl mx-auto space-y-8 animate-fade-in">
@@ -192,14 +225,14 @@ export default function ProfilePage() {
                     disabled={savingNickname}
                     className="px-2.5 py-1 bg-white text-black text-xs font-semibold rounded hover:bg-white/90"
                   >
-                    {savingNickname ? <Loader2 className="w-3 h-3 animate-spin" /> : "Save"}
+                    {savingNickname ? <Loader2 className="w-3 h-3 animate-spin" /> : t("common.save")}
                   </button>
                   <button
                     type="button"
                     onClick={() => setIsEditingNickname(false)}
                     className="px-2.5 py-1 text-xs text-graphite-400 hover:text-white"
                   >
-                    Cancel
+                    {t("common.cancel")}
                   </button>
                 </form>
               ) : (
@@ -210,7 +243,7 @@ export default function ProfilePage() {
                   <button
                     onClick={() => setIsEditingNickname(true)}
                     className="text-graphite-400 hover:text-white transition-colors"
-                    title="Edit Nickname"
+                    title={t("profile.editNicknameTitle")}
                   >
                     <Edit2 size={14} />
                   </button>
@@ -224,13 +257,13 @@ export default function ProfilePage() {
                   ? "bg-indigo-500/10 text-indigo-400 border-indigo-500/30"
                   : "bg-graphite-800 text-graphite-300 border-graphite-700"
               }`}>
-                {profile.role}
+                {roleLabel}
               </span>
             </div>
             
             <p className="text-xs text-graphite-400 font-mono mt-1">{profile.email}</p>
             <p className="text-xs text-graphite-500 mt-2">
-              Current Competence Level: <span className="text-white font-semibold">Tier {profile.current_tier} Analyst</span>
+              {t("profile.competencePrefix")} <span className="text-white font-semibold">{t("profile.tierBadge", { tier: profile.current_tier })}</span>
             </p>
           </div>
         </div>
@@ -249,11 +282,55 @@ export default function ProfilePage() {
         </div>
       )}
 
+      {/* Language Preference Card */}
+      <div className="bg-graphite-900 border border-graphite-800 rounded-xl p-6 sm:p-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="space-y-1">
+          <h2 className="text-base font-semibold text-white tracking-tight flex items-center gap-2">
+            <Globe className="w-4 h-4 text-graphite-300" />
+            {t("profile.languageCardTitle")}
+          </h2>
+          <p className="text-xs text-graphite-400 font-light leading-relaxed max-w-xl">
+            {t("profile.languageCardDesc")}
+          </p>
+        </div>
+
+        <div
+          role="group"
+          aria-label={t("common.languageToggleAria")}
+          className="inline-flex items-center rounded-md border border-graphite-800 bg-graphite-950 p-1 shrink-0"
+        >
+          <button
+            type="button"
+            onClick={() => handleLanguageSelect("en")}
+            aria-pressed={locale === "en"}
+            className={`px-3 py-1.5 rounded text-xs font-medium transition-colors cursor-pointer ${
+              locale === "en"
+                ? "bg-white text-black font-semibold"
+                : "text-graphite-400 hover:text-white"
+            }`}
+          >
+            {t("profile.languageEnglish")}
+          </button>
+          <button
+            type="button"
+            onClick={() => handleLanguageSelect("th")}
+            aria-pressed={locale === "th"}
+            className={`px-3 py-1.5 rounded text-xs font-medium transition-colors cursor-pointer ${
+              locale === "th"
+                ? "bg-white text-black font-semibold"
+                : "text-graphite-400 hover:text-white"
+            }`}
+          >
+            {t("profile.languageThai")}
+          </button>
+        </div>
+      </div>
+
       {/* Role-Specific Workflows & Specialist Application Section */}
       <div className="bg-graphite-900 border border-graphite-800 rounded-xl p-6 sm:p-8 space-y-6">
         <h2 className="text-base font-semibold text-white tracking-tight flex items-center gap-2">
           <Award className="w-4 h-4 text-indigo-400" />
-          Specialist Accreditation
+          {t("profile.accreditationTitle")}
         </h2>
 
         {/* Status A: User is already Specialist */}
@@ -261,10 +338,10 @@ export default function ProfilePage() {
           <div className="p-5 rounded-lg bg-indigo-500/10 border border-indigo-500/20 space-y-2">
             <div className="flex items-center gap-2 text-indigo-400 font-medium text-sm">
               <CheckCircle2 size={18} />
-              <span>Verified Security Specialist</span>
+              <span>{t("profile.verifiedTitle")}</span>
             </div>
             <p className="text-xs text-graphite-300 leading-relaxed font-light">
-              Your credentials have been validated by administrators. You are authorized to review learner scenario investigations, inspect triage decisions, and author instructional Analysis Threads.
+              {t("profile.verifiedDesc")}
             </p>
           </div>
         )}
@@ -274,10 +351,10 @@ export default function ProfilePage() {
           <div className="p-5 rounded-lg bg-amber-500/10 border border-amber-500/20 space-y-2">
             <div className="flex items-center gap-2 text-amber-400 font-medium text-sm">
               <Shield size={18} />
-              <span>Administrator Privileges</span>
+              <span>{t("profile.adminTitle")}</span>
             </div>
             <p className="text-xs text-graphite-300 leading-relaxed font-light">
-              You possess global platform governance rights. You can manage user roles, audit candidate qualifications, and moderate all community discussions.
+              {t("profile.adminDesc")}
             </p>
           </div>
         )}
@@ -291,17 +368,19 @@ export default function ProfilePage() {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2 text-amber-400 font-medium text-sm">
                     <Clock size={16} />
-                    <span>Application Under Review</span>
+                    <span>{t("profile.pendingTitle")}</span>
                   </div>
                   <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-amber-500/20 text-amber-300">
-                    PENDING
+                    {t("profile.pendingBadge")}
                   </span>
                 </div>
                 <p className="text-xs text-graphite-300 leading-relaxed font-light">
-                  Your specialist application was submitted on {new Date(app.created_at).toLocaleDateString()}. Platform administrators are reviewing your submitted credentials. You can continue taking exams and practicing simulation scenarios as a Learner in the meantime.
+                  {t("profile.pendingBodyBeforeDate")}
+                  {formatDate(app.created_at)}
+                  {t("profile.pendingBodyAfterDate")}
                 </p>
                 <div className="bg-graphite-950 p-3 rounded border border-graphite-800 text-xs text-graphite-400 font-mono">
-                  <span className="text-graphite-500">Submitted Bio:</span> {app.bio}
+                  <span className="text-graphite-500">{t("profile.submittedBioLabel")}</span> {app.bio}
                 </div>
               </div>
             )}
@@ -312,25 +391,25 @@ export default function ProfilePage() {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2 text-rose-400 font-medium text-sm">
                     <AlertTriangle size={16} />
-                    <span>Specialist Application Declined</span>
+                    <span>{t("profile.rejectedTitle")}</span>
                   </div>
                   <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-rose-500/20 text-rose-300">
-                    DECLINED
+                    {t("profile.rejectedBadge")}
                   </span>
                 </div>
                 <div className="p-3 bg-graphite-950 rounded border border-rose-500/30 text-xs text-graphite-200">
-                  <span className="text-rose-400 font-semibold block mb-1">Administrator Feedback:</span>
-                  <p className="font-mono text-xs">{app.rejection_reason || "Qualifications did not meet current specialist criteria."}</p>
+                  <span className="text-rose-400 font-semibold block mb-1">{t("profile.adminFeedbackLabel")}</span>
+                  <p className="font-mono text-xs">{app.rejection_reason || t("profile.defaultRejectionReason")}</p>
                 </div>
                 <p className="text-xs text-graphite-400 font-light">
-                  You can revise your information, upload updated certifications or a revised resume, and re-apply immediately.
+                  {t("profile.rejectedHint")}
                 </p>
                 <button
                   type="button"
                   onClick={() => setShowApplyForm(true)}
                   className="px-4 py-2 bg-white text-black font-semibold rounded text-xs hover:bg-white/90 transition-all flex items-center gap-2 cursor-pointer"
                 >
-                  <span>Edit & Re-apply</span>
+                  <span>{t("profile.editReapplyButton")}</span>
                   <ArrowRight size={14} />
                 </button>
               </div>
@@ -342,16 +421,16 @@ export default function ProfilePage() {
                 {!showApplyForm && !app && (
                   <div className="p-5 rounded-lg bg-graphite-950 border border-graphite-800 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                     <div>
-                      <h3 className="text-sm font-semibold text-white">Apply to Become a Specialist</h3>
+                      <h3 className="text-sm font-semibold text-white">{t("profile.applyTitle")}</h3>
                       <p className="text-xs text-graphite-400 mt-1 font-light">
-                        Share your industry expertise, guide junior blue teamers, and author analysis breakdowns for simulations.
+                        {t("profile.applyDesc")}
                       </p>
                     </div>
                     <button
                       onClick={() => setShowApplyForm(true)}
                       className="px-4 py-2 bg-white text-black font-semibold rounded text-xs hover:bg-white/90 transition-all whitespace-nowrap cursor-pointer"
                     >
-                      Start Application
+                      {t("profile.startApplicationButton")}
                     </button>
                   </div>
                 )}
@@ -361,20 +440,20 @@ export default function ProfilePage() {
                   <form onSubmit={handleApplySpecialist} className="p-6 bg-graphite-950 border border-graphite-800 rounded-lg space-y-4 animate-fade-in">
                     <div className="flex justify-between items-center border-b border-graphite-800 pb-3">
                       <h3 className="text-sm font-semibold text-white">
-                        {app?.status === "rejected" ? "Revise & Re-apply for Specialist" : "Specialist Accreditation Application"}
+                        {app?.status === "rejected" ? t("profile.reviseFormTitle") : t("profile.newFormTitle")}
                       </h3>
                       <button
                         type="button"
                         onClick={() => setShowApplyForm(false)}
                         className="text-xs text-graphite-400 hover:text-white"
                       >
-                        Cancel
+                        {t("common.cancel")}
                       </button>
                     </div>
 
                     <div>
                       <label className="block text-xs font-medium text-graphite-300 mb-1">
-                        Professional Bio / Experience Summary <span className="text-red-400">*</span>
+                        {t("profile.bioLabel")} <span className="text-red-400">*</span>
                       </label>
                       <textarea
                         value={bio}
@@ -382,19 +461,19 @@ export default function ProfilePage() {
                         required
                         rows={3}
                         className="w-full px-3 py-2 bg-graphite-900 border border-graphite-800 rounded text-xs text-white placeholder-graphite-600 focus:outline-none focus:border-white transition-all font-light"
-                        placeholder="Detail your SOC Tier 2/3, Incident Response, or threat hunting experience..."
+                        placeholder={t("profile.bioPlaceholder")}
                       />
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
                         <label className="block text-xs font-medium text-graphite-300 mb-1">
-                          Resume (PDF/Image) <span className="text-red-400">*</span>
+                          {t("profile.resumeLabel")} <span className="text-red-400">*</span>
                         </label>
                         <label className="flex flex-col items-center justify-center p-4 border border-dashed border-graphite-700 hover:border-white rounded bg-graphite-900 cursor-pointer transition-colors text-center">
                           <Upload size={18} className="text-graphite-400 mb-1" />
                           <span className="text-xs text-graphite-300 truncate max-w-full">
-                            {resumeFile ? resumeFile.name : "Attach Resume (<10MB)"}
+                            {resumeFile ? resumeFile.name : t("profile.attachResume")}
                           </span>
                           <input
                             type="file"
@@ -407,12 +486,12 @@ export default function ProfilePage() {
 
                       <div>
                         <label className="block text-xs font-medium text-graphite-300 mb-1">
-                          Certificate (Optional)
+                          {t("profile.certLabel")}
                         </label>
                         <label className="flex flex-col items-center justify-center p-4 border border-dashed border-graphite-700 hover:border-white rounded bg-graphite-900 cursor-pointer transition-colors text-center">
                           <Upload size={18} className="text-graphite-400 mb-1" />
                           <span className="text-xs text-graphite-300 truncate max-w-full">
-                            {certFile ? certFile.name : "Attach Certificate"}
+                            {certFile ? certFile.name : t("profile.attachCert")}
                           </span>
                           <input
                             type="file"
@@ -427,27 +506,27 @@ export default function ProfilePage() {
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
                         <label className="block text-xs font-medium text-graphite-300 mb-1">
-                          LinkedIn URL
+                          {t("profile.linkedinLabel")}
                         </label>
                         <input
                           type="url"
                           value={linkedinUrl}
                           onChange={(e) => setLinkedinUrl(e.target.value)}
                           className="w-full px-3 py-2 bg-graphite-900 border border-graphite-800 rounded text-xs text-white placeholder-graphite-600 focus:outline-none focus:border-white transition-all font-light"
-                          placeholder="https://linkedin.com/in/..."
+                          placeholder={t("profile.linkedinPlaceholder")}
                         />
                       </div>
 
                       <div>
                         <label className="block text-xs font-medium text-graphite-300 mb-1">
-                          Portfolio / Credly Link
+                          {t("profile.portfolioLabel")}
                         </label>
                         <input
                           type="url"
                           value={portfolioUrl}
                           onChange={(e) => setPortfolioUrl(e.target.value)}
                           className="w-full px-3 py-2 bg-graphite-900 border border-graphite-800 rounded text-xs text-white placeholder-graphite-600 focus:outline-none focus:border-white transition-all font-light"
-                          placeholder="https://credly.com/..."
+                          placeholder={t("profile.portfolioPlaceholder")}
                         />
                       </div>
                     </div>
@@ -458,14 +537,14 @@ export default function ProfilePage() {
                         onClick={() => setShowApplyForm(false)}
                         className="px-4 py-2 border border-graphite-800 text-graphite-300 rounded text-xs hover:bg-graphite-900"
                       >
-                        Cancel
+                        {t("common.cancel")}
                       </button>
                       <button
                         type="submit"
                         disabled={submittingApp}
                         className="px-5 py-2 bg-white text-black font-semibold rounded text-xs hover:bg-white/90 flex items-center gap-2 disabled:opacity-50 cursor-pointer"
                       >
-                        {submittingApp ? <Loader2 className="w-4 h-4 animate-spin" /> : "Submit Application"}
+                        {submittingApp ? <Loader2 className="w-4 h-4 animate-spin" /> : t("profile.submitApplication")}
                       </button>
                     </div>
                   </form>

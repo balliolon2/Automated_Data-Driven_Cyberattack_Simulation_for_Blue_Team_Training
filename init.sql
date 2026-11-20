@@ -18,6 +18,7 @@ CREATE TABLE users (
   password_hash VARCHAR NOT NULL,
   role role DEFAULT 'learner',
   current_tier INT DEFAULT 1,
+  preferred_language VARCHAR(10) NOT NULL DEFAULT 'en',
   created_at TIMESTAMP DEFAULT now(),
   last_login TIMESTAMP,
   is_active BOOLEAN DEFAULT true

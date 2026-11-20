@@ -10,6 +10,8 @@ import {
   RefreshCw,
   Activity
 } from "lucide-react";
+import { useI18n } from "../i18n/index.tsx";
+import { resolveDomainName } from "../i18n/format.ts";
 
 interface Question {
   question_id: string;
@@ -23,6 +25,7 @@ interface Question {
 
 export default function LandingPage() {
   const navigate = useNavigate();
+  const { locale, t } = useI18n();
   const [redirectLoading, setRedirectLoading] = useState(false);
   
   // Sample Question State
@@ -131,16 +134,16 @@ export default function LandingPage() {
         <div className="lg:col-span-5 space-y-6 text-left">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-graphite-800 text-graphite-400 text-[10px] font-mono bg-graphite-900/20">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-            <span>v2.0 Beta Environment Live</span>
+            <span>{t("landing.hero.badge")}</span>
           </div>
           
           <h1 className="text-4xl md:text-5xl font-extrabold tracking-tighter text-white leading-[1.05] text-wrap">
-            Master Cyber Defense <br />
-            Through Data-Driven Scenarios
+            {t("landing.hero.titleLine1")} <br />
+            {t("landing.hero.titleLine2")}
           </h1>
           
           <p className="text-xs md:text-sm text-graphite-400 font-light leading-relaxed max-w-[45ch]">
-            Train like a real SOC Analyst. Master CompTIA Security+ 701 with interactive simulations and AI-powered skill gap analysis.
+            {t("landing.hero.subtitle")}
           </p>
           
           <div className="pt-4 flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
@@ -152,11 +155,11 @@ export default function LandingPage() {
               {redirectLoading ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" />
-                  Evaluating...
+                  {t("landing.hero.evaluating")}
                 </>
               ) : (
                 <>
-                  Start Assessment
+                  {t("landing.hero.startAssessment")}
                   <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
                 </>
               )}
@@ -167,7 +170,7 @@ export default function LandingPage() {
               className="flex items-center justify-center gap-2 px-6 py-2.5 rounded-md border border-graphite-800 bg-transparent text-graphite-300 font-semibold text-xs hover:bg-graphite-900 hover:text-white transition-all duration-200"
             >
               <Terminal className="w-4 h-4" />
-              View Sample Exam
+              {t("landing.hero.viewSampleExam")}
             </button>
           </div>
         </div>
@@ -215,13 +218,13 @@ export default function LandingPage() {
               sampleLoading ? (
                 <div className="h-full min-h-[260px] flex flex-col items-center justify-center gap-3">
                   <Loader2 className="w-6 h-6 text-white animate-spin" />
-                  <p className="text-[10px] font-mono text-graphite-550">Fetching sample question...</p>
+                  <p className="text-[10px] font-mono text-graphite-550">{t("landing.workbench.fetchingSample")}</p>
                 </div>
               ) : question ? (
                 <div className="space-y-4">
                   <div className="flex justify-between items-center text-[10px] font-mono text-graphite-500 border-b border-graphite-850 pb-2">
-                    <span>CompTIA Security+ 701 Question</span>
-                    <span>Difficulty: {question.difficulty}/5</span>
+                    <span>{t("landing.workbench.questionSource")}</span>
+                    <span>{t("landing.workbench.difficulty", { difficulty: question.difficulty })}</span>
                   </div>
                   <div className="text-xs text-graphite-200 font-light leading-relaxed">
                     {question.question_text}
@@ -263,33 +266,33 @@ export default function LandingPage() {
                       {selectedAnswer === question.correct_answer ? (
                         <div className="flex items-center gap-1.5 text-emerald-400 font-semibold">
                           <CheckCircle className="w-3.5 h-3.5" />
-                          <span>Correct answer!</span>
+                          <span>{t("landing.workbench.correct")}</span>
                         </div>
                       ) : (
                         <div className="flex items-center gap-1.5 text-red-400 font-semibold">
                           <XCircle className="w-3.5 h-3.5" />
-                          <span>Incorrect. Correct was {question.correct_answer}.</span>
+                          <span>{t("landing.workbench.incorrect", { answer: question.correct_answer })}</span>
                         </div>
                       )}
                       <p className="text-graphite-405">
-                        <strong className="text-white font-medium">Explanation:</strong> {question.explanation}
+                        <strong className="text-white font-medium">{t("landing.workbench.explanationLabel")}</strong> {question.explanation}
                       </p>
                     </div>
                   )}
                 </div>
               ) : (
                 <div className="h-full flex items-center justify-center text-graphite-500 font-mono text-xs">
-                  No question loaded.
+                  {t("landing.workbench.noQuestion")}
                 </div>
               )
             ) : (
-              // Live logs content
+              // Live logs content (strictly English SIEM telemetry)
               <div className="h-full min-h-[260px] flex flex-col justify-between font-mono text-[10px] text-graphite-300">
                 <div className="space-y-2.5 select-none">
                   <div className="text-graphite-500 border-b border-graphite-850 pb-2 mb-2 flex justify-between">
                     <span>active-sim-triage.log</span>
                     <span className="text-emerald-500 flex items-center gap-1">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" /> LIVE STREAM
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" /> {t("landing.workbench.liveStream")}
                     </span>
                   </div>
                   <div className="text-red-400 font-semibold">[ALERT] Port Scan T1046 detected from 192.0.2.14</div>
@@ -300,7 +303,7 @@ export default function LandingPage() {
                   <div className="text-graphite-500">[STATUS] Host isolation status: COMPLETED</div>
                 </div>
                 <div className="border-t border-graphite-850 pt-4 flex justify-between items-center">
-                  <span className="text-[9px] text-graphite-500">Threat Mitigation Loop Active</span>
+                  <span className="text-[9px] text-graphite-500">{t("landing.workbench.threatMitigationActive")}</span>
                   <span className="text-white bg-graphite-800 px-2 py-0.5 rounded border border-graphite-700 text-[8px]">MITRE T1046</span>
                 </div>
               </div>
@@ -315,7 +318,7 @@ export default function LandingPage() {
                 className="flex items-center gap-2 px-3 py-1.5 rounded border border-graphite-800 bg-transparent text-graphite-400 text-[10px] font-medium hover:bg-graphite-900 hover:text-white transition-colors"
               >
                 <RefreshCw className="w-3 h-3" />
-                Try Another
+                {t("landing.workbench.tryAnother")}
               </button>
 
               {!isSubmitted ? (
@@ -324,10 +327,10 @@ export default function LandingPage() {
                   disabled={!selectedAnswer}
                   className="px-4 py-1.5 rounded bg-white text-black text-[10px] font-semibold hover:bg-white/90 disabled:bg-graphite-800 disabled:text-graphite-500 transition-all duration-200"
                 >
-                  Submit Answer
+                  {t("landing.workbench.submitAnswer")}
                 </button>
               ) : (
-                <span className="text-[10px] text-graphite-500 font-mono">Answers submitted</span>
+                <span className="text-[10px] text-graphite-500 font-mono">{t("landing.workbench.submitted")}</span>
               )}
             </div>
           )}
@@ -337,8 +340,8 @@ export default function LandingPage() {
       {/* High-Visual Curriculum Bento Grid */}
       <div className="space-y-6 pt-12">
         <div className="text-left space-y-1">
-          <h2 className="text-lg font-bold tracking-tight text-white">Platform Curriculum & Design</h2>
-          <p className="text-[10px] text-graphite-400 font-mono uppercase tracking-wider">Structured Incident Response & Assessment Pipeline</p>
+          <h2 className="text-lg font-bold tracking-tight text-white">{t("landing.bento.heading")}</h2>
+          <p className="text-[10px] text-graphite-400 font-mono uppercase tracking-wider">{t("landing.bento.subheading")}</p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-6 gap-6 w-full">
@@ -346,10 +349,10 @@ export default function LandingPage() {
           {/* Cell 1: Adaptive Training Loop (2 columns) */}
           <div className="md:col-span-2 bg-graphite-900 border border-graphite-800/80 rounded-lg p-6 flex flex-col justify-between hover:border-graphite-700 transition-colors duration-300">
             <div>
-              <span className="text-[9px] uppercase tracking-wider font-mono text-graphite-500">Adaptive Loop</span>
-              <h3 className="text-sm font-semibold text-white mt-1">Adaptive Learning Flow</h3>
+              <span className="text-[9px] uppercase tracking-wider font-mono text-graphite-500">{t("landing.bento.cell1.eyebrow")}</span>
+              <h3 className="text-sm font-semibold text-white mt-1">{t("landing.bento.cell1.title")}</h3>
               <p className="text-graphite-400 text-xs mt-2 font-light leading-relaxed">
-                Our RAG-based analysis generates custom roadmaps based on your pre-test baseline skills.
+                {t("landing.bento.cell1.description")}
               </p>
             </div>
             
@@ -357,17 +360,17 @@ export default function LandingPage() {
             <div className="mt-8 pt-4 border-t border-graphite-850 flex flex-col gap-3 font-mono text-[9px] text-graphite-400 select-none">
               <div className="flex items-center gap-2">
                 <span className="w-5 h-5 rounded border border-graphite-800 bg-graphite-950 flex items-center justify-center text-white font-medium">01</span>
-                <span>Pre-Test Diagnostic</span>
+                <span>{t("landing.bento.cell1.step1")}</span>
               </div>
               <div className="w-px h-3 bg-graphite-800 ml-2.5" />
               <div className="flex items-center gap-2">
                 <span className="w-5 h-5 rounded border border-graphite-800 bg-graphite-950 flex items-center justify-center text-white font-medium">02</span>
-                <span className="text-white font-medium">AI Gap Roadmap</span>
+                <span className="text-white font-medium">{t("landing.bento.cell1.step2")}</span>
               </div>
               <div className="w-px h-3 bg-graphite-800 ml-2.5" />
               <div className="flex items-center gap-2">
                 <span className="w-5 h-5 rounded border border-graphite-800 bg-graphite-950 flex items-center justify-center text-white font-medium">03</span>
-                <span>Practical Scenarios</span>
+                <span>{t("landing.bento.cell1.step3")}</span>
               </div>
             </div>
           </div>
@@ -375,26 +378,26 @@ export default function LandingPage() {
           {/* Cell 2: Incident Response Playbooks (4 columns) */}
           <div className="md:col-span-4 bg-graphite-900 border border-graphite-800/80 rounded-lg p-6 hover:border-graphite-700 transition-colors duration-300 flex flex-col justify-between">
             <div className="space-y-2">
-              <span className="text-[9px] uppercase tracking-wider font-mono text-graphite-500">Playbook Engineering</span>
-              <h3 className="text-sm font-semibold text-white">Interactive IR Playbooks</h3>
+              <span className="text-[9px] uppercase tracking-wider font-mono text-graphite-500">{t("landing.bento.cell2.eyebrow")}</span>
+              <h3 className="text-sm font-semibold text-white">{t("landing.bento.cell2.title")}</h3>
               <p className="text-graphite-400 text-xs font-light leading-relaxed">
-                Triage alerts and apply incident response techniques mapped directly to containment, eradication, and recovery procedures.
+                {t("landing.bento.cell2.description")}
               </p>
             </div>
             
             {/* Playbook interactive step visual */}
             <div className="grid grid-cols-3 gap-3 mt-8 pt-4 border-t border-graphite-850 font-mono text-[10px] select-none">
               <div className="border border-graphite-800 rounded bg-graphite-950/60 p-3 text-center space-y-1.5">
-                <div className="text-white font-bold">1. Containment</div>
-                <div className="text-[8px] text-graphite-500">Isolate host network logs</div>
+                <div className="text-white font-bold">{t("landing.bento.cell2.phase1Title")}</div>
+                <div className="text-[8px] text-graphite-500">{t("landing.bento.cell2.phase1Desc")}</div>
               </div>
               <div className="border border-graphite-800 rounded bg-graphite-950/60 p-3 text-center space-y-1.5">
-                <div className="text-white font-bold">2. Eradication</div>
-                <div className="text-[8px] text-graphite-500">Purge SSH key access</div>
+                <div className="text-white font-bold">{t("landing.bento.cell2.phase2Title")}</div>
+                <div className="text-[8px] text-graphite-500">{t("landing.bento.cell2.phase2Desc")}</div>
               </div>
               <div className="border border-graphite-800 rounded bg-graphite-950/60 p-3 text-center space-y-1.5">
-                <div className="text-white font-bold">3. Recovery</div>
-                <div className="text-[8px] text-graphite-500">Restore sanitized images</div>
+                <div className="text-white font-bold">{t("landing.bento.cell2.phase3Title")}</div>
+                <div className="text-[8px] text-graphite-500">{t("landing.bento.cell2.phase3Desc")}</div>
               </div>
             </div>
           </div>
@@ -403,41 +406,32 @@ export default function LandingPage() {
           <div className="md:col-span-6 bg-graphite-900 border border-graphite-800/80 rounded-lg p-6 hover:border-graphite-700 transition-colors duration-300">
             <div className="grid md:grid-cols-12 gap-6 items-center">
               <div className="md:col-span-7 space-y-2 text-left">
-                <span className="text-[9px] uppercase tracking-wider font-mono text-graphite-500">Sec+ Proficiency</span>
-                <h3 className="text-sm font-semibold text-white">Continuous AI Diagnostics</h3>
+                <span className="text-[9px] uppercase tracking-wider font-mono text-graphite-500">{t("landing.bento.cell3.eyebrow")}</span>
+                <h3 className="text-sm font-semibold text-white">{t("landing.bento.cell3.title")}</h3>
                 <p className="text-graphite-400 text-xs font-light leading-relaxed">
-                  Real-time telemetry gauges calculate your current proficiency scores across all 5 Security+ domains as you work.
+                  {t("landing.bento.cell3.description")}
                 </p>
               </div>
               
               <div className="md:col-span-5 space-y-3 font-mono text-[9px] text-graphite-400 select-none">
-                <div>
-                  <div className="flex justify-between text-graphite-300 mb-1">
-                    <span>Domain 1: Security Concepts</span>
-                    <span className="text-white font-bold">85%</span>
-                  </div>
-                  <div className="w-full bg-graphite-950 h-1.5 rounded overflow-hidden border border-graphite-800">
-                    <div className="bg-white h-full" style={{ width: "85%" }} />
-                  </div>
-                </div>
-                <div>
-                  <div className="flex justify-between text-graphite-300 mb-1">
-                    <span>Domain 2: Threats & Mitigations</span>
-                    <span className="text-white font-bold">72%</span>
-                  </div>
-                  <div className="w-full bg-graphite-950 h-1.5 rounded overflow-hidden border border-graphite-800">
-                    <div className="bg-white h-full" style={{ width: "72%" }} />
-                  </div>
-                </div>
-                <div>
-                  <div className="flex justify-between text-graphite-300 mb-1">
-                    <span>Domain 3: Security Architecture</span>
-                    <span className="text-white font-bold">90%</span>
-                  </div>
-                  <div className="w-full bg-graphite-950 h-1.5 rounded overflow-hidden border border-graphite-800">
-                    <div className="bg-white h-full" style={{ width: "90%" }} />
-                  </div>
-                </div>
+                {[
+                  { id: "domain1", pct: 85 },
+                  { id: "domain2", pct: 72 },
+                  { id: "domain3", pct: 90 },
+                ].map((item) => {
+                  const label = resolveDomainName(item.id, item.id, locale);
+                  return (
+                    <div key={item.id}>
+                      <div className="flex justify-between items-center gap-2 text-graphite-300 mb-1">
+                        <span className="truncate min-w-0 flex-1" title={label}>{label}</span>
+                        <span className="text-white font-bold shrink-0">{item.pct}%</span>
+                      </div>
+                      <div className="w-full bg-graphite-950 h-1.5 rounded overflow-hidden border border-graphite-800">
+                        <div className="bg-white h-full" style={{ width: `${item.pct}%` }} />
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           </div>

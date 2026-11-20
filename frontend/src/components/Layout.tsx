@@ -2,10 +2,12 @@ import { Outlet, Link, useNavigate, useLocation } from "react-router-dom";
 import { ShieldCheck, LogOut, User, ShieldAlert, Award } from "lucide-react";
 import { clsx } from "clsx";
 import NotificationBell from "./NotificationBell";
+import { useI18n } from "../i18n/index.tsx";
 
 export default function Layout() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { locale, setLocale, t } = useI18n();
   const token = localStorage.getItem("token");
   const userEmail = localStorage.getItem("userEmail");
   const userNickname = localStorage.getItem("userNickname") || (userEmail ? userEmail.split("@")[0] : "");
@@ -21,30 +23,30 @@ export default function Layout() {
   };
 
   const navLinks = [
-    { path: "/exam", label: "Exam" },
-    { path: "/learn", label: "Learn" },
-    { path: "/evaluation", label: "Evaluation" },
-    { path: "/discussions", label: "Discussions" },
+    { path: "/exam", label: t("nav.exam") },
+    { path: "/learn", label: t("nav.learn") },
+    { path: "/evaluation", label: t("nav.evaluation") },
+    { path: "/discussions", label: t("nav.discussions") },
     ...(token && (userRole === "specialist" || userRole === "admin")
-      ? [{ path: "/specialist/reviews", label: "Reviews" }]
+      ? [{ path: "/specialist/reviews", label: t("nav.reviews") }]
       : []),
-    ...(token ? [{ path: "/profile", label: "Profile" }] : []),
-    ...(token && userRole === "admin" ? [{ path: "/admin/specialists", label: "Admin Portal" }] : []),
+    ...(token ? [{ path: "/profile", label: t("nav.profile") }] : []),
+    ...(token && userRole === "admin" ? [{ path: "/admin/specialists", label: t("nav.adminPortal") }] : []),
   ];
 
   return (
     <div className="min-h-screen flex flex-col relative bg-graphite-950 text-graphite-50 selection:bg-white selection:text-black">
       <header className="sticky top-0 z-50 border-b border-graphite-800 bg-graphite-950/80 backdrop-blur-md">
-        <div className="container mx-auto px-6 h-16 flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-2.5 group">
+        <div className="container mx-auto px-6 h-16 flex items-center justify-between gap-4">
+          <Link to="/" className="flex items-center gap-2.5 group shrink-0">
             <ShieldCheck className="h-5 w-5 text-white transition-transform group-hover:scale-105" />
             <span className="text-base font-semibold tracking-tight text-white">
-              CyberSim<span className="text-graphite-400 font-normal">/SOC</span>
+              {t("common.brandPrefix")}<span className="text-graphite-400 font-normal">{t("common.brandSuffix")}</span>
             </span>
           </Link>
           
-          <nav className="flex items-center gap-6">
-            <div className="flex gap-4 sm:gap-6">
+          <nav className="flex items-center gap-4 sm:gap-6">
+            <div className="flex gap-3 sm:gap-5">
               {navLinks.map((link) => {
                 const isActive = link.path === "/exam"
                   ? ["/exam", "/pre-test", "/post-test"].includes(location.pathname)
@@ -55,7 +57,7 @@ export default function Layout() {
                     key={link.path}
                     to={link.path}
                     className={clsx(
-                      "text-sm font-medium transition-colors py-1 relative",
+                      "text-sm font-medium transition-colors py-1 relative whitespace-nowrap",
                       isActive
                         ? "text-white"
                         : "text-graphite-400 hover:text-white"
@@ -71,9 +73,42 @@ export default function Layout() {
             </div>
             
             <div className="h-4 w-px bg-graphite-800 hidden sm:block" />
+
+            <div
+              role="group"
+              aria-label={t("common.languageToggleAria")}
+              className="inline-flex items-center rounded-md border border-graphite-800 bg-graphite-900 p-0.5 shrink-0"
+            >
+              <button
+                type="button"
+                onClick={() => setLocale("en")}
+                aria-pressed={locale === "en"}
+                className={clsx(
+                  "px-2 py-1 rounded text-[11px] font-mono font-semibold transition-colors cursor-pointer",
+                  locale === "en"
+                    ? "bg-white text-black"
+                    : "text-graphite-400 hover:text-white"
+                )}
+              >
+                EN
+              </button>
+              <button
+                type="button"
+                onClick={() => setLocale("th")}
+                aria-pressed={locale === "th"}
+                className={clsx(
+                  "px-2 py-1 rounded text-[11px] font-mono font-semibold transition-colors cursor-pointer",
+                  locale === "th"
+                    ? "bg-white text-black"
+                    : "text-graphite-400 hover:text-white"
+                )}
+              >
+                TH
+              </button>
+            </div>
             
             {token ? (
-              <div className="flex items-center gap-3 sm:gap-4">
+              <div className="flex items-center gap-3 sm:gap-4 shrink-0">
                 <NotificationBell />
 
                 <Link to="/profile" className="hidden sm:flex items-center gap-2 text-sm text-graphite-300 hover:text-white transition-colors">
@@ -93,12 +128,12 @@ export default function Layout() {
                   {/* Role Badge */}
                   {userRole === "admin" && (
                     <span className="px-1.5 py-0.5 rounded text-[10px] font-mono font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/20">
-                      ADMIN
+                      {t("common.roles.adminBadge")}
                     </span>
                   )}
                   {userRole === "specialist" && (
                     <span className="px-1.5 py-0.5 rounded text-[10px] font-mono font-semibold bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
-                      SPECIALIST
+                      {t("common.roles.specialistBadge")}
                     </span>
                   )}
                 </Link>
@@ -108,15 +143,15 @@ export default function Layout() {
                   className="flex items-center gap-2 px-3 py-1.5 rounded-md border border-graphite-800 bg-transparent text-graphite-300 text-xs font-medium hover:bg-graphite-900 hover:text-white transition-all duration-200 cursor-pointer"
                 >
                   <LogOut className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">Logout</span>
+                  <span className="hidden sm:inline">{t("nav.logout")}</span>
                 </button>
               </div>
             ) : (
               <Link 
                 to="/login" 
-                className="px-4 py-1.5 rounded-md bg-graphite-100 hover:bg-white text-graphite-950 text-xs font-semibold transition-all duration-200"
+                className="px-4 py-1.5 rounded-md bg-graphite-100 hover:bg-white text-graphite-950 text-xs font-semibold transition-all duration-200 shrink-0"
               >
-                Login
+                {t("nav.login")}
               </Link>
             )}
           </nav>
@@ -132,11 +167,11 @@ export default function Layout() {
           <div className="flex items-center gap-2 opacity-80">
             <ShieldCheck className="h-4 w-4 text-white" />
             <span className="font-semibold text-xs tracking-wider text-white uppercase font-mono">
-              CyberSim SOC Trainer
+              {t("common.footerBrand")}
             </span>
           </div>
           <p className="text-graphite-500 text-xs font-mono">
-            &copy; {new Date().getFullYear()} CyberSim. All rights reserved.
+            {t("common.copyright", { year: new Date().getFullYear() })}
           </p>
         </div>
       </footer>

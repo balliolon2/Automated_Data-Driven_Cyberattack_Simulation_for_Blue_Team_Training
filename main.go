@@ -88,7 +88,7 @@ func main() {
 	r.Use(cors.New(cors.Config{
 		AllowOrigins:     allowedOrigins,
 		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
-		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization", "Accept-Language"},
 		ExposeHeaders:    []string{"Content-Length"},
 		AllowCredentials: true,
 	}))
@@ -117,6 +117,7 @@ func main() {
 		{
 			userGroup.GET("/profile", authController.GetProfile)
 			userGroup.PUT("/nickname", authController.UpdateNickname)
+			userGroup.PUT("/language", authController.UpdateLanguage)
 		}
 
 		// Protected specialist application routes

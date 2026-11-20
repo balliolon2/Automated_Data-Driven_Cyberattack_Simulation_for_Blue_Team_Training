@@ -22,14 +22,14 @@ func AuthMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		authHeader := c.GetHeader("Authorization")
 		if authHeader == "" {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Authorization header is required"})
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Authorization header is required", "code": "AUTH_UNAUTHORIZED"})
 			c.Abort()
 			return
 		}
 
 		parts := strings.SplitN(authHeader, " ", 2)
 		if !(len(parts) == 2 && parts[0] == "Bearer") {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Authorization header must be Bearer token"})
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Authorization header must be Bearer token", "code": "AUTH_UNAUTHORIZED"})
 			c.Abort()
 			return
 		}
@@ -43,21 +43,21 @@ func AuthMiddleware() gin.HandlerFunc {
 		})
 
 		if err != nil || !token.Valid {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid or expired token"})
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid or expired token", "code": "AUTH_UNAUTHORIZED"})
 			c.Abort()
 			return
 		}
 
 		claims, ok := token.Claims.(jwt.MapClaims)
 		if !ok {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token claims"})
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token claims", "code": "AUTH_UNAUTHORIZED"})
 			c.Abort()
 			return
 		}
 
 		userID, ok := claims["user_id"].(string)
 		if !ok {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid user_id in token"})
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid user_id in token", "code": "AUTH_UNAUTHORIZED"})
 			c.Abort()
 			return
 		}
@@ -78,13 +78,13 @@ func RequireRoles(roles ...string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		userRole, exists := c.Get("role")
 		if !exists {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized", "code": "AUTH_UNAUTHORIZED"})
 			c.Abort()
 			return
 		}
 		roleStr, ok := userRole.(string)
 		if !ok {
-			c.JSON(http.StatusForbidden, gin.H{"error": "Invalid role"})
+			c.JSON(http.StatusForbidden, gin.H{"error": "Invalid role", "code": "AUTH_FORBIDDEN"})
 			c.Abort()
 			return
 		}
@@ -94,7 +94,7 @@ func RequireRoles(roles ...string) gin.HandlerFunc {
 				return
 			}
 		}
-		c.JSON(http.StatusForbidden, gin.H{"error": "Forbidden: insufficient permissions"})
+		c.JSON(http.StatusForbidden, gin.H{"error": "Forbidden: insufficient permissions", "code": "AUTH_FORBIDDEN"})
 		c.Abort()
 	}
 }

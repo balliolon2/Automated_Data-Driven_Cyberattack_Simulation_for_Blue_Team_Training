@@ -94,6 +94,7 @@ func RunMigrations(db *gorm.DB) error {
 
 	// 4. Ensure community and specialist tables exist (idempotent DDL from init.sql)
 	ddl := []string{
+		`ALTER TABLE users ADD COLUMN IF NOT EXISTS preferred_language VARCHAR(10) NOT NULL DEFAULT 'en'`,
 		`CREATE TABLE IF NOT EXISTS specialist_applications (
 			application_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 			user_id UUID REFERENCES users(user_id) ON DELETE CASCADE,
@@ -241,12 +242,13 @@ func RunMigrations(db *gorm.DB) error {
 			hash, err := bcrypt.GenerateFromPassword([]byte(adminPassword), bcrypt.DefaultCost)
 			if err == nil {
 				admin := User{
-					Email:        adminEmail,
-					Nickname:     adminNickname,
-					PasswordHash: string(hash),
-					Role:         "admin",
-					CurrentTier:  1,
-					IsActive:     true,
+					Email:             adminEmail,
+					Nickname:          adminNickname,
+					PasswordHash:      string(hash),
+					Role:              "admin",
+					CurrentTier:       1,
+					PreferredLanguage: "en",
+					IsActive:          true,
 				}
 				if err := db.Create(&admin).Error; err != nil {
 					log.Printf("Warning creating admin account: %v", err)

@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import { Clock, Flag, ChevronLeft, ChevronRight, CheckCircle2 } from "lucide-react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
+import { useI18n } from "../i18n/index.tsx";
+import { resolveApiError } from "../i18n/format.ts";
 
 interface Question {
   question_id: string;
@@ -23,6 +25,7 @@ interface ExamSession {
 }
 
 export default function ExamPage({ mode }: { mode: "pre" | "post" }) {
+  const { locale, t } = useI18n();
   const [currentQuestionIdx, setCurrentQuestionIdx] = useState(0);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [session, setSession] = useState<ExamSession | null>(null);
@@ -99,7 +102,7 @@ export default function ExamPage({ mode }: { mode: "pre" | "post" }) {
     
     const unanswered = questions.filter(q => !answers[q.question_id]).length;
     if (unanswered > 0) {
-      if (!window.confirm(`You have ${unanswered} unanswered questions. Are you sure you want to submit? Your score won't be calculated until all questions are answered.`)) {
+      if (!window.confirm(t("exam.confirmUnansweredSubmit", { count: unanswered }))) {
         return;
       }
     }
@@ -122,9 +125,9 @@ export default function ExamPage({ mode }: { mode: "pre" | "post" }) {
         }
       }
       navigate("/evaluation");
-    } catch (err) {
+    } catch (err: unknown) {
       console.error(err);
-      alert("Failed to submit exam.");
+      alert(resolveApiError(err, t, t("exam.submitFailed")));
     } finally {
       setSubmitting(false);
     }
@@ -142,16 +145,16 @@ export default function ExamPage({ mode }: { mode: "pre" | "post" }) {
       setQuestions(res.data.questions);
       setAnswers({});
       setCurrentQuestionIdx(0);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Failed to start exam:", err);
-      alert(err.response?.data?.error || "Failed to start exam. Check if the database has questions loaded.");
+      alert(resolveApiError(err, t, t("exam.startFailed")));
     } finally {
       setLoading(false);
     }
   };
 
   if (loading) {
-    return <div className="p-8 text-white font-mono flex items-center justify-center min-h-[50vh]">Loading active exam session...</div>;
+    return <div className="p-8 text-white font-mono flex items-center justify-center min-h-[50vh]">{t("exam.loadingSession")}</div>;
   }
 
   if (!questions.length) {
@@ -159,33 +162,35 @@ export default function ExamPage({ mode }: { mode: "pre" | "post" }) {
       <div className="max-w-xl mx-auto mt-12 bg-graphite-900 p-8 rounded-lg border border-graphite-800 text-center space-y-6 animate-slide-up">
         {mode === "pre" ? (
           <>
-            <h2 className="text-2xl font-bold text-white tracking-tight">Security+ Pre-Test Assessment</h2>
+            <h2 className="text-2xl font-bold text-white tracking-tight">{t("exam.preTest.title")}</h2>
             <p className="text-graphite-400 font-light text-sm leading-relaxed">
-              This assessment consists of <strong className="text-white">30 questions</strong> spanning 5 core CompTIA Security+ domains. 
-              The test evaluates your current baseline proficiency and designs your targeted adaptive simulation roadmap.
+              {t("exam.preTest.descBeforeCount")}
+              <strong className="text-white">{t("exam.preTest.questionCountText")}</strong>
+              {t("exam.preTest.descAfterCount")}
             </p>
             <div className="pt-4">
               <button 
                 onClick={() => startExam("pre")}
                 className="w-full py-3 bg-white hover:bg-white/90 text-black font-semibold text-sm rounded-md transition-all duration-200"
               >
-                Start Pre-Test Assessment
+                {t("exam.preTest.startButton")}
               </button>
             </div>
           </>
         ) : (
           <>
-            <h2 className="text-2xl font-bold text-white tracking-tight">Security+ Post-Test Assessment</h2>
+            <h2 className="text-2xl font-bold text-white tracking-tight">{t("exam.postTest.title")}</h2>
             <p className="text-graphite-400 font-light text-sm leading-relaxed">
-              This final assessment consists of <strong className="text-white">30 questions</strong>. It evaluates your overall proficiency after 
-              completing the required hands-on SOC simulation training scenarios.
+              {t("exam.postTest.descBeforeCount")}
+              <strong className="text-white">{t("exam.postTest.questionCountText")}</strong>
+              {t("exam.postTest.descAfterCount")}
             </p>
             <div className="pt-4">
               <button 
                 onClick={() => startExam("post")}
                 className="w-full py-3 bg-white hover:bg-white/90 text-black font-semibold text-sm rounded-md transition-all duration-200"
               >
-                Start Post-Test Assessment
+                {t("exam.postTest.startButton")}
               </button>
             </div>
           </>
@@ -194,7 +199,7 @@ export default function ExamPage({ mode }: { mode: "pre" | "post" }) {
           onClick={() => navigate("/")}
           className="mt-4 text-xs text-graphite-400 hover:text-white transition-colors underline decoration-dotted"
         >
-          Go back to Dashboard
+          {t("exam.backToDashboard")}
         </button>
       </div>
     );
@@ -212,7 +217,7 @@ export default function ExamPage({ mode }: { mode: "pre" | "post" }) {
       <div className="lg:col-span-1 bg-graphite-900 border border-graphite-800 rounded-lg p-4 flex flex-col justify-between">
         <div>
           <div className="flex items-center justify-between mb-2">
-            <h3 className="font-semibold text-sm text-white">Question Navigator</h3>
+            <h3 className="font-semibold text-sm text-white">{t("exam.navigatorTitle")}</h3>
             <span
               className={`text-xs font-mono px-2 py-0.5 rounded border transition-colors ${
                 isComplete
@@ -220,7 +225,7 @@ export default function ExamPage({ mode }: { mode: "pre" | "post" }) {
                   : 'bg-graphite-950 border-graphite-800 text-graphite-300'
               }`}
             >
-              {answeredCount}/{totalQuestions} Answered
+              {t("exam.answeredCount", { answered: answeredCount, total: totalQuestions })}
             </span>
           </div>
 
@@ -268,26 +273,34 @@ export default function ExamPage({ mode }: { mode: "pre" | "post" }) {
             className="w-full py-2 bg-white text-black hover:bg-white/90 disabled:bg-graphite-800 disabled:text-graphite-500 text-xs font-semibold rounded-md transition-all flex items-center justify-center gap-2"
           >
             <CheckCircle2 className="w-4 h-4" />
-            {submitting ? "Submitting..." : "Submit Exam"}
+            {submitting ? t("exam.submitting") : t("exam.submitExam")}
           </button>
         </div>
       </div>
 
-      {/* Main Content: Question */}
+      {/* Main Content: Question (strictly English-only content) */}
       <div className="lg:col-span-3 bg-graphite-900 border border-graphite-800 rounded-lg p-6 flex flex-col justify-between">
         <div>
           <div className="flex justify-between items-center border-b border-graphite-800 pb-4 mb-6">
-            <h2 className="text-base font-semibold text-white">Question {currentQuestionIdx + 1} of {totalQuestions}</h2>
+            <h2 className="text-base font-semibold text-white">
+              {t("exam.questionOf", { current: currentQuestionIdx + 1, total: totalQuestions })}
+            </h2>
             <div className="flex items-center gap-2 text-white font-mono text-sm bg-graphite-950 px-3 py-1.5 rounded border border-graphite-800 select-none">
               <Clock className="w-4 h-4 text-graphite-400" />
               {formatTime(timeLeft)}
             </div>
           </div>
 
+          {locale === "th" && (
+            <div className="mb-4 px-3 py-2 rounded bg-graphite-900/70 border border-graphite-800 text-graphite-300 text-xs">
+              {t("exam.englishOnlyNotice")}
+            </div>
+          )}
+
           {timeLeft === 0 && (
             <div className="mb-6 bg-red-500/10 border border-red-500/20 rounded p-4 text-red-400 text-xs">
               <p className="font-medium flex items-center gap-2">
-                <span>⏰</span> Time's up! You can review your answers but cannot change them. Please submit.
+                <span>⏰</span> {t("exam.timesUpNotice")}
               </p>
             </div>
           )}
@@ -331,7 +344,7 @@ export default function ExamPage({ mode }: { mode: "pre" | "post" }) {
 
         <div className="flex justify-between items-center mt-12 pt-4 border-t border-graphite-800">
           <button className="px-3 py-1.5 flex items-center gap-2 text-xs text-graphite-400 hover:text-white transition-colors">
-            <Flag className="w-3.5 h-3.5" /> Flag for review
+            <Flag className="w-3.5 h-3.5" /> {t("exam.flagForReview")}
           </button>
           <div className="flex gap-3">
             <button 
@@ -339,14 +352,14 @@ export default function ExamPage({ mode }: { mode: "pre" | "post" }) {
               className="px-4 py-2 rounded-md border border-graphite-800 text-xs text-graphite-300 hover:bg-graphite-900 hover:text-white flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
               disabled={currentQuestionIdx === 0}
             >
-              <ChevronLeft className="w-3.5 h-3.5" /> Previous
+              <ChevronLeft className="w-3.5 h-3.5" /> {t("exam.previous")}
             </button>
             <button 
               onClick={() => setCurrentQuestionIdx(p => Math.min(totalQuestions - 1, p + 1))}
               className="px-4 py-2 rounded-md bg-white text-black text-xs font-semibold hover:bg-white/90 flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
               disabled={currentQuestionIdx === totalQuestions - 1}
             >
-              Next <ChevronRight className="w-3.5 h-3.5" />
+              {t("exam.next")} <ChevronRight className="w-3.5 h-3.5" />
             </button>
           </div>
         </div>

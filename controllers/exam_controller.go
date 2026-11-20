@@ -1,44 +1,131 @@
 package controllers
 
 import (
+	"errors"
 	"math"
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"cybersim/dto"
 	"cybersim/models"
 
 	"github.com/gin-gonic/gin"
+	"github.com/go-playground/validator/v10"
 	"gorm.io/gorm"
 )
 
-type ExamController struct {
+type ExamDomainScore struct {
+	DomainID     string  `json:"domain_id"`
+	TotalCount   int64   `json:"total"`
+	CorrectCount int64   `json:"correct"`
+	Percentage   float64 `json:"percentage"`
+}
+
+type ExamDetailedResult struct {
+	models.Question
+	UserAnswer string `json:"user_answer"`
+	IsCorrect  bool   `json:"is_correct"`
+}
+
+// ExamStore abstracts persistence for ExamController handlers so the HTTP
+// layer can be tested cleanly without a live PostgreSQL instance.
+type ExamStore interface {
+	GetActiveSessionForUser(userID string) (*models.ExamSession, error)
+	HasCompletedPreTest(userID string) (bool, error)
+	GetUserSkillProfiles(userID string) ([]models.UserSkillProfile, error)
+	SelectQuestionsByDomains(userID string, domainCounts map[string]int, excludePreAndLearn bool) ([]models.Question, error)
+	CreateExamSession(session *models.ExamSession, questions []models.Question) error
+	GetSessionQuestions(sessionID string) ([]QuestionResponse, error)
+	FindActiveSessionByIDAndUser(sessionID, userID string) (*models.ExamSession, error)
+	FindQuestionByID(questionID string) (*models.Question, error)
+	FindSessionQuestion(sessionID, questionID string) (*models.ExamSessionQuestion, error)
+	SaveExamAnswer(session *models.ExamSession, esq *models.ExamSessionQuestion) (int64, error)
+	FinalizeExamSession(session *models.ExamSession, userID string) (int64, []ExamDomainScore, []ExamDetailedResult, error)
+	GetRandomSampleQuestion() (*models.Question, error)
+}
+
+type gormExamStore struct {
 	DB *gorm.DB
 }
 
-func NewExamController(db *gorm.DB) *ExamController {
-	return &ExamController{DB: db}
+func (s *gormExamStore) GetActiveSessionForUser(userID string) (*models.ExamSession, error) {
+	var activeSession models.ExamSession
+	if err := s.DB.Where("user_id = ? AND status = 'in_progress'", userID).First(&activeSession).Error; err != nil {
+		return nil, err
+	}
+	return &activeSession, nil
 }
 
-type QuestionResponse = dto.QuestionDTO
+func (s *gormExamStore) HasCompletedPreTest(userID string) (bool, error) {
+	var preTestSession models.ExamSession
+	if err := s.DB.Where("user_id = ? AND exam_type = 'pre' AND status = 'completed'", userID).First(&preTestSession).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return false, nil
+		}
+		return false, err
+	}
+	return true, nil
+}
 
-// Helper to load questions for a session
-func (ec *ExamController) getSessionQuestions(sessionID string) ([]QuestionResponse, error) {
+func (s *gormExamStore) GetUserSkillProfiles(userID string) ([]models.UserSkillProfile, error) {
+	var profiles []models.UserSkillProfile
+	if err := s.DB.Where("user_id = ?", userID).Find(&profiles).Error; err != nil {
+		return nil, err
+	}
+	return profiles, nil
+}
+
+func (s *gormExamStore) SelectQuestionsByDomains(userID string, domainCounts map[string]int, excludePreAndLearn bool) ([]models.Question, error) {
+	var allSelectedQuestions []models.Question
+	for domain, count := range domainCounts {
+		var qList []models.Question
+		query := s.DB.Where("domain_id = ? AND is_active = true", domain)
+		if excludePreAndLearn {
+			query = s.DB.Where("domain_id = ? AND is_active = true AND question_id NOT IN (?)", domain, BuildPostTestExclusionQuery(s.DB, userID))
+		}
+		if err := query.Order("RANDOM()").Limit(count).Find(&qList).Error; err != nil {
+			return nil, err
+		}
+		allSelectedQuestions = append(allSelectedQuestions, qList...)
+	}
+	return allSelectedQuestions, nil
+}
+
+func (s *gormExamStore) CreateExamSession(session *models.ExamSession, questions []models.Question) error {
+	return s.DB.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Create(session).Error; err != nil {
+			return err
+		}
+		for orderIndex, q := range questions {
+			esq := models.ExamSessionQuestion{
+				SessionID:  session.SessionID,
+				QuestionID: q.QuestionID,
+				OrderIndex: orderIndex,
+			}
+			if err := tx.Create(&esq).Error; err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+}
+
+func (s *gormExamStore) GetSessionQuestions(sessionID string) ([]QuestionResponse, error) {
 	var results []struct {
 		models.Question
 		OrderIndex int    `gorm:"column:order_index"`
 		UserAnswer string `gorm:"column:user_answer"`
 	}
 
-	err := ec.DB.Table("exam_session_questions").
+	err := s.DB.Table("exam_session_questions").
 		Select("questions.*, exam_session_questions.order_index, exam_session_questions.user_answer").
 		Joins("join questions on questions.question_id = exam_session_questions.question_id").
 		Where("exam_session_questions.session_id = ?", sessionID).
 		Order("exam_session_questions.order_index asc").
 		Scan(&results).Error
-
 	if err != nil {
 		return nil, err
 	}
@@ -58,6 +145,168 @@ func (ec *ExamController) getSessionQuestions(sessionID string) ([]QuestionRespo
 	return resp, nil
 }
 
+func (s *gormExamStore) FindActiveSessionByIDAndUser(sessionID, userID string) (*models.ExamSession, error) {
+	var session models.ExamSession
+	if err := s.DB.Where("session_id = ? AND user_id = ? AND status = 'in_progress'", sessionID, userID).First(&session).Error; err != nil {
+		return nil, err
+	}
+	return &session, nil
+}
+
+func (s *gormExamStore) FindQuestionByID(questionID string) (*models.Question, error) {
+	var question models.Question
+	if err := s.DB.Where("question_id = ?", questionID).First(&question).Error; err != nil {
+		return nil, err
+	}
+	return &question, nil
+}
+
+func (s *gormExamStore) FindSessionQuestion(sessionID, questionID string) (*models.ExamSessionQuestion, error) {
+	var esq models.ExamSessionQuestion
+	if err := s.DB.Where("session_id = ? AND question_id = ?", sessionID, questionID).First(&esq).Error; err != nil {
+		return nil, err
+	}
+	return &esq, nil
+}
+
+func (s *gormExamStore) SaveExamAnswer(session *models.ExamSession, esq *models.ExamSessionQuestion) (int64, error) {
+	var unansweredCount int64
+	err := s.DB.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Save(esq).Error; err != nil {
+			return err
+		}
+		if session.TimeSpentSeconds != nil {
+			if err := tx.Save(session).Error; err != nil {
+				return err
+			}
+		}
+		if err := tx.Model(&models.ExamSessionQuestion{}).
+			Where("session_id = ? AND (user_answer IS NULL OR user_answer = '')", session.SessionID).
+			Count(&unansweredCount).Error; err != nil {
+			return err
+		}
+		return nil
+	})
+	return unansweredCount, err
+}
+
+func (s *gormExamStore) FinalizeExamSession(session *models.ExamSession, userID string) (int64, []ExamDomainScore, []ExamDetailedResult, error) {
+	var correctCount int64
+	var domainScores []ExamDomainScore
+
+	err := s.DB.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Model(&models.ExamSessionQuestion{}).
+			Where("session_id = ? AND is_correct = true", session.SessionID).
+			Count(&correctCount).Error; err != nil {
+			return err
+		}
+
+		scorePercent := math.Round((float64(correctCount)/float64(session.TotalQuestions))*100*100) / 100
+		session.Score = &scorePercent
+		session.Status = "completed"
+		now := time.Now()
+		session.CompletedAt = &now
+
+		if err := tx.Save(session).Error; err != nil {
+			return err
+		}
+
+		if session.ExamType == "pre" {
+			var domainResults []struct {
+				DomainID     string `gorm:"column:domain_id"`
+				TotalCount   int64  `gorm:"column:total_count"`
+				CorrectCount int64  `gorm:"column:correct_count"`
+			}
+
+			tx.Table("exam_session_questions").
+				Select("questions.domain_id, COUNT(*) as total_count, SUM(CASE WHEN exam_session_questions.is_correct = true THEN 1 ELSE 0 END) as correct_count").
+				Joins("JOIN questions ON questions.question_id = exam_session_questions.question_id").
+				Where("exam_session_questions.session_id = ?", session.SessionID).
+				Group("questions.domain_id").
+				Scan(&domainResults)
+
+			domainScores = make([]ExamDomainScore, 0, len(domainResults))
+			for _, dr := range domainResults {
+				pct := 0.0
+				if dr.TotalCount > 0 {
+					pct = math.Round((float64(dr.CorrectCount)/float64(dr.TotalCount))*100*100) / 100
+				}
+
+				domainScores = append(domainScores, ExamDomainScore{
+					DomainID:     dr.DomainID,
+					TotalCount:   dr.TotalCount,
+					CorrectCount: dr.CorrectCount,
+					Percentage:   pct,
+				})
+
+				var profile models.UserSkillProfile
+				if err := tx.Where("user_id = ? AND domain_id = ?", userID, dr.DomainID).First(&profile).Error; err != nil {
+					now := time.Now()
+					profile = models.UserSkillProfile{
+						UserID:           userID,
+						DomainID:         dr.DomainID,
+						ProficiencyScore: pct,
+						LastPracticed:    &now,
+					}
+					tx.Create(&profile)
+				} else {
+					profile.ProficiencyScore = pct
+					now := time.Now()
+					profile.LastPracticed = &now
+					tx.Save(&profile)
+				}
+			}
+		}
+
+		return nil
+	})
+	if err != nil {
+		return 0, nil, nil, err
+	}
+
+	var detailedResults []ExamDetailedResult
+	if err := s.DB.Table("exam_session_questions").
+		Select("questions.*, exam_session_questions.user_answer, exam_session_questions.is_correct").
+		Joins("join questions on questions.question_id = exam_session_questions.question_id").
+		Where("exam_session_questions.session_id = ?", session.SessionID).
+		Scan(&detailedResults).Error; err != nil {
+		return 0, nil, nil, err
+	}
+
+	return correctCount, domainScores, detailedResults, nil
+}
+
+func (s *gormExamStore) GetRandomSampleQuestion() (*models.Question, error) {
+	var question models.Question
+	if err := s.DB.Order("RANDOM()").First(&question).Error; err != nil {
+		return nil, err
+	}
+	return &question, nil
+}
+
+type ExamController struct {
+	DB    *gorm.DB
+	store ExamStore
+}
+
+func NewExamController(db *gorm.DB) *ExamController {
+	return &ExamController{
+		DB:    db,
+		store: &gormExamStore{DB: db},
+	}
+}
+
+func NewExamControllerWithStore(store ExamStore) *ExamController {
+	return &ExamController{store: store}
+}
+
+type QuestionResponse = dto.QuestionDTO
+
+// Helper to load questions for a session
+func (ec *ExamController) getSessionQuestions(sessionID string) ([]QuestionResponse, error) {
+	return ec.store.GetSessionQuestions(sessionID)
+}
+
 // StartPreTest godoc
 // @Summary Start or resume pre-test exam session
 // @Description Initializes a 30-question Pre-Test with required domain distribution (4/7/5/8/6). If an in-progress pre-test already exists, returns the existing session.
@@ -73,31 +322,22 @@ func (ec *ExamController) getSessionQuestions(sessionID string) ([]QuestionRespo
 func (ec *ExamController) StartPreTest(c *gin.Context) {
 	userID, exists := c.Get("user_id")
 	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized", "code": "AUTH_UNAUTHORIZED"})
+		return
+	}
+	userIDStr, ok := userID.(string)
+	if !ok || userIDStr == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized", "code": "AUTH_UNAUTHORIZED"})
 		return
 	}
 
 	// Check if there is already an active session
-	var activeSession models.ExamSession
-	err := ec.DB.Where("user_id = ? AND status = 'in_progress'", userID).First(&activeSession).Error
-	if err == nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "You already have an active exam session", "session_id": activeSession.SessionID})
-		return
-	}
-
-	tx := ec.DB.Begin()
-
-	session := models.ExamSession{
-		UserID:         userID.(string),
-		ExamType:       "pre",
-		Status:         "in_progress",
-		TotalQuestions: 30,
-		StartedAt:      time.Now(),
-	}
-
-	if err := tx.Create(&session).Error; err != nil {
-		tx.Rollback()
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create exam session"})
+	if activeSession, err := ec.store.GetActiveSessionForUser(userIDStr); err == nil && activeSession != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":      "You already have an active exam session",
+			"session_id": activeSession.SessionID,
+			"code":       "EXAM_SESSION_ACTIVE",
+		})
 		return
 	}
 
@@ -111,47 +351,33 @@ func (ec *ExamController) StartPreTest(c *gin.Context) {
 		"domain5": 6,
 	}
 
-	var allSelectedQuestions []models.Question
-	for domain, count := range domains {
-		var qList []models.Question
-		if err := tx.Where("domain_id = ? AND is_active = true", domain).
-			Order("RANDOM()").
-			Limit(count).
-			Find(&qList).Error; err != nil {
-			tx.Rollback()
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve questions"})
-			return
-		}
-		allSelectedQuestions = append(allSelectedQuestions, qList...)
-	}
-
-	if len(allSelectedQuestions) < 30 {
-		tx.Rollback()
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Insufficient questions in database pool to construct 30 questions exam"})
+	allSelectedQuestions, err := ec.store.SelectQuestionsByDomains(userIDStr, domains, false)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve questions", "code": "INTERNAL_SERVER_ERROR"})
 		return
 	}
 
-	// Bulk insert junction records
-	orderIndex := 0
-	for _, q := range allSelectedQuestions {
-		esq := models.ExamSessionQuestion{
-			SessionID:  session.SessionID,
-			QuestionID: q.QuestionID,
-			OrderIndex: orderIndex,
-		}
-		if err := tx.Create(&esq).Error; err != nil {
-			tx.Rollback()
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to map exam questions"})
-			return
-		}
-		orderIndex++
+	if len(allSelectedQuestions) < 30 {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Insufficient questions in database pool to construct 30 questions exam", "code": "INTERNAL_SERVER_ERROR"})
+		return
 	}
 
-	tx.Commit()
+	session := models.ExamSession{
+		UserID:         userIDStr,
+		ExamType:       "pre",
+		Status:         "in_progress",
+		TotalQuestions: 30,
+		StartedAt:      time.Now(),
+	}
+
+	if err := ec.store.CreateExamSession(&session, allSelectedQuestions); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create exam session", "code": "INTERNAL_SERVER_ERROR"})
+		return
+	}
 
 	questions, err := ec.getSessionQuestions(session.SessionID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to load session questions"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to load session questions", "code": "INTERNAL_SERVER_ERROR"})
 		return
 	}
 
@@ -177,24 +403,32 @@ func (ec *ExamController) StartPreTest(c *gin.Context) {
 func (ec *ExamController) StartPostTest(c *gin.Context) {
 	userID, exists := c.Get("user_id")
 	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized", "code": "AUTH_UNAUTHORIZED"})
+		return
+	}
+	userIDStr, ok := userID.(string)
+	if !ok || userIDStr == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized", "code": "AUTH_UNAUTHORIZED"})
 		return
 	}
 
-	var activeSession models.ExamSession
-	err := ec.DB.Where("user_id = ? AND status = 'in_progress'", userID).First(&activeSession).Error
-	if err == nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "You already have an active exam session", "session_id": activeSession.SessionID})
+	if activeSession, err := ec.store.GetActiveSessionForUser(userIDStr); err == nil && activeSession != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":      "You already have an active exam session",
+			"session_id": activeSession.SessionID,
+			"code":       "EXAM_SESSION_ACTIVE",
+		})
 		return
 	}
 
 	// 1. Verify Pre-test is completed
-	var preTestSession models.ExamSession
-	if err := ec.DB.Where("user_id = ? AND exam_type = 'pre' AND status = 'completed'", userID).First(&preTestSession).Error; err != nil {
+	completedPre, err := ec.store.HasCompletedPreTest(userIDStr)
+	if err != nil || !completedPre {
 		c.JSON(http.StatusForbidden, gin.H{
 			"error":    "You must complete the Pre-Test before starting the Post-Test.",
 			"eligible": false,
 			"reason":   "pre_test_required",
+			"code":     "EXAM_PRETEST_REQUIRED",
 		})
 		return
 	}
@@ -209,14 +443,19 @@ func (ec *ExamController) StartPostTest(c *gin.Context) {
 	bypassThreshold := os.Getenv("BYPASS_POST_TEST_THRESHOLD") == "true"
 
 	if !bypassThreshold && threshold > 0 {
-		var profiles []models.UserSkillProfile
-		ec.DB.Where("user_id = ?", userID).Find(&profiles)
+		profiles, err := ec.store.GetUserSkillProfiles(userIDStr)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to verify skill profiles", "code": "INTERNAL_SERVER_ERROR"})
+			return
+		}
 
 		if len(profiles) < 5 {
 			c.JSON(http.StatusForbidden, gin.H{
 				"error":    "You are not eligible for the Post-Test. Skill profiles for all 5 security domains must be established.",
 				"eligible": false,
 				"reason":   "threshold_not_reached",
+				"code":     "EXAM_POSTTEST_LOCKED",
+				"params":   gin.H{"threshold": threshold},
 			})
 			return
 		}
@@ -230,26 +469,16 @@ func (ec *ExamController) StartPostTest(c *gin.Context) {
 					"domain_id":         p.DomainID,
 					"proficiency_score": p.ProficiencyScore,
 					"threshold":         threshold,
+					"code":              "EXAM_POSTTEST_LOCKED",
+					"params": gin.H{
+						"domain_id":         p.DomainID,
+						"proficiency_score": p.ProficiencyScore,
+						"threshold":         threshold,
+					},
 				})
 				return
 			}
 		}
-	}
-
-	tx := ec.DB.Begin()
-
-	session := models.ExamSession{
-		UserID:         userID.(string),
-		ExamType:       "post",
-		Status:         "in_progress",
-		TotalQuestions: 30,
-		StartedAt:      time.Now(),
-	}
-
-	if err := tx.Create(&session).Error; err != nil {
-		tx.Rollback()
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create exam session"})
-		return
 	}
 
 	// Exclude all questions from user's PRE test and Learn sample questions (Zero-Overlap)
@@ -261,46 +490,33 @@ func (ec *ExamController) StartPostTest(c *gin.Context) {
 		"domain5": 6,
 	}
 
-	var allSelectedQuestions []models.Question
-	for domain, count := range domains {
-		var qList []models.Question
-		if err := tx.Where("domain_id = ? AND is_active = true AND question_id NOT IN (?)", domain, BuildPostTestExclusionQuery(tx, userID)).
-			Order("RANDOM()").
-			Limit(count).
-			Find(&qList).Error; err != nil {
-			tx.Rollback()
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve questions"})
-			return
-		}
-		allSelectedQuestions = append(allSelectedQuestions, qList...)
-	}
-
-	if len(allSelectedQuestions) < 30 {
-		tx.Rollback()
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Insufficient unused questions in database pool to construct 30 questions post-test"})
+	allSelectedQuestions, err := ec.store.SelectQuestionsByDomains(userIDStr, domains, true)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve questions", "code": "INTERNAL_SERVER_ERROR"})
 		return
 	}
 
-	orderIndex := 0
-	for _, q := range allSelectedQuestions {
-		esq := models.ExamSessionQuestion{
-			SessionID:  session.SessionID,
-			QuestionID: q.QuestionID,
-			OrderIndex: orderIndex,
-		}
-		if err := tx.Create(&esq).Error; err != nil {
-			tx.Rollback()
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to map exam questions"})
-			return
-		}
-		orderIndex++
+	if len(allSelectedQuestions) < 30 {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Insufficient unused questions in database pool to construct 30 questions post-test", "code": "INTERNAL_SERVER_ERROR"})
+		return
 	}
 
-	tx.Commit()
+	session := models.ExamSession{
+		UserID:         userIDStr,
+		ExamType:       "post",
+		Status:         "in_progress",
+		TotalQuestions: 30,
+		StartedAt:      time.Now(),
+	}
+
+	if err := ec.store.CreateExamSession(&session, allSelectedQuestions); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create exam session", "code": "INTERNAL_SERVER_ERROR"})
+		return
+	}
 
 	questions, err := ec.getSessionQuestions(session.SessionID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to load session questions"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to load session questions", "code": "INTERNAL_SERVER_ERROR"})
 		return
 	}
 
@@ -325,20 +541,24 @@ func (ec *ExamController) StartPostTest(c *gin.Context) {
 func (ec *ExamController) GetActiveSession(c *gin.Context) {
 	userID, exists := c.Get("user_id")
 	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized", "code": "AUTH_UNAUTHORIZED"})
+		return
+	}
+	userIDStr, ok := userID.(string)
+	if !ok || userIDStr == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized", "code": "AUTH_UNAUTHORIZED"})
 		return
 	}
 
-	var session models.ExamSession
-	err := ec.DB.Where("user_id = ? AND status = 'in_progress'", userID).First(&session).Error
+	session, err := ec.store.GetActiveSessionForUser(userIDStr)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"message": "No active session found"})
+		c.JSON(http.StatusNotFound, gin.H{"message": "No active session found", "code": "EXAM_SESSION_NOT_FOUND"})
 		return
 	}
 
 	questions, err := ec.getSessionQuestions(session.SessionID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to load session questions"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to load session questions", "code": "INTERNAL_SERVER_ERROR"})
 		return
 	}
 
@@ -368,52 +588,54 @@ type SubmitAnswerInput = dto.SubmitAnswerRequest
 func (ec *ExamController) SubmitAnswer(c *gin.Context) {
 	userID, exists := c.Get("user_id")
 	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized", "code": "AUTH_UNAUTHORIZED"})
+		return
+	}
+	userIDStr, ok := userID.(string)
+	if !ok || userIDStr == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized", "code": "AUTH_UNAUTHORIZED"})
 		return
 	}
 
 	var input SubmitAnswerInput
 	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		code := "AUTH_INVALID_PAYLOAD"
+		var ve validator.ValidationErrors
+		if errors.As(err, &ve) {
+			code = "EXAM_INVALID_ANSWER"
+		}
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error(), "code": code})
+		return
+	}
+	if strings.TrimSpace(input.UserAnswer) == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Answer cannot be empty", "code": "EXAM_INVALID_ANSWER"})
 		return
 	}
 
 	// Verify session ownership and status
-	var session models.ExamSession
-	if err := ec.DB.Where("session_id = ? AND user_id = ? AND status = 'in_progress'", input.SessionID, userID).First(&session).Error; err != nil {
-		c.JSON(http.StatusForbidden, gin.H{"error": "Invalid or inactive session"})
+	session, err := ec.store.FindActiveSessionByIDAndUser(input.SessionID, userIDStr)
+	if err != nil {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Invalid or inactive session", "code": "EXAM_SESSION_NOT_FOUND"})
 		return
 	}
 
 	// Get the question to check correctness
-	var question models.Question
-	if err := ec.DB.Where("question_id = ?", input.QuestionID).First(&question).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Question not found"})
+	question, err := ec.store.FindQuestionByID(input.QuestionID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Question not found", "code": "EXAM_QUESTION_NOT_FOUND"})
+		return
+	}
+
+	esq, err := ec.store.FindSessionQuestion(input.SessionID, input.QuestionID)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Question not part of this exam session", "code": "EXAM_QUESTION_NOT_FOUND"})
 		return
 	}
 
 	isCorrect := input.UserAnswer == question.CorrectAnswer
-
-	tx := ec.DB.Begin()
-
-	// Update the junction table
-	var esq models.ExamSessionQuestion
-	if err := tx.Where("session_id = ? AND question_id = ?", input.SessionID, input.QuestionID).First(&esq).Error; err != nil {
-		tx.Rollback()
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Question not part of this exam session"})
-		return
-	}
-
 	esq.UserAnswer = input.UserAnswer
 	esq.IsCorrect = &isCorrect
 
-	if err := tx.Save(&esq).Error; err != nil {
-		tx.Rollback()
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save answer"})
-		return
-	}
-
-	// Update time spent
 	if input.TimeSpentSeconds > 0 {
 		var currentSpent int
 		if session.TimeSpentSeconds != nil {
@@ -421,145 +643,38 @@ func (ec *ExamController) SubmitAnswer(c *gin.Context) {
 		}
 		newSpent := currentSpent + input.TimeSpentSeconds
 		session.TimeSpentSeconds = &newSpent
-		if err := tx.Save(&session).Error; err != nil {
-			tx.Rollback()
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update time spent"})
-			return
-		}
 	}
 
-	// Check if all questions are answered
-	var unansweredCount int64
-	if err := tx.Model(&models.ExamSessionQuestion{}).
-		Where("session_id = ? AND (user_answer IS NULL OR user_answer = '')", input.SessionID).
-		Count(&unansweredCount).Error; err != nil {
-		tx.Rollback()
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to check progress"})
+	unansweredCount, err := ec.store.SaveExamAnswer(session, esq)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save answer", "code": "INTERNAL_SERVER_ERROR"})
 		return
 	}
 
 	var responseData gin.H
 
 	if unansweredCount == 0 {
-		// Calculate final score
-		var correctCount int64
-		if err := tx.Model(&models.ExamSessionQuestion{}).
-			Where("session_id = ? AND is_correct = true", input.SessionID).
-			Count(&correctCount).Error; err != nil {
-			tx.Rollback()
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to calculate score"})
+		correctCount, domainScores, detailedResults, err := ec.store.FinalizeExamSession(session, userIDStr)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to finalize session", "code": "INTERNAL_SERVER_ERROR"})
 			return
 		}
 
-		scorePercent := math.Round((float64(correctCount)/float64(session.TotalQuestions))*100*100) / 100
-		session.Score = &scorePercent
-		session.Status = "completed"
-		now := time.Now()
-		session.CompletedAt = &now
-
-		if err := tx.Save(&session).Error; err != nil {
-			tx.Rollback()
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to finalize session"})
-			return
+		scorePercent := 0.0
+		if session.Score != nil {
+			scorePercent = *session.Score
 		}
 
-		// Also populate evaluation_metrics if needed, but we keep it simple here
-
-		// Calculate per-domain scores and seed user_skill_profiles (for pre-test)
 		if session.ExamType == "pre" {
-			type DomainScore struct {
-				DomainID     string  `json:"domain_id"`
-				TotalCount   int64   `json:"total"`
-				CorrectCount int64   `json:"correct"`
-				Percentage   float64 `json:"percentage"`
-			}
-
-			var domainResults []struct {
-				DomainID     string `gorm:"column:domain_id"`
-				TotalCount   int64  `gorm:"column:total_count"`
-				CorrectCount int64  `gorm:"column:correct_count"`
-			}
-
-			tx.Table("exam_session_questions").
-				Select("questions.domain_id, COUNT(*) as total_count, SUM(CASE WHEN exam_session_questions.is_correct = true THEN 1 ELSE 0 END) as correct_count").
-				Joins("JOIN questions ON questions.question_id = exam_session_questions.question_id").
-				Where("exam_session_questions.session_id = ?", session.SessionID).
-				Group("questions.domain_id").
-				Scan(&domainResults)
-
-			domainScores := make([]DomainScore, 0, len(domainResults))
-			for _, dr := range domainResults {
-				pct := 0.0
-				if dr.TotalCount > 0 {
-					pct = math.Round((float64(dr.CorrectCount)/float64(dr.TotalCount))*100*100) / 100
-				}
-
-				domainScores = append(domainScores, DomainScore{
-					DomainID:     dr.DomainID,
-					TotalCount:   dr.TotalCount,
-					CorrectCount: dr.CorrectCount,
-					Percentage:   pct,
-				})
-
-				// Upsert user_skill_profiles
-				var profile models.UserSkillProfile
-				err := tx.Where("user_id = ? AND domain_id = ?", userID, dr.DomainID).First(&profile).Error
-				if err != nil {
-					// Create new profile
-					now := time.Now()
-					profile = models.UserSkillProfile{
-						UserID:           userID.(string),
-						DomainID:         dr.DomainID,
-						ProficiencyScore: pct,
-						LastPracticed:    &now,
-					}
-					tx.Create(&profile)
-				} else {
-					// Update existing profile
-					profile.ProficiencyScore = pct
-					now := time.Now()
-					profile.LastPracticed = &now
-					tx.Save(&profile)
-				}
-			}
-
-			tx.Commit()
-
-			// For completed exams, we can return the correct answer and explanations
-			var detailedResults []struct {
-				models.Question
-				UserAnswer string `json:"user_answer"`
-				IsCorrect  bool   `json:"is_correct"`
-			}
-			ec.DB.Table("exam_session_questions").
-				Select("questions.*, exam_session_questions.user_answer, exam_session_questions.is_correct").
-				Joins("join questions on questions.question_id = exam_session_questions.question_id").
-				Where("exam_session_questions.session_id = ?", session.SessionID).
-				Scan(&detailedResults)
-
 			responseData = gin.H{
-				"message":        "Exam completed successfully!",
-				"completed":      true,
-				"score":          scorePercent,
-				"results":        detailedResults,
-				"correct_count":  correctCount,
-				"domain_scores":  domainScores,
+				"message":       "Exam completed successfully!",
+				"completed":     true,
+				"score":         scorePercent,
+				"results":       detailedResults,
+				"correct_count": correctCount,
+				"domain_scores": domainScores,
 			}
 		} else {
-			tx.Commit()
-
-			// For completed exams, we can return the correct answer and explanations
-			var detailedResults []struct {
-				models.Question
-				UserAnswer string `json:"user_answer"`
-				IsCorrect  bool   `json:"is_correct"`
-			}
-			ec.DB.Table("exam_session_questions").
-				Select("questions.*, exam_session_questions.user_answer, exam_session_questions.is_correct").
-				Joins("join questions on questions.question_id = exam_session_questions.question_id").
-				Where("exam_session_questions.session_id = ?", session.SessionID).
-				Scan(&detailedResults)
-
 			responseData = gin.H{
 				"message":       "Exam completed successfully!",
 				"completed":     true,
@@ -569,7 +684,6 @@ func (ec *ExamController) SubmitAnswer(c *gin.Context) {
 			}
 		}
 	} else {
-		tx.Commit()
 		responseData = gin.H{
 			"completed": false,
 		}
@@ -588,10 +702,9 @@ func (ec *ExamController) SubmitAnswer(c *gin.Context) {
 // @Failure 500 {object} dto.ErrorResponse
 // @Router /exams/sample [get]
 func (ec *ExamController) GetSampleQuestion(c *gin.Context) {
-	var question models.Question
-	err := ec.DB.Order("RANDOM()").First(&question).Error
+	question, err := ec.store.GetRandomSampleQuestion()
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve sample question"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve sample question", "code": "INTERNAL_SERVER_ERROR"})
 		return
 	}
 	c.JSON(http.StatusOK, question)
