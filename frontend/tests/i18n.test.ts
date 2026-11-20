@@ -77,6 +77,25 @@ test("canonical M1 error codes and bilingual domain names are present", () => {
     "LEARN_INVALID_ANSWER",
     "INTERNAL_SERVER_ERROR",
     "SIM_PRETEST_REQUIRED",
+    "SIM_UNAUTHORIZED",
+    "SIM_NO_SKILL_PROFILE",
+    "SIM_THEORY_INCOMPLETE",
+    "SIM_BAD_REQUEST",
+    "SIM_SCENARIO_LOAD_FAILED",
+    "SIM_SESSION_CREATE_FAILED",
+    "SIM_SESSION_NOT_FOUND",
+    "SIM_SESSION_FORBIDDEN",
+    "SIM_SESSION_NOT_ACTIVE",
+    "SIM_SESSION_NOT_COMPLETED",
+    "SIM_SCENARIO_NOT_FOUND",
+    "SIM_LOGS_UNAVAILABLE",
+    "SIM_LOGS_LOAD_FAILED",
+    "SIM_INVALID_LOG_INDEX",
+    "SIM_SUBMIT_FAILED",
+    "SIM_ACTION_RECORD_FAILED",
+    "SIM_EVIDENCE_REPLAY_FAILED",
+    "SIM_PROFILE_UPDATE_FAILED",
+    "SIM_SESSION_UPDATE_FAILED",
     "SPECIALIST_BIO_REQUIRED",
     "SPECIALIST_RESUME_REQUIRED",
   ] as const;
@@ -193,4 +212,25 @@ test("resolveScenarioLocale selects Thai display fields while preserving initial
   const resolvedEn = resolveScenarioLocale(scenario, "en");
   assert.equal(resolvedEn.title, "MFA Push Fatigue");
   assert.equal(resolvedEn.playbookLabel("c1", "Revoke tokens"), "Revoke tokens");
+
+  // Pre-submission sanitized payload (no tp_fp_explanation / no findings / no action explanation)
+  const sanitized = {
+    title: "MFA Push Fatigue",
+    description: "User ajones rejected multiple MFA prompts.",
+    initial_logs: initialLogs,
+    translations: {
+      th: {
+        title: "การโจมตี MFA Push Fatigue",
+        description: "พบผู้ใช้ ajones ปฏิเสธคำขอ MFA หลายครั้ง",
+        playbook_steps: {
+          c1: { label: "เพิกถอน tokens" },
+        },
+      },
+    },
+  };
+  const resolvedSanitized = resolveScenarioLocale(sanitized, "th");
+  assert.equal(resolvedSanitized.title, "การโจมตี MFA Push Fatigue");
+  assert.equal(resolvedSanitized.playbookLabel("c1", "Revoke tokens"), "เพิกถอน tokens");
+  assert.equal(resolvedSanitized.tp_fp_explanation, "");
+  assert.equal(resolvedSanitized.findingDescription("f1", "Fallback finding"), "Fallback finding");
 });

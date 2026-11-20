@@ -279,3 +279,120 @@ func TestSimulationController_LockUserStartSerializesSameUser(t *testing.T) {
 		wg.Wait()
 	})
 }
+
+func TestSanitizeScenario_SanitizesTranslationsWithoutLeaks(t *testing.T) {
+	scenario := models.Scenario{
+		ScenarioID:      "scen-bilingual-sanitize-01",
+		Title:           "MFA Push Fatigue Attack",
+		Description:     "Multiple denied MFA pushes detected for user ajones.",
+		DomainID:        "domain1",
+		Difficulty:      2,
+		IsTruePositive:  true,
+		TpFpExplanation: "True Positive MFA fatigue",
+		InitialLogs: []map[string]interface{}{
+			{"timestamp": "2026-07-13T08:00:00Z", "source": "okta", "severity": "high", "message": "MFA push denied"},
+		},
+		ExpectedOutcomes: map[string]interface{}{
+			"key_findings": []map[string]interface{}{
+				{"id": "d1_f1", "description": "Repeated MFA denials", "points": 10},
+			},
+		},
+		PlaybookSteps: map[string]interface{}{
+			"containment": []map[string]interface{}{
+				{"id": "d1_c1", "label": "Revoke active Okta sessions", "is_correct": true, "explanation": "Stops attacker session"},
+				{"id": "d1_c2", "label": "Disable firewall completely", "is_correct": false, "explanation": "Dangerous distractor"},
+				{"id": "d1_c3", "label": "Reset monitor brightness", "is_correct": false, "explanation": "Unrelated"},
+			},
+			"eradication": []map[string]interface{}{
+				{"id": "d1_e1", "label": "Enforce FIDO2 keys", "is_correct": true, "explanation": "Phishing-resistant"},
+				{"id": "d1_e2", "label": "Delete audit logs", "is_correct": false, "explanation": "Destroys evidence"},
+				{"id": "d1_e3", "label": "Wipe smartphone", "is_correct": false, "explanation": "Wrong target"},
+			},
+			"recovery": []map[string]interface{}{
+				{"id": "d1_r1", "label": "Rotate credentials and monitor", "is_correct": true, "explanation": "Safe recovery"},
+				{"id": "d1_r2", "label": "Disable MFA for 48 hours", "is_correct": false, "explanation": "Weakens security"},
+				{"id": "d1_r3", "label": "Reuse old password hash", "is_correct": false, "explanation": "Allows re-entry"},
+			},
+		},
+		Translations: map[string]interface{}{
+			"th": map[string]interface{}{
+				"title":             "การโจมตี MFA Push Fatigue",
+				"description":       "ตรวจพบการแจ้งเตือน MFA ที่ถูกปฏิเสธซ้ำๆ สำหรับผู้ใช้ ajones",
+				"tp_fp_explanation": "คำอธิบายเฉลย True Positive ห้ามหลุดก่อนส่งคำตอบ",
+				"findings": map[string]interface{}{
+					"d1_f1": map[string]interface{}{
+						"description": "ข้อความเฉลยจุดสังเกตที่ห้ามหลุด",
+						"explanation": "คำอธิบายจุดสังเกตที่ห้ามหลุด",
+					},
+				},
+				"playbook_steps": map[string]interface{}{
+					"d1_c1": map[string]interface{}{"label": "เพิกถอน Okta session ทั้งหมดทันที", "explanation": "เหตุผลเฉลยที่ห้ามหลุด", "is_correct": true},
+					"d1_c2": map[string]interface{}{"label": "ปิดไฟร์วอลล์ทั้งหมด", "explanation": "เหตุผลเฉลยที่ห้ามหลุด"},
+					"d1_c3": map[string]interface{}{"label": "ปรับความสว่างหน้าจอ", "explanation": "เหตุผลเฉลยที่ห้ามหลุด"},
+					"d1_e1": map[string]interface{}{"label": "บังคับใช้ FIDO2 WebAuthn", "explanation": "เหตุผลเฉลยที่ห้ามหลุด"},
+					"d1_e2": map[string]interface{}{"label": "ลบ Audit Logs", "explanation": "เหตุผลเฉลยที่ห้ามหลุด"},
+					"d1_e3": map[string]interface{}{"label": "ล้างเครื่องโทรศัพท์", "explanation": "เหตุผลเฉลยที่ห้ามหลุด"},
+					"d1_r1": map[string]interface{}{"label": "หมุนเวียนรหัสผ่านและเฝ้าระวัง", "explanation": "เหตุผลเฉลยที่ห้ามหลุด"},
+					"d1_r2": map[string]interface{}{"label": "ยกเว้น MFA 48 ชั่วโมง", "explanation": "เหตุผลเฉลยที่ห้ามหลุด"},
+					"d1_r3": map[string]interface{}{"label": "ใช้รหัสผ่านเดิมซ้ำ", "explanation": "เหตุผลเฉลยที่ห้ามหลุด"},
+				},
+			},
+		},
+	}
+
+	sanitized := sanitizeScenario(scenario, "sess-bilingual-01")
+	transMap, ok := sanitized.Translations.(map[string]interface{})
+	if !ok {
+		t.Fatalf("expected sanitized Translations to be present map[string]interface{}, got %T", sanitized.Translations)
+	}
+	thMap, ok := transMap["th"].(map[string]interface{})
+	if !ok {
+		t.Fatalf("expected sanitized translations.th map, got %T", transMap["th"])
+	}
+	if thMap["title"] != "การโจมตี MFA Push Fatigue" {
+		t.Errorf("unexpected sanitized th title: %v", thMap["title"])
+	}
+	if thMap["description"] != "ตรวจพบการแจ้งเตือน MFA ที่ถูกปฏิเสธซ้ำๆ สำหรับผู้ใช้ ajones" {
+		t.Errorf("unexpected sanitized th description: %v", thMap["description"])
+	}
+	if _, leaked := thMap["tp_fp_explanation"]; leaked {
+		t.Fatalf("answer leak: sanitized translations.th exposed tp_fp_explanation")
+	}
+	if _, leaked := thMap["findings"]; leaked {
+		t.Fatalf("answer leak: sanitized translations.th exposed findings")
+	}
+	pbMap, ok := thMap["playbook_steps"].(map[string]interface{})
+	if !ok || len(pbMap) != 9 {
+		t.Fatalf("expected 9 sanitized th playbook_steps entries, got %T (len=%d)", thMap["playbook_steps"], len(pbMap))
+	}
+	for id, rawStep := range pbMap {
+		stepMap, ok := rawStep.(map[string]interface{})
+		if !ok {
+			t.Fatalf("step %s is not map: %T", id, rawStep)
+		}
+		if stepMap["label"] == "" {
+			t.Errorf("step %s missing label", id)
+		}
+		if _, leaked := stepMap["explanation"]; leaked {
+			t.Fatalf("answer leak: step %s exposed explanation", id)
+		}
+		if _, leaked := stepMap["is_correct"]; leaked {
+			t.Fatalf("answer leak: step %s exposed is_correct", id)
+		}
+	}
+}
+
+func TestEvaluateStage2TheoryGate_IncludesCanonicalCode(t *testing.T) {
+	gateErr := evaluateStage2TheoryGate("", "learner", func() ([]string, []string) {
+		return []string{"1.1"}, []string{}
+	})
+	if gateErr == nil {
+		t.Fatal("expected TheoryGateErrorResponse")
+	}
+	if gateErr.Code != "SIM_THEORY_INCOMPLETE" {
+		t.Fatalf("expected Code SIM_THEORY_INCOMPLETE, got %q", gateErr.Code)
+	}
+	if gateErr.Params["completed_subtopics"] != 1 || gateErr.Params["total_subtopics"] != 28 {
+		t.Fatalf("unexpected Params: %+v", gateErr.Params)
+	}
+}

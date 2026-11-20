@@ -1,4 +1,5 @@
 import { Shield, Sparkles, RefreshCw, AlertTriangle, CheckCircle, AlertOctagon } from "lucide-react";
+import { useI18n } from "../i18n";
 import { cn } from "../lib/utils";
 
 interface ActionOption {
@@ -27,6 +28,8 @@ export default function ResponsePanel({
   isTruePositive,
   onSelectTriage 
 }: ResponsePanelProps) {
+  const { t } = useI18n();
+
   const handleToggleAction = (actionId: string) => {
     const nextSelected = selectedActions.includes(actionId)
       ? selectedActions.filter((id) => id !== actionId)
@@ -44,7 +47,7 @@ export default function ResponsePanel({
             {icon}
           </div>
           <h4 className="font-semibold text-sm tracking-wider uppercase text-graphite-200">
-            {title} Phase
+            {t("responsePanel.phaseSuffix", { title })}
           </h4>
         </div>
         
@@ -91,12 +94,12 @@ export default function ResponsePanel({
             <AlertOctagon className="w-4 h-4" />
           </div>
           <h4 className="font-semibold text-sm tracking-wider uppercase text-graphite-200">
-            Phase 1: Incident Triage Classification
+            {t("responsePanel.phase1Title")}
           </h4>
         </div>
 
         <p className="text-xs text-graphite-400 leading-relaxed font-light">
-          Classify this incident based on your telemetry analysis:
+          {t("responsePanel.phase1Prompt")}
         </p>
 
         <div className="grid grid-cols-2 gap-4 pt-1">
@@ -112,7 +115,7 @@ export default function ResponsePanel({
           >
             <div className="flex items-center gap-2">
               <AlertTriangle className={cn("w-4 h-4", isTruePositive === true ? "text-red-400" : "text-graphite-500")} />
-              <span>True Positive</span>
+              <span>{t("responsePanel.truePositive")}</span>
             </div>
             <span className={cn("w-2.5 h-2.5 rounded-full border border-graphite-600", isTruePositive === true && "bg-red-500 border-red-400")} />
           </button>
@@ -129,7 +132,7 @@ export default function ResponsePanel({
           >
             <div className="flex items-center gap-2">
               <CheckCircle className={cn("w-4 h-4", isTruePositive === false ? "text-emerald-400" : "text-graphite-500")} />
-              <span>False Positive</span>
+              <span>{t("responsePanel.falsePositive")}</span>
             </div>
             <span className={cn("w-2.5 h-2.5 rounded-full border border-graphite-600", isTruePositive === false && "bg-emerald-500 border-emerald-400")} />
           </button>
@@ -138,21 +141,21 @@ export default function ResponsePanel({
 
       {/* Response Action Steps */}
       {renderSection(
-        "Phase 2: Containment",
+        t("responsePanel.phase2Title"),
         containmentActions,
         <Shield className="w-4 h-4 text-amber-400" />,
         "bg-amber-400 text-amber-400"
       )}
 
       {renderSection(
-        "Phase 3: Eradication",
+        t("responsePanel.phase3Title"),
         eradicationActions,
         <Sparkles className="w-4 h-4 text-emerald-400" />,
         "bg-emerald-400 text-emerald-400"
       )}
 
       {renderSection(
-        "Phase 4: Recovery",
+        t("responsePanel.phase4Title"),
         recoveryActions,
         <RefreshCw className="w-4 h-4 text-sky-400" />,
         "bg-sky-400 text-sky-400"

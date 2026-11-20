@@ -635,11 +635,24 @@ func normalizeAIFindingsForDomain(ai aiMicroScenario, domainID string) []aiFindi
 	}
 
 	description := strings.TrimSpace(ai.KeyFinding)
+	descriptionTh := strings.TrimSpace(ai.KeyFindingTh)
 	if description == "" {
 		if ai.IsTruePositive {
 			description = fmt.Sprintf("Identified malicious activity originating from %s targeting %s", ai.AttackerIP, ai.TargetHost)
+			if descriptionTh == "" && strings.TrimSpace(ai.TitleTh) != "" {
+				descriptionTh = fmt.Sprintf("ตรวจพบกิจกรรมที่เป็นอันตรายจากต้นทาง %s ซึ่งมุ่งเป้าไปยัง %s", ai.AttackerIP, ai.TargetHost)
+			}
 		} else {
 			description = fmt.Sprintf("Verified the activity involving %s and %s is benign and authorized", ai.TargetHost, ai.AttackerIP)
+			if descriptionTh == "" && strings.TrimSpace(ai.TitleTh) != "" {
+				descriptionTh = fmt.Sprintf("ยืนยันแล้วว่ากิจกรรมระหว่าง %s และ %s มีความปลอดภัยและได้รับอนุญาต", ai.TargetHost, ai.AttackerIP)
+			}
+		}
+	} else if descriptionTh == "" && strings.TrimSpace(ai.TitleTh) != "" {
+		if ai.IsTruePositive {
+			descriptionTh = fmt.Sprintf("ตรวจพบกิจกรรมที่เป็นอันตรายจากต้นทาง %s ซึ่งมุ่งเป้าไปยัง %s", ai.AttackerIP, ai.TargetHost)
+		} else {
+			descriptionTh = fmt.Sprintf("ยืนยันแล้วว่ากิจกรรมระหว่าง %s และ %s มีความปลอดภัยและได้รับอนุญาต", ai.TargetHost, ai.AttackerIP)
 		}
 	}
 
@@ -668,11 +681,13 @@ func normalizeAIFindingsForDomain(ai aiMicroScenario, domainID string) []aiFindi
 	return []aiFinding{
 		{
 			Description:         description,
+			DescriptionTh:       descriptionTh,
 			DomainID:            "",
 			Points:              DefaultAIFindingPoints,
 			EvidenceLogMessages: messages,
 			VerdictSupport:      support,
 			Explanation:         ai.TpFpExplanation,
+			ExplanationTh:       ai.TpFpExplanationTh,
 		},
 	}
 }
@@ -1031,14 +1046,19 @@ func scenarioLogSeverityBucket(entry map[string]interface{}) string {
 // generated findings cannot satisfy the evidence contract.
 func fallbackAIFinding(ai aiMicroScenario, logs []map[string]interface{}, weakestDomain string) mappedAIFinding {
 	description := strings.TrimSpace(ai.KeyFinding)
+	descriptionTh := strings.TrimSpace(ai.KeyFindingTh)
 	domain := weakestDomain
 	points := DefaultAIFindingPoints
 	explanation := ai.TpFpExplanation
+	explanationTh := ai.TpFpExplanationTh
 
 	if len(ai.Findings) > 0 {
 		first := ai.Findings[0]
 		if trimmed := strings.TrimSpace(first.Description); trimmed != "" {
 			description = trimmed
+		}
+		if trimmed := strings.TrimSpace(first.DescriptionTh); trimmed != "" {
+			descriptionTh = trimmed
 		}
 		if validScenarioDomainIDs[first.DomainID] {
 			domain = first.DomainID
@@ -1049,12 +1069,27 @@ func fallbackAIFinding(ai aiMicroScenario, logs []map[string]interface{}, weakes
 		if trimmed := strings.TrimSpace(first.Explanation); trimmed != "" {
 			explanation = trimmed
 		}
+		if trimmed := strings.TrimSpace(first.ExplanationTh); trimmed != "" {
+			explanationTh = trimmed
+		}
 	}
 	if description == "" {
 		if ai.IsTruePositive {
 			description = fmt.Sprintf("Identified malicious activity originating from %s targeting %s", ai.AttackerIP, ai.TargetHost)
+			if descriptionTh == "" && strings.TrimSpace(ai.TitleTh) != "" {
+				descriptionTh = fmt.Sprintf("ตรวจพบกิจกรรมที่เป็นอันตรายจากต้นทาง %s ซึ่งมุ่งเป้าไปยัง %s", ai.AttackerIP, ai.TargetHost)
+			}
 		} else {
 			description = fmt.Sprintf("Verified the activity involving %s and %s is benign and authorized", ai.TargetHost, ai.AttackerIP)
+			if descriptionTh == "" && strings.TrimSpace(ai.TitleTh) != "" {
+				descriptionTh = fmt.Sprintf("ยืนยันแล้วว่ากิจกรรมระหว่าง %s และ %s มีความปลอดภัยและได้รับอนุญาต", ai.TargetHost, ai.AttackerIP)
+			}
+		}
+	} else if descriptionTh == "" && strings.TrimSpace(ai.TitleTh) != "" {
+		if ai.IsTruePositive {
+			descriptionTh = fmt.Sprintf("ตรวจพบกิจกรรมที่เป็นอันตรายจากต้นทาง %s ซึ่งมุ่งเป้าไปยัง %s", ai.AttackerIP, ai.TargetHost)
+		} else {
+			descriptionTh = fmt.Sprintf("ยืนยันแล้วว่ากิจกรรมระหว่าง %s และ %s มีความปลอดภัยและได้รับอนุญาต", ai.TargetHost, ai.AttackerIP)
 		}
 	}
 
@@ -1070,11 +1105,13 @@ func fallbackAIFinding(ai aiMicroScenario, logs []map[string]interface{}, weakes
 	return mappedAIFinding{
 		finding: aiFinding{
 			Description:         description,
+			DescriptionTh:       descriptionTh,
 			DomainID:            domain,
 			Points:              float64(points),
 			EvidenceLogMessages: messagesAtIndices(logs, indices),
 			VerdictSupport:      support,
 			Explanation:         explanation,
+			ExplanationTh:       explanationTh,
 		},
 		indices: indices,
 	}
@@ -1179,8 +1216,15 @@ func normalizeAIFindingPoints(points float64) int {
 }
 
 func buildExpectedOutcomes(mapped []mappedAIFinding, ai aiMicroScenario, weakestDomain string) map[string]interface{} {
+	outcomes, _ := buildExpectedOutcomesWithTranslations(mapped, ai, weakestDomain)
+	return outcomes
+}
+
+func buildExpectedOutcomesWithTranslations(mapped []mappedAIFinding, ai aiMicroScenario, weakestDomain string) (map[string]interface{}, map[string]map[string]string) {
 	findings := make([]map[string]interface{}, 0, len(mapped))
+	thFindings := make(map[string]map[string]string)
 	for i, item := range mapped {
+		findingID := fmt.Sprintf("f%d", i+1)
 		description := strings.TrimSpace(item.finding.Description)
 		if description == "" {
 			description = fmt.Sprintf("Key finding %d", i+1)
@@ -1202,7 +1246,7 @@ func buildExpectedOutcomes(mapped []mappedAIFinding, ai aiMicroScenario, weakest
 		}
 
 		findings = append(findings, map[string]interface{}{
-			"id":                   fmt.Sprintf("f%d", i+1),
+			"id":                   findingID,
 			"description":          description,
 			"domain_id":            domain,
 			"points":               normalizeAIFindingPoints(item.finding.Points),
@@ -1210,9 +1254,21 @@ func buildExpectedOutcomes(mapped []mappedAIFinding, ai aiMicroScenario, weakest
 			"verdict_support":      support,
 			"explanation":          explanation,
 		})
+
+		descriptionTh := strings.TrimSpace(item.finding.DescriptionTh)
+		explanationTh := strings.TrimSpace(item.finding.ExplanationTh)
+		if explanationTh == "" && descriptionTh != "" {
+			explanationTh = strings.TrimSpace(ai.TpFpExplanationTh)
+		}
+		if descriptionTh != "" || explanationTh != "" {
+			thFindings[findingID] = map[string]string{
+				"description": descriptionTh,
+				"explanation": explanationTh,
+			}
+		}
 	}
 
-	return map[string]interface{}{"key_findings": findings}
+	return map[string]interface{}{"key_findings": findings}, thFindings
 }
 
 // synthesizeFullScenarioWithErrors synthesizes the complete Scenario and returns
@@ -1267,9 +1323,41 @@ func synthesizeFullScenarioWithErrors(ai aiMicroScenario, weakestDomain string, 
 		mapped = []mappedAIFinding{fallbackAIFinding(ai, logs, weakestDomain)}
 	}
 
-	containmentSteps := buildPhaseStepsWithDistractors("containment", "c", weakestDomain, ai.ContainmentAction, ai.ContainmentSteps, ai)
-	eradicationSteps := buildPhaseStepsWithDistractors("eradication", "e", weakestDomain, ai.EradicationAction, ai.EradicationSteps, ai)
-	recoverySteps := buildPhaseStepsWithDistractors("recovery", "r", weakestDomain, ai.RecoveryAction, ai.RecoverySteps, ai)
+	containmentSteps, containmentTh := buildPhaseStepsWithDistractorsWithTh("containment", "c", weakestDomain, ai.ContainmentAction, ai.ContainmentActionTh, ai.ContainmentSteps, ai)
+	eradicationSteps, eradicationTh := buildPhaseStepsWithDistractorsWithTh("eradication", "e", weakestDomain, ai.EradicationAction, ai.EradicationActionTh, ai.EradicationSteps, ai)
+	recoverySteps, recoveryTh := buildPhaseStepsWithDistractorsWithTh("recovery", "r", weakestDomain, ai.RecoveryAction, ai.RecoveryActionTh, ai.RecoverySteps, ai)
+
+	expectedOutcomes, thFindings := buildExpectedOutcomesWithTranslations(mapped, ai, weakestDomain)
+
+	thPlaybook := make(map[string]map[string]string, len(containmentTh)+len(eradicationTh)+len(recoveryTh))
+	for k, v := range containmentTh {
+		thPlaybook[k] = v
+	}
+	for k, v := range eradicationTh {
+		thPlaybook[k] = v
+	}
+	for k, v := range recoveryTh {
+		thPlaybook[k] = v
+	}
+
+	var translations map[string]interface{}
+	thTitle := strings.TrimSpace(ai.TitleTh)
+	thDesc := strings.TrimSpace(ai.DescriptionTh)
+	thTpFp := strings.TrimSpace(ai.TpFpExplanationTh)
+	if thTitle != "" || thDesc != "" || thTpFp != "" || len(thFindings) > 0 {
+		if thDesc != "" && !strings.Contains(strings.ToLower(thDesc), strings.ToLower(ai.TargetHost)) {
+			thDesc = strings.TrimSpace(thDesc) + " (" + ai.TargetHost + " / " + ai.AttackerIP + ")"
+		}
+		translations = map[string]interface{}{
+			"th": map[string]interface{}{
+				"title":             thTitle,
+				"description":       thDesc,
+				"tp_fp_explanation": thTpFp,
+				"playbook_steps":    thPlaybook,
+				"findings":          thFindings,
+			},
+		}
+	}
 
 	return &models.Scenario{
 		Title:            ai.Title,
@@ -1278,8 +1366,9 @@ func synthesizeFullScenarioWithErrors(ai aiMicroScenario, weakestDomain string, 
 		Difficulty:       3,
 		IsTruePositive:   ai.IsTruePositive,
 		TpFpExplanation:  ai.TpFpExplanation,
+		Translations:     translations,
 		InitialLogs:      logs,
-		ExpectedOutcomes: buildExpectedOutcomes(mapped, ai, weakestDomain),
+		ExpectedOutcomes: expectedOutcomes,
 		PlaybookSteps: map[string]interface{}{
 			"containment": containmentSteps,
 			"eradication": eradicationSteps,

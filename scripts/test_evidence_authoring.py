@@ -1044,5 +1044,73 @@ class FinalSeedTests(unittest.TestCase):
         self.assertGreater(len(lengths), 1, "scenarios should vary in total log count")
 
 
+class BilingualTranslationSeedTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.seed = json.loads(
+            (SCRIPT_DIR.parent / "scenarios_seed.json").read_text(encoding="utf-8")
+        )
+        cls.base = generate_scenarios.create_scenarios()
+
+    def test_committed_seed_has_zero_thai_in_initial_logs_and_pilot_translations(self):
+        self.assertEqual([], validator.validate_seed(self.seed, self.base))
+        pilot_titles = {
+            "Multi-Factor Authentication Bypass (Push Fatigue)",
+            "Atypical Travel VPN Connection Alert",
+            "SQL Injection & Database Exfiltration",
+        }
+        translated = {
+            s["title"]
+            for s in self.seed
+            if isinstance(s.get("translations"), dict) and s["translations"].get("th")
+        }
+        self.assertTrue(
+            pilot_titles.issubset(translated),
+            f"missing pilot translations: {pilot_titles - translated}",
+        )
+        for scenario in self.seed:
+            self.assertFalse(
+                validator._value_contains_thai(scenario.get("initial_logs", [])),
+                f"{scenario['title']} must have zero Thai characters in initial_logs",
+            )
+
+    def test_rejects_thai_unicode_inside_initial_logs(self):
+        seed_scenario = make_seed_fixture()
+        seed_scenario["initial_logs"][0]["message"] = "ตรวจพบข้อความภาษาไทยใน log"
+        approved = mapping_from_seed([seed_scenario])
+        errors = validator.validate_seed([seed_scenario], [seed_scenario], mapping=approved)
+        self.assertTrue(any("prohibited Thai Unicode" in err for err in errors), errors)
+
+    def test_rejects_incomplete_translations_th(self):
+        seed_scenario = make_seed_fixture()
+        seed_scenario["playbook_steps"] = {
+            "containment": [{"id": "c1", "label": "Contain", "explanation": "Why"}],
+            "eradication": [{"id": "e1", "label": "Eradicate", "explanation": "Why"}],
+            "recovery": [{"id": "r1", "label": "Recover", "explanation": "Why"}],
+        }
+        seed_scenario["translations"] = {
+            "th": {
+                "title": "ชื่อไทย",
+                "description": "คำอธิบายไทย",
+                "tp_fp_explanation": "คำอธิบายเฉลยไทย",
+                "playbook_steps": {
+                    "c1": {"label": "กักกัน", "explanation": "เหตุผล"}
+                },
+                "findings": {
+                    "f1": {"description": "จุดสังเกต 1", "explanation": "เหตุผล"}
+                },
+            }
+        }
+        approved = mapping_from_seed([seed_scenario])
+        errors = validator.validate_seed(
+            [seed_scenario],
+            [seed_scenario],
+            mapping=approved,
+            require_all_th=True,
+        )
+        self.assertTrue(any("playbook_steps missing 'e1'" in err for err in errors), errors)
+        self.assertTrue(any("findings missing 'f2'" in err for err in errors), errors)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

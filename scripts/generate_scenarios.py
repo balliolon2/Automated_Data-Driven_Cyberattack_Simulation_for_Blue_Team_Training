@@ -1163,6 +1163,24 @@ def apply_evidence_mapping(scenarios, mapping):
     return scenarios
 
 
+def load_scenario_translations_th(translations_path=None):
+    path = Path(translations_path) if translations_path else Path(__file__).resolve().parent / "scenario_translations_th.json"
+    with open(path, "r", encoding="utf-8") as handle:
+        data = json.load(handle)
+    if not isinstance(data, dict):
+        raise ValueError(f"Scenario translations root in {path} must be a JSON object")
+    return data
+
+
+def apply_scenario_translations(scenarios, translations_th):
+    for scenario in scenarios:
+        title = scenario.get("title")
+        th_entry = translations_th.get(title)
+        if isinstance(th_entry, dict) and th_entry:
+            scenario["translations"] = {"th": th_entry}
+    return scenarios
+
+
 if __name__ == "__main__":
     mapping_path = Path(__file__).resolve().parent / "evidence_mapping.json"
     if not mapping_path.is_file():
@@ -1173,17 +1191,28 @@ if __name__ == "__main__":
         )
         sys.exit(1)
 
+    translations_path = Path(__file__).resolve().parent / "scenario_translations_th.json"
+    if not translations_path.is_file():
+        print(
+            f"Required scenario translations file not found: {translations_path}.",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
     scs = create_scenarios()
     mapping = load_evidence_mapping(str(mapping_path))
     try:
         scs = apply_evidence_mapping(scs, mapping)
+        translations_th = load_scenario_translations_th(str(translations_path))
+        scs = apply_scenario_translations(scs, translations_th)
     except ValueError as exc:
         print(str(exc), file=sys.stderr)
         sys.exit(1)
 
     with open("scenarios_seed.json", "w", encoding="utf-8") as f:
         json.dump(scs, f, indent=2, ensure_ascii=False)
+    translated_count = sum(1 for s in scs if isinstance(s.get("translations"), dict) and s["translations"].get("th"))
     print(
         "Successfully generated scenarios_seed.json containing "
-        f"{len(scs)} scenarios, all with authored evidence."
+        f"{len(scs)} scenarios, all with authored evidence ({translated_count} with Thai translations)."
     )

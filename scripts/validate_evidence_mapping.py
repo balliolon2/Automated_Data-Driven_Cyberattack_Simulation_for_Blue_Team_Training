@@ -23,8 +23,11 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import re
 import sys
 from pathlib import Path
+
+THAI_CHAR_PATTERN = re.compile(r"[\u0E00-\u0E7F]")
 
 SCHEMA_VERSION = 1
 SUPPORTED_SCHEMA_VERSIONS = {SCHEMA_VERSION}
@@ -533,6 +536,12 @@ def validate_mapping(
         errors.extend(_validate_union(union, log_count, title))
         errors.extend(_validate_log_anti_repetition(logs, union, title, len(findings)))
 
+        for log_index, log_entry in enumerate(logs):
+            if _value_contains_thai(log_entry):
+                errors.append(
+                    f"{_scenario_prefix(title)}: initial_logs[{log_index}] contains prohibited Thai Unicode characters"
+                )
+
         is_true_positive = base_scenario.get("is_true_positive")
         supports = [
             finding.get("verdict_support")
@@ -589,12 +598,115 @@ def _load_approved_mapping(mapping, mapping_path):
         return None, f"Could not load approved evidence mapping {path}: {exc}"
 
 
+def _contains_thai(text):
+    return isinstance(text, str) and bool(THAI_CHAR_PATTERN.search(text))
+
+
+def _value_contains_thai(value):
+    if isinstance(value, str):
+        return bool(THAI_CHAR_PATTERN.search(value))
+    if isinstance(value, list):
+        return any(_value_contains_thai(item) for item in value)
+    if isinstance(value, dict):
+        return any(_contains_thai(k) or _value_contains_thai(v) for k, v in value.items())
+    return False
+
+
+def _validate_scenario_translations_th(scenario, title, require_th):
+    errors = []
+    translations = scenario.get("translations")
+    if translations is None:
+        if require_th:
+            errors.append(f"{_scenario_prefix(title)}: missing translations.th")
+        return errors
+
+    if not isinstance(translations, dict):
+        return [f"{_scenario_prefix(title)}: translations must be a JSON object"]
+
+    th = translations.get("th")
+    if th is None:
+        if require_th:
+            errors.append(f"{_scenario_prefix(title)}: missing translations.th")
+        return errors
+    if not isinstance(th, dict):
+        return [f"{_scenario_prefix(title)}: translations.th must be a JSON object"]
+
+    for field in ("title", "description", "tp_fp_explanation"):
+        val = th.get(field)
+        if not isinstance(val, str) or not val.strip() or not _contains_thai(val):
+            errors.append(
+                f"{_scenario_prefix(title)}: translations.th.{field} must be non-empty Thai text"
+            )
+
+    th_playbook = th.get("playbook_steps")
+    if not isinstance(th_playbook, dict):
+        errors.append(f"{_scenario_prefix(title)}: translations.th.playbook_steps must be a JSON object")
+        th_playbook = {}
+
+    playbook = scenario.get("playbook_steps")
+    if isinstance(playbook, dict):
+        for phase in ("containment", "eradication", "recovery"):
+            steps = playbook.get(phase)
+            if not isinstance(steps, list):
+                continue
+            for step in steps:
+                if not isinstance(step, dict):
+                    continue
+                action_id = step.get("id")
+                if not isinstance(action_id, str) or not action_id:
+                    continue
+                th_step = th_playbook.get(action_id)
+                if not isinstance(th_step, dict):
+                    errors.append(
+                        f"{_scenario_prefix(title)}: translations.th.playbook_steps missing {action_id!r}"
+                    )
+                    continue
+                if not isinstance(th_step.get("label"), str) or not th_step["label"].strip():
+                    errors.append(
+                        f"{_scenario_prefix(title)}: translations.th.playbook_steps[{action_id!r}] missing label"
+                    )
+                if not isinstance(th_step.get("explanation"), str) or not th_step["explanation"].strip():
+                    errors.append(
+                        f"{_scenario_prefix(title)}: translations.th.playbook_steps[{action_id!r}] missing explanation"
+                    )
+
+    th_findings = th.get("findings")
+    if not isinstance(th_findings, dict):
+        errors.append(f"{_scenario_prefix(title)}: translations.th.findings must be a JSON object")
+        th_findings = {}
+
+    expected = scenario.get("expected_outcomes") or {}
+    for finding in expected.get("key_findings", []):
+        if not isinstance(finding, dict):
+            continue
+        finding_id = finding.get("id")
+        if not isinstance(finding_id, str) or not finding_id:
+            continue
+        th_finding = th_findings.get(finding_id)
+        if not isinstance(th_finding, dict):
+            errors.append(
+                f"{_scenario_prefix(title)}: translations.th.findings missing {finding_id!r}"
+            )
+            continue
+        if not isinstance(th_finding.get("description"), str) or not th_finding["description"].strip():
+            errors.append(
+                f"{_scenario_prefix(title)}: translations.th.findings[{finding_id!r}] missing description"
+            )
+        if not isinstance(th_finding.get("explanation"), str) or not th_finding["explanation"].strip():
+            errors.append(
+                f"{_scenario_prefix(title)}: translations.th.findings[{finding_id!r}] missing explanation"
+            )
+
+    return errors
+
+
 def validate_seed(
     seed_scenarios,
     base_scenarios,
     *,
     mapping=None,
     mapping_path=None,
+    require_all_th=False,
     warnings=None,
 ):
     """Validate a seed against the base Scenarios and the approved mapping.
@@ -782,6 +894,14 @@ def validate_seed(
         errors.extend(_validate_union(union, log_count, title))
         errors.extend(_validate_log_anti_repetition(logs, union, title, len(findings)))
 
+        for log_index, log_entry in enumerate(logs):
+            if _value_contains_thai(log_entry):
+                errors.append(
+                    f"{_scenario_prefix(title)}: initial_logs[{log_index}] contains prohibited Thai Unicode characters"
+                )
+
+        errors.extend(_validate_scenario_translations_th(scenario, title, require_all_th))
+
         if is_true_positive is True and "malicious" not in supports:
             errors.append(
                 f"{_scenario_prefix(title)}: True Positive requires at least one malicious finding"
@@ -837,6 +957,11 @@ def main(argv=None):
         action="store_true",
         help="Accepted for compatibility; mapping mode always requires complete coverage.",
     )
+    parser.add_argument(
+        "--require-all-th",
+        action="store_true",
+        help="Require complete translations.th coverage for every scenario in --seed.",
+    )
     args = parser.parse_args(argv)
 
     if not args.mapping and not args.seed:
@@ -865,6 +990,7 @@ def main(argv=None):
                 seed,
                 base_scenarios,
                 mapping=mapping,
+                require_all_th=args.require_all_th,
                 warnings=warnings,
             )
         else:

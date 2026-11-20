@@ -1,37 +1,38 @@
 import { useState, useEffect } from "react";
 import { Terminal, Shield, CheckCircle2, Activity, Clock, Server, ArrowRight } from "lucide-react";
+import { useI18n } from "../i18n";
 
 interface PipelineStep {
   id: string;
   code: string;
-  label: string;
-  details: string;
+  labelKey: string;
+  detailsKey: string;
 }
 
 const STEPS: PipelineStep[] = [
   {
     id: "profile",
     code: "01/04",
-    label: "SKILL GAP & PROFICIENCY PARSER",
-    details: "Analyzing domain performance metrics & CompTIA Security+ weak spots...",
+    labelKey: "loadingState.step1Label",
+    detailsKey: "loadingState.step1Details",
   },
   {
     id: "mitre",
     code: "02/04",
-    label: "MITRE ATT&CK RAG RETRIEVAL",
-    details: "Querying vector DB for TTPs matching target domain gap...",
+    labelKey: "loadingState.step2Label",
+    detailsKey: "loadingState.step2Details",
   },
   {
     id: "synthesis",
     code: "03/04",
-    label: "ADVERSARIAL SCENARIO SYNTHESIS",
-    details: "Generating realistic attack chain, playbook steps & evidence logs...",
+    labelKey: "loadingState.step3Label",
+    detailsKey: "loadingState.step3Details",
   },
   {
     id: "sandbox",
     code: "04/04",
-    label: "SIEM & TELEMETRY SANDBOX INJECTION",
-    details: "Indexing Firewall, EDR & Auth logs into virtual investigation workspace...",
+    labelKey: "loadingState.step4Label",
+    detailsKey: "loadingState.step4Details",
   },
 ];
 
@@ -53,6 +54,7 @@ const STREAM_LOGS = [
 ];
 
 export default function ScenarioLoadingState() {
+  const { t } = useI18n();
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [logIndex, setLogIndex] = useState(0);
@@ -135,13 +137,13 @@ export default function ScenarioLoadingState() {
           <div className="flex items-center gap-6 text-xs font-mono">
             <div className="flex items-center gap-2 text-graphite-400">
               <Clock className="w-3.5 h-3.5 text-slate-400" />
-              <span>ELAPSED:</span>
+              <span>{t("loadingState.elapsed")}</span>
               <span className="text-slate-100 font-semibold tabular-nums">{formattedTime}s</span>
             </div>
             <div className="flex items-center gap-2 text-graphite-400">
               <Activity className="w-3.5 h-3.5 text-emerald-400" />
-              <span>STATUS:</span>
-              <span className="text-emerald-400 font-semibold">SYNTHESIZING</span>
+              <span>{t("loadingState.status")}</span>
+              <span className="text-emerald-400 font-semibold">{t("loadingState.synthesizing")}</span>
             </div>
           </div>
         </div>
@@ -154,10 +156,10 @@ export default function ScenarioLoadingState() {
             <div className="flex items-baseline justify-between">
               <div>
                 <h2 className="text-lg md:text-xl font-semibold text-slate-100 tracking-tight">
-                  Constructing Cyber Attack Scenario
+                  {t("loadingState.headline")}
                 </h2>
                 <p className="text-xs text-graphite-400 mt-1 font-mono">
-                  Synthesizing threat vectors & injecting simulated SIEM telemetry...
+                  {t("loadingState.subheadline")}
                 </p>
               </div>
               <div className="text-right">
@@ -202,7 +204,7 @@ export default function ScenarioLoadingState() {
                         {step.code}
                       </span>
                       <span className="text-xs font-mono font-semibold tracking-wide text-slate-200">
-                        {step.label}
+                        {t(step.labelKey)}
                       </span>
                     </div>
 
@@ -210,25 +212,25 @@ export default function ScenarioLoadingState() {
                       {isCompleted && (
                         <span className="flex items-center gap-1 text-[11px] font-mono text-emerald-400">
                           <CheckCircle2 className="w-3.5 h-3.5" />
-                          <span>DONE</span>
+                          <span>{t("loadingState.done")}</span>
                         </span>
                       )}
                       {isActive && (
                         <span className="flex items-center gap-1 text-[11px] font-mono text-emerald-400 animate-pulse">
                           <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                          <span>ACTIVE</span>
+                          <span>{t("loadingState.active")}</span>
                         </span>
                       )}
                       {isWaiting && (
                         <span className="text-[11px] font-mono text-graphite-500">
-                          WAITING
+                          {t("loadingState.waiting")}
                         </span>
                       )}
                     </div>
                   </div>
 
                   <p className="text-xs text-graphite-400 font-mono leading-relaxed pl-0.5">
-                    {step.details}
+                    {t(step.detailsKey)}
                   </p>
                 </div>
               );
@@ -240,14 +242,14 @@ export default function ScenarioLoadingState() {
             <div className="flex items-center justify-between text-xs font-mono text-graphite-400 px-1">
               <div className="flex items-center gap-2">
                 <Server className="w-3.5 h-3.5 text-slate-400" />
-                <span>TACTICAL TELEMETRY STREAM</span>
+                <span>{t("loadingState.streamTitle")}</span>
               </div>
-              <span className="text-[10px] text-graphite-500">FORMAT: IEEE 802.3 SIEM</span>
+              <span className="text-[10px] text-graphite-500">{t("loadingState.streamFormat")}</span>
             </div>
 
             <div className="bg-graphite-900 border border-graphite-800 rounded-lg p-4 font-mono text-xs text-slate-300 min-h-[140px] flex flex-col justify-end space-y-1.5 overflow-hidden">
               {logs.length === 0 ? (
-                <div className="text-graphite-500 italic">Initializing console pipe...</div>
+                <div className="text-graphite-500 italic">{t("loadingState.initializingConsole")}</div>
               ) : (
                 logs.map((log, idx) => (
                   <div
@@ -268,11 +270,11 @@ export default function ScenarioLoadingState() {
         {/* Minimalist System Footer */}
         <div className="px-6 py-3 bg-graphite-900/60 border-t border-graphite-800 flex flex-wrap items-center justify-between text-[11px] font-mono text-graphite-400 gap-4">
           <div className="flex items-center gap-4">
-            <span>STANDARD: <strong className="text-slate-300">COMPTIA SEC+ 701</strong></span>
+            <span>{t("loadingState.standardLabel")} <strong className="text-slate-300">{t("loadingState.standardValue")}</strong></span>
           </div>
           <div className="flex items-center gap-2">
             <Shield className="w-3.5 h-3.5 text-emerald-400" />
-            <span>SANDBOX ISOLATED & ENCRYPTED</span>
+            <span>{t("loadingState.sandboxEncrypted")}</span>
           </div>
         </div>
 

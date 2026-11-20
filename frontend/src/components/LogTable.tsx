@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import { ArrowUpDown, AlertCircle, Info, ShieldAlert } from "lucide-react";
+import { useI18n } from "../i18n";
 import { cn } from "../lib/utils";
 
 interface LogEntry {
@@ -22,6 +23,7 @@ interface LogTableProps {
 }
 
 export default function LogTable({ logs, selectedIndices = [], onToggle }: LogTableProps) {
+  const { t } = useI18n();
   const [sortField, setSortField] = useState<string>("timestamp");
   const [sortAsc, setSortAsc] = useState<boolean>(true);
 
@@ -91,10 +93,10 @@ export default function LogTable({ logs, selectedIndices = [], onToggle }: LogTa
       {/* Table Header Info */}
       <div className="px-5 py-3 bg-graphite-950/80 border-b border-graphite-800/80 flex items-center justify-between">
         <span className="text-xs font-mono text-graphite-400">
-          Logs Found: <span className="text-graphite-200 font-bold">{logs.length} entries</span>
+          {t("logTable.logsFound")} <span className="text-graphite-200 font-bold">{t("logTable.entriesCount", { count: logs.length })}</span>
         </span>
         <span className="text-[10px] font-mono text-graphite-500">
-          Click a row or press Space/Enter to select evidence · click headers to sort
+          {t("logTable.interactionHint")}
         </span>
       </div>
 
@@ -104,7 +106,7 @@ export default function LogTable({ logs, selectedIndices = [], onToggle }: LogTa
           <thead className="sticky top-0 bg-graphite-950/95 backdrop-blur-sm border-b border-graphite-800/80 z-20">
             <tr>
               <th className="w-10 px-3 py-3">
-                <span className="sr-only">Select evidence</span>
+                <span className="sr-only">{t("logTable.selectEvidenceSr")}</span>
               </th>
               {columns.map((col) => (
                 <th
@@ -124,7 +126,7 @@ export default function LogTable({ logs, selectedIndices = [], onToggle }: LogTa
             {sortedLogs.length === 0 ? (
               <tr>
                 <td colSpan={columns.length + 1} className="px-4 py-8 text-center text-graphite-500 font-medium bg-graphite-900/10">
-                  No log entries match the active filter query.
+                  {t("logTable.emptyFilterResult")}
                 </td>
               </tr>
             ) : (
@@ -166,7 +168,7 @@ export default function LogTable({ logs, selectedIndices = [], onToggle }: LogTa
                         type="checkbox"
                         checked={isSelected}
                         disabled={!selectable}
-                        aria-label={`Select log ${labelIndex}`}
+                        aria-label={t("logTable.selectLogAria", { index: labelIndex })}
                         onChange={toggleSelection}
                         onClick={(event) => event.stopPropagation()}
                         onKeyDown={(event) => {

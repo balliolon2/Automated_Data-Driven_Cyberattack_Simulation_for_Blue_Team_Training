@@ -3,6 +3,9 @@ import { useParams, useNavigate, Link } from "react-router-dom";
 import axios from "axios";
 import { CheckCircle2, XCircle, ChevronRight, Award, ShieldAlert, ShieldCheck, Loader2, MessageSquare, Plus, Search, BookOpen } from "lucide-react";
 import DomainBreakdown from "../components/DomainBreakdown";
+import { useI18n } from "../i18n";
+import { resolveScenarioLocale } from "../i18n/format";
+import type { LocalizableScenario } from "../i18n/types";
 import { cn } from "../lib/utils";
 
 interface TelemetryLog {
@@ -56,8 +59,11 @@ interface SimulationSession {
 
 interface Scenario {
   title: string;
+  description?: string;
   domain_id: string;
   initial_logs?: TelemetryLog[] | null;
+  tp_fp_explanation?: string;
+  translations?: LocalizableScenario["translations"];
 }
 
 interface ResultData {
@@ -164,6 +170,7 @@ function EvidenceLogRow({
 }
 
 export default function ScenarioResultPage() {
+  const { locale, t } = useI18n();
   const { id } = useParams<{ id: string }>();
   const [loading, setLoading] = useState(true);
   const [session, setSession] = useState<SimulationSession | null>(null);
@@ -241,7 +248,7 @@ export default function ScenarioResultPage() {
     return (
       <div className="min-h-[60vh] flex flex-col items-center justify-center gap-3">
         <Loader2 className="w-6 h-6 text-white animate-spin" />
-        <p className="text-xs font-mono text-graphite-500">Analyzing triage report...</p>
+        <p className="text-xs font-mono text-graphite-500">{t("result.loadingText")}</p>
       </div>
     );
   }
@@ -249,10 +256,23 @@ export default function ScenarioResultPage() {
   if (!session || !scenario || !result) {
     return (
       <div className="text-center py-12 text-graphite-500 font-mono text-xs">
-        Failed to load incident results.
+        {t("result.loadFailed")}
       </div>
     );
   }
+
+  const localizedScenario = resolveScenarioLocale(
+    {
+      title: scenario.title,
+      description: scenario.description,
+      tp_fp_explanation: scenario.tp_fp_explanation || result.tp_fp_explanation,
+      initial_logs: scenario.initial_logs ?? undefined,
+      translations: scenario.translations,
+    },
+    locale,
+  );
+  const localizedTpFpExplanation =
+    localizedScenario.tp_fp_explanation || result.tp_fp_explanation;
 
   const showEvidenceReview = hasEvidenceReview(result, session);
   const initialLogs: TelemetryLog[] = Array.isArray(scenario.initial_logs)
@@ -280,9 +300,9 @@ export default function ScenarioResultPage() {
         <div className="inline-flex items-center justify-center p-3 rounded-md bg-graphite-900 border border-graphite-800 text-white mb-2">
           <Award className="w-6 h-6" />
         </div>
-        <h1 className="text-2xl font-bold tracking-tight text-white">Scenario Evaluation</h1>
+        <h1 className="text-2xl font-bold tracking-tight text-white">{t("result.pageTitle")}</h1>
         <p className="text-xs text-graphite-400 font-mono">
-          Incident Audit for: <span className="text-white font-semibold">{scenario.title}</span>
+          {t("result.incidentAuditFor")} <span className="text-white font-semibold">{localizedScenario.title}</span>
         </p>
       </div>
 
@@ -296,7 +316,7 @@ export default function ScenarioResultPage() {
               <span className="text-xs text-graphite-500 font-medium ml-1">/ 100</span>
             </div>
             <div className="text-[10px] font-semibold text-graphite-300 uppercase tracking-wider font-mono">
-              Performance Score
+              {t("result.performanceScore")}
             </div>
             <div className={cn(
               "px-2.5 py-0.5 rounded text-[10px] font-mono font-medium border",
@@ -304,12 +324,12 @@ export default function ScenarioResultPage() {
                 ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" 
                 : "bg-amber-500/10 text-amber-400 border-amber-500/20"
             )}>
-              {result.total_score >= 70 ? "Tactical Pass" : "Retraining Advised"}
+              {result.total_score >= 70 ? t("result.tacticalPass") : t("result.retrainingAdvised")}
             </div>
           </div>
 
           {/* Domain Breakdown */}
-          <DomainBreakdown domains={domainProficiencies} title="Updated Domain Proficiency" />
+          <DomainBreakdown domains={domainProficiencies} title={t("result.updatedDomainProficiency")} />
 
           {/* Action Button */}
           <button
@@ -318,12 +338,12 @@ export default function ScenarioResultPage() {
           >
             {needsTraining ? (
               <>
-                Next Training Scenario
+                {t("result.nextTrainingScenario")}
                 <ChevronRight className="w-4 h-4" />
               </>
             ) : (
               <>
-                Complete Simulation
+                {t("result.completeSimulation")}
                 <CheckCircle2 className="w-4 h-4" />
               </>
             )}
@@ -335,7 +355,7 @@ export default function ScenarioResultPage() {
               className="w-full py-2 bg-graphite-800 hover:bg-graphite-700 text-graphite-200 border border-graphite-700 font-semibold text-xs rounded-md transition-all duration-200 flex items-center justify-center gap-2"
             >
               <BookOpen className="w-4 h-4" />
-              Review Domain Theory
+              {t("result.reviewDomainTheory")}
             </button>
           )}
         </div>
@@ -346,15 +366,15 @@ export default function ScenarioResultPage() {
           <div className="bg-graphite-900 border border-graphite-800/80 p-6 rounded-lg space-y-4">
             <div className="flex items-center justify-between border-b border-graphite-800 pb-3">
               <h3 className="font-semibold text-sm text-white flex items-center gap-2">
-                Triage classification
+                {t("result.triageClassification")}
               </h3>
               {result.tp_fp_correct ? (
                 <span className="flex items-center gap-1 text-xs font-semibold text-emerald-400">
-                  <ShieldCheck className="w-4 h-4" /> Correct
+                  <ShieldCheck className="w-4 h-4" /> {t("result.correctBadge")}
                 </span>
               ) : (
                 <span className="flex items-center gap-1 text-xs font-semibold text-red-400">
-                  <ShieldAlert className="w-4 h-4" /> Incorrect
+                  <ShieldAlert className="w-4 h-4" /> {t("result.incorrectBadge")}
                 </span>
               )}
             </div>
@@ -366,10 +386,10 @@ export default function ScenarioResultPage() {
                 : "bg-red-950/10 border-red-500/10 text-red-300"
             )}>
               <div className="font-semibold text-[10px] mb-1.5 uppercase tracking-wider font-mono text-white">
-                Explanation:
+                {t("result.explanationLabel")}
               </div>
               <p className="text-xs leading-relaxed font-light">
-                {result.tp_fp_explanation}
+                {localizedTpFpExplanation}
               </p>
             </div>
           </div>
@@ -377,7 +397,7 @@ export default function ScenarioResultPage() {
           {/* Key Findings */}
           <div className="bg-graphite-900 border border-graphite-800/80 p-6 rounded-lg space-y-4">
             <h3 className="font-semibold text-sm text-white border-b border-graphite-800 pb-3">
-              Detect & Analysis Findings
+              {t("result.detectFindingsTitle")}
             </h3>
             
             <div className="space-y-3">
@@ -387,6 +407,8 @@ export default function ScenarioResultPage() {
                 const acceptable =
                   Array.isArray(finding.evidence_log_indices) ? finding.evidence_log_indices : [];
                 const earned = finding.earned ?? (finding.found ? finding.points : 0);
+                const findingDesc = localizedScenario.findingDescription(finding.id, finding.description);
+                const findingExp = localizedScenario.findingExplanation(finding.id, finding.explanation);
 
                 return (
                   <div
@@ -406,7 +428,7 @@ export default function ScenarioResultPage() {
                     {showEvidenceReview ? (
                       <div className="min-w-0 flex-1 space-y-2">
                         <div className="flex flex-wrap items-center gap-2">
-                          <span className="font-semibold text-white">{finding.description}</span>
+                          <span className="font-semibold text-white">{findingDesc}</span>
                           <span className="px-1.5 py-0.5 rounded bg-graphite-950 border border-graphite-800 text-[8px] font-mono text-graphite-400 uppercase">
                             {finding.domain_id}
                           </span>
@@ -416,20 +438,20 @@ export default function ScenarioResultPage() {
                               finding.found ? "text-emerald-400" : "text-graphite-500"
                             )}
                           >
-                            {finding.found ? "Found" : "Missed"}
+                            {finding.found ? t("result.foundBadge") : t("result.missedBadge")}
                           </span>
                           <span className="text-[9px] font-mono text-graphite-400">
-                            {earned} / {finding.points} pts
+                            {earned} / {finding.points} {t("result.ptsUnit")}
                           </span>
                         </div>
                         <p className="text-graphite-400 leading-relaxed">
-                          {finding.explanation}
+                          {findingExp}
                         </p>
 
                         {finding.found && matched.length > 0 && (
                           <div className="space-y-1.5 pt-1">
                             <div className="text-[9px] font-mono uppercase tracking-wider text-emerald-400/80">
-                              Matched evidence
+                              {t("result.matchedEvidenceLabel")}
                             </div>
                             {matched.map((index) => (
                               <EvidenceLogRow
@@ -445,7 +467,7 @@ export default function ScenarioResultPage() {
                         {!finding.found && acceptable.length > 0 && (
                           <div className="space-y-1.5 pt-1">
                             <div className="text-[9px] font-mono uppercase tracking-wider text-graphite-500">
-                              Acceptable evidence that would have proven this finding
+                              {t("result.acceptableEvidenceLabel")}
                             </div>
                             {acceptable.map((index) => (
                               <EvidenceLogRow
@@ -461,13 +483,13 @@ export default function ScenarioResultPage() {
                     ) : (
                       <div className="space-y-1">
                         <div className="flex items-center gap-2">
-                          <span className="font-semibold text-white">{finding.description}</span>
+                          <span className="font-semibold text-white">{findingDesc}</span>
                           <span className="px-1.5 py-0.5 rounded bg-graphite-950 border border-graphite-800 text-[8px] font-mono text-graphite-400 uppercase">
                             {finding.domain_id}
                           </span>
                         </div>
                         <p className="text-graphite-400 leading-relaxed">
-                          {finding.explanation}
+                          {findingExp}
                         </p>
                       </div>
                     )}
@@ -483,26 +505,36 @@ export default function ScenarioResultPage() {
               <div className="flex flex-wrap items-center justify-between gap-2 border-b border-graphite-800 pb-3">
                 <h3 className="font-semibold text-sm text-white flex items-center gap-2">
                   <Search className="w-4 h-4 text-cyan-300/80" />
-                  Evidence Review
+                  {t("result.evidenceReviewTitle")}
                 </h3>
                 <span className="text-[10px] font-mono text-graphite-400">
-                  Selected evidence: {selectedLogIndices.length} log
-                  {selectedLogIndices.length === 1 ? "" : "s"}
+                  {t(
+                    selectedLogIndices.length === 1
+                      ? "result.selectedEvidenceOne"
+                      : "result.selectedEvidenceMany",
+                    { count: selectedLogIndices.length },
+                  )}
                 </span>
               </div>
+
+              {locale === "th" && (
+                <p className="text-[11px] font-mono text-sky-300/90 bg-sky-950/20 border border-sky-500/20 rounded px-3 py-1.5">
+                  {t("result.rawLogsEnglishNotice")}
+                </p>
+              )}
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div className="rounded border border-graphite-800/80 bg-graphite-950/40 p-3">
                   <div className="text-[9px] font-mono uppercase tracking-wider text-graphite-500">
-                    Gross finding credit
+                    {t("result.grossFindingCredit")}
                   </div>
                   <div className="mt-1 text-lg font-mono font-bold text-white">
-                    {grossFindingCredit ?? "—"} pts
+                    {grossFindingCredit ?? "—"} {t("result.ptsUnit")}
                   </div>
                 </div>
                 <div className="rounded border border-graphite-800/80 bg-graphite-950/40 p-3">
                   <div className="text-[9px] font-mono uppercase tracking-wider text-graphite-500">
-                    Evidence penalty
+                    {t("result.evidencePenalty")}
                   </div>
                   <div
                     className={cn(
@@ -515,15 +547,15 @@ export default function ScenarioResultPage() {
                     {result.evidence_penalty && result.evidence_penalty > 0
                       ? `-${result.evidence_penalty}`
                       : "0"}{" "}
-                    pts
+                    {t("result.ptsUnit")}
                   </div>
                 </div>
                 <div className="rounded border border-graphite-800/80 bg-graphite-950/40 p-3">
                   <div className="text-[9px] font-mono uppercase tracking-wider text-graphite-500">
-                    Net findings points
+                    {t("result.netFindingsPoints")}
                   </div>
                   <div className="mt-1 text-lg font-mono font-bold text-emerald-400">
-                    {result.findings_points} pts
+                    {result.findings_points} {t("result.ptsUnit")}
                   </div>
                 </div>
               </div>
@@ -531,10 +563,10 @@ export default function ScenarioResultPage() {
               {selectedLogIndices.length === 0 ? (
                 <div className="rounded border border-dashed border-graphite-800/80 bg-graphite-950/30 px-4 py-6 text-center space-y-1">
                   <p className="text-xs text-graphite-300">
-                    No evidence was selected for this attempt.
+                    {t("result.noEvidenceTitle")}
                   </p>
                   <p className="text-[10px] font-mono text-graphite-500">
-                    Detect &amp; Analysis scored 0 findings points; no false-lead penalty was applied.
+                    {t("result.noEvidenceDesc")}
                   </p>
                 </div>
               ) : (
@@ -557,20 +589,20 @@ export default function ScenarioResultPage() {
                         {proven.length > 0 ? (
                           <div className="flex flex-wrap items-center gap-1.5 pl-1">
                             <span className="text-[9px] font-mono uppercase tracking-wider text-emerald-400/80">
-                              Proved:
+                              {t("result.provedLabel")}
                             </span>
                             {proven.map((finding) => (
                               <span
                                 key={`proven-${index}-${finding.id}`}
                                 className="px-1.5 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/20 text-[9px] font-mono text-emerald-300"
                               >
-                                {finding.description}
+                                {localizedScenario.findingDescription(finding.id, finding.description)}
                               </span>
                             ))}
                           </div>
                         ) : (
                           <div className="pl-1 text-[9px] font-mono text-red-400/90">
-                            Not evidence for any Key Finding — 2-point penalty
+                            {t("result.notEvidencePenalty")}
                           </div>
                         )}
                       </div>
@@ -584,11 +616,13 @@ export default function ScenarioResultPage() {
           {/* Response Plan */}
           <div className="bg-graphite-900 border border-graphite-800/80 p-6 rounded-lg space-y-4">
             <h3 className="font-semibold text-sm text-white border-b border-graphite-800 pb-3">
-              Response Plan Execution
+              {t("result.responsePlanTitle")}
             </h3>
             
             <div className="space-y-3">
               {result.response_detail.map((action) => {
+                const actionLabel = localizedScenario.playbookLabel(action.id, action.label);
+                const actionExp = localizedScenario.playbookExplanation(action.id, action.explanation);
                 return (
                   <div 
                     key={action.id}
@@ -615,7 +649,7 @@ export default function ScenarioResultPage() {
                     
                     <div className="space-y-1">
                       <div className="flex items-center gap-2">
-                        <span className="font-semibold text-white">{action.label}</span>
+                        <span className="font-semibold text-white">{actionLabel}</span>
                         <span className="px-1.5 py-0.5 rounded bg-graphite-950 border border-graphite-800 text-[8px] font-mono text-graphite-400 uppercase">
                           {action.phase} · {action.domain_id}
                         </span>
@@ -624,12 +658,12 @@ export default function ScenarioResultPage() {
                             "text-[9px] font-mono font-bold",
                             action.is_correct ? "text-emerald-400" : "text-red-400"
                           )}>
-                            ({action.points > 0 ? `+${action.points}` : action.points} pts)
+                            ({action.points > 0 ? `+${action.points}` : action.points} {t("result.ptsUnit")})
                           </span>
                         )}
                       </div>
                       <p className="text-graphite-400 leading-relaxed">
-                        {action.explanation}
+                        {actionExp}
                       </p>
                     </div>
                   </div>
@@ -643,7 +677,7 @@ export default function ScenarioResultPage() {
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b border-graphite-800 pb-3">
               <div className="flex items-center gap-2">
                 <MessageSquare className="w-4 h-4 text-indigo-400" />
-                <h3 className="font-bold text-sm text-white">Specialist Insights & Analysis Debriefs</h3>
+                <h3 className="font-bold text-sm text-white">{t("result.debriefsTitle")}</h3>
               </div>
 
               {(localStorage.getItem("userRole") === "specialist" || localStorage.getItem("userRole") === "admin") && (
@@ -658,19 +692,19 @@ export default function ScenarioResultPage() {
                   className="flex items-center gap-1.5 px-3 py-1 rounded bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold transition-colors cursor-pointer self-start sm:self-auto"
                 >
                   <Plus className="w-3.5 h-3.5" />
-                  <span>Write Analysis on this Scenario</span>
+                  <span>{t("result.writeAnalysis")}</span>
                 </button>
               )}
             </div>
 
             {threadsLoading ? (
               <div className="py-6 text-center text-graphite-500 font-mono text-xs">
-                Loading linked analysis threads...
+                {t("result.loadingThreads")}
               </div>
             ) : linkedThreads.length === 0 ? (
               <div className="py-8 text-center space-y-2 border border-dashed border-graphite-800/80 rounded-lg">
                 <p className="text-xs text-graphite-400">
-                  No specialist analysis published yet for this specific scenario.
+                  {t("result.noThreadsYet")}
                 </p>
                 {localStorage.getItem("userRole") === "specialist" || localStorage.getItem("userRole") === "admin" ? (
                   <button
@@ -683,46 +717,46 @@ export default function ScenarioResultPage() {
                     }
                     className="text-xs text-indigo-400 hover:text-indigo-300 font-semibold underline underline-offset-2 cursor-pointer"
                   >
-                    Be the first specialist to deconstruct this attack attempt!
+                    {t("result.beFirstSpecialist")}
                   </button>
                 ) : (
                   <Link
                     to="/discussions"
                     className="text-xs text-graphite-400 hover:text-white underline underline-offset-2 inline-block"
                   >
-                    Browse general discussions & debriefs &rarr;
+                    {t("result.browseDiscussions")}
                   </Link>
                 )}
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {linkedThreads.map((t) => (
+                {linkedThreads.map((tItem) => (
                   <div
-                    key={t.thread_id}
-                    onClick={() => navigate(`/discussions/${t.thread_id}`)}
+                    key={tItem.thread_id}
+                    onClick={() => navigate(`/discussions/${tItem.thread_id}`)}
                     className="p-3.5 rounded-lg bg-graphite-950 border border-graphite-800 hover:border-graphite-700 transition-all cursor-pointer space-y-2"
                   >
                     <div className="flex items-center justify-between text-xs">
                       <span className="font-mono text-[11px] text-graphite-300">
-                        by {t.author.nickname}
+                        {t("result.byAuthor", { author: tItem.author.nickname })}
                       </span>
                       <span className="px-1.5 py-0.2 rounded text-[9px] font-mono font-bold bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
-                        {t.author.role.toUpperCase()}
+                        {tItem.author.role.toUpperCase()}
                       </span>
                     </div>
 
                     <h4 className="font-semibold text-white text-xs hover:text-indigo-300 transition-colors line-clamp-1">
-                      {t.title}
+                      {tItem.title}
                     </h4>
 
                     <p className="text-[11px] text-graphite-400 line-clamp-2 leading-relaxed">
-                      {t.content.replace(/[#*`>|]/g, "").slice(0, 100)}...
+                      {tItem.content.replace(/[#*`>|]/g, "").slice(0, 100)}...
                     </p>
 
                     <div className="flex items-center justify-between text-[10px] font-mono text-graphite-500 pt-1.5 border-t border-graphite-800/60">
-                      <span>{t.upvote_count} helpful</span>
+                      <span>{t("result.helpfulCount", { count: tItem.upvote_count })}</span>
                       <span className="text-indigo-400 flex items-center gap-0.5">
-                        Read full &rarr;
+                        {t("result.readFull")}
                       </span>
                     </div>
                   </div>

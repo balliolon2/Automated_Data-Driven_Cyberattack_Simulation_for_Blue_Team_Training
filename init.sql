@@ -107,6 +107,7 @@ CREATE TABLE scenarios (
   expected_outcomes JSONB,
   is_true_positive BOOLEAN NOT NULL DEFAULT true,
   tp_fp_explanation TEXT,
+  translations JSONB NOT NULL DEFAULT '{}'::jsonb,
   status scenario_status DEFAULT 'active',
   created_at TIMESTAMP DEFAULT now(),
   updated_at TIMESTAMP

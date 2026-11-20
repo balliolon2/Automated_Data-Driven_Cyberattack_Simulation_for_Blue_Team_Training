@@ -167,7 +167,9 @@ export default function LearnTheoryPage() {
   const initialQueryTopicRef = useRef<string | null>(searchParams.get("topic"));
   const hasInitializedSelectionRef = useRef(false);
   const activeTopicRef = useRef<string | null>(selectedTopicId);
-  activeTopicRef.current = selectedTopicId;
+  useEffect(() => {
+    activeTopicRef.current = selectedTopicId;
+  }, [selectedTopicId]);
 
   const loadSubtopicDetail = useCallback(
     async (subTopicId: string, langOverride?: string) => {

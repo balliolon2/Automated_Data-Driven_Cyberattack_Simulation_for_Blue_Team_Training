@@ -16,6 +16,7 @@ type Scenario struct {
 	ExpectedOutcomes any        `gorm:"type:jsonb;serializer:json" json:"expected_outcomes"`
 	IsTruePositive   bool       `gorm:"not null;default:true" json:"is_true_positive"`
 	TpFpExplanation  string     `gorm:"type:text" json:"tp_fp_explanation"`
+	Translations     any        `gorm:"type:jsonb;serializer:json;not null;default:'{}'" json:"translations,omitempty"`
 	Status           string     `gorm:"type:scenario_status;default:'active'" json:"status"`
 	CreatedAt        time.Time  `gorm:"default:now()" json:"created_at"`
 	UpdatedAt        *time.Time `json:"updated_at"`

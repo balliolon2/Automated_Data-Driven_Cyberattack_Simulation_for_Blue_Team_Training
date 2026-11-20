@@ -367,6 +367,13 @@ func sessionScenarioFromDB(db *gorm.DB, session models.SimulationSession) (model
 		if decodeErr != nil {
 			return scenario, true, decodeErr
 		}
+		// Pre-Spec-11 immutable snapshots may omit translations; supplement translations only from live scenario row without altering logs/playbook/findings.
+		if !hasScenarioTranslations(scenario.Translations) && db != nil && session.ScenarioID != "" {
+			var live models.Scenario
+			if liveErr := db.Select("translations").Where("scenario_id = ?", session.ScenarioID).First(&live).Error; liveErr == nil && hasScenarioTranslations(live.Translations) {
+				scenario.Translations = live.Translations
+			}
+		}
 		return scenario, true, nil
 	}
 	if !errors.Is(err, gorm.ErrRecordNotFound) {
@@ -378,6 +385,15 @@ func sessionScenarioFromDB(db *gorm.DB, session models.SimulationSession) (model
 		return scenario, false, err
 	}
 	return scenario, false, nil
+}
+
+func hasScenarioTranslations(raw any) bool {
+	m, ok := raw.(map[string]interface{})
+	if !ok || len(m) == 0 {
+		return false
+	}
+	th, ok := m["th"].(map[string]interface{})
+	return ok && len(th) > 0
 }
 
 // decodeScenarioSnapshot decodes the JSONB ScenarioData payload into the
@@ -448,6 +464,13 @@ var domainNames = map[string]string{
 	"domain5": "Security Program Management and Oversight",
 }
 
+func writeSimError(c *gin.Context, status int, code string, msg string) {
+	c.JSON(status, gin.H{
+		"error": msg,
+		"code":  code,
+	})
+}
+
 // GetStatus godoc
 // @Summary Get learner simulation status
 // @Description Returns per-domain proficiency status, completed scenario count, and training eligibility.
@@ -461,7 +484,7 @@ var domainNames = map[string]string{
 func (sc *SimulationController) GetStatus(c *gin.Context) {
 	userID, exists := c.Get("user_id")
 	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		writeSimError(c, http.StatusUnauthorized, "SIM_UNAUTHORIZED", "Unauthorized")
 		return
 	}
 
@@ -472,6 +495,7 @@ func (sc *SimulationController) GetStatus(c *gin.Context) {
 	if len(profiles) == 0 {
 		c.JSON(http.StatusOK, gin.H{
 			"error":          "No skill profile found. Please complete the pre-test first.",
+			"code":           "SIM_NO_SKILL_PROFILE",
 			"needs_training": true,
 		})
 		return
@@ -537,7 +561,7 @@ func (sc *SimulationController) GetStatus(c *gin.Context) {
 func (sc *SimulationController) StartScenario(c *gin.Context) {
 	userID, exists := c.Get("user_id")
 	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		writeSimError(c, http.StatusUnauthorized, "SIM_UNAUTHORIZED", "Unauthorized")
 		return
 	}
 
@@ -554,7 +578,7 @@ func (sc *SimulationController) StartScenario(c *gin.Context) {
 		scenario, fromSnapshot, scenarioErr := sc.sessionScenario(activeSession)
 		if scenarioErr != nil {
 			log.Printf("Failed to load scenario for session %s: %v", activeSession.SessionID, scenarioErr)
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to load scenario"})
+			writeSimError(c, http.StatusInternalServerError, "SIM_SCENARIO_LOAD_FAILED", "Failed to load scenario")
 			return
 		}
 		if !fromSnapshot {
@@ -575,6 +599,7 @@ func (sc *SimulationController) StartScenario(c *gin.Context) {
 	if len(profiles) == 0 {
 		c.JSON(http.StatusOK, gin.H{
 			"error":          "No skill profile found. Please complete the pre-test first.",
+			"code":           "SIM_NO_SKILL_PROFILE",
 			"needs_training": true,
 		})
 		return
@@ -772,7 +797,7 @@ func (sc *SimulationController) StartScenario(c *gin.Context) {
 	}
 
 	if err := sc.DB.Create(&session).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create simulation session"})
+		writeSimError(c, http.StatusInternalServerError, "SIM_SESSION_CREATE_FAILED", "Failed to create simulation session")
 		return
 	}
 
@@ -828,7 +853,7 @@ func (sc *SimulationController) StartScenario(c *gin.Context) {
 func (sc *SimulationController) GetActiveSession(c *gin.Context) {
 	userID, exists := c.Get("user_id")
 	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		writeSimError(c, http.StatusUnauthorized, "SIM_UNAUTHORIZED", "Unauthorized")
 		return
 	}
 
@@ -841,7 +866,7 @@ func (sc *SimulationController) GetActiveSession(c *gin.Context) {
 		scenario, fromSnapshot, scenarioErr := sc.sessionScenario(activeSession)
 		if scenarioErr != nil {
 			log.Printf("Failed to load scenario for session %s: %v", activeSession.SessionID, scenarioErr)
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to load scenario"})
+			writeSimError(c, http.StatusInternalServerError, "SIM_SCENARIO_LOAD_FAILED", "Failed to load scenario")
 			return
 		}
 		if !fromSnapshot {
@@ -873,7 +898,10 @@ func (sc *SimulationController) GetActiveSession(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusNotFound, gin.H{"message": "No active simulation session found"})
+	c.JSON(http.StatusNotFound, gin.H{
+		"message": "No active simulation session found",
+		"code":    "SIM_NO_ACTIVE_SESSION",
+	})
 }
 
 // LogQuery godoc
@@ -893,13 +921,13 @@ func (sc *SimulationController) GetActiveSession(c *gin.Context) {
 func (sc *SimulationController) LogQuery(c *gin.Context) {
 	userID, exists := c.Get("user_id")
 	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		writeSimError(c, http.StatusUnauthorized, "SIM_UNAUTHORIZED", "Unauthorized")
 		return
 	}
 
 	var input LogQueryInput
 	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		writeSimError(c, http.StatusBadRequest, "SIM_BAD_REQUEST", err.Error())
 		return
 	}
 
@@ -940,35 +968,35 @@ func (sc *SimulationController) LogQuery(c *gin.Context) {
 func (sc *SimulationController) SelectLog(c *gin.Context) {
 	userID, exists := c.Get("user_id")
 	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		writeSimError(c, http.StatusUnauthorized, "SIM_UNAUTHORIZED", "Unauthorized")
 		return
 	}
 
 	var input dto.SelectLogRequest
 	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		writeSimError(c, http.StatusBadRequest, "SIM_BAD_REQUEST", err.Error())
 		return
 	}
 	if input.LogIndex == nil || input.Selected == nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "log_index and selected are required"})
+		writeSimError(c, http.StatusBadRequest, "SIM_BAD_REQUEST", "log_index and selected are required")
 		return
 	}
 
 	var session models.SimulationSession
 	if err := sc.DB.Where("session_id = ?", input.SessionID).First(&session).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			c.JSON(http.StatusNotFound, gin.H{"error": "Simulation session not found"})
+			writeSimError(c, http.StatusNotFound, "SIM_SESSION_NOT_FOUND", "Simulation session not found")
 			return
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to load simulation session"})
+		writeSimError(c, http.StatusInternalServerError, "SIM_SESSION_LOAD_FAILED", "Failed to load simulation session")
 		return
 	}
 	if session.UserID != userID.(string) {
-		c.JSON(http.StatusForbidden, gin.H{"error": "Simulation session is not owned by caller"})
+		writeSimError(c, http.StatusForbidden, "SIM_SESSION_FORBIDDEN", "Simulation session is not owned by caller")
 		return
 	}
 	if session.Status != "in_progress" {
-		c.JSON(http.StatusForbidden, gin.H{"error": "Simulation session is not in progress"})
+		writeSimError(c, http.StatusForbidden, "SIM_SESSION_NOT_ACTIVE", "Simulation session is not in progress")
 		return
 	}
 
@@ -978,17 +1006,17 @@ func (sc *SimulationController) SelectLog(c *gin.Context) {
 	if err != nil {
 		switch {
 		case errors.Is(err, errSelectionLogsUnavailable):
-			c.JSON(http.StatusBadRequest, gin.H{"error": errSelectionLogsUnavailable.Error()})
+			writeSimError(c, http.StatusBadRequest, "SIM_LOGS_UNAVAILABLE", errSelectionLogsUnavailable.Error())
 		case errors.Is(err, gorm.ErrRecordNotFound):
-			c.JSON(http.StatusNotFound, gin.H{"error": "Scenario not found"})
+			writeSimError(c, http.StatusNotFound, "SIM_SCENARIO_NOT_FOUND", "Scenario not found")
 		default:
 			log.Printf("Failed to load scenario logs for session %s: %v", session.SessionID, err)
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to load scenario logs"})
+			writeSimError(c, http.StatusInternalServerError, "SIM_LOGS_LOAD_FAILED", "Failed to load scenario logs")
 		}
 		return
 	}
 	if err := validateSelectionLogIndex(logs, *input.LogIndex); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		writeSimError(c, http.StatusBadRequest, "SIM_INVALID_LOG_INDEX", err.Error())
 		return
 	}
 
@@ -1030,31 +1058,31 @@ func (sc *SimulationController) SelectLog(c *gin.Context) {
 func (sc *SimulationController) ClearLogSelection(c *gin.Context) {
 	userID, exists := c.Get("user_id")
 	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		writeSimError(c, http.StatusUnauthorized, "SIM_UNAUTHORIZED", "Unauthorized")
 		return
 	}
 
 	var input dto.ClearLogSelectionRequest
 	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		writeSimError(c, http.StatusBadRequest, "SIM_BAD_REQUEST", err.Error())
 		return
 	}
 
 	var session models.SimulationSession
 	if err := sc.DB.Where("session_id = ?", input.SessionID).First(&session).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			c.JSON(http.StatusNotFound, gin.H{"error": "Simulation session not found"})
+			writeSimError(c, http.StatusNotFound, "SIM_SESSION_NOT_FOUND", "Simulation session not found")
 			return
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to load simulation session"})
+		writeSimError(c, http.StatusInternalServerError, "SIM_SESSION_LOAD_FAILED", "Failed to load simulation session")
 		return
 	}
 	if session.UserID != userID.(string) {
-		c.JSON(http.StatusForbidden, gin.H{"error": "Simulation session is not owned by caller"})
+		writeSimError(c, http.StatusForbidden, "SIM_SESSION_FORBIDDEN", "Simulation session is not owned by caller")
 		return
 	}
 	if session.Status != "in_progress" {
-		c.JSON(http.StatusForbidden, gin.H{"error": "Simulation session is not in progress"})
+		writeSimError(c, http.StatusForbidden, "SIM_SESSION_NOT_ACTIVE", "Simulation session is not in progress")
 		return
 	}
 
@@ -1078,14 +1106,14 @@ func (sc *SimulationController) ClearLogSelection(c *gin.Context) {
 func writeSessionActionError(c *gin.Context, err error) {
 	switch {
 	case errors.Is(err, errSelectionSessionNotFound):
-		c.JSON(http.StatusNotFound, gin.H{"error": "Simulation session not found"})
+		writeSimError(c, http.StatusNotFound, "SIM_SESSION_NOT_FOUND", "Simulation session not found")
 	case errors.Is(err, errSelectionSessionForbidden):
-		c.JSON(http.StatusForbidden, gin.H{"error": "Simulation session is not owned by caller"})
+		writeSimError(c, http.StatusForbidden, "SIM_SESSION_FORBIDDEN", "Simulation session is not owned by caller")
 	case errors.Is(err, errSelectionSessionInactive):
-		c.JSON(http.StatusForbidden, gin.H{"error": "Simulation session is not in progress"})
+		writeSimError(c, http.StatusForbidden, "SIM_SESSION_NOT_ACTIVE", "Simulation session is not in progress")
 	default:
 		log.Printf("Failed to record session action: %v", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to record session action"})
+		writeSimError(c, http.StatusInternalServerError, "SIM_ACTION_RECORD_FAILED", "Failed to record session action")
 	}
 }
 
@@ -1106,19 +1134,19 @@ func writeSessionActionError(c *gin.Context, err error) {
 func (sc *SimulationController) SubmitScenario(c *gin.Context) {
 	userID, exists := c.Get("user_id")
 	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		writeSimError(c, http.StatusUnauthorized, "SIM_UNAUTHORIZED", "Unauthorized")
 		return
 	}
 
 	var input SubmitScenarioInput
 	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		writeSimError(c, http.StatusBadRequest, "SIM_BAD_REQUEST", err.Error())
 		return
 	}
 
 	tx := sc.DB.Begin()
 	if tx.Error != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to start submission"})
+		writeSimError(c, http.StatusInternalServerError, "SIM_SUBMIT_FAILED", "Failed to start submission")
 		return
 	}
 
@@ -1137,7 +1165,7 @@ func (sc *SimulationController) SubmitScenario(c *gin.Context) {
 	scenario, _, scenarioErr := sessionScenarioTx(tx, session)
 	if scenarioErr != nil {
 		tx.Rollback()
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Scenario not found"})
+		writeSimError(c, http.StatusInternalServerError, "SIM_SCENARIO_NOT_FOUND", "Scenario not found")
 		return
 	}
 
@@ -1147,7 +1175,7 @@ func (sc *SimulationController) SubmitScenario(c *gin.Context) {
 	serverSelection, err := selectedLogIndicesTx(tx, input.SessionID)
 	if err != nil {
 		tx.Rollback()
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to replay evidence selection"})
+		writeSimError(c, http.StatusInternalServerError, "SIM_EVIDENCE_REPLAY_FAILED", "Failed to replay evidence selection")
 		return
 	}
 	clientSelection := []int{}
@@ -1248,7 +1276,7 @@ func (sc *SimulationController) SubmitScenario(c *gin.Context) {
 			profile.LastPracticed = &now
 			if err := tx.Create(&profile).Error; err != nil {
 				tx.Rollback()
-				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update skill profile"})
+				writeSimError(c, http.StatusInternalServerError, "SIM_PROFILE_UPDATE_FAILED", "Failed to update skill profile")
 				return
 			}
 			if newScore < ProficiencyThreshold {
@@ -1262,7 +1290,7 @@ func (sc *SimulationController) SubmitScenario(c *gin.Context) {
 			profile.LastPracticed = &now
 			if err := tx.Save(&profile).Error; err != nil {
 				tx.Rollback()
-				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update skill profile"})
+				writeSimError(c, http.StatusInternalServerError, "SIM_PROFILE_UPDATE_FAILED", "Failed to update skill profile")
 				return
 			}
 			if profile.ProficiencyScore < ProficiencyThreshold {
@@ -1275,7 +1303,7 @@ func (sc *SimulationController) SubmitScenario(c *gin.Context) {
 	var totalProfilesCount int64
 	if err := tx.Model(&models.UserSkillProfile{}).Where("user_id = ?", userID).Count(&totalProfilesCount).Error; err != nil {
 		tx.Rollback()
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update skill profile"})
+		writeSimError(c, http.StatusInternalServerError, "SIM_PROFILE_UPDATE_FAILED", "Failed to update skill profile")
 		return
 	}
 	if totalProfilesCount < 5 {
@@ -1286,7 +1314,7 @@ func (sc *SimulationController) SubmitScenario(c *gin.Context) {
 	var totalCompletedCount int64
 	if err := tx.Model(&models.SimulationSession{}).Where("user_id = ? AND status = 'completed'", userID).Count(&totalCompletedCount).Error; err != nil {
 		tx.Rollback()
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update session"})
+		writeSimError(c, http.StatusInternalServerError, "SIM_SESSION_UPDATE_FAILED", "Failed to update session")
 		return
 	}
 	// Add current session (which is about to be saved as completed)
@@ -1304,12 +1332,12 @@ func (sc *SimulationController) SubmitScenario(c *gin.Context) {
 
 	if err := tx.Save(&session).Error; err != nil {
 		tx.Rollback()
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update session"})
+		writeSimError(c, http.StatusInternalServerError, "SIM_SESSION_UPDATE_FAILED", "Failed to update session")
 		return
 	}
 
 	if err := tx.Commit().Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to submit scenario"})
+		writeSimError(c, http.StatusInternalServerError, "SIM_SUBMIT_FAILED", "Failed to submit scenario")
 		return
 	}
 
@@ -1336,7 +1364,7 @@ func (sc *SimulationController) SubmitScenario(c *gin.Context) {
 func (sc *SimulationController) GetResult(c *gin.Context) {
 	userID, exists := c.Get("user_id")
 	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		writeSimError(c, http.StatusUnauthorized, "SIM_UNAUTHORIZED", "Unauthorized")
 		return
 	}
 
@@ -1344,12 +1372,12 @@ func (sc *SimulationController) GetResult(c *gin.Context) {
 
 	var session models.SimulationSession
 	if err := sc.DB.Where("session_id = ? AND user_id = ?", sessionID, userID).First(&session).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Session not found"})
+		writeSimError(c, http.StatusNotFound, "SIM_SESSION_NOT_FOUND", "Session not found")
 		return
 	}
 
 	if session.Status != "completed" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Session is not completed yet"})
+		writeSimError(c, http.StatusBadRequest, "SIM_SESSION_NOT_COMPLETED", "Session is not completed yet")
 		return
 	}
 
@@ -1422,7 +1450,71 @@ func sanitizeScenario(s models.Scenario, sessionID string) ScenarioResponse {
 		InitialLogs:   s.InitialLogs,
 		PlaybookSteps: sanitizedSteps,
 		TotalFindings: countKeyFindings(s.ExpectedOutcomes),
+		Translations:  sanitizeScenarioTranslations(s.Translations),
 	}
+}
+
+// sanitizeScenarioTranslations exposes ONLY non-spoiler localized fields (title,
+// description, and playbook_steps[id].label) in pre-submission ScenarioResponse.
+// tp_fp_explanation, findings, and playbook explanations MUST NEVER be exposed.
+func sanitizeScenarioTranslations(raw any) any {
+	transMap, ok := raw.(map[string]interface{})
+	if !ok || len(transMap) == 0 {
+		return nil
+	}
+
+	sanitizedLocales := make(map[string]interface{})
+	for locale, rawLocalePayload := range transMap {
+		localeMap, ok := rawLocalePayload.(map[string]interface{})
+		if !ok || len(localeMap) == 0 {
+			continue
+		}
+
+		out := make(map[string]interface{})
+		if title, ok := localeMap["title"].(string); ok && strings.TrimSpace(title) != "" {
+			out["title"] = title
+		}
+		if desc, ok := localeMap["description"].(string); ok && strings.TrimSpace(desc) != "" {
+			out["description"] = desc
+		}
+
+		if pbRaw, ok := localeMap["playbook_steps"]; ok && pbRaw != nil {
+			sanitizedPB := make(map[string]interface{})
+			switch pbTyped := pbRaw.(type) {
+			case map[string]interface{}:
+				for actionID, rawStep := range pbTyped {
+					switch stepTyped := rawStep.(type) {
+					case map[string]interface{}:
+						if lbl, ok := stepTyped["label"].(string); ok && strings.TrimSpace(lbl) != "" {
+							sanitizedPB[actionID] = map[string]interface{}{"label": lbl}
+						}
+					case map[string]string:
+						if lbl := strings.TrimSpace(stepTyped["label"]); lbl != "" {
+							sanitizedPB[actionID] = map[string]interface{}{"label": stepTyped["label"]}
+						}
+					}
+				}
+			case map[string]map[string]string:
+				for actionID, stepTyped := range pbTyped {
+					if lbl := strings.TrimSpace(stepTyped["label"]); lbl != "" {
+						sanitizedPB[actionID] = map[string]interface{}{"label": stepTyped["label"]}
+					}
+				}
+			}
+			if len(sanitizedPB) > 0 {
+				out["playbook_steps"] = sanitizedPB
+			}
+		}
+
+		if len(out) > 0 {
+			sanitizedLocales[locale] = out
+		}
+	}
+
+	if len(sanitizedLocales) == 0 {
+		return nil
+	}
+	return sanitizedLocales
 }
 
 // countKeyFindings counts the scenario's authored Key Findings regardless of
@@ -1518,7 +1610,7 @@ func sanitizePlaybookSteps(steps any, sessionID string) any {
 func (sc *SimulationController) GetResearchSummary(c *gin.Context) {
 	userID, exists := c.Get("user_id")
 	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		writeSimError(c, http.StatusUnauthorized, "SIM_UNAUTHORIZED", "Unauthorized")
 		return
 	}
 
@@ -1736,6 +1828,8 @@ func evaluateStage2TheoryGate(bypassEnv, role string, loadProgress func() ([]str
 	totalSubtopics := len(services.OrderedTheorySubtopics)
 	return &dto.TheoryGateErrorResponse{
 		Error:                  "Please complete all 28 Learning Theory Sub-topics before starting simulation scenarios.",
+		Code:                   "SIM_THEORY_INCOMPLETE",
+		Params:                 map[string]any{"completed_subtopics": doneSubCount, "total_subtopics": totalSubtopics},
 		Reason:                 "theory_incomplete",
 		CompletedCount:         &doneDomCount,
 		TotalDomains:           &totalDomains,

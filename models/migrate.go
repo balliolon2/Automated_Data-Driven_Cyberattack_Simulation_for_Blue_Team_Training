@@ -95,6 +95,7 @@ func RunMigrations(db *gorm.DB) error {
 	// 4. Ensure community and specialist tables exist (idempotent DDL from init.sql)
 	ddl := []string{
 		`ALTER TABLE users ADD COLUMN IF NOT EXISTS preferred_language VARCHAR(10) NOT NULL DEFAULT 'en'`,
+		`ALTER TABLE scenarios ADD COLUMN IF NOT EXISTS translations JSONB NOT NULL DEFAULT '{}'::jsonb`,
 		`CREATE TABLE IF NOT EXISTS specialist_applications (
 			application_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 			user_id UUID REFERENCES users(user_id) ON DELETE CASCADE,

@@ -13,17 +13,24 @@ import (
 
 func evidenceTestMicro(isTruePositive bool) aiMicroScenario {
 	return aiMicroScenario{
-		Title:             "Runtime Evidence Contract Test",
-		Description:       "An alert fired on the test host.",
-		IsTruePositive:    isTruePositive,
-		TpFpExplanation:   "Deterministic explanation for the test scenario.",
-		AttackerIP:        "198.51.100.7",
-		TargetHost:        "SRV-TEST01",
-		AttackLogMessage:  "Suspicious process execution detected on SRV-TEST01",
-		KeyFinding:        "Suspicious process execution detected on SRV-TEST01",
-		ContainmentAction: "Isolate SRV-TEST01 from the production network immediately and block 198.51.100.7 at the perimeter firewall",
-		EradicationAction: "Remove the malicious process from SRV-TEST01 and rotate all exposed service credentials",
-		RecoveryAction:    "Restore SRV-TEST01 from a verified clean image and monitor outbound traffic for 72 hours",
+		Title:               "Runtime Evidence Contract Test",
+		TitleTh:             "การทดสอบความสมบูรณ์ของหลักฐานในระบบจำลอง",
+		Description:         "An alert fired on the test host.",
+		DescriptionTh:       "ตรวจพบการแจ้งเตือนบนโฮสต์ทดสอบ SRV-TEST01",
+		IsTruePositive:      isTruePositive,
+		TpFpExplanation:     "Deterministic explanation for the test scenario.",
+		TpFpExplanationTh:   "คำอธิบายผลเฉลยสำหรับการทดสอบสถานการณ์จำลอง",
+		AttackerIP:          "198.51.100.7",
+		TargetHost:          "SRV-TEST01",
+		AttackLogMessage:    "Suspicious process execution detected on SRV-TEST01",
+		KeyFinding:          "Suspicious process execution detected on SRV-TEST01",
+		KeyFindingTh:        "ตรวจพบการรันโพรเซสต้องสงสัยบน SRV-TEST01",
+		ContainmentAction:   "Isolate SRV-TEST01 from the production network immediately and block 198.51.100.7 at the perimeter firewall",
+		ContainmentActionTh: "แยกโฮสต์ SRV-TEST01 ออกจากเครือข่ายระบบงานจริงทันทีและบล็อก 198.51.100.7 ที่ perimeter firewall",
+		EradicationAction:   "Remove the malicious process from SRV-TEST01 and rotate all exposed service credentials",
+		EradicationActionTh: "ลบโพรเซสที่เป็นอันตรายออกจาก SRV-TEST01 และหมุนเวียน credentials ทั้งหมดที่อาจรั่วไหล",
+		RecoveryAction:      "Restore SRV-TEST01 from a verified clean image and monitor outbound traffic for 72 hours",
+		RecoveryActionTh:    "กู้คืน SRV-TEST01 จาก clean image ที่ตรวจสอบแล้วและเฝ้าระวังทราฟฟิกขาออก 72 ชั่วโมง",
 	}
 }
 
@@ -155,11 +162,13 @@ func TestSynthesizeFullScenario_FalsePositiveAppendsSuppliedBenignMessage(t *tes
 	ai.Findings = []aiFinding{
 		{
 			Description:         "Correlated approved change",
+			DescriptionTh:       "เชื่อมโยงพบรายการขออนุมัติเปลี่ยนแปลงระบบ",
 			DomainID:            "domain5",
 			Points:              10,
 			EvidenceLogMessages: []string{benignMessage},
 			VerdictSupport:      "benign",
 			Explanation:         "The change record proves the activity is authorized.",
+			ExplanationTh:       "บันทึก Change Control ยืนยันว่ากิจกรรมนี้ได้รับอนุญาต",
 		},
 	}
 
@@ -204,11 +213,13 @@ func TestSynthesizeFullScenario_FalsePositiveSynthesizesBenignContextLog(t *test
 	ai.Findings = []aiFinding{
 		{
 			Description:         "Alert-only benign explanation",
+			DescriptionTh:       "คำอธิบายเหตุการณ์ปลอดภัยจาก log เดิม",
 			DomainID:            "domain4",
 			Points:              10,
 			EvidenceLogMessages: []string{ai.AttackLogMessage},
 			VerdictSupport:      "benign",
 			Explanation:         "The LLM omitted a change record.",
+			ExplanationTh:       "โมเดลไม่ได้สร้างบันทึก Change Record มาด้วยระบบจึงสังเคราะห์ให้",
 		},
 	}
 
@@ -685,17 +696,30 @@ func TestShouldArchiveScenarioEvidence(t *testing.T) {
 			t.Fatalf("expected scenario failing ValidateScenarioCandidate to be archived, got shouldArchive=%v err=%v", shouldArchive, err)
 		}
 	})
+
+	t.Run("archives active non-seed AI scenarios missing valid translations.th", func(t *testing.T) {
+		scenario := synthesizeFullScenario(evidenceTestMicro(true), "domain4", "Security Operations")
+		scenario.Title = "Legacy Unlocalized AI Scenario"
+		scenario.Translations = nil
+		shouldArchive, err := shouldArchiveScenarioEvidence(scenario, seedTitles)
+		if !shouldArchive || err == nil {
+			t.Fatalf("expected unlocalized non-seed AI scenario to be archived, got shouldArchive=%v err=%v", shouldArchive, err)
+		}
+	})
 }
 
 func TestHybridMultiEventInterleavedLogs_DiversityAndDecoys(t *testing.T) {
 	ai := aiMicroScenario{
-		Title:           "KMS Key Enumeration and S3 Data Staging",
-		Description:     "Unusual AWS KMS key listing followed by S3 object staging by a developer role.",
-		IsTruePositive:  true,
-		TpFpExplanation: "Unauthorized role assumption used to enumerate KMS keys and stage S3 archives.",
-		AttackerIP:      "198.51.100.84",
-		TargetHost:      "aws-s3-finance",
-		PrimaryUser:     "dev_ci_runner",
+		Title:             "KMS Key Enumeration and S3 Data Staging",
+		TitleTh:           "การไล่ตรวจสอบ KMS Key และพักข้อมูลบน S3 เพื่อขโมยออกนอกระบบ",
+		Description:       "Unusual AWS KMS key listing followed by S3 object staging by a developer role.",
+		DescriptionTh:     "ตรวจพบการเรียกดูรายการ AWS KMS key ผิดปกติตามด้วยการคัดลอกข้อมูลบน S3 โดยสิทธิ์นักพัฒนา",
+		IsTruePositive:    true,
+		TpFpExplanation:   "Unauthorized role assumption used to enumerate KMS keys and stage S3 archives.",
+		TpFpExplanationTh: "มีการสวมสิทธิ์ role โดยไม่ได้รับอนุญาตเพื่อสำรวจ KMS key และพักไฟล์เตรียมขโมย",
+		AttackerIP:        "198.51.100.84",
+		TargetHost:        "aws-s3-finance",
+		PrimaryUser:       "dev_ci_runner",
 		IncidentLogs: []aiIncidentLog{
 			{Source: "iam_service", Severity: "info", Host: "aws-iam-global", SrcIP: "198.51.100.84", User: "dev_ci_runner", Message: "AssumeRole succeeded for role prod-s3-auditor from external source 198.51.100.84"},
 			{Source: "aws_cloudtrail", Severity: "warning", Host: "aws-kms-us-east", SrcIP: "198.51.100.84", User: "dev_ci_runner", Message: "ListAliases executed across 14 customer master keys by dev_ci_runner"},
@@ -705,19 +729,23 @@ func TestHybridMultiEventInterleavedLogs_DiversityAndDecoys(t *testing.T) {
 		Findings: []aiFinding{
 			{
 				Description:         "External IAM role assumption and KMS enumeration",
+				DescriptionTh:       "การสวมสิทธิ์ IAM Role จากภายนอกและการสำรวจ KMS Key",
 				DomainID:            "domain3",
 				Points:              10,
 				EvidenceLogMessages: []string{"AssumeRole succeeded for role prod-s3-auditor from external source 198.51.100.84", "ListAliases executed across 14 customer master keys by dev_ci_runner"},
 				VerdictSupport:      "malicious",
 				Explanation:         "Reconnaissance of KMS keys followed unusual external role assumption.",
+				ExplanationTh:       "มีการสำรวจรายการ KMS key ต่อเนื่องจากการ AssumeRole จาก IP ภายนอก",
 			},
 			{
 				Description:         "Unauthorized S3 replication staging",
+				DescriptionTh:       "การตั้งค่า S3 Replication โดยไม่ได้รับอนุญาตเพื่อพักข้อมูล",
 				DomainID:            "domain3",
 				Points:              10,
 				EvidenceLogMessages: []string{"GetObject batch downloaded 42 payroll archives from s3://corp-fin-staging", "PutBucketReplication configured toward external account 998877665544"},
 				VerdictSupport:      "malicious",
 				Explanation:         "Bucket replication to an unrecognized account indicates staging for exfiltration.",
+				ExplanationTh:       "การเปิดทำ replication ไปยังบัญชีภายนอกที่ไม่รู้จักบ่งชี้ถึงการเตรียมโจรกรรมข้อมูล",
 			},
 		},
 	}

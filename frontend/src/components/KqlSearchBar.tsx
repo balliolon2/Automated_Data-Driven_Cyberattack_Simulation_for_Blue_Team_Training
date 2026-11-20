@@ -1,6 +1,7 @@
 import { useState, type FormEvent, useEffect } from "react";
 import { Search, AlertCircle, History } from "lucide-react";
 import axios from "axios";
+import { useI18n } from "../i18n";
 
 interface KqlSearchBarProps {
   sessionId: string;
@@ -11,6 +12,7 @@ interface KqlSearchBarProps {
 }
 
 export default function KqlSearchBar({ sessionId, onFilter, logs, searchQuery, onSearchQueryChange }: KqlSearchBarProps) {
+  const { t } = useI18n();
   const [query, setQuery] = useState(searchQuery || "");
   const [error, setError] = useState<string | null>(null);
   const [history, setHistory] = useState<string[]>([]);
@@ -56,7 +58,7 @@ export default function KqlSearchBar({ sessionId, onFilter, logs, searchQuery, o
       const filtered = logs.filter(log => evaluateQuery(log, q));
       onFilter(filtered);
     } catch (err: any) {
-      setError(err.message || "Invalid KQL query syntax");
+      setError(err.message || t("kql.fallbackInvalidSyntax"));
       onFilter([]); // show empty logs on error
     }
   };
@@ -92,7 +94,7 @@ export default function KqlSearchBar({ sessionId, onFilter, logs, searchQuery, o
         <div className="relative flex-1">
           <input
             type="text"
-            placeholder='e.g., source == "firewall" and severity == "high" or message contains "PowerShell"'
+            placeholder={t("kql.placeholder")}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onFocus={() => setShowHistory(true)}
@@ -104,7 +106,7 @@ export default function KqlSearchBar({ sessionId, onFilter, logs, searchQuery, o
           {history.length > 0 && showHistory && (
             <div className="absolute top-full left-0 right-0 mt-1 bg-graphite-900 border border-graphite-800 rounded-lg shadow-2xl z-50 overflow-hidden divide-y divide-graphite-800/50 max-h-48 overflow-y-auto">
               <div className="px-3 py-1.5 text-[10px] font-mono text-graphite-500 flex items-center gap-1 bg-graphite-950/40">
-                <History className="w-3 h-3" /> Query History
+                <History className="w-3 h-3" /> {t("kql.queryHistory")}
               </div>
               {history.map((h, i) => (
                 <button
@@ -123,14 +125,14 @@ export default function KqlSearchBar({ sessionId, onFilter, logs, searchQuery, o
           type="submit"
           className="px-5 py-3 bg-emerald-500 text-emerald-950 font-bold rounded-lg shadow-md hover:bg-emerald-400 transition-all flex items-center gap-2 shrink-0 text-sm hover:-translate-y-0.5 active:translate-y-0"
         >
-          <Search className="w-4 h-4" /> Run Query
+          <Search className="w-4 h-4" /> {t("kql.runQuery")}
         </button>
       </form>
 
       {error && (
         <div className="flex items-center gap-2 text-red-400 text-xs font-mono bg-red-950/20 px-3 py-1.5 rounded-lg border border-red-500/10 animate-fade-in">
           <AlertCircle className="w-4 h-4 shrink-0" />
-          <span>Invalid syntax: {error}</span>
+          <span>{t("kql.invalidSyntaxPrefix", { error })}</span>
         </div>
       )}
     </div>

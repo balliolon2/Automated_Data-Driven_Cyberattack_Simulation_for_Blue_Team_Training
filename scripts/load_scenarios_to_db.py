@@ -20,7 +20,8 @@ def load_scenarios_to_db(json_file_path, db_connection_string):
             """
             ALTER TABLE scenarios
             ADD COLUMN IF NOT EXISTS is_true_positive BOOLEAN NOT NULL DEFAULT true,
-            ADD COLUMN IF NOT EXISTS tp_fp_explanation TEXT;
+            ADD COLUMN IF NOT EXISTS tp_fp_explanation TEXT,
+            ADD COLUMN IF NOT EXISTS translations JSONB NOT NULL DEFAULT '{}'::jsonb;
             """
         )
         conn.commit()
@@ -30,6 +31,7 @@ def load_scenarios_to_db(json_file_path, db_connection_string):
         updated_count = 0
 
         for s in scenarios:
+            translations_json = json.dumps(s.get("translations") or {}, ensure_ascii=False)
             cursor.execute(
                 """
                 SELECT scenario_id FROM scenarios WHERE title = %s AND domain_id = %s
@@ -49,6 +51,7 @@ def load_scenarios_to_db(json_file_path, db_connection_string):
                         expected_outcomes = %s,
                         is_true_positive = %s,
                         tp_fp_explanation = %s,
+                        translations = %s,
                         status = %s,
                         updated_at = NOW()
                     WHERE scenario_id = %s
@@ -61,6 +64,7 @@ def load_scenarios_to_db(json_file_path, db_connection_string):
                         json.dumps(s["expected_outcomes"]),
                         s["is_true_positive"],
                         s["tp_fp_explanation"],
+                        translations_json,
                         s.get("status", "active"),
                         existing[0],
                     ),
@@ -70,8 +74,8 @@ def load_scenarios_to_db(json_file_path, db_connection_string):
                 cursor.execute(
                     """
                     INSERT INTO scenarios
-                    (title, description, domain_id, difficulty, initial_logs, playbook_steps, expected_outcomes, is_true_positive, tp_fp_explanation, status)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    (title, description, domain_id, difficulty, initial_logs, playbook_steps, expected_outcomes, is_true_positive, tp_fp_explanation, translations, status)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                     """,
                     (
                         s["title"],
@@ -83,6 +87,7 @@ def load_scenarios_to_db(json_file_path, db_connection_string):
                         json.dumps(s["expected_outcomes"]),
                         s["is_true_positive"],
                         s["tp_fp_explanation"],
+                        translations_json,
                         s.get("status", "active"),
                     ),
                 )

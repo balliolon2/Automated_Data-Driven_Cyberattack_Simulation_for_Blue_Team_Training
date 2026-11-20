@@ -7,6 +7,9 @@ import LogTable from "../components/LogTable";
 import ResponsePanel from "../components/ResponsePanel";
 import ScenarioLoadingState from "../components/ScenarioLoadingState";
 import { buildInvestigationShortcuts } from "../lib/siemShortcuts";
+import { useI18n } from "../i18n";
+import { resolveApiError, resolveScenarioLocale } from "../i18n/format";
+import type { LocalizableScenario } from "../i18n/types";
 import { cn } from "../lib/utils";
 
 interface ActionOption {
@@ -29,6 +32,8 @@ interface Scenario {
   initial_logs: any[];
   playbook_steps: PlaybookSteps;
   total_findings?: number;
+  translations?: LocalizableScenario["translations"];
+  tp_fp_explanation?: string;
 }
 
 interface SimulationSession {
@@ -49,6 +54,7 @@ const normalizeIndices = (indices: number[] | undefined | null): number[] =>
   Array.from(new Set(Array.isArray(indices) ? indices : [])).sort((a, b) => a - b);
 
 export default function SimulationPage() {
+  const { locale, t } = useI18n();
   const [session, setSession] = useState<SimulationSession | null>(null);
   const [scenario, setScenario] = useState<Scenario | null>(null);
   const [filteredLogs, setFilteredLogs] = useState<any[]>([]);
@@ -71,6 +77,11 @@ export default function SimulationPage() {
   const activeSessionIdRef = useRef<string | null>(null);
   const submissionInFlightRef = useRef(false);
 
+  const tRef = useRef(t);
+  useEffect(() => {
+    tRef.current = t;
+  }, [t]);
+
   // Navigation and UI state
   const [activeTab, setActiveTab] = useState<"scenario" | "detect" | "response">("scenario");
   const [siemQuery, setSiemQuery] = useState("");
@@ -82,6 +93,8 @@ export default function SimulationPage() {
     completedCount: number;
     totalDomains: number;
     completedDomains: string[];
+    completedSubtopics?: number;
+    totalSubtopics?: number;
   } | null>(null);
 
   const applySelection = (indices: number[] | undefined | null) => {
@@ -135,7 +148,7 @@ export default function SimulationPage() {
         console.error("Failed to reconcile evidence selection:", err);
         applySelection(lastConfirmedSelectionRef.current);
       }
-      setSelectionError("Could not save some evidence changes. Your selection was restored from the server.");
+      setSelectionError(tRef.current("simulation.selectionRestoreError"));
       return;
     }
 
@@ -280,7 +293,9 @@ export default function SimulationPage() {
         if (cancelled) return;
 
         if (startRes.data.status === "scenario_unavailable" || startRes.data.error) {
-          setErrorMessage(startRes.data.error || "The simulation scenario is temporarily unavailable. Your progress has been preserved, and this will not impact your score. Please retry in a few moments.");
+          setErrorMessage(
+            startRes.data.error || tRef.current("simulation.tempInitError"),
+          );
           setLoading(false);
           return;
         }
@@ -309,25 +324,32 @@ export default function SimulationPage() {
             completedDomains: Array.isArray(err.response.data.completed_domains)
               ? err.response.data.completed_domains
               : [],
+            completedSubtopics: err.response.data.completed_subtopic_count,
+            totalSubtopics: err.response.data.total_subtopics,
           });
           setErrorMessage(
-            err.response.data.error ||
-              "Complete all 5 Learning Theory modules before starting simulations."
+            resolveApiError(
+              err,
+              tRef.current,
+              tRef.current("errors.SIM_THEORY_INCOMPLETE", {
+                completed_subtopics: err.response.data.completed_subtopic_count ?? 0,
+                total_subtopics: err.response.data.total_subtopics ?? 28,
+              }),
+            ),
           );
           return;
         }
         if (err.response?.status === 504 || err.code === "ECONNABORTED") {
-          setErrorMessage("Scenario generation took longer than expected and timed out. Click Retry to resume your active session.");
+          setErrorMessage(tRef.current("simulation.timeoutError"));
           return;
         }
         if (preTestVerified) {
           setErrorMessage(
-            err.response?.data?.error ||
-              "Temporary issue initializing the simulation scenario. Your pre-test progress is saved — please click Retry."
+            resolveApiError(err, tRef.current, tRef.current("simulation.tempInitError")),
           );
           return;
         }
-        setErrorMessage("An error occurred while loading the simulation. Please ensure your pre-test is completed.");
+        setErrorMessage(resolveApiError(err, tRef.current, tRef.current("simulation.genericInitError")));
       } finally {
         if (!cancelled) {
           setLoading(false);
@@ -344,7 +366,7 @@ export default function SimulationPage() {
   const handleSubmit = async () => {
     if (!session || !scenario) return;
     if (isTruePositive === null) {
-      alert("Please select whether this incident is a True Positive or False Positive in the Scenario panel first.");
+      alert(t("simulation.selectTriageFirstAlert"));
       setActiveTab("scenario");
       return;
     }
@@ -383,9 +405,9 @@ export default function SimulationPage() {
       });
 
       navigate(`/simulation/result/${sessionID}`);
-    } catch (err) {
+    } catch (err: any) {
       console.error("Failed to submit scenario:", err);
-      alert("Failed to submit scenario. Please try again.");
+      alert(resolveApiError(err, t, t("simulation.submitFailedAlert")));
     } finally {
       submissionInFlightRef.current = false;
       setSubmitting(false);
@@ -408,10 +430,25 @@ export default function SimulationPage() {
         <div className="max-w-md mx-auto mt-12 bg-graphite-900 p-8 rounded-lg border border-graphite-800 text-center space-y-6 animate-fade-in">
           <BookOpen className="w-10 h-10 text-amber-500 mx-auto" />
           <div className="space-y-2">
-            <h3 className="text-base font-bold text-white tracking-tight">Learning Theory Required</h3>
-            <p className="text-xs text-graphite-400 font-mono leading-relaxed">{errorMessage}</p>
+            <h3 className="text-base font-bold text-white tracking-tight">{t("simulation.theoryRequiredTitle")}</h3>
+            <p className="text-xs text-graphite-400 font-mono leading-relaxed">
+              {typeof theoryGateInfo.completedSubtopics === "number"
+                ? t("errors.SIM_THEORY_INCOMPLETE", {
+                    completed_subtopics: theoryGateInfo.completedSubtopics,
+                    total_subtopics: theoryGateInfo.totalSubtopics ?? 28,
+                  })
+                : errorMessage}
+            </p>
             <p className="text-xs font-mono text-graphite-300">
-              Completed modules: <span className="text-white font-semibold">{theoryGateInfo.completedCount} / {theoryGateInfo.totalDomains}</span>
+              {typeof theoryGateInfo.completedSubtopics === "number"
+                ? t("simulation.completedSubtopicsSummary", {
+                    completed: theoryGateInfo.completedSubtopics,
+                    total: theoryGateInfo.totalSubtopics ?? 28,
+                  })
+                : t("simulation.completedDomainsSummary", {
+                    completed: theoryGateInfo.completedCount,
+                    total: theoryGateInfo.totalDomains,
+                  })}
             </p>
           </div>
           <div className="flex flex-col gap-2">
@@ -420,13 +457,13 @@ export default function SimulationPage() {
               className="w-full py-2.5 bg-white hover:bg-white/90 text-black font-semibold text-xs rounded-md transition-all duration-200 flex items-center justify-center gap-2"
             >
               <BookOpen className="w-4 h-4" />
-              Go to Learning Theory Hub
+              {t("simulation.goToLearnHub")}
             </button>
             <button
               onClick={() => navigate("/evaluation")}
               className="w-full py-2 bg-graphite-800 hover:bg-graphite-700 text-graphite-300 font-semibold text-xs rounded-md transition-all duration-200"
             >
-              Back to Evaluation
+              {t("simulation.backToEvaluation")}
             </button>
           </div>
         </div>
@@ -436,7 +473,7 @@ export default function SimulationPage() {
     return (
       <div className="max-w-md mx-auto mt-12 bg-graphite-900 p-8 rounded-lg border border-graphite-800 text-center space-y-6 animate-fade-in">
         <AlertCircle className="w-10 h-10 text-amber-500 mx-auto" />
-        <h3 className="text-base font-bold text-white tracking-tight">Simulation Initialization</h3>
+        <h3 className="text-base font-bold text-white tracking-tight">{t("nav.simulation")}</h3>
         <p className="text-xs text-graphite-400 font-mono leading-relaxed">{errorMessage}</p>
         <div className="flex flex-col gap-2">
           <button
@@ -448,13 +485,13 @@ export default function SimulationPage() {
             }}
             className="w-full py-2.5 bg-emerald-500 hover:bg-emerald-600 text-black font-semibold text-xs rounded-md transition-all duration-200"
           >
-            Retry Loading Simulation
+            {t("simulation.retryLoading")}
           </button>
           <button
             onClick={() => navigate("/pre-test")}
             className="w-full py-2 bg-graphite-800 hover:bg-graphite-700 text-graphite-300 font-semibold text-xs rounded-md transition-all duration-200"
           >
-            Go to Pre-Test Overview
+            {t("simulation.goToPreTestOverview")}
           </button>
         </div>
       </div>
@@ -463,6 +500,29 @@ export default function SimulationPage() {
 
   if (!scenario || !session) return null;
 
+  const localizedScenario = resolveScenarioLocale(scenario, locale);
+  const localizedPlaybookSteps: PlaybookSteps = {
+    containment: (scenario.playbook_steps?.containment || []).map((act) => ({
+      ...act,
+      label: localizedScenario.playbookLabel(act.id, act.label),
+    })),
+    eradication: (scenario.playbook_steps?.eradication || []).map((act) => ({
+      ...act,
+      label: localizedScenario.playbookLabel(act.id, act.label),
+    })),
+    recovery: (scenario.playbook_steps?.recovery || []).map((act) => ({
+      ...act,
+      label: localizedScenario.playbookLabel(act.id, act.label),
+    })),
+  };
+
+  // Canonical EN title + description MUST be passed so keyword/entity scoring behaves identically across languages.
+  const shortcuts = buildInvestigationShortcuts({
+    title: scenario.title,
+    description: scenario.description,
+    initial_logs: scenario.initial_logs,
+  });
+
   return (
     <div className="space-y-6">
       {/* Simulation Header */}
@@ -470,38 +530,42 @@ export default function SimulationPage() {
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2 mb-1.5">
             <span className="px-2 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/20 text-[10px] font-mono font-bold text-emerald-400 uppercase tracking-wider">
-              Active Incident
+              {t("simulation.activeIncidentBadge")}
             </span>
 
             {session.generation_type === "ai_generated" ? (
               <span className="px-2 py-0.5 rounded bg-cyan-500/10 border border-cyan-500/30 text-[10px] font-mono font-bold text-cyan-400 uppercase tracking-wider flex items-center gap-1.5 shadow-sm shadow-cyan-500/10">
                 <Sparkles className="w-3 h-3 text-cyan-400 animate-pulse" />
-                AI Dynamic Scenario
+                {t("simulation.aiScenarioBadge")}
               </span>
             ) : (
               <span
-                title={session.fallback_reason ? `Fallback Reason: ${session.fallback_reason}` : "Static seed scenario pool loaded"}
+                title={
+                  session.fallback_reason
+                    ? t("simulation.fallbackReasonTooltip", { reason: session.fallback_reason })
+                    : t("simulation.staticPoolTooltip")
+                }
                 className="px-2 py-0.5 rounded bg-amber-500/10 border border-amber-500/30 text-[10px] font-mono font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1.5 cursor-help hover:bg-amber-500/20 transition-all duration-200"
               >
                 <AlertCircle className="w-3 h-3 text-amber-400" />
-                Static Scenario (Fallback)
+                {t("simulation.staticScenarioBadge")}
               </span>
             )}
 
             <span className="text-xs font-mono text-graphite-500">
-              ID: {session.session_id.substring(0, 8)}
+              {t("simulation.sessionIdPrefix", { id: session.session_id.substring(0, 8) })}
             </span>
           </div>
 
           {session.generation_type !== "ai_generated" && session.fallback_reason && (
             <p className="text-[11px] font-mono text-amber-400/80 mb-1 flex items-center gap-1.5">
               <span className="inline-block w-1.5 h-1.5 rounded-full bg-amber-400"></span>
-              <span className="font-semibold">LLM Fallback Reason:</span> {session.fallback_reason}
+              <span className="font-semibold">{t("simulation.fallbackReasonLabel")}</span> {session.fallback_reason}
             </p>
           )}
 
-          <h1 className="text-2xl font-bold tracking-tight text-graphite-50 break-words max-w-full" title={scenario.title}>
-            {scenario.title}
+          <h1 className="text-2xl font-bold tracking-tight text-graphite-50 break-words max-w-full" title={localizedScenario.title}>
+            {localizedScenario.title}
           </h1>
         </div>
 
@@ -517,7 +581,7 @@ export default function SimulationPage() {
             )}
           >
             <Eye className="w-3.5 h-3.5" />
-            1. Scenario
+            {t("simulation.tabScenario")}
           </button>
           <button
             onClick={() => setActiveTab("detect")}
@@ -529,7 +593,7 @@ export default function SimulationPage() {
             )}
           >
             <Terminal className="w-3.5 h-3.5" />
-            2. Detect & Analyze
+            {t("simulation.tabDetect")}
           </button>
           <button
             onClick={() => setActiveTab("response")}
@@ -541,7 +605,7 @@ export default function SimulationPage() {
             )}
           >
             <Shield className="w-3.5 h-3.5" />
-            3. Response
+            {t("simulation.tabResponse")}
           </button>
         </div>
       </div>
@@ -553,9 +617,9 @@ export default function SimulationPage() {
           <div className="grid md:grid-cols-3 gap-6 animate-fade-in">
             <div className="md:col-span-2 space-y-6">
               <div className="bg-graphite-900 border border-graphite-800/80 p-6 rounded-lg space-y-4">
-                <h3 className="text-sm font-semibold text-white">Incident Narrative</h3>
+                <h3 className="text-sm font-semibold text-white">{t("simulation.incidentNarrative")}</h3>
                 <p className="text-xs text-graphite-300 leading-relaxed font-light whitespace-pre-wrap">
-                  {scenario.description}
+                  {localizedScenario.description}
                 </p>
               </div>
 
@@ -564,17 +628,17 @@ export default function SimulationPage() {
                 <div className="flex items-center justify-between border-b border-graphite-800 pb-3">
                   <h3 className="text-sm font-semibold text-white flex items-center gap-2">
                     <Search className="w-4 h-4 text-emerald-400" />
-                    Investigation Clues & SIEM Shortcuts
+                    {t("simulation.cluesAndShortcutsTitle")}
                   </h3>
-                  <span className="text-[10px] font-mono text-graphite-400">Click to query SIEM Terminal</span>
+                  <span className="text-[10px] font-mono text-graphite-400">{t("simulation.cluesClickHint")}</span>
                 </div>
 
                 <p className="text-xs text-graphite-400 font-light">
-                  Use these identified indicators to filter and audit the telemetry logs in the SIEM terminal:
+                  {t("simulation.cluesDesc")}
                 </p>
 
                 <div className="flex flex-wrap gap-2 pt-1">
-                  {buildInvestigationShortcuts(scenario).map((shortcut) => {
+                  {shortcuts.map((shortcut) => {
                     const toneClasses =
                       shortcut.tone === "amber"
                         ? "hover:border-amber-500/40 text-amber-400"
@@ -601,9 +665,9 @@ export default function SimulationPage() {
 
             <div className="space-y-6">
               <div className="bg-graphite-900 border border-graphite-800/80 p-6 rounded-lg space-y-4">
-                <h3 className="text-sm font-semibold text-white">Triage Classification</h3>
+                <h3 className="text-sm font-semibold text-white">{t("simulation.triageClassification")}</h3>
                 <p className="text-[11px] text-graphite-400 font-light">
-                  Assess the alert. Is this activity malicious (True Positive) or is there a legitimate business explanation (False Positive)?
+                  {t("simulation.triagePrompt")}
                 </p>
 
                 <div className="space-y-3 pt-2">
@@ -616,7 +680,7 @@ export default function SimulationPage() {
                         : "bg-graphite-950/40 border-graphite-800/80 text-graphite-300 hover:bg-graphite-950 hover:text-white"
                     )}
                   >
-                    <span>True Positive (Threat)</span>
+                    <span>{t("simulation.truePositiveOption")}</span>
                     <span className={cn(
                       "w-2.5 h-2.5 rounded-full border border-graphite-600",
                       isTruePositive === true && "bg-red-500 border-red-400"
@@ -632,7 +696,7 @@ export default function SimulationPage() {
                         : "bg-graphite-950/40 border-graphite-800/80 text-graphite-300 hover:bg-graphite-950 hover:text-white"
                     )}
                   >
-                    <span>False Positive (Benign)</span>
+                    <span>{t("simulation.falsePositiveOption")}</span>
                     <span className={cn(
                       "w-2.5 h-2.5 rounded-full border border-graphite-600",
                       isTruePositive === false && "bg-emerald-500 border-emerald-400"
@@ -643,8 +707,8 @@ export default function SimulationPage() {
 
               <div className="bg-graphite-900 border border-graphite-800/80 p-4 rounded-lg flex items-center justify-between">
                 <div className="space-y-0.5">
-                  <h4 className="text-[10px] font-semibold text-white font-mono uppercase tracking-wider">Next step:</h4>
-                  <p className="text-[10px] text-graphite-400 font-light">Run queries to audit the log files.</p>
+                  <h4 className="text-[10px] font-semibold text-white font-mono uppercase tracking-wider">{t("simulation.nextStepLabel")}</h4>
+                  <p className="text-[10px] text-graphite-400 font-light">{t("simulation.nextStepDesc")}</p>
                 </div>
                 <button
                   onClick={() => setActiveTab("detect")}
@@ -663,20 +727,20 @@ export default function SimulationPage() {
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div className="flex items-center gap-2">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                <h3 className="text-sm font-semibold text-white">SIEM Log Terminal</h3>
+                <h3 className="text-sm font-semibold text-white">{t("simulation.siemTerminalTitle")}</h3>
               </div>
               <div className="text-[10px] font-mono text-graphite-400 bg-graphite-900 px-3 py-1 rounded border border-graphite-800/80 select-none">
-                Selected evidence: <span className="text-cyan-400 font-bold">{selectedLogIndices.length}</span> logs
+                {t("simulation.selectedEvidenceCount", { count: selectedLogIndices.length })}
               </div>
             </div>
 
             <p className="text-[11px] font-mono text-graphite-400 leading-relaxed">
-              Select the logs that prove each finding. Each unrelated log costs 2 points. Correctness is revealed after submission.
+              {t("simulation.evidenceInstruction")}
             </p>
 
             {typeof scenario.total_findings === "number" && (
               <p className="text-[10px] font-mono text-graphite-500">
-                Key Findings in this Scenario:{" "}
+                {t("simulation.keyFindingsCount")}{" "}
                 <span className="text-graphite-300 font-semibold">{scenario.total_findings}</span>
               </p>
             )}
@@ -688,6 +752,12 @@ export default function SimulationPage() {
               searchQuery={siemQuery}
               onSearchQueryChange={setSiemQuery}
             />
+
+            {locale === "th" && (
+              <p className="text-[11px] font-mono text-sky-300/90 bg-sky-950/20 border border-sky-500/20 rounded-lg px-3.5 py-2">
+                {t("simulation.logsEnglishOnlyNotice")}
+              </p>
+            )}
 
             <LogTable
               logs={filteredLogs}
@@ -705,7 +775,7 @@ export default function SimulationPage() {
             <div className="bg-graphite-900 border border-cyan-500/25 rounded-xl overflow-hidden">
               <div className="px-5 py-3 bg-cyan-950/20 border-b border-cyan-500/20 flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2">
-                  <span className="text-xs font-semibold text-cyan-200">Selected Evidence</span>
+                  <span className="text-xs font-semibold text-cyan-200">{t("simulation.selectedEvidenceTitle")}</span>
                   <span className="text-[10px] font-mono text-cyan-400/80 bg-cyan-500/10 border border-cyan-500/20 rounded px-1.5 py-0.5">
                     {selectedLogIndices.length}
                   </span>
@@ -717,13 +787,13 @@ export default function SimulationPage() {
                   className="flex items-center gap-1.5 px-2.5 py-1 rounded border border-cyan-500/30 text-[10px] font-mono font-bold uppercase tracking-wider text-cyan-300 hover:bg-cyan-500/10 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                 >
                   <Trash2 className="w-3 h-3" />
-                  Clear All
+                  {t("simulation.clearAll")}
                 </button>
               </div>
 
               {selectedLogs.length === 0 ? (
                 <p className="px-5 py-4 text-[11px] font-mono text-graphite-500">
-                  No evidence selected. Click a log row to mark it as evidence.
+                  {t("simulation.noEvidenceSelected")}
                 </p>
               ) : (
                 <ul className="divide-y divide-graphite-800/60 max-h-64 overflow-y-auto">
@@ -743,7 +813,7 @@ export default function SimulationPage() {
                       <button
                         type="button"
                         onClick={() => handleToggleEvidence(log.__log_index)}
-                        aria-label={`Remove log ${log.__log_index} from selected evidence`}
+                        aria-label={t("simulation.removeEvidenceAria", { index: log.__log_index })}
                         className="shrink-0 p-1 rounded border border-graphite-800 text-graphite-400 hover:text-cyan-300 hover:border-cyan-500/40 hover:bg-cyan-500/10 transition-colors"
                       >
                         <X className="w-3.5 h-3.5" />
@@ -761,7 +831,7 @@ export default function SimulationPage() {
           <div className="grid md:grid-cols-3 gap-6 animate-fade-in">
             <div className="md:col-span-2">
               <ResponsePanel
-                playbookSteps={scenario.playbook_steps}
+                playbookSteps={localizedPlaybookSteps}
                 selectedActions={selectedActions}
                 onChange={setSelectedActions}
                 isTruePositive={isTruePositive}
@@ -771,39 +841,39 @@ export default function SimulationPage() {
 
             <div className="space-y-6">
               <div className="bg-graphite-900 border border-graphite-800/80 p-6 rounded-lg space-y-4">
-                <h3 className="text-sm font-semibold text-white">Final Submission</h3>
+                <h3 className="text-sm font-semibold text-white">{t("simulation.finalSubmissionTitle")}</h3>
                 <p className="text-[11px] text-graphite-400 font-light leading-relaxed">
-                  Review your analysis. Ensure you have classified the triage correctly and selected response options for each phase before submitting.
+                  {t("simulation.finalSubmissionDesc")}
                 </p>
 
                 <div className="space-y-3 pt-2">
                   <div className="flex justify-between text-[10px] font-mono border-b border-graphite-850 pb-2">
-                    <span className="text-graphite-400">Triage Classification:</span>
+                    <span className="text-graphite-400">{t("simulation.summaryTriageLabel")}</span>
                     {isTruePositive === null ? (
-                      <span className="text-amber-500 font-bold">MISSING</span>
+                      <span className="text-amber-500 font-bold">{t("simulation.summaryMissing")}</span>
                     ) : (
                       <span className="text-emerald-400 font-bold">
-                        {isTruePositive ? "True Positive" : "False Positive"}
+                        {isTruePositive ? t("simulation.summaryTruePositive") : t("simulation.summaryFalsePositive")}
                       </span>
                     )}
                   </div>
                   <div className="flex justify-between text-[10px] font-mono border-b border-graphite-850 pb-2">
-                    <span className="text-graphite-400">Response Plan:</span>
+                    <span className="text-graphite-400">{t("simulation.summaryResponsePlanLabel")}</span>
                     <span className="text-white font-bold">
-                      {selectedActions.length} actions
+                      {t("simulation.summaryActionsCount", { count: selectedActions.length })}
                     </span>
                   </div>
                   <div className="flex justify-between text-[10px] font-mono border-b border-graphite-850 pb-2">
-                    <span className="text-graphite-400">Evidence Selected:</span>
+                    <span className="text-graphite-400">{t("simulation.summaryEvidenceLabel")}</span>
                     <span className="text-white font-bold">
-                      {selectedLogIndices.length} logs
+                      {t("simulation.summaryLogsCount", { count: selectedLogIndices.length })}
                     </span>
                   </div>
                 </div>
 
                 {selectedLogIndices.length === 0 && (
                   <p className="text-[10px] font-mono text-amber-400 bg-amber-950/20 border border-amber-500/20 rounded px-3 py-2">
-                    No evidence selected — Detect &amp; Analysis will score 0.
+                    {t("simulation.noEvidenceWarning")}
                   </p>
                 )}
 
@@ -815,12 +885,12 @@ export default function SimulationPage() {
                   {submitting ? (
                     <>
                       <Loader2 className="w-4 h-4 animate-spin" />
-                      Submitting Triage...
+                      {t("simulation.submittingTriage")}
                     </>
                   ) : (
                     <>
                       <CheckCircle2 className="w-4 h-4" />
-                      Submit Response Plan
+                      {t("simulation.submitResponsePlan")}
                     </>
                   )}
                 </button>

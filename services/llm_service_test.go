@@ -203,22 +203,29 @@ func TestValidateScenarioCandidate_AntiPredictabilityRules(t *testing.T) {
 func TestSynthesizeFullScenario_BackfillsLegacySingleActionsAndFalsePositive(t *testing.T) {
 	t.Run("backfills contextual distractors when LLM returns legacy single-string actions", func(t *testing.T) {
 		micro := aiMicroScenario{
-			Title:             "Suspicious Web Shell Execution",
-			Description:       "Web server spawned anomalous shell processes.",
-			IsTruePositive:    true,
-			TpFpExplanation:   "True positive web shell activity.",
-			AttackerIP:        "185.220.101.45",
-			TargetHost:        "SRV-WEB01",
-			AttackLogMessage:  "w3wp.exe spawned cmd.exe /c whoami",
-			KeyFinding:        "Web shell process execution on SRV-WEB01",
-			ContainmentAction: "Isolate SRV-WEB01 from the production VLAN immediately and block 185.220.101.45 at the perimeter firewall",
-			EradicationAction: "Remove the uploaded web shell script from SRV-WEB01 webroot and patch the vulnerable upload handler",
-			RecoveryAction:    "Rebuild SRV-WEB01 from a verified gold image and monitor outbound connections for 72 hours",
+			Title:               "Suspicious Web Shell Execution",
+			TitleTh:             "ตรวจพบการรัน Web Shell ต้องสงสัย",
+			Description:         "Web server spawned anomalous shell processes.",
+			DescriptionTh:       "เว็บเซิร์ฟเวอร์แตกโพรเซส shell ผิดปกติบน SRV-WEB01",
+			IsTruePositive:      true,
+			TpFpExplanation:     "True positive web shell activity.",
+			TpFpExplanationTh:   "เหตุการณ์นี้เป็น True Positive จากกิจกรรม web shell",
+			AttackerIP:          "185.220.101.45",
+			TargetHost:          "SRV-WEB01",
+			AttackLogMessage:    "w3wp.exe spawned cmd.exe /c whoami",
+			KeyFinding:          "Web shell process execution on SRV-WEB01",
+			KeyFindingTh:        "พบการรันโพรเซส Web Shell บน SRV-WEB01",
+			ContainmentAction:   "Isolate SRV-WEB01 from the production VLAN immediately and block 185.220.101.45 at the perimeter firewall",
+			ContainmentActionTh: "แยกโฮสต์ SRV-WEB01 ออกจาก production VLAN ทันทีและบล็อก 185.220.101.45 ที่ perimeter firewall",
+			EradicationAction:   "Remove the uploaded web shell script from SRV-WEB01 webroot and patch the vulnerable upload handler",
+			EradicationActionTh: "ลบสคริปต์ web shell ออกจาก webroot ของ SRV-WEB01 และแพตช์จุดอัปโหลดไฟล์ที่มีช่องโหว่",
+			RecoveryAction:      "Rebuild SRV-WEB01 from a verified gold image and monitor outbound connections for 72 hours",
+			RecoveryActionTh:    "สร้าง SRV-WEB01 ใหม่จาก gold image ที่ตรวจสอบแล้วและเฝ้าระวังการเชื่อมต่อขาออก 72 ชั่วโมง",
 		}
 
 		s := synthesizeFullScenario(micro, "domain2", "Threats, Vulnerabilities, and Mitigations")
 		if err := ValidateScenarioCandidate(s); err != nil {
-			t.Fatalf("expected synthesized scenario from legacy micro struct to pass validation, got: %v", err)
+			t.Fatalf("expected synthesized scenario from bilingual micro struct to pass validation, got: %v", err)
 		}
 
 		pb := s.PlaybookSteps.(map[string]interface{})
@@ -238,14 +245,18 @@ func TestSynthesizeFullScenario_BackfillsLegacySingleActionsAndFalsePositive(t *
 
 	t.Run("synthesizes appropriate non-destructive actions and disruptive distractors for False Positive scenarios", func(t *testing.T) {
 		micro := aiMicroScenario{
-			Title:            "Authorized Vulnerability Scanner Traffic",
-			Description:      "High volume port scan from internal security scanner.",
-			IsTruePositive:   false,
-			TpFpExplanation:  "False positive: scheduled internal Qualys scan.",
-			AttackerIP:       "10.0.99.10",
-			TargetHost:       "SRV-APP02",
-			AttackLogMessage: "Multiple SYN packets from 10.0.99.10 to SRV-APP02",
-			KeyFinding:       "Traffic matches scheduled maintenance window CRQ-4012",
+			Title:             "Authorized Vulnerability Scanner Traffic",
+			TitleTh:           "ทราฟฟิกจากระบบสแกนช่องโหว่ที่ได้รับอนุญาต",
+			Description:       "High volume port scan from internal security scanner.",
+			DescriptionTh:     "พบการสแกนพอร์ตจำนวนมากจากเครื่องสแกนช่องโหว่ภายในไปยัง SRV-APP02",
+			IsTruePositive:    false,
+			TpFpExplanation:   "False positive: scheduled internal Qualys scan.",
+			TpFpExplanationTh: "เหตุการณ์นี้เป็น False Positive จากการสแกนตามกำหนดการของ Qualys ภายใน",
+			AttackerIP:        "10.0.99.10",
+			TargetHost:        "SRV-APP02",
+			AttackLogMessage:  "Multiple SYN packets from 10.0.99.10 to SRV-APP02",
+			KeyFinding:        "Traffic matches scheduled maintenance window CRQ-4012",
+			KeyFindingTh:      "ทราฟฟิกตรงกับรอบบำรุงรักษาที่ได้รับอนุญาต CRQ-4012",
 		}
 
 		s := synthesizeFullScenario(micro, "domain4", "Security Operations")
@@ -271,13 +282,23 @@ func TestStaticScenarioSeedCatalog_AllScenariosPassValidation(t *testing.T) {
 		t.Fatalf("expected at least 15 static scenarios in scenarios_seed.json, got %d", len(scenarios))
 	}
 
+	pilotTranslated := 0
 	for i := range scenarios {
 		sc := &scenarios[i]
 		t.Run(sc.Title, func(t *testing.T) {
-			if err := ValidateScenarioCandidate(sc); err != nil {
-				t.Errorf("static scenario %q (%s) failed anti-predictability validation: %v", sc.Title, sc.DomainID, err)
+			if err := ValidateScenarioBaseCandidate(sc); err != nil {
+				t.Errorf("static scenario %q (%s) failed base & zero-Thai-log validation: %v", sc.Title, sc.DomainID, err)
+			}
+			if transMap := normalizeAnyStringMap(sc.Translations); len(transMap) > 0 {
+				if err := ValidateScenarioCandidate(sc); err != nil {
+					t.Errorf("localized static scenario %q (%s) failed bilingual translation validation: %v", sc.Title, sc.DomainID, err)
+				}
+				pilotTranslated++
 			}
 		})
+	}
+	if pilotTranslated < 3 {
+		t.Logf("Pilot check: %d/15 static scenarios currently have translations.th (expected >= 3 once pilot seeds are generated)", pilotTranslated)
 	}
 }
 
@@ -289,6 +310,33 @@ func TestUpgradeScenarioPlaybookSteps_RemediatesLegacyScenarios(t *testing.T) {
 		DomainID:        "domain2",
 		IsTruePositive:  true,
 		TpFpExplanation: "True positive web shell execution.",
+		Translations: map[string]interface{}{
+			"th": map[string]interface{}{
+				"title":             "เหตุการณ์ Web Shell บนระบบเดิม",
+				"description":       "ตรวจพบ shell ต้องสงสัยบน SRV-WEB01 เชื่อมต่อจาก 185.220.101.45",
+				"tp_fp_explanation": "เป็น True Positive จากการรัน web shell",
+				"findings": map[string]interface{}{
+					"f1": map[string]interface{}{
+						"description": "พบไฟล์ web shell บนโฮสต์",
+						"explanation": "ยืนยันจากบันทึกการแตกโพรเซส",
+					},
+				},
+				"playbook_steps": map[string]interface{}{
+					"c1": map[string]interface{}{
+						"label":       "แยกเครื่อง SRV-WEB01 ออกจากเครือข่ายทันที บล็อก IP ผู้โจมตี 185.220.101.45 และหยุดโพรเซส powershell.exe กับ w3wp.exe",
+						"explanation": "หยุดความเสี่ยงด้านการควบคุมขอบเขตทันที",
+					},
+					"e1": map[string]interface{}{
+						"label":       "ลบไฟล์ web shell ออกจาก webroot ติดตั้ง SRV-WEB01 ใหม่ แพตช์ช่องโหว่ และหมุนเวียน credentials ทั้งหมด",
+						"explanation": "กำจัดกลไกการฝังตัวของภัยคุกคามอย่างถาวร",
+					},
+					"r1": map[string]interface{}{
+						"label":       "กู้คืน SRV-WEB01 จาก backup ที่สะอาด เปิดการเฝ้าระวังเพิ่มเติมและตรวจสอบความสมบูรณ์ตลอด 72 ชั่วโมง",
+						"explanation": "รับรองการคืนระบบงานอย่างปลอดภัย",
+					},
+				},
+			},
+		},
 		InitialLogs:     make([]map[string]interface{}, 15),
 		ExpectedOutcomes: map[string]interface{}{
 			"key_findings": []map[string]interface{}{
@@ -602,5 +650,97 @@ func TestExtractPrimaryScenarioEntities_SkipsNoiseRowZero(t *testing.T) {
 	}
 	if ip != "185.220.101.99" {
 		t.Fatalf("ExtractPrimaryScenarioEntities ip = %q, want 185.220.101.99", ip)
+	}
+}
+
+func TestValidateScenarioCandidate_RejectsThaiInLogsAndIncompleteTranslations(t *testing.T) {
+	t.Run("rejects Thai characters inside initial_logs", func(t *testing.T) {
+		s := GenerateFallbackScenario("domain4", "Security Operations")
+		logs := normalizePhaseStepSlice(s.InitialLogs)
+		logs[0]["message"] = "แจ้งเตือนความผิดปกติจากโฮสต์ WS-DEV09"
+		s.InitialLogs = logs
+		if err := ValidateScenarioCandidate(s); err == nil {
+			t.Fatalf("expected ValidateScenarioCandidate to reject Thai characters inside initial_logs")
+		}
+	})
+
+	t.Run("rejects scenario missing translations.th", func(t *testing.T) {
+		s := GenerateFallbackScenario("domain1", "General Security Concepts")
+		s.Translations = nil
+		if err := ValidateScenarioCandidate(s); err == nil {
+			t.Fatalf("expected ValidateScenarioCandidate to reject scenario with missing translations.th")
+		}
+	})
+
+	t.Run("rejects scenario with non-Thai text in translations.th.title", func(t *testing.T) {
+		s := GenerateFallbackScenario("domain3", "Security Architecture")
+		if transMap, ok := s.Translations.(map[string]interface{}); ok {
+			if thMap, ok := transMap["th"].(map[string]interface{}); ok {
+				thMap["title"] = "English Title Without Thai Characters"
+			}
+		}
+		if err := ValidateScenarioCandidate(s); err == nil {
+			t.Fatalf("expected ValidateScenarioCandidate to reject translations.th.title without Thai characters")
+		}
+	})
+
+	t.Run("rejects scenario missing a playbook_steps action translation", func(t *testing.T) {
+		s := GenerateFallbackScenario("domain2", "Threats, Vulnerabilities, and Mitigations")
+		if transMap, ok := s.Translations.(map[string]interface{}); ok {
+			if thMap, ok := transMap["th"].(map[string]interface{}); ok {
+				if pbMap, ok := thMap["playbook_steps"].(map[string]map[string]string); ok {
+					delete(pbMap, "c1")
+				} else if pbAny, ok := thMap["playbook_steps"].(map[string]interface{}); ok {
+					delete(pbAny, "c1")
+				}
+			}
+		}
+		if err := ValidateScenarioCandidate(s); err == nil {
+			t.Fatalf("expected ValidateScenarioCandidate to reject missing translations.th.playbook_steps[c1]")
+		}
+	})
+}
+
+func TestGenerateFallbackScenario_BilingualAllDomainsComplete(t *testing.T) {
+	domains := []string{"domain1", "domain2", "domain3", "domain4", "domain5"}
+	for _, domainID := range domains {
+		sc := GenerateFallbackScenario(domainID, domainID)
+		transMap, ok := sc.Translations.(map[string]interface{})
+		if !ok {
+			t.Fatalf("%s: expected non-nil Translations map, got %T", domainID, sc.Translations)
+		}
+		thRaw, ok := transMap["th"]
+		if !ok {
+			t.Fatalf("%s: missing translations.th", domainID)
+		}
+		rawBytes, err := json.Marshal(thRaw)
+		if err != nil {
+			t.Fatalf("%s: marshal translations.th failed: %v", domainID, err)
+		}
+		var th struct {
+			Title           string `json:"title"`
+			Description     string `json:"description"`
+			TpFpExplanation string `json:"tp_fp_explanation"`
+			PlaybookSteps   map[string]struct {
+				Label       string `json:"label"`
+				Explanation string `json:"explanation"`
+			} `json:"playbook_steps"`
+			Findings map[string]struct {
+				Description string `json:"description"`
+				Explanation string `json:"explanation"`
+			} `json:"findings"`
+		}
+		if err := json.Unmarshal(rawBytes, &th); err != nil {
+			t.Fatalf("%s: unmarshal translations.th failed: %v", domainID, err)
+		}
+		if !ContainsThaiRune(th.Title) || !ContainsThaiRune(th.Description) || !ContainsThaiRune(th.TpFpExplanation) {
+			t.Errorf("%s: expected Thai characters in title, description, and tp_fp_explanation", domainID)
+		}
+		if len(th.PlaybookSteps) < 9 {
+			t.Errorf("%s: expected at least 9 translated playbook steps, got %d", domainID, len(th.PlaybookSteps))
+		}
+		if len(th.Findings) < 1 {
+			t.Errorf("%s: expected at least 1 translated finding", domainID)
+		}
 	}
 }

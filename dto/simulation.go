@@ -41,6 +41,7 @@ type ScenarioResponse struct {
 	// TotalFindings is the only pre-submission finding disclosure. Evidence
 	// indices, finding descriptions, and verdict markers stay server-side.
 	TotalFindings int `json:"total_findings" example:"2"`
+	Translations  any `json:"translations,omitempty"`
 }
 
 // ActiveSimulationResponse contains the active session and corresponding scenario
