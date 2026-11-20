@@ -587,8 +587,12 @@ class SeedCliTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.mapping = generate_scenarios.load_evidence_mapping(str(MAPPING_PATH))
-        cls.full_seed = generate_scenarios.apply_evidence_mapping(
+        cls.untranslated_seed = generate_scenarios.apply_evidence_mapping(
             generate_scenarios.create_scenarios(), cls.mapping
+        )
+        cls.full_seed = generate_scenarios.apply_scenario_translations(
+            copy.deepcopy(cls.untranslated_seed),
+            generate_scenarios.load_scenario_translations_th(),
         )
 
     def write_seed(self, directory, seed):
@@ -675,6 +679,26 @@ class SeedCliTests(unittest.TestCase):
         self.assertEqual(1, return_code)
         self.assertIn("Could not read mapping", stderr.getvalue())
         self.assertNotIn("Traceback", stderr.getvalue())
+
+    def test_cli_rejects_untranslated_seed_by_default(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = self.write_seed(tmp, self.untranslated_seed)
+            stderr = io.StringIO()
+            with redirect_stderr(stderr):
+                return_code = validator.main(["--seed", str(path)])
+
+        self.assertEqual(1, return_code)
+        self.assertIn("missing translations.th", stderr.getvalue())
+        self.assertNotIn("Traceback", stderr.getvalue())
+
+    def test_cli_accepts_untranslated_seed_with_opt_out(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = self.write_seed(tmp, self.untranslated_seed)
+            stderr = io.StringIO()
+            with redirect_stderr(stderr):
+                return_code = validator.main(["--seed", str(path), "--no-require-all-th"])
+
+        self.assertEqual(0, return_code, stderr.getvalue())
 
 
 class WarningTests(ValidatorTestCase):
@@ -1052,21 +1076,22 @@ class BilingualTranslationSeedTests(unittest.TestCase):
         )
         cls.base = generate_scenarios.create_scenarios()
 
-    def test_committed_seed_has_zero_thai_in_initial_logs_and_pilot_translations(self):
-        self.assertEqual([], validator.validate_seed(self.seed, self.base))
-        pilot_titles = {
-            "Multi-Factor Authentication Bypass (Push Fatigue)",
-            "Atypical Travel VPN Connection Alert",
-            "SQL Injection & Database Exfiltration",
-        }
+    def test_committed_seed_has_zero_thai_in_initial_logs_and_all_translations(self):
+        self.assertEqual(
+            [],
+            validator.validate_seed(self.seed, self.base, require_all_th=True),
+        )
+        expected_titles = {s["title"] for s in self.base}
+        self.assertEqual(15, len(expected_titles))
         translated = {
             s["title"]
             for s in self.seed
             if isinstance(s.get("translations"), dict) and s["translations"].get("th")
         }
-        self.assertTrue(
-            pilot_titles.issubset(translated),
-            f"missing pilot translations: {pilot_titles - translated}",
+        self.assertEqual(
+            expected_titles,
+            translated,
+            f"missing Thai translations: {expected_titles - translated}",
         )
         for scenario in self.seed:
             self.assertFalse(

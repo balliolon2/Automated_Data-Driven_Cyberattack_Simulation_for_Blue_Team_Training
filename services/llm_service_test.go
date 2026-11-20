@@ -282,23 +282,13 @@ func TestStaticScenarioSeedCatalog_AllScenariosPassValidation(t *testing.T) {
 		t.Fatalf("expected at least 15 static scenarios in scenarios_seed.json, got %d", len(scenarios))
 	}
 
-	pilotTranslated := 0
 	for i := range scenarios {
 		sc := &scenarios[i]
 		t.Run(sc.Title, func(t *testing.T) {
-			if err := ValidateScenarioBaseCandidate(sc); err != nil {
-				t.Errorf("static scenario %q (%s) failed base & zero-Thai-log validation: %v", sc.Title, sc.DomainID, err)
-			}
-			if transMap := normalizeAnyStringMap(sc.Translations); len(transMap) > 0 {
-				if err := ValidateScenarioCandidate(sc); err != nil {
-					t.Errorf("localized static scenario %q (%s) failed bilingual translation validation: %v", sc.Title, sc.DomainID, err)
-				}
-				pilotTranslated++
+			if err := ValidateScenarioCandidate(sc); err != nil {
+				t.Errorf("static scenario %q (%s) failed bilingual validation: %v", sc.Title, sc.DomainID, err)
 			}
 		})
-	}
-	if pilotTranslated < 3 {
-		t.Logf("Pilot check: %d/15 static scenarios currently have translations.th (expected >= 3 once pilot seeds are generated)", pilotTranslated)
 	}
 }
 

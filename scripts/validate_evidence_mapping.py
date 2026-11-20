@@ -960,7 +960,14 @@ def main(argv=None):
     parser.add_argument(
         "--require-all-th",
         action="store_true",
-        help="Require complete translations.th coverage for every scenario in --seed.",
+        default=True,
+        help="Require complete translations.th coverage for every scenario in --seed (enabled by default; use --no-require-all-th for partial fixture seeds).",
+    )
+    parser.add_argument(
+        "--no-require-all-th",
+        dest="require_all_th",
+        action="store_false",
+        help="Allow scenarios in --seed to omit translations.th.",
     )
     args = parser.parse_args(argv)
 
