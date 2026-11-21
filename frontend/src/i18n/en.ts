@@ -326,6 +326,7 @@ export const en = {
     tabDetect: "2. Detect & Analyze",
     tabResponse: "3. Response",
     incidentNarrative: "Incident Narrative",
+    legacyUntranslatedNotice: "This earlier scenario has not been translated into Thai yet and is shown in its original English text.",
     cluesAndShortcutsTitle: "Investigation Clues & SIEM Shortcuts",
     cluesClickHint: "Click to query SIEM Terminal",
     cluesDesc: "Use these identified indicators to filter and audit the telemetry logs in the SIEM terminal:",

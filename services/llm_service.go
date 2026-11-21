@@ -333,14 +333,21 @@ func GenerateLLMScenario(ctx context.Context, weakestDomain string, domainName s
 	return GenerateLLMScenarioWithContext(ctx, weakestDomain, domainName, proficiency, profiles, divCtx)
 }
 
-// GenerateLLMScenarioWithContext calls an OpenAI-compatible API using rotated SY0-701 sub-topic,
-// archetype, briefing style, TP/FP cadence, and session history exclusions.
-func GenerateLLMScenarioWithContext(ctx context.Context, weakestDomain string, domainName string, proficiency float64, profiles []models.UserSkillProfile, divCtx ScenarioDiversityContext) (*models.Scenario, error) {
+type llmClientConfig struct {
+	URL    string
+	APIKey string
+	Model  string
+}
+
+func resolveLLMClientConfig() (llmClientConfig, error) {
 	rawApiKey := os.Getenv("LLM_API_KEY")
 	if rawApiKey == "" {
-		return nil, fmt.Errorf("LLM_API_KEY is not configured")
+		return llmClientConfig{}, fmt.Errorf("LLM_API_KEY is not configured")
 	}
 	cleanKey := strings.TrimSpace(strings.Trim(rawApiKey, "\"'"))
+	if cleanKey == "" {
+		return llmClientConfig{}, fmt.Errorf("LLM_API_KEY is not configured")
+	}
 
 	baseURL := os.Getenv("LLM_BASE_URL")
 	if baseURL == "" {
@@ -349,11 +356,9 @@ func GenerateLLMScenarioWithContext(ctx context.Context, weakestDomain string, d
 	baseURL = strings.TrimSpace(strings.Trim(baseURL, "\"'"))
 	baseURL = strings.TrimSuffix(baseURL, "/")
 
-	var url string
+	url := fmt.Sprintf("%s/chat/completions", baseURL)
 	if strings.HasSuffix(baseURL, "/chat/completions") {
 		url = baseURL
-	} else {
-		url = fmt.Sprintf("%s/chat/completions", baseURL)
 	}
 
 	model := os.Getenv("LLM_MODEL")
@@ -361,6 +366,22 @@ func GenerateLLMScenarioWithContext(ctx context.Context, weakestDomain string, d
 		model = "gpt-4o-mini"
 	}
 	model = strings.TrimSpace(strings.Trim(model, "\"'"))
+
+	return llmClientConfig{
+		URL:    url,
+		APIKey: cleanKey,
+		Model:  model,
+	}, nil
+}
+
+// GenerateLLMScenarioWithContext calls an OpenAI-compatible API using rotated SY0-701 sub-topic,
+// archetype, briefing style, TP/FP cadence, and session history exclusions.
+func GenerateLLMScenarioWithContext(ctx context.Context, weakestDomain string, domainName string, proficiency float64, profiles []models.UserSkillProfile, divCtx ScenarioDiversityContext) (*models.Scenario, error) {
+	cfg, err := resolveLLMClientConfig()
+	if err != nil {
+		return nil, err
+	}
+	cleanKey, url, model := cfg.APIKey, cfg.URL, cfg.Model
 
 	// Build user profile summary and diversity / exclusion directives
 	var profileSummary strings.Builder
@@ -2058,4 +2079,218 @@ func EnsureScenarioPlaybookQuality(db *gorm.DB, seedPath string) error {
 		log.Printf("[Scenario Quality Gate] Auto-remediated %d legacy scenario(s) in database.", upgradedCount)
 	}
 	return nil
+}
+
+type scenarioPlaybookStepTranslation struct {
+	Label       string `json:"label"`
+	Explanation string `json:"explanation"`
+}
+
+type scenarioFindingTranslation struct {
+	Description string `json:"description"`
+	Explanation string `json:"explanation"`
+}
+
+type scenarioTranslationPayloadTh struct {
+	Title           string                                     `json:"title"`
+	Description     string                                     `json:"description"`
+	TpFpExplanation string                                     `json:"tp_fp_explanation"`
+	PlaybookSteps   map[string]scenarioPlaybookStepTranslation `json:"playbook_steps"`
+	Findings        map[string]scenarioFindingTranslation      `json:"findings"`
+}
+
+// TranslateScenarioToThai translates an existing English scenario's learner-facing narrative,
+// triage explanation, playbook steps, and key findings into Hybrid Bilingual Thai without altering
+// canonical English logs, IDs, or scoring rubrics.
+func TranslateScenarioToThai(ctx context.Context, scenario *models.Scenario) (map[string]any, error) {
+	cfg, err := resolveLLMClientConfig()
+	if err != nil {
+		return nil, err
+	}
+	return translateScenarioToThaiWithCaller(ctx, scenario, func(callCtx context.Context, messages []chatMessage, temperature float64) (string, error) {
+		return callChatCompletion(callCtx, cfg.URL, cfg.APIKey, cfg.Model, messages, temperature)
+	})
+}
+
+func translateScenarioToThaiWithCaller(
+	ctx context.Context,
+	scenario *models.Scenario,
+	callFn func(ctx context.Context, messages []chatMessage, temperature float64) (string, error),
+) (map[string]any, error) {
+	if scenario == nil {
+		return nil, fmt.Errorf("scenario is nil")
+	}
+	if callFn == nil {
+		return nil, fmt.Errorf("translation caller is nil")
+	}
+	messages, err := buildScenarioTranslationMessages(scenario)
+	if err != nil {
+		return nil, err
+	}
+	rawJSON, err := callFn(ctx, messages, 0.2)
+	if err != nil {
+		return nil, err
+	}
+	return parseAndValidateScenarioTranslationTh(rawJSON, scenario)
+}
+
+func buildScenarioTranslationMessages(scenario *models.Scenario) ([]chatMessage, error) {
+	if scenario == nil {
+		return nil, fmt.Errorf("scenario is nil")
+	}
+
+	playbookSource := make(map[string]scenarioPlaybookStepTranslation)
+	playbook := normalizeAnyStringMap(scenario.PlaybookSteps)
+	for _, phase := range []string{"containment", "eradication", "recovery"} {
+		for _, step := range normalizePhaseStepSlice(playbook[phase]) {
+			id, _ := step["id"].(string)
+			id = strings.TrimSpace(id)
+			if id == "" {
+				return nil, fmt.Errorf("scenario playbook step in phase %q is missing id", phase)
+			}
+			label, _ := step["label"].(string)
+			exp, _ := step["explanation"].(string)
+			if strings.TrimSpace(exp) == "" {
+				exp = fmt.Sprintf("Explain clearly in Thai whether %s action %q is appropriate or flawed for this %s phase.", id, strings.TrimSpace(label), phase)
+			}
+			playbookSource[id] = scenarioPlaybookStepTranslation{
+				Label:       strings.TrimSpace(label),
+				Explanation: strings.TrimSpace(exp),
+			}
+		}
+	}
+
+	findingsSource := make(map[string]scenarioFindingTranslation)
+	outcomes := normalizeAnyStringMap(scenario.ExpectedOutcomes)
+	for _, f := range normalizePhaseStepSlice(outcomes["key_findings"]) {
+		id, _ := f["id"].(string)
+		id = strings.TrimSpace(id)
+		if id == "" {
+			return nil, fmt.Errorf("scenario finding is missing id")
+		}
+		desc, _ := f["description"].(string)
+		exp, _ := f["explanation"].(string)
+		if strings.TrimSpace(exp) == "" {
+			exp = fmt.Sprintf("Explain clearly in Thai why finding %q is significant.", strings.TrimSpace(desc))
+		}
+		findingsSource[id] = scenarioFindingTranslation{
+			Description: strings.TrimSpace(desc),
+			Explanation: strings.TrimSpace(exp),
+		}
+	}
+
+	tpFpExp := strings.TrimSpace(scenario.TpFpExplanation)
+	if tpFpExp == "" {
+		if scenario.IsTruePositive {
+			tpFpExp = "Explain concisely in Thai why this incident is a True Positive security threat."
+		} else {
+			tpFpExp = "Explain concisely in Thai why this incident is a False Positive benign operational event."
+		}
+	}
+
+	sourcePayload := scenarioTranslationPayloadTh{
+		Title:           strings.TrimSpace(scenario.Title),
+		Description:     strings.TrimSpace(scenario.Description),
+		TpFpExplanation: tpFpExp,
+		PlaybookSteps:   playbookSource,
+		Findings:        findingsSource,
+	}
+	payloadBytes, err := json.MarshalIndent(sourcePayload, "", "  ")
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal scenario translation source: %w", err)
+	}
+
+	systemPrompt := "You are a specialized CompTIA Security+ 701 bilingual cybersecurity translator (English to Thai). Output ONLY raw valid JSON matching the exact input schema (`title`, `description`, `tp_fp_explanation`, `playbook_steps`, `findings`) with identical action IDs and finding IDs. Follow Hybrid Bilingual Terminology: translate explanations, narratives, and action text into clear natural Thai while preserving hostnames (e.g., DMZ-HIST01), IP addresses, usernames, service accounts, firewall/rule names, scheduled tasks, filenames, registry paths, MITRE ATT&CK IDs, CVE IDs, CLI commands, and standard security terms (such as True Positive, False Positive, EDR, SIEM, NIDS, DMZ, VLAN, PLC, AD) verbatim in English. Every translated string MUST contain Thai characters and MUST NOT be empty or left entirely in English."
+	userPrompt := fmt.Sprintf("Translate all fields of this SOC scenario into Hybrid Bilingual Thai. Preserve every key under `playbook_steps` and `findings` verbatim:\n\n%s", string(payloadBytes))
+
+	return []chatMessage{
+		{Role: "system", Content: systemPrompt},
+		{Role: "user", Content: userPrompt},
+	}, nil
+}
+
+func extractJSONObject(raw string) string {
+	stripped := stripJSONFences(raw)
+	if strings.HasPrefix(stripped, "{") && strings.HasSuffix(stripped, "}") {
+		return stripped
+	}
+	start := strings.Index(stripped, "{")
+	end := strings.LastIndex(stripped, "}")
+	if start >= 0 && end > start {
+		return strings.TrimSpace(stripped[start : end+1])
+	}
+	return stripped
+}
+
+func parseAndValidateScenarioTranslationTh(rawJSON string, scenario *models.Scenario) (map[string]any, error) {
+	if scenario == nil {
+		return nil, fmt.Errorf("scenario is nil")
+	}
+	var payload scenarioTranslationPayloadTh
+	cleaned := extractJSONObject(rawJSON)
+	if err := json.Unmarshal([]byte(cleaned), &payload); err != nil {
+		return nil, fmt.Errorf("invalid_translation_json: %w", err)
+	}
+
+	playbookOut := make(map[string]interface{}, len(payload.PlaybookSteps))
+	for id, step := range payload.PlaybookSteps {
+		trimmedID := strings.TrimSpace(id)
+		label := strings.TrimSpace(step.Label)
+		exp := strings.TrimSpace(step.Explanation)
+		if trimmedID == "" || label == "" || exp == "" {
+			continue
+		}
+		if !ContainsThaiRune(label) {
+			return nil, fmt.Errorf("translation_validation_failed: playbook_steps[%q].label must contain Thai text", trimmedID)
+		}
+		if !ContainsThaiRune(exp) {
+			return nil, fmt.Errorf("translation_validation_failed: playbook_steps[%q].explanation must contain Thai text", trimmedID)
+		}
+		playbookOut[trimmedID] = map[string]interface{}{
+			"label":       label,
+			"explanation": exp,
+		}
+	}
+
+	findingsOut := make(map[string]interface{}, len(payload.Findings))
+	for id, f := range payload.Findings {
+		trimmedID := strings.TrimSpace(id)
+		desc := strings.TrimSpace(f.Description)
+		exp := strings.TrimSpace(f.Explanation)
+		if trimmedID == "" || desc == "" || exp == "" {
+			continue
+		}
+		if !ContainsThaiRune(desc) {
+			return nil, fmt.Errorf("translation_validation_failed: findings[%q].description must contain Thai text", trimmedID)
+		}
+		if !ContainsThaiRune(exp) {
+			return nil, fmt.Errorf("translation_validation_failed: findings[%q].explanation must contain Thai text", trimmedID)
+		}
+		findingsOut[trimmedID] = map[string]interface{}{
+			"description": desc,
+			"explanation": exp,
+		}
+	}
+
+	thMap := map[string]interface{}{
+		"title":             strings.TrimSpace(payload.Title),
+		"description":       strings.TrimSpace(payload.Description),
+		"tp_fp_explanation": strings.TrimSpace(payload.TpFpExplanation),
+		"playbook_steps":    playbookOut,
+		"findings":          findingsOut,
+	}
+
+	merged := make(map[string]any)
+	for k, v := range normalizeAnyStringMap(scenario.Translations) {
+		merged[k] = v
+	}
+	merged["th"] = thMap
+
+	candidate := *scenario
+	candidate.Translations = merged
+	if err := ValidateScenarioTranslationsTh(&candidate); err != nil {
+		return nil, err
+	}
+
+	return merged, nil
 }

@@ -44,9 +44,12 @@ type userLockEntry struct {
 }
 
 type SimulationController struct {
-	DB             *gorm.DB
-	startMu        sync.Mutex
-	userStartLocks map[string]*userLockEntry
+	DB                  *gorm.DB
+	startMu             sync.Mutex
+	userStartLocks      map[string]*userLockEntry
+	transMu             sync.Mutex
+	scenarioTransLocks  map[string]*userLockEntry
+	translateScenarioFn func(context.Context, *models.Scenario) (map[string]any, error)
 }
 
 func NewSimulationController(db *gorm.DB) *SimulationController {
@@ -55,8 +58,35 @@ func NewSimulationController(db *gorm.DB) *SimulationController {
 		_ = services.EnsureScenarioPlaybookQuality(db, "scenarios_seed.json")
 	}
 	return &SimulationController{
-		DB:             db,
-		userStartLocks: make(map[string]*userLockEntry),
+		DB:                 db,
+		userStartLocks:     make(map[string]*userLockEntry),
+		scenarioTransLocks: make(map[string]*userLockEntry),
+	}
+}
+
+func acquireKeyedLock(mu *sync.Mutex, locksPtr *map[string]*userLockEntry, key string) func() {
+	mu.Lock()
+	if *locksPtr == nil {
+		*locksPtr = make(map[string]*userLockEntry)
+	}
+	locks := *locksPtr
+	entry, ok := locks[key]
+	if !ok {
+		entry = &userLockEntry{}
+		locks[key] = entry
+	}
+	entry.refs++
+	mu.Unlock()
+
+	entry.mu.Lock()
+	return func() {
+		entry.mu.Unlock()
+		mu.Lock()
+		entry.refs--
+		if entry.refs <= 0 && (*locksPtr)[key] == entry {
+			delete(*locksPtr, key)
+		}
+		mu.Unlock()
 	}
 }
 
@@ -64,28 +94,13 @@ func NewSimulationController(db *gorm.DB) *SimulationController {
 // React StrictMode double-mounts, or manual retries cannot launch parallel LLM scenario
 // generation runs or create duplicate in_progress sessions for the same learner.
 func (sc *SimulationController) lockUserStart(userKey string) func() {
-	sc.startMu.Lock()
-	if sc.userStartLocks == nil {
-		sc.userStartLocks = make(map[string]*userLockEntry)
-	}
-	entry, ok := sc.userStartLocks[userKey]
-	if !ok {
-		entry = &userLockEntry{}
-		sc.userStartLocks[userKey] = entry
-	}
-	entry.refs++
-	sc.startMu.Unlock()
+	return acquireKeyedLock(&sc.startMu, &sc.userStartLocks, userKey)
+}
 
-	entry.mu.Lock()
-	return func() {
-		entry.mu.Unlock()
-		sc.startMu.Lock()
-		entry.refs--
-		if entry.refs <= 0 && sc.userStartLocks[userKey] == entry {
-			delete(sc.userStartLocks, userKey)
-		}
-		sc.startMu.Unlock()
-	}
+// lockScenarioTranslation serializes lazy Thai translation backfills per scenario_id
+// so concurrent session requests do not issue duplicate LLM translation calls.
+func (sc *SimulationController) lockScenarioTranslation(scenarioID string) func() {
+	return acquireKeyedLock(&sc.transMu, &sc.scenarioTransLocks, scenarioID)
 }
 
 var (
@@ -872,6 +887,8 @@ func (sc *SimulationController) GetActiveSession(c *gin.Context) {
 		if !fromSnapshot {
 			sc.ensureScenarioRemediated(&scenario)
 		}
+		locale := sc.resolveSimulationLocale(c, userID)
+		sc.ensureScenarioThaiTranslation(c.Request.Context(), locale, &scenario)
 		c.JSON(http.StatusOK, gin.H{
 			"type":                 "in_progress",
 			"session":              activeSession,
@@ -1386,6 +1403,13 @@ func (sc *SimulationController) GetResult(c *gin.Context) {
 	scenario, _, scenarioErr := sc.sessionScenario(session)
 	if scenarioErr != nil {
 		log.Printf("Failed to load scenario for result session %s: %v", sessionID, scenarioErr)
+	} else {
+		locale := sc.resolveSimulationLocale(c, userID)
+		reqCtx := context.Background()
+		if c != nil && c.Request != nil {
+			reqCtx = c.Request.Context()
+		}
+		sc.ensureScenarioThaiTranslation(reqCtx, locale, &scenario)
 	}
 
 	// Get all actions for this session
@@ -1895,4 +1919,87 @@ func buildHistoryEntriesFromSessions(sessions []models.SimulationSession, resolv
 		out = append(out, entry)
 	}
 	return out
+}
+
+func (sc *SimulationController) getUserPreferredLanguage(userID string) string {
+	if sc == nil || sc.DB == nil || strings.TrimSpace(userID) == "" {
+		return "en"
+	}
+	var user models.User
+	if err := sc.DB.Select("preferred_language").Where("user_id = ?", userID).First(&user).Error; err != nil {
+		return "en"
+	}
+	return services.NormalizeLocale(user.PreferredLanguage)
+}
+
+func (sc *SimulationController) resolveSimulationLocale(c *gin.Context, userID any) string {
+	uidStr, _ := userID.(string)
+	return resolveRequestLocale(c, func() string {
+		return sc.getUserPreferredLanguage(uidStr)
+	})
+}
+
+// ensureScenarioThaiTranslation lazily backfills translations.th for legacy pre-Spec-11
+// scenarios on Thai requests and persists only the translations column so immutable snapshots,
+// status, initial_logs, and scoring remain untouched. Fails open when offline or unconfigured.
+func (sc *SimulationController) ensureScenarioThaiTranslation(ctx context.Context, locale string, scenario *models.Scenario) {
+	if sc == nil || scenario == nil || services.NormalizeLocale(locale) != "th" {
+		return
+	}
+	if services.ValidateScenarioTranslationsTh(scenario) == nil {
+		return
+	}
+	if sc.translateScenarioFn == nil && strings.TrimSpace(os.Getenv("LLM_API_KEY")) == "" {
+		return
+	}
+
+	if scenario.ScenarioID != "" {
+		unlock := sc.lockScenarioTranslation(scenario.ScenarioID)
+		defer unlock()
+
+		if sc.DB != nil {
+			var live models.Scenario
+			if err := sc.DB.Select("translations").Where("scenario_id = ?", scenario.ScenarioID).First(&live).Error; err == nil && hasScenarioTranslations(live.Translations) {
+				candidate := *scenario
+				candidate.Translations = live.Translations
+				if services.ValidateScenarioTranslationsTh(&candidate) == nil {
+					scenario.Translations = live.Translations
+					return
+				}
+			}
+		}
+	}
+
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	translateCtx, cancel := context.WithTimeout(ctx, 120*time.Second)
+	defer cancel()
+
+	translateFn := sc.translateScenarioFn
+	if translateFn == nil {
+		translateFn = services.TranslateScenarioToThai
+	}
+
+	translated, err := translateFn(translateCtx, scenario)
+	if err != nil {
+		log.Printf("[Translation Backfill] Failed to translate scenario %s to Thai: %v", scenario.ScenarioID, err)
+		return
+	}
+
+	candidate := *scenario
+	candidate.Translations = translated
+	if valErr := services.ValidateScenarioTranslationsTh(&candidate); valErr != nil {
+		log.Printf("[Translation Backfill] Translated payload for scenario %s failed validation: %v", scenario.ScenarioID, valErr)
+		return
+	}
+
+	if sc.DB != nil && scenario.ScenarioID != "" {
+		if saveErr := sc.DB.Model(&models.Scenario{}).
+			Where("scenario_id = ?", scenario.ScenarioID).
+			Update("translations", translated).Error; saveErr != nil {
+			log.Printf("[Translation Backfill] Failed to persist Thai translation for scenario %s: %v", scenario.ScenarioID, saveErr)
+		}
+	}
+	scenario.Translations = translated
 }

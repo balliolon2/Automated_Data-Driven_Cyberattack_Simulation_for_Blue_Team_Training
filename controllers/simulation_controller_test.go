@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"context"
 	"fmt"
 	"reflect"
 	"sync"
@@ -395,4 +396,105 @@ func TestEvaluateStage2TheoryGate_IncludesCanonicalCode(t *testing.T) {
 	if gateErr.Params["completed_subtopics"] != 1 || gateErr.Params["total_subtopics"] != 28 {
 		t.Fatalf("unexpected Params: %+v", gateErr.Params)
 	}
+}
+
+func TestEnsureScenarioThaiTranslation(t *testing.T) {
+	translatedFixture := services.GenerateFallbackScenario("domain4", "Security Operations")
+	translatedFixture.ScenarioID = "scen-legacy-test-01"
+
+	t.Run("no-op for en locale", func(t *testing.T) {
+		legacy := *translatedFixture
+		legacy.Translations = nil
+		var calls atomic.Int32
+		sc := &SimulationController{
+			translateScenarioFn: func(ctx context.Context, s *models.Scenario) (map[string]any, error) {
+				calls.Add(1)
+				return map[string]any{}, nil
+			},
+		}
+		sc.ensureScenarioThaiTranslation(context.Background(), "en", &legacy)
+		if calls.Load() != 0 {
+			t.Fatalf("expected 0 translator calls for en locale, got %d", calls.Load())
+		}
+		if legacy.Translations != nil {
+			t.Fatalf("expected legacy.Translations to remain nil under en locale")
+		}
+	})
+
+	t.Run("no-op when scenario already has valid Thai translations", func(t *testing.T) {
+		alreadyTranslated := *translatedFixture
+		var calls atomic.Int32
+		sc := &SimulationController{
+			translateScenarioFn: func(ctx context.Context, s *models.Scenario) (map[string]any, error) {
+				calls.Add(1)
+				return map[string]any{}, nil
+			},
+		}
+		sc.ensureScenarioThaiTranslation(context.Background(), "th", &alreadyTranslated)
+		if calls.Load() != 0 {
+			t.Fatalf("expected 0 translator calls when Thai translations are already complete, got %d", calls.Load())
+		}
+	})
+
+	t.Run("fails open cleanly when LLM_API_KEY is unset", func(t *testing.T) {
+		t.Setenv("LLM_API_KEY", "")
+		legacy := *translatedFixture
+		legacy.Translations = nil
+		sc := &SimulationController{}
+		sc.ensureScenarioThaiTranslation(context.Background(), "th", &legacy)
+		if legacy.Translations != nil {
+			t.Fatalf("expected nil translations when LLM_API_KEY is unset")
+		}
+	})
+
+	t.Run("backfills legacy scenario in th locale and exposes sanitized non-spoiler Thai fields", func(t *testing.T) {
+		legacy := *translatedFixture
+		legacy.Translations = nil
+		expectedTrans, ok := translatedFixture.Translations.(map[string]any)
+		if !ok {
+			if typedMap, ok2 := translatedFixture.Translations.(map[string]interface{}); ok2 {
+				expectedTrans = typedMap
+			} else {
+				t.Fatalf("unexpected fixture Translations type %T", translatedFixture.Translations)
+			}
+		}
+
+		var calls atomic.Int32
+		sc := &SimulationController{
+			translateScenarioFn: func(ctx context.Context, s *models.Scenario) (map[string]any, error) {
+				calls.Add(1)
+				return expectedTrans, nil
+			},
+		}
+
+		sc.ensureScenarioThaiTranslation(context.Background(), "th", &legacy)
+		if calls.Load() != 1 {
+			t.Fatalf("expected exactly 1 translator call, got %d", calls.Load())
+		}
+		if err := services.ValidateScenarioTranslationsTh(&legacy); err != nil {
+			t.Fatalf("expected valid Thai translations after backfill, got error: %v", err)
+		}
+
+		// Calling again immediately on the populated scenario must not re-translate.
+		sc.ensureScenarioThaiTranslation(context.Background(), "th", &legacy)
+		if calls.Load() != 1 {
+			t.Fatalf("expected cached scenario not to re-translate, calls=%d", calls.Load())
+		}
+
+		sanitized := sanitizeScenario(legacy, "sess-backfill-01")
+		transMap, ok := sanitized.Translations.(map[string]interface{})
+		if !ok {
+			t.Fatalf("expected sanitized Translations map, got %T", sanitized.Translations)
+		}
+		thMap, ok := transMap["th"].(map[string]interface{})
+		if !ok {
+			t.Fatalf("expected sanitized translations.th, got %T", transMap["th"])
+		}
+		if _, leaked := thMap["tp_fp_explanation"]; leaked {
+			t.Fatalf("sanitized translations.th leaked tp_fp_explanation")
+		}
+		if _, leaked := thMap["findings"]; leaked {
+			t.Fatalf("sanitized translations.th leaked findings")
+		}
+	})
 }

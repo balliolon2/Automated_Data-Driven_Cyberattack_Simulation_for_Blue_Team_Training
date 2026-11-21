@@ -1,6 +1,7 @@
 package services
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -733,4 +734,90 @@ func TestGenerateFallbackScenario_BilingualAllDomainsComplete(t *testing.T) {
 			t.Errorf("%s: expected at least 1 translated finding", domainID)
 		}
 	}
+}
+
+func TestTranslateScenarioToThai_Unit(t *testing.T) {
+	base := GenerateFallbackScenario("domain4", "Security Operations")
+	expectedTrans := normalizeAnyStringMap(base.Translations)
+	expectedTh := normalizeAnyStringMap(expectedTrans["th"])
+	legacy := *base
+	legacy.Translations = nil
+
+	t.Run("returns error cleanly when LLM_API_KEY is unset", func(t *testing.T) {
+		t.Setenv("LLM_API_KEY", "")
+		if _, err := TranslateScenarioToThai(context.Background(), &legacy); err == nil || !strings.Contains(err.Error(), "LLM_API_KEY") {
+			t.Fatalf("expected LLM_API_KEY configuration error, got %v", err)
+		}
+	})
+
+	t.Run("builds complete source schema prompt and validates fenced Thai JSON", func(t *testing.T) {
+		rawThBytes, err := json.Marshal(expectedTh)
+		if err != nil {
+			t.Fatalf("failed to marshal expected Thai fixture: %v", err)
+		}
+		var promptSeen string
+		merged, err := translateScenarioToThaiWithCaller(context.Background(), &legacy, func(ctx context.Context, messages []chatMessage, temperature float64) (string, error) {
+			if len(messages) != 2 {
+				t.Fatalf("expected 2 chat messages, got %d", len(messages))
+			}
+			promptSeen = messages[1].Content
+			return "```json\n" + string(rawThBytes) + "\n```", nil
+		})
+		if err != nil {
+			t.Fatalf("unexpected translation error: %v", err)
+		}
+		for _, id := range []string{"c1", "c2", "c3", "e1", "e2", "e3", "r1", "r2", "r3", "f1"} {
+			if !strings.Contains(promptSeen, `"`+id+`"`) {
+				t.Errorf("expected prompt to include ID %q", id)
+			}
+		}
+
+		candidate := legacy
+		candidate.Translations = merged
+		if valErr := ValidateScenarioTranslationsTh(&candidate); valErr != nil {
+			t.Fatalf("translated scenario failed ValidateScenarioTranslationsTh: %v", valErr)
+		}
+		if ContainsThaiRune(fmt.Sprintf("%v", candidate.InitialLogs)) {
+			t.Fatalf("translation must never inject Thai into InitialLogs")
+		}
+	})
+
+	t.Run("rejects incomplete or English-only playbook translations", func(t *testing.T) {
+		missingStepJSON, err := json.Marshal(map[string]interface{}{
+			"title":             expectedTh["title"],
+			"description":       expectedTh["description"],
+			"tp_fp_explanation": expectedTh["tp_fp_explanation"],
+			"playbook_steps":    map[string]interface{}{},
+			"findings":          expectedTh["findings"],
+		})
+		if err != nil {
+			t.Fatalf("marshal error: %v", err)
+		}
+		if _, transErr := translateScenarioToThaiWithCaller(context.Background(), &legacy, func(ctx context.Context, messages []chatMessage, temperature float64) (string, error) {
+			return string(missingStepJSON), nil
+		}); transErr == nil {
+			t.Fatalf("expected error when playbook_steps IDs are missing")
+		}
+
+		englishOnlyStepJSON, err := json.Marshal(map[string]interface{}{
+			"title":             expectedTh["title"],
+			"description":       expectedTh["description"],
+			"tp_fp_explanation": expectedTh["tp_fp_explanation"],
+			"playbook_steps": map[string]interface{}{
+				"c1": map[string]string{
+					"label":       "Isolate host WS-DEV09 immediately.",
+					"explanation": "อธิบายภาษาไทย",
+				},
+			},
+			"findings": expectedTh["findings"],
+		})
+		if err != nil {
+			t.Fatalf("marshal error: %v", err)
+		}
+		if _, transErr := translateScenarioToThaiWithCaller(context.Background(), &legacy, func(ctx context.Context, messages []chatMessage, temperature float64) (string, error) {
+			return string(englishOnlyStepJSON), nil
+		}); transErr == nil || !strings.Contains(transErr.Error(), "Thai text") {
+			t.Fatalf("expected Thai rune validation error for English step label, got %v", transErr)
+		}
+	})
 }

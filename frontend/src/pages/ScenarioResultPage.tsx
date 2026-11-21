@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import axios from "axios";
 import { CheckCircle2, XCircle, ChevronRight, Award, ShieldAlert, ShieldCheck, Loader2, MessageSquare, Plus, Search, BookOpen } from "lucide-react";
@@ -180,6 +180,13 @@ export default function ScenarioResultPage() {
   const [needsTraining, setNeedsTraining] = useState<boolean>(true);
   const [linkedThreads, setLinkedThreads] = useState<any[]>([]);
   const [threadsLoading, setThreadsLoading] = useState(false);
+  const [backfillingTranslation, setBackfillingTranslation] = useState(false);
+
+  const localeRef = useRef(locale);
+  useEffect(() => {
+    localeRef.current = locale;
+  }, [locale]);
+  const attemptedThSessionRef = useRef<string | null>(null);
 
   const navigate = useNavigate();
 
@@ -192,11 +199,15 @@ export default function ScenarioResultPage() {
           return;
         }
 
+        const requestLocale = localeRef.current;
         // 1. Fetch result payload directly from backend evaluation endpoint
         const res = await axios.get(`/api/simulation/result/${id}`, {
           headers: { Authorization: `Bearer ${token}` }
         });
 
+        if (requestLocale === "th" && id) {
+          attemptedThSessionRef.current = id;
+        }
         setSession(res.data.session);
         setScenario(res.data.scenario);
         setDomainProficiencies(res.data.domain_proficiencies);
@@ -232,6 +243,46 @@ export default function ScenarioResultPage() {
 
     fetchResults();
   }, [id, navigate]);
+
+  useEffect(() => {
+    if (locale !== "th" || !id || !scenario || scenario.translations?.th?.description) {
+      return;
+    }
+    if (attemptedThSessionRef.current === id) {
+      return;
+    }
+    attemptedThSessionRef.current = id;
+
+    const token = localStorage.getItem("token");
+    if (!token) return;
+
+    let cancelled = false;
+    Promise.resolve()
+      .then(() => {
+        if (cancelled) return null;
+        setBackfillingTranslation(true);
+        return axios.get(`/api/simulation/result/${id}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+      })
+      .then((res) => {
+        if (!cancelled && res?.data?.scenario) {
+          setScenario(res.data.scenario);
+        }
+      })
+      .catch((err) => {
+        console.error("Failed to backfill Thai result translation:", err);
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setBackfillingTranslation(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [locale, id, scenario]);
 
   const handleNext = () => {
     if (id) {
@@ -304,6 +355,11 @@ export default function ScenarioResultPage() {
         <p className="text-xs text-graphite-400 font-mono">
           {t("result.incidentAuditFor")} <span className="text-white font-semibold">{localizedScenario.title}</span>
         </p>
+        {locale === "th" && !scenario.translations?.th?.description && !backfillingTranslation && (
+          <p className="text-[11px] text-amber-300/80 font-mono">
+            {t("simulation.legacyUntranslatedNotice")}
+          </p>
+        )}
       </div>
 
       <div className="grid md:grid-cols-3 gap-6">

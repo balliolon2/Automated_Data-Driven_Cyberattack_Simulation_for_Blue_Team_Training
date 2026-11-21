@@ -14,6 +14,7 @@ import { cn } from "../lib/utils";
 
 interface ActionOption {
   id: string;
+  action_id?: string;
   label: string;
 }
 
@@ -77,6 +78,13 @@ export default function SimulationPage() {
   const activeSessionIdRef = useRef<string | null>(null);
   const submissionInFlightRef = useRef(false);
 
+  const [backfillingTranslation, setBackfillingTranslation] = useState(false);
+  const localeRef = useRef(locale);
+  useEffect(() => {
+    localeRef.current = locale;
+  }, [locale]);
+  const attemptedThSessionRef = useRef<string | null>(null);
+  const initialFetchLocaleRef = useRef(locale);
   const tRef = useRef(t);
   useEffect(() => {
     tRef.current = t;
@@ -226,6 +234,8 @@ export default function SimulationPage() {
   useEffect(() => {
     let cancelled = false;
     const initSimulation = async () => {
+      initialFetchLocaleRef.current = localeRef.current;
+      attemptedThSessionRef.current = null;
       let preTestVerified = false;
       try {
         const token = localStorage.getItem("token");
@@ -362,6 +372,57 @@ export default function SimulationPage() {
       cancelled = true;
     };
   }, [navigate, retryCount]);
+
+  useEffect(() => {
+    if (locale !== "th" || !session || !scenario || scenario.translations?.th?.description) {
+      return;
+    }
+    const sid = session.session_id;
+    if (!sid || attemptedThSessionRef.current === sid) {
+      return;
+    }
+    attemptedThSessionRef.current = sid;
+
+    // Initial load already ran under locale="th", so the backend already attempted any available backfill.
+    if (initialFetchLocaleRef.current === "th") {
+      return;
+    }
+
+    const token = localStorage.getItem("token");
+    if (!token) return;
+
+    let cancelled = false;
+    Promise.resolve()
+      .then(() => {
+        if (cancelled) return null;
+        setBackfillingTranslation(true);
+        return axios.get("/api/simulation/session", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+      })
+      .then((res) => {
+        if (
+          !cancelled &&
+          res?.data?.type === "in_progress" &&
+          res?.data?.session?.session_id === sid &&
+          res?.data?.scenario
+        ) {
+          setScenario(res.data.scenario);
+        }
+      })
+      .catch((err) => {
+        console.error("Failed to backfill Thai simulation translation:", err);
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setBackfillingTranslation(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [locale, session, scenario]);
 
   const handleSubmit = async () => {
     if (!session || !scenario) return;
@@ -501,19 +562,19 @@ export default function SimulationPage() {
   if (!scenario || !session) return null;
 
   const localizedScenario = resolveScenarioLocale(scenario, locale);
+  const localizePhaseSteps = (steps?: ActionOption[]) =>
+    (steps || []).map((act) => {
+      const stepId = act.id || act.action_id || "";
+      return {
+        ...act,
+        id: stepId,
+        label: localizedScenario.playbookLabel(stepId, act.label),
+      };
+    });
   const localizedPlaybookSteps: PlaybookSteps = {
-    containment: (scenario.playbook_steps?.containment || []).map((act) => ({
-      ...act,
-      label: localizedScenario.playbookLabel(act.id, act.label),
-    })),
-    eradication: (scenario.playbook_steps?.eradication || []).map((act) => ({
-      ...act,
-      label: localizedScenario.playbookLabel(act.id, act.label),
-    })),
-    recovery: (scenario.playbook_steps?.recovery || []).map((act) => ({
-      ...act,
-      label: localizedScenario.playbookLabel(act.id, act.label),
-    })),
+    containment: localizePhaseSteps(scenario.playbook_steps?.containment),
+    eradication: localizePhaseSteps(scenario.playbook_steps?.eradication),
+    recovery: localizePhaseSteps(scenario.playbook_steps?.recovery),
   };
 
   // Canonical EN title + description MUST be passed so keyword/entity scoring behaves identically across languages.
@@ -618,6 +679,11 @@ export default function SimulationPage() {
             <div className="md:col-span-2 space-y-6">
               <div className="bg-graphite-900 border border-graphite-800/80 p-6 rounded-lg space-y-4">
                 <h3 className="text-sm font-semibold text-white">{t("simulation.incidentNarrative")}</h3>
+                {locale === "th" && !scenario.translations?.th?.description && !backfillingTranslation && (
+                  <p className="text-[11px] text-amber-300/80 font-mono">
+                    {t("simulation.legacyUntranslatedNotice")}
+                  </p>
+                )}
                 <p className="text-xs text-graphite-300 leading-relaxed font-light whitespace-pre-wrap">
                   {localizedScenario.description}
                 </p>

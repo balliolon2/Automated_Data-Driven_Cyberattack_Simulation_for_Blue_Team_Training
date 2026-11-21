@@ -328,6 +328,7 @@ export const th = {
     tabDetect: "2. ตรวจจับและวิเคราะห์",
     tabResponse: "3. ตอบสนองเหตุการณ์",
     incidentNarrative: "รายละเอียดเหตุการณ์ (Incident Narrative)",
+    legacyUntranslatedNotice: "สถานการณ์เดิมนี้ยังไม่มีข้อมูลแปลภาษาไทย ระบบจึงแสดงเนื้อหาภาษาอังกฤษต้นฉบับ",
     cluesAndShortcutsTitle: "เบาะแสการสืบสวน & คีย์ลัด SIEM",
     cluesClickHint: "คลิกเพื่อค้นหาใน SIEM Terminal",
     cluesDesc: "ใช้ตัวบ่งชี้ที่ระบุไว้ด้านล่างเพื่อกรองและตรวจสอบ Telemetry Logs ใน SIEM Terminal:",
