@@ -1295,7 +1295,10 @@ func synthesizeFullScenarioWithErrors(ai aiMicroScenario, weakestDomain string, 
 		ai.KeyFinding = fmt.Sprintf("Identified malicious activity originating from %s targeting %s", ai.AttackerIP, ai.TargetHost)
 	}
 
-	if strings.TrimSpace(ai.Description) == "" {
+	if hasAllStoryBeats(ai.Story) {
+		ensureStoryEntityMentions(ai.Story, ai.TargetHost, ai.AttackerIP)
+		ai.Description = ComposeStoryDescription(ai.Story)
+	} else if strings.TrimSpace(ai.Description) == "" {
 		ai.Description = fmt.Sprintf("Security telemetry detected an event requiring triage on %s involving %s.", ai.TargetHost, ai.AttackerIP)
 	} else if !strings.Contains(strings.ToLower(ai.Description), strings.ToLower(ai.TargetHost)) {
 		lead := formatStyleEntityLead(ai.BriefingStyle, ai.TargetHost, ai.AttackerIP)
@@ -1341,22 +1344,44 @@ func synthesizeFullScenarioWithErrors(ai aiMicroScenario, weakestDomain string, 
 	}
 
 	var translations map[string]interface{}
+	if hasAllStoryBeats(ai.Story) {
+		translations = map[string]interface{}{
+			"en": map[string]interface{}{
+				"description": ai.Description,
+				"story":       storyBeatsToMap(ai.Story),
+			},
+		}
+	}
+
 	thTitle := strings.TrimSpace(ai.TitleTh)
-	thDesc := strings.TrimSpace(ai.DescriptionTh)
-	thTpFp := strings.TrimSpace(ai.TpFpExplanationTh)
-	if thTitle != "" || thDesc != "" || thTpFp != "" || len(thFindings) > 0 {
+	var thDesc string
+	var thStoryMap map[string]interface{}
+	if hasAllThaiStoryBeats(ai.StoryTh) {
+		ensureStoryEntityMentions(ai.StoryTh, ai.TargetHost, ai.AttackerIP)
+		thDesc = ComposeStoryDescription(ai.StoryTh)
+		thStoryMap = storyBeatsToMap(ai.StoryTh)
+	} else {
+		thDesc = strings.TrimSpace(ai.DescriptionTh)
 		if thDesc != "" && !strings.Contains(strings.ToLower(thDesc), strings.ToLower(ai.TargetHost)) {
 			thDesc = strings.TrimSpace(thDesc) + " (" + ai.TargetHost + " / " + ai.AttackerIP + ")"
 		}
-		translations = map[string]interface{}{
-			"th": map[string]interface{}{
-				"title":             thTitle,
-				"description":       thDesc,
-				"tp_fp_explanation": thTpFp,
-				"playbook_steps":    thPlaybook,
-				"findings":          thFindings,
-			},
+	}
+	thTpFp := strings.TrimSpace(ai.TpFpExplanationTh)
+	if thTitle != "" || thDesc != "" || thTpFp != "" || len(thFindings) > 0 {
+		if translations == nil {
+			translations = make(map[string]interface{})
 		}
+		thMap := map[string]interface{}{
+			"title":             thTitle,
+			"description":       thDesc,
+			"tp_fp_explanation": thTpFp,
+			"playbook_steps":    thPlaybook,
+			"findings":          thFindings,
+		}
+		if thStoryMap != nil {
+			thMap["story"] = thStoryMap
+		}
+		translations["th"] = thMap
 	}
 
 	return &models.Scenario{
@@ -1649,12 +1674,17 @@ func EnsureScenarioEvidenceQuality(db *gorm.DB, seedPath string) error {
 // are never candidates. The remediation only updates Scenario status; it never
 // modifies Simulation Sessions.
 func EnsureScenarioEvidenceQualityFromSeed(db *gorm.DB, seedJSON []byte) error {
-	seedTitles, err := loadSeedScenarioTitlesFromJSON(seedJSON)
+	seedByTitle, err := loadSeedScenariosByTitleFromJSON(seedJSON)
 	if err != nil {
 		return err
 	}
 	if db == nil {
 		return nil
+	}
+
+	seedTitles := make(map[string]struct{}, len(seedByTitle))
+	for title := range seedByTitle {
+		seedTitles[title] = struct{}{}
 	}
 
 	var stored []models.Scenario
@@ -1663,8 +1693,25 @@ func EnsureScenarioEvidenceQualityFromSeed(db *gorm.DB, seedJSON []byte) error {
 	}
 
 	archivedCount := 0
+	syncedStoryCount := 0
 	for i := range stored {
 		scenario := &stored[i]
+		normTitle := normalizeScenarioTitle(scenario.Title)
+		if seedScen, isStatic := seedByTitle[normTitle]; isStatic {
+			if !HasCompleteStory(scenario) && HasCompleteStory(&seedScen) {
+				if syncErr := db.Model(&models.Scenario{}).
+					Where("scenario_id = ?", scenario.ScenarioID).
+					Updates(map[string]interface{}{
+						"description":  seedScen.Description,
+						"translations": seedScen.Translations,
+					}).Error; syncErr == nil {
+					syncedStoryCount++
+				} else {
+					log.Printf("[Scenario Story Sync] Failed to refresh narrative for seed scenario %q (%s): %v", scenario.Title, scenario.ScenarioID, syncErr)
+				}
+			}
+		}
+
 		shouldArchive, validationErr := shouldArchiveScenarioEvidence(scenario, seedTitles)
 		if !shouldArchive {
 			continue
@@ -1679,6 +1726,9 @@ func EnsureScenarioEvidenceQualityFromSeed(db *gorm.DB, seedJSON []byte) error {
 		}
 	}
 
+	if syncedStoryCount > 0 {
+		log.Printf("[Scenario Story Sync] Upgraded narrative stories on %d static seed scenario(s).", syncedStoryCount)
+	}
 	if archivedCount > 0 {
 		log.Printf("[Scenario Evidence Quality Gate] Archived %d invalid legacy scenario(s).", archivedCount)
 	}
@@ -1720,6 +1770,18 @@ func loadSeedScenarioTitles(seedPath string) (map[string]struct{}, error) {
 }
 
 func loadSeedScenarioTitlesFromJSON(seedJSON []byte) (map[string]struct{}, error) {
+	byTitle, err := loadSeedScenariosByTitleFromJSON(seedJSON)
+	if err != nil {
+		return nil, err
+	}
+	titles := make(map[string]struct{}, len(byTitle))
+	for title := range byTitle {
+		titles[title] = struct{}{}
+	}
+	return titles, nil
+}
+
+func loadSeedScenariosByTitleFromJSON(seedJSON []byte) (map[string]models.Scenario, error) {
 	if len(seedJSON) == 0 {
 		return nil, fmt.Errorf("scenario seed is empty")
 	}
@@ -1729,18 +1791,18 @@ func loadSeedScenarioTitlesFromJSON(seedJSON []byte) (map[string]struct{}, error
 		return nil, fmt.Errorf("scenario seed is not valid JSON: %w", err)
 	}
 
-	titles := make(map[string]struct{}, len(seedScenarios))
+	byTitle := make(map[string]models.Scenario, len(seedScenarios))
 	for _, scenario := range seedScenarios {
 		title := normalizeScenarioTitle(scenario.Title)
 		if title == "" {
 			continue
 		}
-		titles[title] = struct{}{}
+		byTitle[title] = scenario
 	}
-	if len(titles) == 0 {
+	if len(byTitle) == 0 {
 		return nil, fmt.Errorf("scenario seed contains no scenario titles")
 	}
-	return titles, nil
+	return byTitle, nil
 }
 
 func normalizeScenarioTitle(title string) string {

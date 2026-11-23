@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync/atomic"
 	"testing"
 
 	"cybersim/models"
@@ -818,6 +819,141 @@ func TestTranslateScenarioToThai_Unit(t *testing.T) {
 			return string(englishOnlyStepJSON), nil
 		}); transErr == nil || !strings.Contains(transErr.Error(), "Thai text") {
 			t.Fatalf("expected Thai rune validation error for English step label, got %v", transErr)
+		}
+	})
+}
+
+func TestStorytellingHelpersAndFallbacks(t *testing.T) {
+	beats := &scenarioStoryBeats{
+		RoleContext:     "You are a SOC Analyst.",
+		CurrentActivity: "While reviewing the morning alert queue.",
+		WhatHappened:    "Host SRV-01 contacted 198.51.100.10.",
+		PotentialImpact: "If malicious it exposes data; if authorized blocking breaks sync.",
+	}
+	composed := ComposeStoryDescription(beats)
+	paras := strings.Split(composed, "\n\n")
+	if len(paras) != 3 {
+		t.Fatalf("expected 3 paragraphs from ComposeStoryDescription, got %d: %q", len(paras), composed)
+	}
+	if paras[0] != "You are a SOC Analyst. While reviewing the morning alert queue." {
+		t.Fatalf("unexpected paragraph 1 composition: %q", paras[0])
+	}
+
+	for _, domainID := range []string{"domain1", "domain2", "domain3", "domain4", "domain5"} {
+		sc := GenerateFallbackScenario(domainID, domainID)
+		if !HasCompleteStory(sc) {
+			t.Fatalf("%s: expected HasCompleteStory=true for fallback scenario", domainID)
+		}
+		if len(strings.Split(sc.Description, "\n\n")) != 3 {
+			t.Errorf("%s: expected 3 paragraphs in EN description, got %q", domainID, sc.Description)
+		}
+		thMap := normalizeAnyStringMap(normalizeAnyStringMap(sc.Translations)["th"])
+		thDesc, _ := thMap["description"].(string)
+		if len(strings.Split(thDesc, "\n\n")) != 3 {
+			t.Errorf("%s: expected 3 paragraphs in TH description, got %q", domainID, thDesc)
+		}
+		if err := ValidateScenarioCandidate(sc); err != nil {
+			t.Errorf("%s: ValidateScenarioCandidate failed: %v", domainID, err)
+		}
+	}
+}
+
+func TestUpgradeScenarioStoryBilingual_Unit(t *testing.T) {
+	base := GenerateFallbackScenario("domain4", "Security Operations")
+	baseTrans := normalizeAnyStringMap(base.Translations)
+	enStoryMap := normalizeAnyStringMap(baseTrans["en"])["story"]
+	thMap := normalizeAnyStringMap(baseTrans["th"])
+	thStoryMap := thMap["story"]
+
+	legacyUntranslated := *base
+	legacyUntranslated.Description = "Old terse technical log line on WS-DEV09."
+	legacyUntranslated.Translations = nil
+
+	t.Run("returns LLM_API_KEY error when unconfigured", func(t *testing.T) {
+		t.Setenv("LLM_API_KEY", "")
+		if _, _, err := UpgradeScenarioStoryBilingual(context.Background(), &legacyUntranslated); err == nil || !strings.Contains(err.Error(), "LLM_API_KEY") {
+			t.Fatalf("expected LLM_API_KEY error, got %v", err)
+		}
+	})
+
+	t.Run("upgrades untranslated legacy scenario with parallel story + translation calls", func(t *testing.T) {
+		mockStoryBytes, err := json.Marshal(map[string]interface{}{
+			"story":    enStoryMap,
+			"story_th": thStoryMap,
+			"title_th": thMap["title"],
+		})
+		if err != nil {
+			t.Fatalf("marshal failed: %v", err)
+		}
+		mockPbBytes, err := json.Marshal(map[string]interface{}{
+			"tp_fp_explanation": thMap["tp_fp_explanation"],
+			"playbook_steps":    thMap["playbook_steps"],
+			"findings":          thMap["findings"],
+		})
+		if err != nil {
+			t.Fatalf("marshal failed: %v", err)
+		}
+		var callCount atomic.Int32
+		enDesc, merged, upErr := upgradeScenarioStoryWithCaller(context.Background(), &legacyUntranslated, func(ctx context.Context, messages []chatMessage, temperature float64) (string, error) {
+			callCount.Add(1)
+			if strings.Contains(messages[1].Content, `"playbook_steps"`) {
+				return "```json\n" + string(mockPbBytes) + "\n```", nil
+			}
+			return "```json\n" + string(mockStoryBytes) + "\n```", nil
+		})
+		if upErr != nil {
+			t.Fatalf("unexpected upgrade error: %v", upErr)
+		}
+		if callCount.Load() != 2 {
+			t.Fatalf("expected 2 parallel calls (story + playbook/findings), got %d", callCount.Load())
+		}
+		if len(strings.Split(enDesc, "\n\n")) != 3 {
+			t.Fatalf("expected 3 paragraphs in upgraded EN description, got %q", enDesc)
+		}
+		cand := legacyUntranslated
+		cand.Description = enDesc
+		cand.Translations = merged
+		if !HasCompleteStory(&cand) {
+			t.Fatalf("expected upgraded scenario to satisfy HasCompleteStory")
+		}
+		if err := ValidateScenarioTranslationsTh(&cand); err != nil {
+			t.Fatalf("expected upgraded scenario to satisfy ValidateScenarioTranslationsTh: %v", err)
+		}
+		if ContainsThaiRune(fmt.Sprintf("%v", cand.InitialLogs)) {
+			t.Fatalf("InitialLogs must remain 100%% English")
+		}
+	})
+
+	t.Run("upgrades story-only when Thai step/finding translations already exist", func(t *testing.T) {
+		oldStyleWithTh := *base
+		oldTh := make(map[string]interface{})
+		for k, v := range thMap {
+			if k != "story" {
+				oldTh[k] = v
+			}
+		}
+		oldStyleWithTh.Translations = map[string]interface{}{"th": oldTh}
+		mockStoryOnly, err := json.Marshal(map[string]interface{}{
+			"story":    enStoryMap,
+			"story_th": thStoryMap,
+		})
+		if err != nil {
+			t.Fatalf("marshal failed: %v", err)
+		}
+		enDesc, merged, upErr := upgradeScenarioStoryWithCaller(context.Background(), &oldStyleWithTh, func(ctx context.Context, messages []chatMessage, temperature float64) (string, error) {
+			if strings.Contains(messages[1].Content, `"playbook_steps"`) {
+				t.Errorf("expected story-only prompt not to resend full playbook_steps when Thai translations already pass validation")
+			}
+			return string(mockStoryOnly), nil
+		})
+		if upErr != nil {
+			t.Fatalf("unexpected upgrade error: %v", upErr)
+		}
+		cand := oldStyleWithTh
+		cand.Description = enDesc
+		cand.Translations = merged
+		if !HasCompleteStory(&cand) || ValidateScenarioTranslationsTh(&cand) != nil {
+			t.Fatalf("expected complete story and preserved Thai translations")
 		}
 	})
 }

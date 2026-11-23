@@ -52,3 +52,42 @@ test("buildInvestigationShortcuts produces identical deterministic shortcuts fro
     "KQL queries must contain zero Thai characters",
   );
 });
+
+test("buildInvestigationShortcuts preserves primary Host/IP/User extraction on 3-paragraph 4-beat EN narratives", () => {
+  const storyScenario = {
+    title: "Multi-Factor Authentication Bypass (Push Fatigue)",
+    description:
+      "You are an on-duty SOC Analyst monitoring identity and single sign-on security for a corporate enterprise workforce. While clearing the morning SIEM alert queue as employees begin logging in for the workday, an urgent multi-factor authentication ticket catches your attention.\n\n" +
+      "Security logs show repeated sign-in approval notifications being sent to employee ajones on DC-01 that were rejected multiple times within a single minute, followed shortly by a successful login coming from unfamiliar external IP address 198.51.100.42.\n\n" +
+      "If someone is bombarding ajones with unwanted phone prompts until one gets tapped by mistake, an attacker may already be inside company apps; however, if ajones was retrying a flaky mobile connection, locking the account could block urgent daily work—verify the timeline first.",
+    initial_logs: [
+      {
+        timestamp: "2026-11-23T08:00:00Z",
+        source: "ad_controller",
+        severity: "info",
+        host: "FIN-WS-01",
+        src_ip: "10.0.1.25",
+        user: "kpark",
+        message: "Routine workstation Kerberos renewal",
+      },
+      {
+        timestamp: "2026-11-23T08:01:00Z",
+        source: "okta",
+        severity: "high",
+        host: "DC-01",
+        src_ip: "198.51.100.42",
+        user: "ajones",
+        message: "Repeated MFA push rejected then approved from 198.51.100.42",
+      },
+    ],
+  };
+
+  const shortcuts = buildInvestigationShortcuts(storyScenario);
+  assert.ok(shortcuts.some((s) => s.labelPrefix === "Host:" && s.label === "DC-01"));
+  assert.ok(
+    shortcuts.some(
+      (s) => (s.labelPrefix === "IP:" && s.label === "198.51.100.42") || (s.labelPrefix === "User:" && s.label === "ajones"),
+    ),
+  );
+  assert.ok(shortcuts.some((s) => s.labelPrefix === "Source:" && s.query === 'source == "okta"'));
+});

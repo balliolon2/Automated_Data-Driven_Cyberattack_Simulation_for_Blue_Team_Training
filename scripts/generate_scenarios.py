@@ -1101,7 +1101,122 @@ def create_scenarios():
         }
     })
 
+    for scen in scenarios:
+        story_en = SCENARIO_STORIES_EN.get(scen["title"])
+        if story_en:
+            composed = compose_story_description(story_en)
+            scen["description"] = composed
+            existing_trans = dict(scen.get("translations") or {})
+            existing_trans["en"] = {
+                "description": composed,
+                "story": dict(story_en),
+            }
+            scen["translations"] = existing_trans
+
     return scenarios
+
+
+def compose_story_description(story):
+    if not isinstance(story, dict):
+        return ""
+    p1 = f"{story.get('role_context', '').strip()} {story.get('current_activity', '').strip()}".strip()
+    p2 = str(story.get("what_happened", "")).strip()
+    p3 = str(story.get("potential_impact", "")).strip()
+    return "\n\n".join(part for part in (p1, p2, p3) if part)
+
+
+SCENARIO_STORIES_EN = {
+    "Multi-Factor Authentication Bypass (Push Fatigue)": {
+        "role_context": "You are an on-duty SOC Analyst monitoring identity and single sign-on security for a corporate enterprise workforce.",
+        "current_activity": "While clearing the morning SIEM alert queue as employees begin logging in for the workday, an urgent multi-factor authentication ticket catches your attention.",
+        "what_happened": "Security logs show repeated sign-in approval notifications being sent to employee ajones on DC-01 that were rejected multiple times within a single minute, followed shortly by a successful login coming from unfamiliar external IP address 198.51.100.42.",
+        "potential_impact": "If someone is bombarding ajones with unwanted phone prompts until one gets tapped by mistake, an attacker may already be inside company apps; however, if ajones was retrying a flaky mobile connection, locking the account could block urgent daily work—verify the timeline first.",
+    },
+    "Atypical Travel VPN Connection Alert": {
+        "role_context": "You are an on-call SOC Analyst safeguarding remote corporate access across regional sales and HR portals (HR-PORTAL-01).",
+        "current_activity": "At the start of your morning shift, you are reviewing the overnight handover queue and checking automated impossible-travel warnings flagged by the VPN gateway.",
+        "what_happened": "Telemetry shows employee mroberts connecting to corporate services from an unfamiliar IP address in France (195.154.122.90) shortly after normal domestic office activity.",
+        "potential_impact": "If stolen credentials are being replayed overseas, an attacker could access internal HR records through the encrypted tunnel; yet if mroberts is on an approved business trip, cutting VPN access abruptly could lock out essential client work—check the supporting logs before acting.",
+    },
+    "Unauthorized Privileged Access / DACL Abuse": {
+        "role_context": "You are a SOC Analyst monitoring sensitive file servers and internal directory permissions for corporate headquarters.",
+        "current_activity": "During a routine weekly telemetry health review checking service account behavior around Payroll storage (FS-PAYROLL-01), an unusual sequence of events stands out on DC-01.",
+        "what_happened": "Automated backup account svc_backup from 10.0.2.14 modified folder access permissions right before standard user jsmith unexpectedly opened confidential files inside the restricted Payroll_Confidential directory.",
+        "potential_impact": "If privileges were covertly granted to escalate access, confidential salary records could already be exposed; however, if finance IT authorized an emergency permission fix for payroll audits, suspending accounts hastily could freeze salary processing—inspect the evidence carefully.",
+    },
+    "SQL Injection & Database Exfiltration": {
+        "role_context": "You are a SOC Analyst responsible for defending customer-facing web storefronts and backend databases.",
+        "current_activity": "While monitoring live web security tickets during peak daytime traffic between storefront WEB-PROD-01 and database server DB-PROD-01, a high-severity alert flags anomalous page requests.",
+        "what_happened": "Web application logs show external IP 198.51.100.77 sending crafted database query text inside URL parameters to WEB-PROD-01, immediately followed by unusually large data responses returned from DB-PROD-01.",
+        "potential_impact": "If database injection succeeded, sensitive customer records could be silently downloaded to an external server; conversely, if an authorized developer load test is running synthetic queries, taking the storefront offline could stop real customer orders—confirm what happened in the logs first.",
+    },
+    "Internal Port Scan and SYN Flood Alarm": {
+        "role_context": "You are a SOC Analyst investigating network traffic spikes alongside corporate infrastructure and IT support teams.",
+        "current_activity": "While checking an escalated ticket about brief network sluggishness across enterprise VLANs, intrusion detection alarms point directly at internal utility node SCAN-NODE-99 (10.0.99.12).",
+        "what_happened": "Network sensors report host 10.0.99.12 under account sysadmin rapidly probing hundreds of service ports across DC-01 and internal server zones within minutes.",
+        "potential_impact": "If malware compromised SCAN-NODE-99, rapid network discovery often precedes lateral movement toward core servers; on the other hand, if IT scheduled an internal security inventory sweep, isolating 10.0.99.12 blindly could break routine compliance scanning—check all related records first.",
+    },
+    "Ransomware Execution & Volume Shadow Copy Deletion": {
+        "role_context": "You are an emergency-shift SOC Analyst supporting corporate desktop defense and helpdesk incident escalations.",
+        "current_activity": "Right after IT Helpdesk forwards a report from a finance team member whose laptop slowed to a crawl, you pull up endpoint activity on WS-FIN-08.",
+        "what_happened": "Security sensors on finance workstation WS-FIN-08 under user mclark recorded commands attempting to erase built-in Windows backup recovery snapshots, followed immediately by bursts of rapid local file renaming.",
+        "potential_impact": "If ransomware encryption is actively running on WS-FIN-08, waiting too long risks spreading file lockouts to shared finance drives; yet if an authorized IT backup cleanup triggered aggressive monitoring rules, wiping or powering off the device indiscriminately could lose unsaved financial data—verify the logs now.",
+    },
+    "VLAN Segmentation Failure / Guest Network Bypass": {
+        "role_context": "You are a SOC Analyst overseeing internal network boundaries and corporate office Wi-Fi isolation.",
+        "current_activity": "While reviewing overnight shift handover notes following minor office switch updates, a high-priority network firewall alert appears involving DB-Server-Prod (10.0.50.12).",
+        "what_happened": "Firewall logs reveal direct database connections arriving straight from unauthenticated guest visitor IP 192.168.10.145 on the visitor wireless subnet into restricted production server DB-Server-Prod.",
+        "potential_impact": "If visitor Wi-Fi isolation broke and exposed internal databases, anyone sitting in the lobby could probe company storage directly; however, if network engineers left a temporary diagnostic test route active during a cutover window, pulling core routes carelessly could interrupt office operations—audit the timeline first.",
+    },
+    "Exorbitant Bandwidth Consumption on Guest Network": {
+        "role_context": "You are a SOC Analyst tracking perimeter firewall performance and guest wireless network activity.",
+        "current_activity": "During a mid-shift threat hunt looking for unusual high-volume outbound data transfers, telemetry highlights heavy encrypted traffic coming from visitor device Guest-Endpoint-12 (192.168.10.12).",
+        "what_happened": "Perimeter gateway logs show Guest-Endpoint-12 on the isolated guest subnet generating a sustained multi-gigabyte surge of outbound HTTPS traffic on port 443 over a short window.",
+        "potential_impact": "If a guest-bridged host or infected device is secretly exfiltrating internal files or participating in flood attacks, bandwidth exhaustion could degrade office internet; yet if a visitor is simply downloading normal OS updates or streaming conference calls over isolated guest Wi-Fi, raising a panic locks out harmless guests—check the destination and boundary logs first.",
+    },
+    "AWS S3 Cloud Storage Misconfiguration": {
+        "role_context": "You are a SOC Analyst overseeing public cloud storage permissions and enterprise AWS infrastructure (aws-s3-prod).",
+        "current_activity": "While watching automated cloud compliance guardrails alongside DevOps teams during daily infrastructure updates, a critical data exposure warning fires.",
+        "what_happened": "Cloud audit trails show account temp_admin changing permissions on the customer-contracts-prod storage bucket to allow public anonymous reads, closely followed by external downloads from 198.51.100.99.",
+        "potential_impact": "If private contract documents are now exposed openly on the internet, confidential client agreements may already be copied by outsiders; conversely, if a compliance team intended to share sanitized public documentation through a test staging bucket, revoking permissions blindly could break external partner links—verify the exact evidence first.",
+    },
+    "DNS Tunneling / Data Exfiltration via DNS TXT Queries": {
+        "role_context": "You are a SOC Analyst conducting outbound network monitoring for engineering and R&D workstations.",
+        "current_activity": "While running a routine weekly threat-hunting check across unusual domain name lookups, engineering desktop WS-ENG-44 (10.0.1.44) stands out sharply from peer computers.",
+        "what_happened": "DNS telemetry shows WS-ENG-44 sending thousands of unusually long, encoded text queries directed repeatedly toward unfamiliar external domain malicious-tunnel.com.",
+        "potential_impact": "If hidden malware is smuggling source code or credentials inside DNS requests to bypass standard web firewalls, sensitive R&D assets could be leaking silently; yet if an engineering tool is testing custom telemetry protocols in a lab, blocking corporate DNS resolvers carelessly could disrupt development work—check the host logs carefully.",
+    },
+    "Anomalous Volume of NTP Network Requests": {
+        "role_context": "You are a SOC Analyst responsible for infrastructure reliability and firewall traffic monitoring across core data-center servers.",
+        "current_activity": "At the start of your afternoon shift, you review handover notes from the prior team flagging an unexpected spike in time-sync traffic from srv-sync-time-02 (10.0.3.15).",
+        "what_happened": "Firewall records show core utility host 10.0.3.15 (managed under account sysadmin) sending sustained high-rate time synchronization requests on UDP port 123 toward official government clock server 129.6.15.28.",
+        "potential_impact": "If a host is abusing time-sync protocols for covert reflection amplification or data smuggling, outbound congestion could impair infrastructure; however, if sysadmin configured an emergency clock drift resync across servers, blocking UDP port 123 blindly could throw off authentication timestamps system-wide—verify the operational context first.",
+    },
+    "Spear Phishing leading to Credential Harvesting": {
+        "role_context": "You are a SOC Analyst coordinating with corporate HR and IT Support to defend employees against email impersonation attacks.",
+        "current_activity": "After IT Helpdesk flags a suspicious message reported by staff member kwilliams on HR workstation WS-HR-11, you review email gateway MAIL-GW-01 and proxy records.",
+        "what_happened": "Logs reveal an external message with subject 'Urgent: MFA Reset Required' arriving from 192.0.2.14, followed by kwilliams visiting the embedded link from WS-HR-11 and unexpected credential prompts appearing against DC-01.",
+        "potential_impact": "If an attacker tricked kwilliams into entering passwords on a spoofed login page, intruder access to HR systems and corporate directories may already be underway; yet if an authorized internal security phishing awareness drill triggered those clicks, isolating HR machines hastily could disrupt employee onboarding—inspect all telemetry first.",
+    },
+    "Insider Threat: Customer Database Exfiltration": {
+        "role_context": "You are a SOC Analyst monitoring commercial data loss controls and sensitive CRM export workflows across regional sales offices.",
+        "current_activity": "While reviewing daily Data Loss Prevention (DLP) guardrail alerts during late-evening office hours, a large data transfer notification triggers on workstation WS-SALES-15 (10.0.1.18).",
+        "what_happened": "Monitoring records show sales user rharper exporting the entire corporate customer directory from the CRM portal and uploading compressed archives outward toward an external personal webmail service.",
+        "potential_impact": "If customer contact lists and pricing contracts are leaving company control without authorization, competitors or threat actors could gain sensitive trade secrets; however, if rharper received special management clearance for an urgent trade-show backup, locking accounts immediately could delay commercial deals—check the supporting context first.",
+    },
+    "Anomalous Cloud Data Archiving Alert": {
+        "role_context": "You are a SOC Analyst monitoring cloud compliance pipelines and long-term audit retention workflows.",
+        "current_activity": "While checking automated cloud governance guardrails during the scheduled monthly archive window, an alert flags massive file movement inside the audit-logs-archive bucket.",
+        "what_happened": "Cloud storage logs indicate automation service account backup_agent_04 moving terabytes of historical compliance logs from active storage into cold archive vaults alongside activity involving compliance_lead.",
+        "potential_impact": "If an intruder is deliberately sweeping active security logs into inaccessible vaults to blind SOC visibility during an attack, incident response teams could lose vital clues; conversely, if this is a planned cost-saving retention archival approved by compliance_lead, killing the job halfway could leave audit records inconsistent—verify the change logs first.",
+    },
+    "Rogue Wireless Access Point Detection": {
+        "role_context": "You are a SOC Analyst defending campus physical port controls and wireless network security at headquarters.",
+        "current_activity": "While working through live morning SIEM alerts from corporate floor switches and wireless sensors, a combined switch and Wi-Fi security ticket fires simultaneously.",
+        "what_happened": "Core switch SW-HQ-02 detected a dozen unfamiliar hardware devices sharing a single office wall jack (port Gi1/0/22) right as wireless monitor W-AP-3 noticed a brand-new unauthorized Wi-Fi network named 'CORP-GUEST-FAST' broadcasting nearby.",
+        "potential_impact": "If an unauthorized router was plugged directly into the office network jack to lure employees onto a fake Wi-Fi hotspot, attackers could intercept corporate logins and bypass physical access controls; however, if network technicians are temporarily benchmarking lab hardware, shutting down the entire switch floor would knock dozens of staff offline—confirm the evidence cleanly first.",
+    },
+}
 
 
 def load_evidence_mapping(mapping_path):
@@ -1177,7 +1292,14 @@ def apply_scenario_translations(scenarios, translations_th):
         title = scenario.get("title")
         th_entry = translations_th.get(title)
         if isinstance(th_entry, dict) and th_entry:
-            scenario["translations"] = {"th": th_entry}
+            th_copy = dict(th_entry)
+            if isinstance(th_copy.get("story"), dict):
+                composed_th = compose_story_description(th_copy["story"])
+                if composed_th:
+                    th_copy["description"] = composed_th
+            existing = dict(scenario.get("translations") or {})
+            existing["th"] = th_copy
+            scenario["translations"] = existing
     return scenarios
 
 

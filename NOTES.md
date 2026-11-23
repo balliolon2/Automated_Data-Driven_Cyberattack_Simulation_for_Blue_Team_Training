@@ -335,3 +335,21 @@
     - Initial static translation uses **1 push-right Human Review Checkpoint**: author Pilot Batch (Domain 1 Theory [5 files] + 3 sample Static Scenarios) and present a compact Brief for tone/glossary approval before scaling to Domains 2–5 (28 files) and remaining 12 Static Scenarios.
     - Full 3-gate CI verification: (1) Frontend `tsc -b` + dictionary key/`{{param}}` parity check, (2) 33 TH theory files + 15 static seeds `translations.th` completeness check, (3) Go & Python strict English-only invariant tests (zero `\u0E00–\u0E7F` in exams, sample questions, and `initial_logs`).
     - See `workflows/language_switching_and_localization.md`.
+
+## Canonical Terms (Scenario Storytelling Narrative)
+
+- **4-Beat Incident Narrative (`story`)**: Structured narrative metadata (`role_context`, `current_activity`, `what_happened`, `potential_impact`) stored under `translations.{en,th}.story` inside existing JSONB without altering PostgreSQL DDL.
+- **Friendly Guided Prose (ภาษาเล่าเรื่องที่เข้าใจง่าย)**: Explaining specialized components inline in plain terms while retaining 2–3 canonical English entities (`Host`, `User`, `IP`) so `siemShortcuts.ts` extracts SIEM shortcuts identically and removing abrupt analyst tool commands from the story.
+- **Balanced Dual-Stakes Impact (ผลกระทบสมดุลสองด้าน)**: Conditional Beat 4 framing describing both security/operational harm if malicious *and* business disruption if legitimate work is mistakenly blocked, preventing True Positive / False Positive spoilers.
+
+## Settled Decisions (Scenario Storytelling Narrative — `/loop-me` Q1–Q13)
+
+50. **SOC Analyst Persona, Second-Person Voice & Smooth 3-Paragraph Flow**:
+    - Every scenario frames the learner as an organizational **SOC Analyst (`นักวิเคราะห์ SOC`)** in second-person voice (`"You..."` / `"คุณ..."`), rotating workplace duty and trigger scene across all 5 `BriefingStyles`.
+    - Structured `story` (4 beats) composes cleanly into **3 short badge-free paragraphs** (`[role_context + current_activity]\n\n[what_happened]\n\n[potential_impact]`) in both canonical `description` and `translations.th.description`.
+    - UI displays spaced narrative paragraphs cleanly with zero step tags, numbered beat headers, or spoiler hints.
+
+51. **Zero-DDL Coverage Across AI, Fallback, 15 Seeds & Lazy Legacy Local Upgrade**:
+    - Stored inside existing `scenarios.translations.{en,th}.story` JSONB (`init.sql` unchanged).
+    - Upgraded uniformly across runtime AI prompts, `GenerateFallbackScenario`, all 15 static seeds (`scripts/generate_scenarios.py`, `scripts/scenario_translations_th.json`, keeping `evidence_mapping.json` SHA-256 hashes valid), and lazy on-demand `UpgradeScenarioStoryBilingual` when existing local sessions/snapshots lack `translations.{en,th}.story` (overlaying narrative only onto legacy snapshots without altering `initial_logs`, `playbook_steps`, or scoring, failing open if `LLM_API_KEY` is unset).
+    - See `workflows/scenario_storytelling_narrative.md`.

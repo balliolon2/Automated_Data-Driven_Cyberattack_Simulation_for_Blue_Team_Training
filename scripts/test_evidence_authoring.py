@@ -1136,6 +1136,32 @@ class BilingualTranslationSeedTests(unittest.TestCase):
         self.assertTrue(any("playbook_steps missing 'e1'" in err for err in errors), errors)
         self.assertTrue(any("findings missing 'f2'" in err for err in errors), errors)
 
+    def test_committed_seed_has_complete_four_beat_stories(self):
+        self.assertEqual(15, len(self.seed))
+        beat_keys = ("role_context", "current_activity", "what_happened", "potential_impact")
+        for scenario in self.seed:
+            title = scenario["title"]
+            en_paras = [p.strip() for p in scenario["description"].split("\n\n") if p.strip()]
+            self.assertEqual(3, len(en_paras), f"{title}: expected 3 EN narrative paragraphs")
+
+            translations = scenario.get("translations") or {}
+            en_story = (translations.get("en") or {}).get("story") or {}
+            th_entry = translations.get("th") or {}
+            th_story = th_entry.get("story") or {}
+
+            th_paras = [p.strip() for p in th_entry.get("description", "").split("\n\n") if p.strip()]
+            self.assertEqual(3, len(th_paras), f"{title}: expected 3 TH narrative paragraphs")
+
+            for key in beat_keys:
+                self.assertTrue(
+                    isinstance(en_story.get(key), str) and en_story[key].strip(),
+                    f"{title}: missing translations.en.story.{key}",
+                )
+                self.assertTrue(
+                    isinstance(th_story.get(key), str) and th_story[key].strip() and validator._contains_thai(th_story[key]),
+                    f"{title}: missing Thai text in translations.th.story.{key}",
+                )
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

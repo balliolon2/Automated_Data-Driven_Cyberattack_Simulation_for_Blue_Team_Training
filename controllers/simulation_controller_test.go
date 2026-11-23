@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"reflect"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -398,57 +399,40 @@ func TestEvaluateStage2TheoryGate_IncludesCanonicalCode(t *testing.T) {
 	}
 }
 
-func TestEnsureScenarioThaiTranslation(t *testing.T) {
+func TestEnsureScenarioStoryAndTranslation(t *testing.T) {
 	translatedFixture := services.GenerateFallbackScenario("domain4", "Security Operations")
 	translatedFixture.ScenarioID = "scen-legacy-test-01"
 
-	t.Run("no-op for en locale", func(t *testing.T) {
-		legacy := *translatedFixture
-		legacy.Translations = nil
+	t.Run("no-op when scenario already has complete EN+TH story beats", func(t *testing.T) {
+		alreadyComplete := *translatedFixture
 		var calls atomic.Int32
 		sc := &SimulationController{
-			translateScenarioFn: func(ctx context.Context, s *models.Scenario) (map[string]any, error) {
+			upgradeStoryFn: func(ctx context.Context, s *models.Scenario) (string, map[string]any, error) {
 				calls.Add(1)
-				return map[string]any{}, nil
+				return "", map[string]any{}, nil
 			},
 		}
-		sc.ensureScenarioThaiTranslation(context.Background(), "en", &legacy)
+		sc.ensureScenarioStoryAndTranslation(context.Background(), &alreadyComplete)
 		if calls.Load() != 0 {
-			t.Fatalf("expected 0 translator calls for en locale, got %d", calls.Load())
-		}
-		if legacy.Translations != nil {
-			t.Fatalf("expected legacy.Translations to remain nil under en locale")
-		}
-	})
-
-	t.Run("no-op when scenario already has valid Thai translations", func(t *testing.T) {
-		alreadyTranslated := *translatedFixture
-		var calls atomic.Int32
-		sc := &SimulationController{
-			translateScenarioFn: func(ctx context.Context, s *models.Scenario) (map[string]any, error) {
-				calls.Add(1)
-				return map[string]any{}, nil
-			},
-		}
-		sc.ensureScenarioThaiTranslation(context.Background(), "th", &alreadyTranslated)
-		if calls.Load() != 0 {
-			t.Fatalf("expected 0 translator calls when Thai translations are already complete, got %d", calls.Load())
+			t.Fatalf("expected 0 upgrader calls when story and Thai translations are already complete, got %d", calls.Load())
 		}
 	})
 
 	t.Run("fails open cleanly when LLM_API_KEY is unset", func(t *testing.T) {
 		t.Setenv("LLM_API_KEY", "")
 		legacy := *translatedFixture
+		legacy.Description = "Old abrupt technical line."
 		legacy.Translations = nil
 		sc := &SimulationController{}
-		sc.ensureScenarioThaiTranslation(context.Background(), "th", &legacy)
-		if legacy.Translations != nil {
-			t.Fatalf("expected nil translations when LLM_API_KEY is unset")
+		sc.ensureScenarioStoryAndTranslation(context.Background(), &legacy)
+		if legacy.Translations != nil || legacy.Description != "Old abrupt technical line." {
+			t.Fatalf("expected legacy scenario to remain unchanged when LLM_API_KEY is unset")
 		}
 	})
 
-	t.Run("backfills legacy scenario in th locale and exposes sanitized non-spoiler Thai fields", func(t *testing.T) {
+	t.Run("upgrades legacy scenario to 4-beat EN+TH story and exposes sanitized non-spoiler fields", func(t *testing.T) {
 		legacy := *translatedFixture
+		legacy.Description = "Threat hunting flagged outbound beacons on WS-DEV09."
 		legacy.Translations = nil
 		expectedTrans, ok := translatedFixture.Translations.(map[string]any)
 		if !ok {
@@ -461,27 +445,33 @@ func TestEnsureScenarioThaiTranslation(t *testing.T) {
 
 		var calls atomic.Int32
 		sc := &SimulationController{
-			translateScenarioFn: func(ctx context.Context, s *models.Scenario) (map[string]any, error) {
+			upgradeStoryFn: func(ctx context.Context, s *models.Scenario) (string, map[string]any, error) {
 				calls.Add(1)
-				return expectedTrans, nil
+				return translatedFixture.Description, expectedTrans, nil
 			},
 		}
 
-		sc.ensureScenarioThaiTranslation(context.Background(), "th", &legacy)
+		sc.ensureScenarioStoryAndTranslation(context.Background(), &legacy)
 		if calls.Load() != 1 {
-			t.Fatalf("expected exactly 1 translator call, got %d", calls.Load())
+			t.Fatalf("expected exactly 1 upgrader call, got %d", calls.Load())
 		}
 		if err := services.ValidateScenarioTranslationsTh(&legacy); err != nil {
-			t.Fatalf("expected valid Thai translations after backfill, got error: %v", err)
+			t.Fatalf("expected valid Thai translations after story backfill, got error: %v", err)
+		}
+		if !services.HasCompleteStory(&legacy) {
+			t.Fatalf("expected complete EN+TH story beats after backfill")
 		}
 
-		// Calling again immediately on the populated scenario must not re-translate.
-		sc.ensureScenarioThaiTranslation(context.Background(), "th", &legacy)
+		// Calling again immediately on the upgraded scenario must not re-invoke LLM.
+		sc.ensureScenarioStoryAndTranslation(context.Background(), &legacy)
 		if calls.Load() != 1 {
-			t.Fatalf("expected cached scenario not to re-translate, calls=%d", calls.Load())
+			t.Fatalf("expected cached scenario not to re-run story upgrade, calls=%d", calls.Load())
 		}
 
 		sanitized := sanitizeScenario(legacy, "sess-backfill-01")
+		if len(strings.Split(sanitized.Description, "\n\n")) != 3 {
+			t.Fatalf("expected 3-paragraph EN description in sanitized response, got %q", sanitized.Description)
+		}
 		transMap, ok := sanitized.Translations.(map[string]interface{})
 		if !ok {
 			t.Fatalf("expected sanitized Translations map, got %T", sanitized.Translations)
@@ -489,6 +479,10 @@ func TestEnsureScenarioThaiTranslation(t *testing.T) {
 		thMap, ok := transMap["th"].(map[string]interface{})
 		if !ok {
 			t.Fatalf("expected sanitized translations.th, got %T", transMap["th"])
+		}
+		thDesc, _ := thMap["description"].(string)
+		if len(strings.Split(thDesc, "\n\n")) != 3 {
+			t.Fatalf("expected 3-paragraph TH description in sanitized translations.th, got %q", thDesc)
 		}
 		if _, leaked := thMap["tp_fp_explanation"]; leaked {
 			t.Fatalf("sanitized translations.th leaked tp_fp_explanation")

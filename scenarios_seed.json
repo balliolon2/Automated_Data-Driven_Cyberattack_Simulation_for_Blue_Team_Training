@@ -1,7 +1,7 @@
 [
   {
     "title": "Multi-Factor Authentication Bypass (Push Fatigue)",
-    "description": "An alert is triggered for user 'ajones' experiencing multiple consecutive rejected MFA pushes within a minute, followed by a successful login from a new external IP address.",
+    "description": "You are an on-duty SOC Analyst monitoring identity and single sign-on security for a corporate enterprise workforce. While clearing the morning SIEM alert queue as employees begin logging in for the workday, an urgent multi-factor authentication ticket catches your attention.\n\nSecurity logs show repeated sign-in approval notifications being sent to employee ajones on DC-01 that were rejected multiple times within a single minute, followed shortly by a successful login coming from unfamiliar external IP address 198.51.100.42.\n\nIf someone is bombarding ajones with unwanted phone prompts until one gets tapped by mistake, an attacker may already be inside company apps; however, if ajones was retrying a flaky mobile connection, locking the account could block urgent daily work—verify the timeline first.",
     "domain_id": "domain1",
     "difficulty": 2,
     "is_true_positive": true,
@@ -436,9 +436,18 @@
       ]
     },
     "translations": {
+      "en": {
+        "description": "You are an on-duty SOC Analyst monitoring identity and single sign-on security for a corporate enterprise workforce. While clearing the morning SIEM alert queue as employees begin logging in for the workday, an urgent multi-factor authentication ticket catches your attention.\n\nSecurity logs show repeated sign-in approval notifications being sent to employee ajones on DC-01 that were rejected multiple times within a single minute, followed shortly by a successful login coming from unfamiliar external IP address 198.51.100.42.\n\nIf someone is bombarding ajones with unwanted phone prompts until one gets tapped by mistake, an attacker may already be inside company apps; however, if ajones was retrying a flaky mobile connection, locking the account could block urgent daily work—verify the timeline first.",
+        "story": {
+          "role_context": "You are an on-duty SOC Analyst monitoring identity and single sign-on security for a corporate enterprise workforce.",
+          "current_activity": "While clearing the morning SIEM alert queue as employees begin logging in for the workday, an urgent multi-factor authentication ticket catches your attention.",
+          "what_happened": "Security logs show repeated sign-in approval notifications being sent to employee ajones on DC-01 that were rejected multiple times within a single minute, followed shortly by a successful login coming from unfamiliar external IP address 198.51.100.42.",
+          "potential_impact": "If someone is bombarding ajones with unwanted phone prompts until one gets tapped by mistake, an attacker may already be inside company apps; however, if ajones was retrying a flaky mobile connection, locking the account could block urgent daily work—verify the timeline first."
+        }
+      },
       "th": {
         "title": "การบายพาส Multi-Factor Authentication ด้วยเทคนิค Push Fatigue",
-        "description": "ระบบตรวจจับแจ้งเตือนความผิดปกติของบัญชีผู้ใช้ 'ajones' ที่ได้รับคำขอแจ้งเตือน MFA Push และถูกปฏิเสธต่อเนื่องหลายครั้งภายในหนึ่งนาที ก่อนจะพบการเข้าสู่ระบบสำเร็จจากหมายเลข IP ภายนอกเครื่องใหม่",
+        "description": "เช้าวันทำงาน คุณปฏิบัติหน้าที่เป็น SOC Analyst ดูแลความปลอดภัยระบบยืนยันตัวตนและการลงชื่อเข้าใช้ (SSO) ของพนักงานทั้งองค์กร ระหว่างที่กำลังเคลียร์คิวแจ้งเตือนช่วงเช้าขณะพนักงานทยอยล็อกอินเข้าทำงาน ระบบแจ้งเตือนความปลอดภัยระดับเร่งด่วนก็เด้งขึ้นมาให้คุณตรวจสอบ\n\nข้อมูลระบบพบว่าบัญชีของพนักงาน ajones บนเครื่องหลัก DC-01 ได้รับคำขอกดยืนยันตัวตน (MFA Push) ยิงเข้ามือถือถี่ๆ และถูกกดปฏิเสธติดกันหลายครั้งภายในหนึ่งนาที ก่อนจะมีการล็อกอินสำเร็จตามมาจาก IP ภายนอกที่ไม่มีประวัติการใช้งานมาก่อนอย่าง 198.51.100.42\n\nหากมีผู้ไม่หวังดีจงใจส่งคำขอแจ้งเตือนซ้ำๆ จนผู้ใช้เผลอกดอนุมัติ คนร้ายอาจเข้าถึงระบบและข้อมูลงานของบริษัทได้แล้ว แต่หาก ajones แค่พยายามล็อกอินซ้ำจากเครือข่ายมือถือที่ไม่เสถียร การสั่งล็อกบัญชีทันทีอาจกระทบงานด่วนประจำวันของพนักงานได้ คุณจึงควรตรวจ Log ยืนยันให้ชัดก่อน",
         "tp_fp_explanation": "เหตุการณ์นี้เป็น True Positive เนื่องจากมีการส่งคำขอแจ้งเตือน MFA Push ซ้ำหลายครั้งจนถูกปฏิเสธต่อเนื่อง แล้วตามด้วยการอนุมัติล็อกอินสำเร็จจากภายนอก ซึ่งเป็นรูปแบบคลาสสิกของการโจมตี MFA Push Fatigue ที่นำไปสู่การยึดครองเซสชัน (Session Hijacking)",
         "playbook_steps": {
           "d1_c1": {
@@ -491,13 +500,19 @@
             "description": "ระบุพบหมายเลข IP ต้นทางของการเข้าสู่ระบบที่ผิดปกติ",
             "explanation": "การเข้าสู่ระบบมาจาก IP ภายนอก 198.51.100.42 ซึ่งไม่ใช่ต้นทางปกติของบัญชี ajones"
           }
+        },
+        "story": {
+          "role_context": "เช้าวันทำงาน คุณปฏิบัติหน้าที่เป็น SOC Analyst ดูแลความปลอดภัยระบบยืนยันตัวตนและการลงชื่อเข้าใช้ (SSO) ของพนักงานทั้งองค์กร",
+          "current_activity": "ระหว่างที่กำลังเคลียร์คิวแจ้งเตือนช่วงเช้าขณะพนักงานทยอยล็อกอินเข้าทำงาน ระบบแจ้งเตือนความปลอดภัยระดับเร่งด่วนก็เด้งขึ้นมาให้คุณตรวจสอบ",
+          "what_happened": "ข้อมูลระบบพบว่าบัญชีของพนักงาน ajones บนเครื่องหลัก DC-01 ได้รับคำขอกดยืนยันตัวตน (MFA Push) ยิงเข้ามือถือถี่ๆ และถูกกดปฏิเสธติดกันหลายครั้งภายในหนึ่งนาที ก่อนจะมีการล็อกอินสำเร็จตามมาจาก IP ภายนอกที่ไม่มีประวัติการใช้งานมาก่อนอย่าง 198.51.100.42",
+          "potential_impact": "หากมีผู้ไม่หวังดีจงใจส่งคำขอแจ้งเตือนซ้ำๆ จนผู้ใช้เผลอกดอนุมัติ คนร้ายอาจเข้าถึงระบบและข้อมูลงานของบริษัทได้แล้ว แต่หาก ajones แค่พยายามล็อกอินซ้ำจากเครือข่ายมือถือที่ไม่เสถียร การสั่งล็อกบัญชีทันทีอาจกระทบงานด่วนประจำวันของพนักงานได้ คุณจึงควรตรวจ Log ยืนยันให้ชัดก่อน"
         }
       }
     }
   },
   {
     "title": "Atypical Travel VPN Connection Alert",
-    "description": "The VPN gateway triggers a medium severity alert regarding an atypical login location for user 'mroberts' originating from France.",
+    "description": "You are an on-call SOC Analyst safeguarding remote corporate access across regional sales and HR portals (HR-PORTAL-01). At the start of your morning shift, you are reviewing the overnight handover queue and checking automated impossible-travel warnings flagged by the VPN gateway.\n\nTelemetry shows employee mroberts connecting to corporate services from an unfamiliar IP address in France (195.154.122.90) shortly after normal domestic office activity.\n\nIf stolen credentials are being replayed overseas, an attacker could access internal HR records through the encrypted tunnel; yet if mroberts is on an approved business trip, cutting VPN access abruptly could lock out essential client work—check the supporting logs before acting.",
     "domain_id": "domain1",
     "difficulty": 2,
     "is_true_positive": false,
@@ -950,9 +965,18 @@
       ]
     },
     "translations": {
+      "en": {
+        "description": "You are an on-call SOC Analyst safeguarding remote corporate access across regional sales and HR portals (HR-PORTAL-01). At the start of your morning shift, you are reviewing the overnight handover queue and checking automated impossible-travel warnings flagged by the VPN gateway.\n\nTelemetry shows employee mroberts connecting to corporate services from an unfamiliar IP address in France (195.154.122.90) shortly after normal domestic office activity.\n\nIf stolen credentials are being replayed overseas, an attacker could access internal HR records through the encrypted tunnel; yet if mroberts is on an approved business trip, cutting VPN access abruptly could lock out essential client work—check the supporting logs before acting.",
+        "story": {
+          "role_context": "You are an on-call SOC Analyst safeguarding remote corporate access across regional sales and HR portals (HR-PORTAL-01).",
+          "current_activity": "At the start of your morning shift, you are reviewing the overnight handover queue and checking automated impossible-travel warnings flagged by the VPN gateway.",
+          "what_happened": "Telemetry shows employee mroberts connecting to corporate services from an unfamiliar IP address in France (195.154.122.90) shortly after normal domestic office activity.",
+          "potential_impact": "If stolen credentials are being replayed overseas, an attacker could access internal HR records through the encrypted tunnel; yet if mroberts is on an approved business trip, cutting VPN access abruptly could lock out essential client work—check the supporting logs before acting."
+        }
+      },
       "th": {
         "title": "การแจ้งเตือนการเชื่อมต่อ VPN จากตำแหน่งที่ตั้งผิดปกติ (Atypical Travel)",
-        "description": "อุปกรณ์ VPN Gateway แจ้งเตือนระดับปานกลาง (Medium Severity) กรณีตรวจพบตำแหน่งการเข้าสู่ระบบที่ผิดปกติของผู้ใช้ 'mroberts' ซึ่งเชื่อมต่อมาจากประเทศฝรั่งเศส",
+        "description": "ช่วงเริ่มกะเช้า คุณทำหน้าที่เป็น SOC Analyst ดูแลการเชื่อมต่อระยะไกลและพอร์ทัลงานบุคคลของสำนักงาน (HR-PORTAL-01) ระหว่างที่กำลังไล่อ่านสรุปรับช่วงต่อจากทีมกะดึกร่วมกับรายการแจ้งเตือนจากอุปกรณ์ VPN ประจำวัน ระบบก็แจ้งเตือนความผิดปกติเรื่องตำแหน่งที่ตั้งการล็อกอินเข้ามา\n\nข้อมูลการเชื่อมต่อแสดงให้เห็นว่าพนักงาน mroberts มีการล็อกอินจากประเทศฝรั่งเศสผ่าน IP 195.154.122.90 เพียงไม่นานหลังจากเพิ่งใช้งานอยู่ในสำนักงานในประเทศตามปกติ\n\nหากบัญชีและรหัสผ่านถูกขโมยไปใช้ในต่างประเทศจริง ผู้โจมตีอาจมุดผ่านช่องทางเข้ารหัสเข้ามาดึงข้อมูลงานบุคคลสำคัญได้ แต่หาก mroberts เดินทางไปปฏิบัติงานต่างประเทศตามกำหนดการจริง การสั่งตัดสิทธิ์ VPN ทันทีอาจทำให้งานติดต่อลูกค้าสะดุดได้ คุณจึงควรตรวจหลักฐานประกอบในระบบก่อน",
         "tp_fp_explanation": "เหตุการณ์นี้เป็น False Positive เนื่องจากผู้ใช้ mroberts ยืนยันตัวตนผ่าน SMS MFA ครบถ้วน ใช้อุปกรณ์ Asset ขององค์กรที่ผ่านการตรวจสอบสถานะ และบันทึกฝ่ายบุคคล (HR Logs) ยืนยันว่ากำลังเดินทางไปประชุมสุดยอดองค์กรที่กรุงปารีส ประเทศฝรั่งเศส",
         "playbook_steps": {
           "d1_c4": {
@@ -1001,13 +1025,19 @@
             "description": "ยืนยันสถานะอุปกรณ์ (Device Posture) และการทำ MFA สำเร็จ",
             "explanation": "การยืนยันตัวตนด้วย SMS MFA ผ่านสมบูรณ์และการตรวจสอบสถานะอุปกรณ์ (Device Posture) ผ่านตามเกณฑ์"
           }
+        },
+        "story": {
+          "role_context": "ช่วงเริ่มกะเช้า คุณทำหน้าที่เป็น SOC Analyst ดูแลการเชื่อมต่อระยะไกลและพอร์ทัลงานบุคคลของสำนักงาน (HR-PORTAL-01)",
+          "current_activity": "ระหว่างที่กำลังไล่อ่านสรุปรับช่วงต่อจากทีมกะดึกร่วมกับรายการแจ้งเตือนจากอุปกรณ์ VPN ประจำวัน ระบบก็แจ้งเตือนความผิดปกติเรื่องตำแหน่งที่ตั้งการล็อกอินเข้ามา",
+          "what_happened": "ข้อมูลการเชื่อมต่อแสดงให้เห็นว่าพนักงาน mroberts มีการล็อกอินจากประเทศฝรั่งเศสผ่าน IP 195.154.122.90 เพียงไม่นานหลังจากเพิ่งใช้งานอยู่ในสำนักงานในประเทศตามปกติ",
+          "potential_impact": "หากบัญชีและรหัสผ่านถูกขโมยไปใช้ในต่างประเทศจริง ผู้โจมตีอาจมุดผ่านช่องทางเข้ารหัสเข้ามาดึงข้อมูลงานบุคคลสำคัญได้ แต่หาก mroberts เดินทางไปปฏิบัติงานต่างประเทศตามกำหนดการจริง การสั่งตัดสิทธิ์ VPN ทันทีอาจทำให้งานติดต่อลูกค้าสะดุดได้ คุณจึงควรตรวจหลักฐานประกอบในระบบก่อน"
         }
       }
     }
   },
   {
     "title": "Unauthorized Privileged Access / DACL Abuse",
-    "description": "An alert is triggered when user 'jsmith' suddenly gains access to a restricted folder 'Payroll_Confidential' and reads sensitive files immediately following a DACL change by a system backup account.",
+    "description": "You are a SOC Analyst monitoring sensitive file servers and internal directory permissions for corporate headquarters. During a routine weekly telemetry health review checking service account behavior around Payroll storage (FS-PAYROLL-01), an unusual sequence of events stands out on DC-01.\n\nAutomated backup account svc_backup from 10.0.2.14 modified folder access permissions right before standard user jsmith unexpectedly opened confidential files inside the restricted Payroll_Confidential directory.\n\nIf privileges were covertly granted to escalate access, confidential salary records could already be exposed; however, if finance IT authorized an emergency permission fix for payroll audits, suspending accounts hastily could freeze salary processing—inspect the evidence carefully.",
     "domain_id": "domain1",
     "difficulty": 3,
     "is_true_positive": true,
@@ -1451,9 +1481,18 @@
       ]
     },
     "translations": {
+      "en": {
+        "description": "You are a SOC Analyst monitoring sensitive file servers and internal directory permissions for corporate headquarters. During a routine weekly telemetry health review checking service account behavior around Payroll storage (FS-PAYROLL-01), an unusual sequence of events stands out on DC-01.\n\nAutomated backup account svc_backup from 10.0.2.14 modified folder access permissions right before standard user jsmith unexpectedly opened confidential files inside the restricted Payroll_Confidential directory.\n\nIf privileges were covertly granted to escalate access, confidential salary records could already be exposed; however, if finance IT authorized an emergency permission fix for payroll audits, suspending accounts hastily could freeze salary processing—inspect the evidence carefully.",
+        "story": {
+          "role_context": "You are a SOC Analyst monitoring sensitive file servers and internal directory permissions for corporate headquarters.",
+          "current_activity": "During a routine weekly telemetry health review checking service account behavior around Payroll storage (FS-PAYROLL-01), an unusual sequence of events stands out on DC-01.",
+          "what_happened": "Automated backup account svc_backup from 10.0.2.14 modified folder access permissions right before standard user jsmith unexpectedly opened confidential files inside the restricted Payroll_Confidential directory.",
+          "potential_impact": "If privileges were covertly granted to escalate access, confidential salary records could already be exposed; however, if finance IT authorized an emergency permission fix for payroll audits, suspending accounts hastily could freeze salary processing—inspect the evidence carefully."
+        }
+      },
       "th": {
         "title": "การเข้าถึงสิทธิ์ระดับสูงโดยไม่ได้รับอนุญาตและการละเมิด DACL",
-        "description": "ระบบแจ้งเตือนทำงานเมื่อผู้ใช้ 'jsmith' ได้รับสิทธิ์เข้าถึงโฟลเดอร์หวงห้าม 'Payroll_Confidential' อย่างกะทันหัน และเปิดอ่านไฟล์สำคัญทันทีหลังจากบัญชีสำรองข้อมูลของระบบมีการแก้ไข DACL",
+        "description": "ช่วงสายวันทำงาน คุณปฏิบัติหน้าที่เป็น SOC Analyst ดูแลความปลอดภัยของเซิร์ฟเวอร์เก็บไฟล์สำคัญและสิทธิ์การเข้าถึงข้อมูลในสำนักงานใหญ่ ระหว่างที่คุณกำลังตรวจเช็กสุขภาพระบบและพฤติกรรมบัญชีบริการอัตโนมัติรอบประจำสัปดาห์บริเวณเครื่องเก็บข้อมูลเงินเดือน (FS-PAYROLL-01) ลำดับเหตุการณ์บนเครื่อง DC-01 ก็ดูผิดสังเกตขึ้นมา\n\nบัญชีสำรองข้อมูลอัตโนมัติ svc_backup จาก IP 10.0.2.14 เพิ่งเข้าไปปรับแก้สิทธิ์การเข้าถึงโฟลเดอร์ ก่อนที่ผู้ใช้ทั่วไป jsmith จะเข้าไปเปิดอ่านไฟล์ลับในโฟลเดอร์หวงห้าม Payroll_Confidential ทันที\n\nหากเป็นการลักลอบปรับสิทธิ์เพื่อเปิดช่องให้แอบดูไฟล์ลับ ข้อมูลเงินเดือนของพนักงานอาจรั่วไหลไปแล้ว แต่หากฝ่ายการเงินอนุมัติงานแก้สิทธิ์ฉุกเฉินเพื่อเตรียมตรวจสอบบัญชี การสั่งระงับบัญชีทันทีอาจทำให้งานจ่ายเงินเดือนหยุดชะงักได้ คุณจึงต้องตรวจรายละเอียดใน Log ก่อนตัดสินใจ",
         "tp_fp_explanation": "เหตุการณ์นี้เป็น True Positive เนื่องจาก service account 'svc_backup' ถูกนำไปใช้ในทางที่ผิดเพื่อแก้ไข DACL ของโฟลเดอร์หวงห้ามให้ 'jsmith' เข้าถึงได้ และมีการเข้าถึงข้อมูลทันทีหลังจากนั้น",
         "playbook_steps": {
           "d1_c6": {
@@ -1502,13 +1541,19 @@
             "description": "เชื่อมโยงการแก้ไข DACL กับการเข้าถึงไฟล์ของผู้ใช้เป้าหมาย",
             "explanation": "ผู้ใช้ jsmith เข้าถึงไฟล์เงินเดือนทันทีหลังจากที่มีการเปลี่ยนแปลงสิทธิ์"
           }
+        },
+        "story": {
+          "role_context": "ช่วงสายวันทำงาน คุณปฏิบัติหน้าที่เป็น SOC Analyst ดูแลความปลอดภัยของเซิร์ฟเวอร์เก็บไฟล์สำคัญและสิทธิ์การเข้าถึงข้อมูลในสำนักงานใหญ่",
+          "current_activity": "ระหว่างที่คุณกำลังตรวจเช็กสุขภาพระบบและพฤติกรรมบัญชีบริการอัตโนมัติรอบประจำสัปดาห์บริเวณเครื่องเก็บข้อมูลเงินเดือน (FS-PAYROLL-01) ลำดับเหตุการณ์บนเครื่อง DC-01 ก็ดูผิดสังเกตขึ้นมา",
+          "what_happened": "บัญชีสำรองข้อมูลอัตโนมัติ svc_backup จาก IP 10.0.2.14 เพิ่งเข้าไปปรับแก้สิทธิ์การเข้าถึงโฟลเดอร์ ก่อนที่ผู้ใช้ทั่วไป jsmith จะเข้าไปเปิดอ่านไฟล์ลับในโฟลเดอร์หวงห้าม Payroll_Confidential ทันที",
+          "potential_impact": "หากเป็นการลักลอบปรับสิทธิ์เพื่อเปิดช่องให้แอบดูไฟล์ลับ ข้อมูลเงินเดือนของพนักงานอาจรั่วไหลไปแล้ว แต่หากฝ่ายการเงินอนุมัติงานแก้สิทธิ์ฉุกเฉินเพื่อเตรียมตรวจสอบบัญชี การสั่งระงับบัญชีทันทีอาจทำให้งานจ่ายเงินเดือนหยุดชะงักได้ คุณจึงต้องตรวจรายละเอียดใน Log ก่อนตัดสินใจ"
         }
       }
     }
   },
   {
     "title": "SQL Injection & Database Exfiltration",
-    "description": "Alert from web logs showing suspicious URL queries containing SQL keywords like UNION and SELECT, followed by a unusually large HTTP response payload sent back to the external client.",
+    "description": "You are a SOC Analyst responsible for defending customer-facing web storefronts and backend databases. While monitoring live web security tickets during peak daytime traffic between storefront WEB-PROD-01 and database server DB-PROD-01, a high-severity alert flags anomalous page requests.\n\nWeb application logs show external IP 198.51.100.77 sending crafted database query text inside URL parameters to WEB-PROD-01, immediately followed by unusually large data responses returned from DB-PROD-01.\n\nIf database injection succeeded, sensitive customer records could be silently downloaded to an external server; conversely, if an authorized developer load test is running synthetic queries, taking the storefront offline could stop real customer orders—confirm what happened in the logs first.",
     "domain_id": "domain2",
     "difficulty": 2,
     "is_true_positive": true,
@@ -1969,9 +2014,18 @@
       ]
     },
     "translations": {
+      "en": {
+        "description": "You are a SOC Analyst responsible for defending customer-facing web storefronts and backend databases. While monitoring live web security tickets during peak daytime traffic between storefront WEB-PROD-01 and database server DB-PROD-01, a high-severity alert flags anomalous page requests.\n\nWeb application logs show external IP 198.51.100.77 sending crafted database query text inside URL parameters to WEB-PROD-01, immediately followed by unusually large data responses returned from DB-PROD-01.\n\nIf database injection succeeded, sensitive customer records could be silently downloaded to an external server; conversely, if an authorized developer load test is running synthetic queries, taking the storefront offline could stop real customer orders—confirm what happened in the logs first.",
+        "story": {
+          "role_context": "You are a SOC Analyst responsible for defending customer-facing web storefronts and backend databases.",
+          "current_activity": "While monitoring live web security tickets during peak daytime traffic between storefront WEB-PROD-01 and database server DB-PROD-01, a high-severity alert flags anomalous page requests.",
+          "what_happened": "Web application logs show external IP 198.51.100.77 sending crafted database query text inside URL parameters to WEB-PROD-01, immediately followed by unusually large data responses returned from DB-PROD-01.",
+          "potential_impact": "If database injection succeeded, sensitive customer records could be silently downloaded to an external server; conversely, if an authorized developer load test is running synthetic queries, taking the storefront offline could stop real customer orders—confirm what happened in the logs first."
+        }
+      },
       "th": {
         "title": "การโจมตี SQL Injection และการโจรกรรมข้อมูลจากฐานข้อมูล",
-        "description": "แจ้งเตือนจาก Web Logs พบ URL query ต้องสงสัยที่มีคีย์เวิร์ด SQL เช่น UNION และ SELECT ตามด้วยการตอบกลับ HTTP response payload ขนาดใหญ่ผิดปกติส่งออกไปให้ไคลเอนต์ภายนอก",
+        "description": "ช่วงเวลางานหนาแน่น คุณปฏิบัติหน้าที่เป็น SOC Analyst ป้องกันระบบเว็บไซต์หน้าร้านของบริษัทและฐานข้อมูลหลังบ้านที่เชื่อมต่อกัน ระหว่างที่กำลังเฝ้าติดตามคิวแจ้งเตือนหน้าเว็บหลัก (WEB-PROD-01) ที่กำลังเชื่อมข้อมูลกับฐานข้อมูล (DB-PROD-01) อยู่ ระบบตรวจจับเว็บก็แจ้งเตือนคำขอหน้าเว็บที่ผิดปกติ\n\nบันทึกการเข้าชมเว็บพบว่า IP ภายนอก 198.51.100.77 ส่งชุดคำสั่งฐานข้อมูลปะปนมาในที่อยู่ URL ของ WEB-PROD-01 และตามด้วยข้อมูลตอบกลับจากฐานข้อมูล DB-PROD-01 ที่มีขนาดใหญ่ผิดปกติส่งกลับออกไป\n\nหากช่องโหว่หน้าเว็บถูกเจาะดึงข้อมูลฐานข้อมูลจริง ข้อมูลส่วนตัวของลูกค้าอาจถูกดูดออกไปภายนอกแล้ว แต่หากเป็นทีมพัฒนาซอฟต์แวร์กำลังทดสอบประสิทธิภาพหน้าเว็บอัตโนมัติ การปิดเว็บหน้าร้านทันทีอาจหยุดการสั่งซื้อของลูกค้าทั้งหมดได้ คุณจึงควรตรวจ Log การตอบสนองให้แน่ใจก่อน",
         "tp_fp_explanation": "เหตุการณ์นี้เป็น True Positive เนื่องจากคิวรีเพย์โหลดมีชุดคำสั่ง SQL Union Injection เพื่อดึงข้อมูล `password_hash` ส่งผลให้ฐานข้อมูลขนาด 1.2MB ถูกดึงออกไปให้ IP ภายนอก 198.51.100.77",
         "playbook_steps": {
           "d2_c1": {
@@ -2020,13 +2074,19 @@
             "description": "ตรวจพบปริมาณข้อมูลตอบกลับขนาดใหญ่ผิดปกติที่บ่งชี้การโจรกรรมข้อมูล",
             "explanation": "ขนาด response payload 1.2MB ยืนยันว่าการสกัดดึงข้อมูลออกไปได้สำเร็จจริง"
           }
+        },
+        "story": {
+          "role_context": "ช่วงเวลางานหนาแน่น คุณปฏิบัติหน้าที่เป็น SOC Analyst ป้องกันระบบเว็บไซต์หน้าร้านของบริษัทและฐานข้อมูลหลังบ้านที่เชื่อมต่อกัน",
+          "current_activity": "ระหว่างที่กำลังเฝ้าติดตามคิวแจ้งเตือนหน้าเว็บหลัก (WEB-PROD-01) ที่กำลังเชื่อมข้อมูลกับฐานข้อมูล (DB-PROD-01) อยู่ ระบบตรวจจับเว็บก็แจ้งเตือนคำขอหน้าเว็บที่ผิดปกติ",
+          "what_happened": "บันทึกการเข้าชมเว็บพบว่า IP ภายนอก 198.51.100.77 ส่งชุดคำสั่งฐานข้อมูลปะปนมาในที่อยู่ URL ของ WEB-PROD-01 และตามด้วยข้อมูลตอบกลับจากฐานข้อมูล DB-PROD-01 ที่มีขนาดใหญ่ผิดปกติส่งกลับออกไป",
+          "potential_impact": "หากช่องโหว่หน้าเว็บถูกเจาะดึงข้อมูลฐานข้อมูลจริง ข้อมูลส่วนตัวของลูกค้าอาจถูกดูดออกไปภายนอกแล้ว แต่หากเป็นทีมพัฒนาซอฟต์แวร์กำลังทดสอบประสิทธิภาพหน้าเว็บอัตโนมัติ การปิดเว็บหน้าร้านทันทีอาจหยุดการสั่งซื้อของลูกค้าทั้งหมดได้ คุณจึงควรตรวจ Log การตอบสนองให้แน่ใจก่อน"
         }
       }
     }
   },
   {
     "title": "Internal Port Scan and SYN Flood Alarm",
-    "description": "An IDS alarm flags a massive network TCP sweep and port scan originating from internal host IP 10.0.99.12 across multiple network zones.",
+    "description": "You are a SOC Analyst investigating network traffic spikes alongside corporate infrastructure and IT support teams. While checking an escalated ticket about brief network sluggishness across enterprise VLANs, intrusion detection alarms point directly at internal utility node SCAN-NODE-99 (10.0.99.12).\n\nNetwork sensors report host 10.0.99.12 under account sysadmin rapidly probing hundreds of service ports across DC-01 and internal server zones within minutes.\n\nIf malware compromised SCAN-NODE-99, rapid network discovery often precedes lateral movement toward core servers; on the other hand, if IT scheduled an internal security inventory sweep, isolating 10.0.99.12 blindly could break routine compliance scanning—check all related records first.",
     "domain_id": "domain2",
     "difficulty": 2,
     "is_true_positive": false,
@@ -2518,9 +2578,18 @@
       ]
     },
     "translations": {
+      "en": {
+        "description": "You are a SOC Analyst investigating network traffic spikes alongside corporate infrastructure and IT support teams. While checking an escalated ticket about brief network sluggishness across enterprise VLANs, intrusion detection alarms point directly at internal utility node SCAN-NODE-99 (10.0.99.12).\n\nNetwork sensors report host 10.0.99.12 under account sysadmin rapidly probing hundreds of service ports across DC-01 and internal server zones within minutes.\n\nIf malware compromised SCAN-NODE-99, rapid network discovery often precedes lateral movement toward core servers; on the other hand, if IT scheduled an internal security inventory sweep, isolating 10.0.99.12 blindly could break routine compliance scanning—check all related records first.",
+        "story": {
+          "role_context": "You are a SOC Analyst investigating network traffic spikes alongside corporate infrastructure and IT support teams.",
+          "current_activity": "While checking an escalated ticket about brief network sluggishness across enterprise VLANs, intrusion detection alarms point directly at internal utility node SCAN-NODE-99 (10.0.99.12).",
+          "what_happened": "Network sensors report host 10.0.99.12 under account sysadmin rapidly probing hundreds of service ports across DC-01 and internal server zones within minutes.",
+          "potential_impact": "If malware compromised SCAN-NODE-99, rapid network discovery often precedes lateral movement toward core servers; on the other hand, if IT scheduled an internal security inventory sweep, isolating 10.0.99.12 blindly could break routine compliance scanning—check all related records first."
+        }
+      },
       "th": {
         "title": "การแจ้งเตือน Internal Port Scan และ SYN Flood",
-        "description": "สัญญาณแจ้งเตือน IDS ตรวจพบการสแกนพอร์ตและ TCP sweep ภายในเครือข่ายปริมาณมากจากโฮสต์ภายใน IP 10.0.99.12 ไปยังหลายโซนเครือข่าย",
+        "description": "ช่วงบ่ายในทีมเฝ้าระวัง คุณปฏิบัติหน้าที่เป็น SOC Analyst ทำงานร่วมกับทีมดูแลระบบเครือข่ายและ Helpdesk ขององค์กร ระหว่างที่คุณกำลังไล่ตรวจสอบ Ticket ที่ฝ่ายดูแลระบบส่งต่อมาหลังผู้ใช้บ่นว่าเครือข่ายบริษัทช้าลงชั่วครู่ ระบบตรวจจับภัยเครือข่ายก็ชี้เป้ามาที่เครื่องภายใน SCAN-NODE-99 (10.0.99.12)\n\nเซ็นเซอร์เครือข่ายรายงานว่าเครื่อง 10.0.99.12 ภายใต้บัญชี sysadmin กำลังยิงสำรวจพอร์ตบริการหลายร้อยช่องทางเข้าหา DC-01 และโซนเซิร์ฟเวอร์ภายในอย่างรวดเร็วในไม่กี่นาที\n\nหากเครื่อง SCAN-NODE-99 ถูกมัลแวร์ยึดครอง พฤติกรรมสแกนหาจุดเชื่อมต่อทั่วเครือข่ายมักเป็นสัญญาณก่อนลุกลามเข้าสู่เซิร์ฟเวอร์หลัก แต่หากเป็นทีมไอทีตั้งเวลาสแกนตรวจสอบระบบประจำรอบตามแผน การตัดเครื่อง 10.0.99.12 ทันทีอาจทำให้งานตรวจสอบความปลอดภัยประจำวันล้มเหลวได้ คุณจึงควรเช็กข้อมูลประกอบใน Log ก่อน",
         "tp_fp_explanation": "เหตุการณ์นี้เป็น False Positive เนื่องจากบันทึกคำขอเปลี่ยนแปลงระบบ (Change Request Logs) ระบุว่ามีการสแกนช่องโหว่ภายในที่ได้รับอนุญาตตามกำหนดการจากช่วง IP 10.0.99.0/24 ในช่วงเวลาดังกล่าว",
         "playbook_steps": {
           "d2_c3": {
@@ -2569,13 +2638,19 @@
             "description": "ยืนยันพฤติกรรมการสแกนจำกัดอยู่เฉพาะภายในเครือข่าย",
             "explanation": "ทราฟฟิกทั้งหมดอยู่ภายใน internal private subnets เท่านั้น"
           }
+        },
+        "story": {
+          "role_context": "ช่วงบ่ายในทีมเฝ้าระวัง คุณปฏิบัติหน้าที่เป็น SOC Analyst ทำงานร่วมกับทีมดูแลระบบเครือข่ายและ Helpdesk ขององค์กร",
+          "current_activity": "ระหว่างที่คุณกำลังไล่ตรวจสอบ Ticket ที่ฝ่ายดูแลระบบส่งต่อมาหลังผู้ใช้บ่นว่าเครือข่ายบริษัทช้าลงชั่วครู่ ระบบตรวจจับภัยเครือข่ายก็ชี้เป้ามาที่เครื่องภายใน SCAN-NODE-99 (10.0.99.12)",
+          "what_happened": "เซ็นเซอร์เครือข่ายรายงานว่าเครื่อง 10.0.99.12 ภายใต้บัญชี sysadmin กำลังยิงสำรวจพอร์ตบริการหลายร้อยช่องทางเข้าหา DC-01 และโซนเซิร์ฟเวอร์ภายในอย่างรวดเร็วในไม่กี่นาที",
+          "potential_impact": "หากเครื่อง SCAN-NODE-99 ถูกมัลแวร์ยึดครอง พฤติกรรมสแกนหาจุดเชื่อมต่อทั่วเครือข่ายมักเป็นสัญญาณก่อนลุกลามเข้าสู่เซิร์ฟเวอร์หลัก แต่หากเป็นทีมไอทีตั้งเวลาสแกนตรวจสอบระบบประจำรอบตามแผน การตัดเครื่อง 10.0.99.12 ทันทีอาจทำให้งานตรวจสอบความปลอดภัยประจำวันล้มเหลวได้ คุณจึงควรเช็กข้อมูลประกอบใน Log ก่อน"
         }
       }
     }
   },
   {
     "title": "Ransomware Execution & Volume Shadow Copy Deletion",
-    "description": "An endpoint security alarm alerts on commands attempting to delete volume shadow copies on finance workstation WS-FIN-08, followed by rapid file encryption flags.",
+    "description": "You are an emergency-shift SOC Analyst supporting corporate desktop defense and helpdesk incident escalations. Right after IT Helpdesk forwards a report from a finance team member whose laptop slowed to a crawl, you pull up endpoint activity on WS-FIN-08.\n\nSecurity sensors on finance workstation WS-FIN-08 under user mclark recorded commands attempting to erase built-in Windows backup recovery snapshots, followed immediately by bursts of rapid local file renaming.\n\nIf ransomware encryption is actively running on WS-FIN-08, waiting too long risks spreading file lockouts to shared finance drives; yet if an authorized IT backup cleanup triggered aggressive monitoring rules, wiping or powering off the device indiscriminately could lose unsaved financial data—verify the logs now.",
     "domain_id": "domain2",
     "difficulty": 3,
     "is_true_positive": true,
@@ -3044,9 +3119,18 @@
       ]
     },
     "translations": {
+      "en": {
+        "description": "You are an emergency-shift SOC Analyst supporting corporate desktop defense and helpdesk incident escalations. Right after IT Helpdesk forwards a report from a finance team member whose laptop slowed to a crawl, you pull up endpoint activity on WS-FIN-08.\n\nSecurity sensors on finance workstation WS-FIN-08 under user mclark recorded commands attempting to erase built-in Windows backup recovery snapshots, followed immediately by bursts of rapid local file renaming.\n\nIf ransomware encryption is actively running on WS-FIN-08, waiting too long risks spreading file lockouts to shared finance drives; yet if an authorized IT backup cleanup triggered aggressive monitoring rules, wiping or powering off the device indiscriminately could lose unsaved financial data—verify the logs now.",
+        "story": {
+          "role_context": "You are an emergency-shift SOC Analyst supporting corporate desktop defense and helpdesk incident escalations.",
+          "current_activity": "Right after IT Helpdesk forwards a report from a finance team member whose laptop slowed to a crawl, you pull up endpoint activity on WS-FIN-08.",
+          "what_happened": "Security sensors on finance workstation WS-FIN-08 under user mclark recorded commands attempting to erase built-in Windows backup recovery snapshots, followed immediately by bursts of rapid local file renaming.",
+          "potential_impact": "If ransomware encryption is actively running on WS-FIN-08, waiting too long risks spreading file lockouts to shared finance drives; yet if an authorized IT backup cleanup triggered aggressive monitoring rules, wiping or powering off the device indiscriminately could lose unsaved financial data—verify the logs now."
+        }
+      },
       "th": {
         "title": "การทำงานของแรนซัมแวร์และการลบ Volume Shadow Copies",
-        "description": "ระบบรักษาความปลอดภัยปลายทาง (Endpoint Security) แจ้งเตือนคำสั่งพยายามลบ volume shadow copies บนเครื่องเวิร์กสเตชันฝ่ายการเงิน WS-FIN-08 ตามด้วยการแจ้งเตือนการเข้ารหัสไฟล์อย่างรวดเร็ว",
+        "description": "ช่วงเวลาระวังภัยเร่งด่วน คุณปฏิบัติหน้าที่เป็น SOC Analyst ดูแลความปลอดภัยเครื่องคอมพิวเตอร์พนักงานและรับเคสส่งต่อจาก IT Helpdesk ทันทีที่ทีม Helpdesk ส่งเคสด่วนเข้ามาว่าพนักงานฝ่ายการเงินแจ้งเครื่องช้าและค้างผิดปกติ คุณจึงเปิดหน้าตรวจสอบเหตุการณ์บนเครื่อง WS-FIN-08 ทันที\n\nระบบป้องกันเครื่องปลายทางบน WS-FIN-08 ของผู้ใช้ mclark บันทึกคำสั่งพยายามลบจุดสำรองข้อมูลกู้คืนของ Windows ออกทั้งหมด และต่อมาไม่กี่วินาทีก็พบการเข้าแก้ไขและเปลี่ยนชื่อไฟล์เอกสารจำนวนมากอย่างรวดเร็ว\n\nหากมัลแวร์เรียกค่าไถ่กำลังเข้ารหัสไฟล์จริง การปล่อยเวลาผ่านไปอาจทำให้ลุกลามไปยังไดรฟ์ข้อมูลส่วนกลางของฝ่ายการเงินได้ แต่หากเป็นงานทำความสะอาดไฟล์สำรองของฝ่ายไอทีที่ไปกระตุ้นกฎตรวจจับ การรีบสั่งปิดหรือล้างเครื่องอาจทำให้งานเอกสารสำคัญสูญหายได้ คุณจึงต้องตรวจสอบ Log เดี๋ยวนี้",
         "tp_fp_explanation": "เหตุการณ์นี้เป็น True Positive เนื่องจากคำสั่ง 'vssadmin delete shadows' และ 'wmic shadowcopy delete' เป็นพฤติกรรมเฉพาะตัวที่ผู้โจมตีแรนซัมแวร์ใช้ขัดขวางการกู้คืนระบบก่อนเริ่มเข้ารหัสไฟล์",
         "playbook_steps": {
           "d2_c5": {
@@ -3095,13 +3179,19 @@
             "description": "พบการดัดแปลงลายเซ็นไฟล์แบบฉบับแรนซัมแวร์",
             "explanation": "ไฟล์ถูกเปลี่ยนนามสกุลเป็น .locked และการสร้างไฟล์เรียกค่าไถ่ยืนยันว่ากำลังมีการเข้ารหัสไฟล์อยู่"
           }
+        },
+        "story": {
+          "role_context": "ช่วงเวลาระวังภัยเร่งด่วน คุณปฏิบัติหน้าที่เป็น SOC Analyst ดูแลความปลอดภัยเครื่องคอมพิวเตอร์พนักงานและรับเคสส่งต่อจาก IT Helpdesk",
+          "current_activity": "ทันทีที่ทีม Helpdesk ส่งเคสด่วนเข้ามาว่าพนักงานฝ่ายการเงินแจ้งเครื่องช้าและค้างผิดปกติ คุณจึงเปิดหน้าตรวจสอบเหตุการณ์บนเครื่อง WS-FIN-08 ทันที",
+          "what_happened": "ระบบป้องกันเครื่องปลายทางบน WS-FIN-08 ของผู้ใช้ mclark บันทึกคำสั่งพยายามลบจุดสำรองข้อมูลกู้คืนของ Windows ออกทั้งหมด และต่อมาไม่กี่วินาทีก็พบการเข้าแก้ไขและเปลี่ยนชื่อไฟล์เอกสารจำนวนมากอย่างรวดเร็ว",
+          "potential_impact": "หากมัลแวร์เรียกค่าไถ่กำลังเข้ารหัสไฟล์จริง การปล่อยเวลาผ่านไปอาจทำให้ลุกลามไปยังไดรฟ์ข้อมูลส่วนกลางของฝ่ายการเงินได้ แต่หากเป็นงานทำความสะอาดไฟล์สำรองของฝ่ายไอทีที่ไปกระตุ้นกฎตรวจจับ การรีบสั่งปิดหรือล้างเครื่องอาจทำให้งานเอกสารสำคัญสูญหายได้ คุณจึงต้องตรวจสอบ Log เดี๋ยวนี้"
         }
       }
     }
   },
   {
     "title": "VLAN Segmentation Failure / Guest Network Bypass",
-    "description": "Alert indicating firewall allowing database connections directly from the Guest Wi-Fi VLAN (192.168.10.0/24) to the production database subnet.",
+    "description": "You are a SOC Analyst overseeing internal network boundaries and corporate office Wi-Fi isolation. While reviewing overnight shift handover notes following minor office switch updates, a high-priority network firewall alert appears involving DB-Server-Prod (10.0.50.12).\n\nFirewall logs reveal direct database connections arriving straight from unauthenticated guest visitor IP 192.168.10.145 on the visitor wireless subnet into restricted production server DB-Server-Prod.\n\nIf visitor Wi-Fi isolation broke and exposed internal databases, anyone sitting in the lobby could probe company storage directly; however, if network engineers left a temporary diagnostic test route active during a cutover window, pulling core routes carelessly could interrupt office operations—audit the timeline first.",
     "domain_id": "domain3",
     "difficulty": 2,
     "is_true_positive": true,
@@ -3581,9 +3671,18 @@
       ]
     },
     "translations": {
+      "en": {
+        "description": "You are a SOC Analyst overseeing internal network boundaries and corporate office Wi-Fi isolation. While reviewing overnight shift handover notes following minor office switch updates, a high-priority network firewall alert appears involving DB-Server-Prod (10.0.50.12).\n\nFirewall logs reveal direct database connections arriving straight from unauthenticated guest visitor IP 192.168.10.145 on the visitor wireless subnet into restricted production server DB-Server-Prod.\n\nIf visitor Wi-Fi isolation broke and exposed internal databases, anyone sitting in the lobby could probe company storage directly; however, if network engineers left a temporary diagnostic test route active during a cutover window, pulling core routes carelessly could interrupt office operations—audit the timeline first.",
+        "story": {
+          "role_context": "You are a SOC Analyst overseeing internal network boundaries and corporate office Wi-Fi isolation.",
+          "current_activity": "While reviewing overnight shift handover notes following minor office switch updates, a high-priority network firewall alert appears involving DB-Server-Prod (10.0.50.12).",
+          "what_happened": "Firewall logs reveal direct database connections arriving straight from unauthenticated guest visitor IP 192.168.10.145 on the visitor wireless subnet into restricted production server DB-Server-Prod.",
+          "potential_impact": "If visitor Wi-Fi isolation broke and exposed internal databases, anyone sitting in the lobby could probe company storage directly; however, if network engineers left a temporary diagnostic test route active during a cutover window, pulling core routes carelessly could interrupt office operations—audit the timeline first."
+        }
+      },
       "th": {
         "title": "ความล้มเหลวของ VLAN Segmentation และการข้ามผ่านจาก Guest Network",
-        "description": "แจ้งเตือนไฟร์วอลล์อนุญาตการเชื่อมต่อฐานข้อมูลโดยตรงจาก Guest Wi-Fi VLAN (192.168.10.0/24) เข้าสู่ subnet ฐานข้อมูลฝ่ายผลิต",
+        "description": "ช่วงเช้าวันทำงาน คุณปฏิบัติหน้าที่เป็น SOC Analyst ดูแลการแบ่งแยกโซนเครือข่ายและความปลอดภัย Wi-Fi ภายในอาคารสำนักงาน ระหว่างที่กำลังอ่านสรุปรับช่วงต่อจากทีมกะดึกหลังมีการปรับปรุงอุปกรณ์เครือข่ายเมื่อคืน ก็มีแจ้งเตือนสำคัญจาก Firewall ชี้ไปยังฐานข้อมูลหลัก DB-Server-Prod (10.0.50.12)\n\nบันทึก Firewall เผยให้เห็นว่ามีการเชื่อมต่อตรงเข้าสู่ฐานข้อมูลฝ่ายผลิต DB-Server-Prod โดยพุ่งมาจาก IP 192.168.10.145 ซึ่งอยู่ในวง Wi-Fi สำหรับผู้มาติดต่อทั่วไปที่ปกติต้องถูกแยกขาดจากระบบภายใน\n\nหากระบบแยกโซนเครือข่ายผู้มาติดต่อเกิดรั่วไหลจริง บุคคลภายนอกที่นั่งอยู่ในอาคารอาจเจาะตรงเข้าถึงฐานข้อมูลสำคัญของบริษัทได้ แต่หากวิศวกรเครือข่ายเปิดเส้นทางทดสอบระบบไว้ชั่วคราวช่วงปรับปรุง การตัดเส้นทางหลักผิดจุดอาจกระทบงานภายในทั้งชั้นได้ คุณจึงควรตรวจ Log ให้แน่ชัดก่อน",
         "tp_fp_explanation": "เหตุการณ์นี้เป็น True Positive เนื่องจาก production DB subnets ไม่ควรยอมรับการเชื่อมต่อจาก Guest network โดยเด็ดขาด แต่การตั้งค่าไฟร์วอลล์กลับอนุญาตเพราะ ruleset ผิดพลาด และกำลังถูกโจมตีแบบ brute-force อยู่ในขณะนี้",
         "playbook_steps": {
           "d3_c1": {
@@ -3632,13 +3731,19 @@
             "description": "ตรวจพบลายเซ็นการโจมตีฐานข้อมูลแบบ brute-force",
             "explanation": "ความพยายามล็อกอินฐานข้อมูลที่ล้มเหลวจำนวนมากบ่งชี้ว่ากำลังถูก brute-force อย่างต่อเนื่อง"
           }
+        },
+        "story": {
+          "role_context": "ช่วงเช้าวันทำงาน คุณปฏิบัติหน้าที่เป็น SOC Analyst ดูแลการแบ่งแยกโซนเครือข่ายและความปลอดภัย Wi-Fi ภายในอาคารสำนักงาน",
+          "current_activity": "ระหว่างที่กำลังอ่านสรุปรับช่วงต่อจากทีมกะดึกหลังมีการปรับปรุงอุปกรณ์เครือข่ายเมื่อคืน ก็มีแจ้งเตือนสำคัญจาก Firewall ชี้ไปยังฐานข้อมูลหลัก DB-Server-Prod (10.0.50.12)",
+          "what_happened": "บันทึก Firewall เผยให้เห็นว่ามีการเชื่อมต่อตรงเข้าสู่ฐานข้อมูลฝ่ายผลิต DB-Server-Prod โดยพุ่งมาจาก IP 192.168.10.145 ซึ่งอยู่ในวง Wi-Fi สำหรับผู้มาติดต่อทั่วไปที่ปกติต้องถูกแยกขาดจากระบบภายใน",
+          "potential_impact": "หากระบบแยกโซนเครือข่ายผู้มาติดต่อเกิดรั่วไหลจริง บุคคลภายนอกที่นั่งอยู่ในอาคารอาจเจาะตรงเข้าถึงฐานข้อมูลสำคัญของบริษัทได้ แต่หากวิศวกรเครือข่ายเปิดเส้นทางทดสอบระบบไว้ชั่วคราวช่วงปรับปรุง การตัดเส้นทางหลักผิดจุดอาจกระทบงานภายในทั้งชั้นได้ คุณจึงควรตรวจ Log ให้แน่ชัดก่อน"
         }
       }
     }
   },
   {
     "title": "Exorbitant Bandwidth Consumption on Guest Network",
-    "description": "An alert warns of high outbound network traffic on port 443 originating from a guest endpoint 192.168.10.12.",
+    "description": "You are a SOC Analyst tracking perimeter firewall performance and guest wireless network activity. During a mid-shift threat hunt looking for unusual high-volume outbound data transfers, telemetry highlights heavy encrypted traffic coming from visitor device Guest-Endpoint-12 (192.168.10.12).\n\nPerimeter gateway logs show Guest-Endpoint-12 on the isolated guest subnet generating a sustained multi-gigabyte surge of outbound HTTPS traffic on port 443 over a short window.\n\nIf a guest-bridged host or infected device is secretly exfiltrating internal files or participating in flood attacks, bandwidth exhaustion could degrade office internet; yet if a visitor is simply downloading normal OS updates or streaming conference calls over isolated guest Wi-Fi, raising a panic locks out harmless guests—check the destination and boundary logs first.",
     "domain_id": "domain3",
     "difficulty": 1,
     "is_true_positive": false,
@@ -4058,9 +4163,18 @@
       ]
     },
     "translations": {
+      "en": {
+        "description": "You are a SOC Analyst tracking perimeter firewall performance and guest wireless network activity. During a mid-shift threat hunt looking for unusual high-volume outbound data transfers, telemetry highlights heavy encrypted traffic coming from visitor device Guest-Endpoint-12 (192.168.10.12).\n\nPerimeter gateway logs show Guest-Endpoint-12 on the isolated guest subnet generating a sustained multi-gigabyte surge of outbound HTTPS traffic on port 443 over a short window.\n\nIf a guest-bridged host or infected device is secretly exfiltrating internal files or participating in flood attacks, bandwidth exhaustion could degrade office internet; yet if a visitor is simply downloading normal OS updates or streaming conference calls over isolated guest Wi-Fi, raising a panic locks out harmless guests—check the destination and boundary logs first.",
+        "story": {
+          "role_context": "You are a SOC Analyst tracking perimeter firewall performance and guest wireless network activity.",
+          "current_activity": "During a mid-shift threat hunt looking for unusual high-volume outbound data transfers, telemetry highlights heavy encrypted traffic coming from visitor device Guest-Endpoint-12 (192.168.10.12).",
+          "what_happened": "Perimeter gateway logs show Guest-Endpoint-12 on the isolated guest subnet generating a sustained multi-gigabyte surge of outbound HTTPS traffic on port 443 over a short window.",
+          "potential_impact": "If a guest-bridged host or infected device is secretly exfiltrating internal files or participating in flood attacks, bandwidth exhaustion could degrade office internet; yet if a visitor is simply downloading normal OS updates or streaming conference calls over isolated guest Wi-Fi, raising a panic locks out harmless guests—check the destination and boundary logs first."
+        }
+      },
       "th": {
         "title": "การใช้แบนด์วิดท์สูงผิดปกติบน Guest Network",
-        "description": "แจ้งเตือนทราฟฟิกเครือข่ายขาออกสูงผิดปกติผ่านพอร์ต 443 จากอุปกรณ์ปลายทางผู้เยี่ยมชม 192.168.10.12",
+        "description": "ช่วงกลางกะการทำงาน คุณปฏิบัติหน้าที่เป็น SOC Analyst ติดตามทราฟฟิกเข้าออกหน้าด่านองค์กรและการใช้งานเครือข่าย Wi-Fi สำหรับผู้มาติดต่อ ระหว่างที่คุณกำลังไล่ตรวจแนวโน้มทราฟฟิกปริมาณสูงผิดปกติประจำวัน อุปกรณ์เฝ้าระวังก็เน้นรายการรับส่งข้อมูลเข้ารหัสขนาดใหญ่จากเครื่องแขก Guest-Endpoint-12 (192.168.10.12)\n\nบันทึกประตูเชื่อมอินเทอร์เน็ตชี้ว่า Guest-Endpoint-12 บนวงเครือข่ายผู้มาติดต่อมีการส่งข้อมูลเข้ารหัสผ่านพอร์ต 443 ออกไปภายนอกหลายกิกะไบต์อย่างต่อเนื่องในช่วงเวลาสั้นๆ\n\nหากเครื่องในวงผู้มาติดต่อเชื่อมรั่วเข้ากับเครือข่ายภายในหรือติดมัลแวร์ส่งข้อมูลออก ปริมาณรับส่งนี้อาจทำให้ระบบอินเทอร์เน็ตหลักติดขัดหรือเสี่ยงข้อมูลรั่วไหลได้ แต่หากแขกที่เข้ามาติดต่อแค่กำลังอัปเดตซอฟต์แวร์เครื่องหรือประชุมออนไลน์บนวงแยกปกติ การรีบตัดการใช้งานอาจกระทบภาพลักษณ์บริการได้ คุณจึงต้องตรวจขอบเขตการเชื่อมต่อใน Log ก่อน",
         "tp_fp_explanation": "เหตุการณ์นี้เป็น False Positive จากการตรวจสอบ proxy logs พบว่าทราฟฟิกทั้งหมดเป็นการเชื่อมต่อ HTTPS ที่เข้ารหัสไปยัง YouTube และ Netflix ซึ่งเป็นการใช้งานแบนด์วิดท์ทั่วไปที่ได้รับอนุญาตตามนโยบาย Guest network",
         "playbook_steps": {
           "d3_c3": {
@@ -4105,13 +4219,19 @@
             "description": "เชื่อมโยงทราฟฟิกเข้ากับโดเมนบริการสตรีมมิงวิดีโอ",
             "explanation": "ปลายทางของทราฟฟิกคือ youtube.com และ netflix.com"
           }
+        },
+        "story": {
+          "role_context": "ช่วงกลางกะการทำงาน คุณปฏิบัติหน้าที่เป็น SOC Analyst ติดตามทราฟฟิกเข้าออกหน้าด่านองค์กรและการใช้งานเครือข่าย Wi-Fi สำหรับผู้มาติดต่อ",
+          "current_activity": "ระหว่างที่คุณกำลังไล่ตรวจแนวโน้มทราฟฟิกปริมาณสูงผิดปกติประจำวัน อุปกรณ์เฝ้าระวังก็เน้นรายการรับส่งข้อมูลเข้ารหัสขนาดใหญ่จากเครื่องแขก Guest-Endpoint-12 (192.168.10.12)",
+          "what_happened": "บันทึกประตูเชื่อมอินเทอร์เน็ตชี้ว่า Guest-Endpoint-12 บนวงเครือข่ายผู้มาติดต่อมีการส่งข้อมูลเข้ารหัสผ่านพอร์ต 443 ออกไปภายนอกหลายกิกะไบต์อย่างต่อเนื่องในช่วงเวลาสั้นๆ",
+          "potential_impact": "หากเครื่องในวงผู้มาติดต่อเชื่อมรั่วเข้ากับเครือข่ายภายในหรือติดมัลแวร์ส่งข้อมูลออก ปริมาณรับส่งนี้อาจทำให้ระบบอินเทอร์เน็ตหลักติดขัดหรือเสี่ยงข้อมูลรั่วไหลได้ แต่หากแขกที่เข้ามาติดต่อแค่กำลังอัปเดตซอฟต์แวร์เครื่องหรือประชุมออนไลน์บนวงแยกปกติ การรีบตัดการใช้งานอาจกระทบภาพลักษณ์บริการได้ คุณจึงต้องตรวจขอบเขตการเชื่อมต่อใน Log ก่อน"
         }
       }
     }
   },
   {
     "title": "AWS S3 Cloud Storage Misconfiguration",
-    "description": "Cloud security audit logs detect the S3 bucket 'customer-contracts-prod' access control list (ACL) modified to public read, followed by immediate anonymous access download activities.",
+    "description": "You are a SOC Analyst overseeing public cloud storage permissions and enterprise AWS infrastructure (aws-s3-prod). While watching automated cloud compliance guardrails alongside DevOps teams during daily infrastructure updates, a critical data exposure warning fires.\n\nCloud audit trails show account temp_admin changing permissions on the customer-contracts-prod storage bucket to allow public anonymous reads, closely followed by external downloads from 198.51.100.99.\n\nIf private contract documents are now exposed openly on the internet, confidential client agreements may already be copied by outsiders; conversely, if a compliance team intended to share sanitized public documentation through a test staging bucket, revoking permissions blindly could break external partner links—verify the exact evidence first.",
     "domain_id": "domain3",
     "difficulty": 3,
     "is_true_positive": true,
@@ -4614,9 +4734,18 @@
       ]
     },
     "translations": {
+      "en": {
+        "description": "You are a SOC Analyst overseeing public cloud storage permissions and enterprise AWS infrastructure (aws-s3-prod). While watching automated cloud compliance guardrails alongside DevOps teams during daily infrastructure updates, a critical data exposure warning fires.\n\nCloud audit trails show account temp_admin changing permissions on the customer-contracts-prod storage bucket to allow public anonymous reads, closely followed by external downloads from 198.51.100.99.\n\nIf private contract documents are now exposed openly on the internet, confidential client agreements may already be copied by outsiders; conversely, if a compliance team intended to share sanitized public documentation through a test staging bucket, revoking permissions blindly could break external partner links—verify the exact evidence first.",
+        "story": {
+          "role_context": "You are a SOC Analyst overseeing public cloud storage permissions and enterprise AWS infrastructure (aws-s3-prod).",
+          "current_activity": "While watching automated cloud compliance guardrails alongside DevOps teams during daily infrastructure updates, a critical data exposure warning fires.",
+          "what_happened": "Cloud audit trails show account temp_admin changing permissions on the customer-contracts-prod storage bucket to allow public anonymous reads, closely followed by external downloads from 198.51.100.99.",
+          "potential_impact": "If private contract documents are now exposed openly on the internet, confidential client agreements may already be copied by outsiders; conversely, if a compliance team intended to share sanitized public documentation through a test staging bucket, revoking permissions blindly could break external partner links—verify the exact evidence first."
+        }
+      },
       "th": {
         "title": "การตั้งค่าผิดพลาดของพื้นที่เก็บข้อมูลบนคลาวด์ AWS S3",
-        "description": "บันทึกการตรวจสอบความปลอดภัยบนคลาวด์ตรวจพบการแก้ไข access control list (ACL) ของ S3 bucket 'customer-contracts-prod' เป็น public read ตามด้วยกิจกรรมการดาวน์โหลดแบบไม่ระบุตัวตนทันที",
+        "description": "ช่วงสายวันทำงาน คุณปฏิบัติหน้าที่เป็น SOC Analyst ดูแลความปลอดภัยพื้นที่จัดเก็บข้อมูลบนคลาวด์และระบบ AWS ของบริษัท (aws-s3-prod) ระหว่างที่คุณกำลังติดตามแผงควบคุมมาตรฐานความปลอดภัยบนคลาวด์อัตโนมัติร่วมกับทีม DevOps การแจ้งเตือนความเสี่ยงระดับวิกฤตก็ดังขึ้นทันที\n\nบันทึกการตรวจสอบบนคลาวด์ระบุว่าบัญชี temp_admin เข้าไปเปลี่ยนสิทธิ์ถังเก็บข้อมูล customer-contracts-prod ให้ทุกคนบนอินเทอร์เน็ตเปิดอ่านได้โดยไม่ต้องล็อกอิน และมี IP ภายนอก 198.51.100.99 ดึงข้อมูลออกไปแล้ว\n\nหากไฟล์สัญญาของลูกค้าถูกเปิดสู่สาธารณะโดยไม่ได้ตั้งใจ ข้อมูลความลับทางธุรกิจอาจถูกบุคคลภายนอกคัดลอกไปแล้ว แต่หากทีม Compliance กำลังตั้งค่าพื้นที่สำหรับเผยแพร่เอกสารสาธารณะที่ตัดข้อมูลลับออกแล้ว การสั่งปิดทันทีอาจทำลิงก์งานพันธมิตรภายนอกล่มได้ คุณจึงควรตรวจหลักฐานใน Log ก่อน",
         "tp_fp_explanation": "เหตุการณ์นี้เป็น True Positive เนื่องจาก bucket ถูกตั้งค่าผิดพลาดให้อนุญาตการอ่านแบบสาธารณะโดยไม่ระบุตัวตน (Policy modified) และผู้โจมตีภายนอก (198.51.100.99) เริ่มดึงข้อมูลสัญญาออกไปทันที",
         "playbook_steps": {
           "d3_c5": {
@@ -4665,13 +4794,19 @@
             "description": "ตรวจพบบันทึกการดาวน์โหลดแบบไม่ระบุตัวตน",
             "explanation": "ผู้ใช้งานไม่ระบุตัวตนจาก 198.51.100.99 ได้ดึงไฟล์สัญญาออกไป"
           }
+        },
+        "story": {
+          "role_context": "ช่วงสายวันทำงาน คุณปฏิบัติหน้าที่เป็น SOC Analyst ดูแลความปลอดภัยพื้นที่จัดเก็บข้อมูลบนคลาวด์และระบบ AWS ของบริษัท (aws-s3-prod)",
+          "current_activity": "ระหว่างที่คุณกำลังติดตามแผงควบคุมมาตรฐานความปลอดภัยบนคลาวด์อัตโนมัติร่วมกับทีม DevOps การแจ้งเตือนความเสี่ยงระดับวิกฤตก็ดังขึ้นทันที",
+          "what_happened": "บันทึกการตรวจสอบบนคลาวด์ระบุว่าบัญชี temp_admin เข้าไปเปลี่ยนสิทธิ์ถังเก็บข้อมูล customer-contracts-prod ให้ทุกคนบนอินเทอร์เน็ตเปิดอ่านได้โดยไม่ต้องล็อกอิน และมี IP ภายนอก 198.51.100.99 ดึงข้อมูลออกไปแล้ว",
+          "potential_impact": "หากไฟล์สัญญาของลูกค้าถูกเปิดสู่สาธารณะโดยไม่ได้ตั้งใจ ข้อมูลความลับทางธุรกิจอาจถูกบุคคลภายนอกคัดลอกไปแล้ว แต่หากทีม Compliance กำลังตั้งค่าพื้นที่สำหรับเผยแพร่เอกสารสาธารณะที่ตัดข้อมูลลับออกแล้ว การสั่งปิดทันทีอาจทำลิงก์งานพันธมิตรภายนอกล่มได้ คุณจึงควรตรวจหลักฐานใน Log ก่อน"
         }
       }
     }
   },
   {
     "title": "DNS Tunneling / Data Exfiltration via DNS TXT Queries",
-    "description": "SOC dashboard detects an anomaly: high volume of DNS TXT records containing long, encoded subdomains querying the external domain 'malicious-tunnel.com' from host 10.0.1.44.",
+    "description": "You are a SOC Analyst conducting outbound network monitoring for engineering and R&D workstations. While running a routine weekly threat-hunting check across unusual domain name lookups, engineering desktop WS-ENG-44 (10.0.1.44) stands out sharply from peer computers.\n\nDNS telemetry shows WS-ENG-44 sending thousands of unusually long, encoded text queries directed repeatedly toward unfamiliar external domain malicious-tunnel.com.\n\nIf hidden malware is smuggling source code or credentials inside DNS requests to bypass standard web firewalls, sensitive R&D assets could be leaking silently; yet if an engineering tool is testing custom telemetry protocols in a lab, blocking corporate DNS resolvers carelessly could disrupt development work—check the host logs carefully.",
     "domain_id": "domain4",
     "difficulty": 3,
     "is_true_positive": true,
@@ -5123,9 +5258,18 @@
       ]
     },
     "translations": {
+      "en": {
+        "description": "You are a SOC Analyst conducting outbound network monitoring for engineering and R&D workstations. While running a routine weekly threat-hunting check across unusual domain name lookups, engineering desktop WS-ENG-44 (10.0.1.44) stands out sharply from peer computers.\n\nDNS telemetry shows WS-ENG-44 sending thousands of unusually long, encoded text queries directed repeatedly toward unfamiliar external domain malicious-tunnel.com.\n\nIf hidden malware is smuggling source code or credentials inside DNS requests to bypass standard web firewalls, sensitive R&D assets could be leaking silently; yet if an engineering tool is testing custom telemetry protocols in a lab, blocking corporate DNS resolvers carelessly could disrupt development work—check the host logs carefully.",
+        "story": {
+          "role_context": "You are a SOC Analyst conducting outbound network monitoring for engineering and R&D workstations.",
+          "current_activity": "While running a routine weekly threat-hunting check across unusual domain name lookups, engineering desktop WS-ENG-44 (10.0.1.44) stands out sharply from peer computers.",
+          "what_happened": "DNS telemetry shows WS-ENG-44 sending thousands of unusually long, encoded text queries directed repeatedly toward unfamiliar external domain malicious-tunnel.com.",
+          "potential_impact": "If hidden malware is smuggling source code or credentials inside DNS requests to bypass standard web firewalls, sensitive R&D assets could be leaking silently; yet if an engineering tool is testing custom telemetry protocols in a lab, blocking corporate DNS resolvers carelessly could disrupt development work—check the host logs carefully."
+        }
+      },
       "th": {
         "title": "การทำ DNS Tunneling และการโจรกรรมข้อมูลผ่าน DNS TXT Queries",
-        "description": "แดชบอร์ด SOC ตรวจพบความผิดปกติ: มีปริมาณ DNS TXT records ที่มีซับโดเมนยาวและเข้ารหัสจำนวนมากสอบถามไปยังโดเมนภายนอก 'malicious-tunnel.com' จากโฮสต์ 10.0.1.44",
+        "description": "ช่วงบ่ายในศูนย์เฝ้าระวัง คุณปฏิบัติหน้าที่เป็น SOC Analyst ดูแลทราฟฟิกเครือข่ายขาออกจากเครื่องทีมวิศวกรและวิจัยพัฒนาผลิตภัณฑ์ ระหว่างที่คุณกำลังทำ Threat Hunting ประจำสัปดาห์เพื่อเช็กพฤติกรรมการค้นหาชื่อโดเมนที่ผิดธรรมชาติ เครื่องของทีมวิศวกร WS-ENG-44 (10.0.1.44) ก็โดดเด่นออกมาอย่างชัดเจน\n\nข้อมูล DNS พบว่า WS-ENG-44 กำลังส่งคำถามค้นหาข้อความยาวเหยียดที่ถูกเข้ารหัสจำนวนหลายพันครั้งติดต่อกันไปยังโดเมนภายนอกที่ไม่คุ้นเคยชื่อ malicious-tunnel.com\n\nหากมัลแวร์แอบนำรหัสลับหรือซอร์สโค้ดงานวิจัยซ่อนส่งออกไปในคำขอ DNS เพื่อหลบเลี่ยงไฟร์วอลล์ ข้อมูลสำคัญอาจกำลังรั่วไหลอยู่โดยไม่รู้ตัว แต่หากทีมวิศวกรกำลังรันเครื่องมือทดสอบโปรโตคอลในห้องแล็บ การสั่งบล็อกตัวค้นหาชื่อโดเมนรวมทั้งระบบอาจทำให้ทีมพัฒนาทำงานต่อไม่ได้ คุณจึงควรตรวจ Log เครื่องต้นทางให้ครบก่อน",
         "tp_fp_explanation": "เหตุการณ์นี้เป็น True Positive เนื่องจากคำร้องขอ DNS TXT มีสตริงที่เข้ารหัส Base64 สอบถามไปยังโดเมนที่เพิ่งจดทะเบียนใหม่ ซึ่งเป็นเทคนิคคลาสสิกของ DNS Tunneling เพื่อข้ามผ่านข้อจำกัดพร็อกซีปกติและลักลอบส่งข้อมูลออกนอกองค์กร",
         "playbook_steps": {
           "d4_c1": {
@@ -5174,13 +5318,19 @@
             "description": "ค้นพบชื่อโดเมนที่ใช้อันตรายในการโจรกรรมข้อมูล",
             "explanation": "ทราฟฟิกผิดปกติทั้งหมดชี้ไปยังโดเมน 'malicious-tunnel.com'"
           }
+        },
+        "story": {
+          "role_context": "ช่วงบ่ายในศูนย์เฝ้าระวัง คุณปฏิบัติหน้าที่เป็น SOC Analyst ดูแลทราฟฟิกเครือข่ายขาออกจากเครื่องทีมวิศวกรและวิจัยพัฒนาผลิตภัณฑ์",
+          "current_activity": "ระหว่างที่คุณกำลังทำ Threat Hunting ประจำสัปดาห์เพื่อเช็กพฤติกรรมการค้นหาชื่อโดเมนที่ผิดธรรมชาติ เครื่องของทีมวิศวกร WS-ENG-44 (10.0.1.44) ก็โดดเด่นออกมาอย่างชัดเจน",
+          "what_happened": "ข้อมูล DNS พบว่า WS-ENG-44 กำลังส่งคำถามค้นหาข้อความยาวเหยียดที่ถูกเข้ารหัสจำนวนหลายพันครั้งติดต่อกันไปยังโดเมนภายนอกที่ไม่คุ้นเคยชื่อ malicious-tunnel.com",
+          "potential_impact": "หากมัลแวร์แอบนำรหัสลับหรือซอร์สโค้ดงานวิจัยซ่อนส่งออกไปในคำขอ DNS เพื่อหลบเลี่ยงไฟร์วอลล์ ข้อมูลสำคัญอาจกำลังรั่วไหลอยู่โดยไม่รู้ตัว แต่หากทีมวิศวกรกำลังรันเครื่องมือทดสอบโปรโตคอลในห้องแล็บ การสั่งบล็อกตัวค้นหาชื่อโดเมนรวมทั้งระบบอาจทำให้ทีมพัฒนาทำงานต่อไม่ได้ คุณจึงควรตรวจ Log เครื่องต้นทางให้ครบก่อน"
         }
       }
     }
   },
   {
     "title": "Anomalous Volume of NTP Network Requests",
-    "description": "Firewall triggers an alert for high volume UDP port 123 traffic originating from server 10.0.3.15 directed towards a government time service.",
+    "description": "You are a SOC Analyst responsible for infrastructure reliability and firewall traffic monitoring across core data-center servers. At the start of your afternoon shift, you review handover notes from the prior team flagging an unexpected spike in time-sync traffic from srv-sync-time-02 (10.0.3.15).\n\nFirewall records show core utility host 10.0.3.15 (managed under account sysadmin) sending sustained high-rate time synchronization requests on UDP port 123 toward official government clock server 129.6.15.28.\n\nIf a host is abusing time-sync protocols for covert reflection amplification or data smuggling, outbound congestion could impair infrastructure; however, if sysadmin configured an emergency clock drift resync across servers, blocking UDP port 123 blindly could throw off authentication timestamps system-wide—verify the operational context first.",
     "domain_id": "domain4",
     "difficulty": 2,
     "is_true_positive": false,
@@ -5683,9 +5833,18 @@
       ]
     },
     "translations": {
+      "en": {
+        "description": "You are a SOC Analyst responsible for infrastructure reliability and firewall traffic monitoring across core data-center servers. At the start of your afternoon shift, you review handover notes from the prior team flagging an unexpected spike in time-sync traffic from srv-sync-time-02 (10.0.3.15).\n\nFirewall records show core utility host 10.0.3.15 (managed under account sysadmin) sending sustained high-rate time synchronization requests on UDP port 123 toward official government clock server 129.6.15.28.\n\nIf a host is abusing time-sync protocols for covert reflection amplification or data smuggling, outbound congestion could impair infrastructure; however, if sysadmin configured an emergency clock drift resync across servers, blocking UDP port 123 blindly could throw off authentication timestamps system-wide—verify the operational context first.",
+        "story": {
+          "role_context": "You are a SOC Analyst responsible for infrastructure reliability and firewall traffic monitoring across core data-center servers.",
+          "current_activity": "At the start of your afternoon shift, you review handover notes from the prior team flagging an unexpected spike in time-sync traffic from srv-sync-time-02 (10.0.3.15).",
+          "what_happened": "Firewall records show core utility host 10.0.3.15 (managed under account sysadmin) sending sustained high-rate time synchronization requests on UDP port 123 toward official government clock server 129.6.15.28.",
+          "potential_impact": "If a host is abusing time-sync protocols for covert reflection amplification or data smuggling, outbound congestion could impair infrastructure; however, if sysadmin configured an emergency clock drift resync across servers, blocking UDP port 123 blindly could throw off authentication timestamps system-wide—verify the operational context first."
+        }
+      },
       "th": {
         "title": "ปริมาณคำร้องขอเครือข่าย NTP สูงผิดปกติ",
-        "description": "ไฟร์วอลล์แจ้งเตือนปริมาณทราฟฟิก UDP พอร์ต 123 สูงผิดปกติจากเซิร์ฟเวอร์ 10.0.3.15 มุ่งหน้าไปยังบริการเทียบเวลามาตรฐานของภาครัฐ",
+        "description": "ช่วงบ่ายตอนรับส่งกะ คุณปฏิบัติหน้าที่เป็น SOC Analyst ดูแลเสถียรภาพระบบโครงสร้างพื้นฐานและการจราจรเครือข่ายของศูนย์ข้อมูลหลัก ขณะที่คุณกำลังไล่อ่านบันทึกส่งมอบงานจากทีมกะก่อนหน้าร่วมกับกราฟทราฟฟิก Firewall มีรายการส่งสัญญาณเทียบเวลาจากเซิร์ฟเวอร์ srv-sync-time-02 (10.0.3.15) พุ่งสูงผิดปกติ\n\nบันทึก Firewall แสดงว่าเครื่องหลัก 10.0.3.15 ภายใต้การดูแลของบัญชี sysadmin ส่งคำขอเทียบเวลานาฬิกาผ่านพอร์ต UDP 123 จำนวนมากอย่างต่อเนื่องไปยังบริการเทียบเวลามาตรฐานภาครัฐ 129.6.15.28\n\nหากมีคนแอบใช้ช่องทางเทียบเวลาเพื่อโจมตีขยายทราฟฟิกหรือลักลอบส่งข้อมูลออก เครือข่ายขาออกอาจเกิดความหน่วงได้ แต่หาก sysadmin ตั้งค่ารีเซ็ตเวลาระบบครั้งใหญ่เพื่อแก้ปัญหาเวลาคลาดเคลื่อน การสั่งบล็อกพอร์ต UDP 123 ทันทีอาจทำให้นาฬิกาของเซิร์ฟเวอร์เพี้ยนจนระบบยืนยันตัวตนล่มทั้งองค์กรได้ คุณจึงต้องตรวจสอบ Log Context ก่อน",
         "tp_fp_explanation": "เหตุการณ์นี้เป็น False Positive เนื่องจากคำร้องขอ NTP ปริมาณสูงเกิดจากการเปลี่ยนแปลงที่ได้รับอนุญาต (CR-3212) ซึ่งผู้ดูแลระบบตั้งค่าไว้เพื่อซิงค์เวลาเครื่องสำรองข้อมูลชั่วคราวระหว่างที่นาฬิกาบนเมนบอร์ดเกิดอาการคลาดเคลื่อน",
         "playbook_steps": {
           "d4_c3": {
@@ -5730,13 +5889,19 @@
             "description": "เชื่อมโยงทราฟฟิกเข้ากับการเปลี่ยนแปลงระบบเทียบเวลาตามกำหนด",
             "explanation": "Change Request CR-3212 บันทึกการตั้งค่าชดเชยอาการนาฬิกาคลาดเคลื่อนชั่วคราวไว้อย่างชัดเจน"
           }
+        },
+        "story": {
+          "role_context": "ช่วงบ่ายตอนรับส่งกะ คุณปฏิบัติหน้าที่เป็น SOC Analyst ดูแลเสถียรภาพระบบโครงสร้างพื้นฐานและการจราจรเครือข่ายของศูนย์ข้อมูลหลัก",
+          "current_activity": "ขณะที่คุณกำลังไล่อ่านบันทึกส่งมอบงานจากทีมกะก่อนหน้าร่วมกับกราฟทราฟฟิก Firewall มีรายการส่งสัญญาณเทียบเวลาจากเซิร์ฟเวอร์ srv-sync-time-02 (10.0.3.15) พุ่งสูงผิดปกติ",
+          "what_happened": "บันทึก Firewall แสดงว่าเครื่องหลัก 10.0.3.15 ภายใต้การดูแลของบัญชี sysadmin ส่งคำขอเทียบเวลานาฬิกาผ่านพอร์ต UDP 123 จำนวนมากอย่างต่อเนื่องไปยังบริการเทียบเวลามาตรฐานภาครัฐ 129.6.15.28",
+          "potential_impact": "หากมีคนแอบใช้ช่องทางเทียบเวลาเพื่อโจมตีขยายทราฟฟิกหรือลักลอบส่งข้อมูลออก เครือข่ายขาออกอาจเกิดความหน่วงได้ แต่หาก sysadmin ตั้งค่ารีเซ็ตเวลาระบบครั้งใหญ่เพื่อแก้ปัญหาเวลาคลาดเคลื่อน การสั่งบล็อกพอร์ต UDP 123 ทันทีอาจทำให้นาฬิกาของเซิร์ฟเวอร์เพี้ยนจนระบบยืนยันตัวตนล่มทั้งองค์กรได้ คุณจึงต้องตรวจสอบ Log Context ก่อน"
         }
       }
     }
   },
   {
     "title": "Spear Phishing leading to Credential Harvesting",
-    "description": "An email gateway alert reports a suspicious external domain sent an email with subject 'Urgent: MFA Reset Required', followed by proxy activity of a user visiting the link and local credential anomalies.",
+    "description": "You are a SOC Analyst coordinating with corporate HR and IT Support to defend employees against email impersonation attacks. After IT Helpdesk flags a suspicious message reported by staff member kwilliams on HR workstation WS-HR-11, you review email gateway MAIL-GW-01 and proxy records.\n\nLogs reveal an external message with subject 'Urgent: MFA Reset Required' arriving from 192.0.2.14, followed by kwilliams visiting the embedded link from WS-HR-11 and unexpected credential prompts appearing against DC-01.\n\nIf an attacker tricked kwilliams into entering passwords on a spoofed login page, intruder access to HR systems and corporate directories may already be underway; yet if an authorized internal security phishing awareness drill triggered those clicks, isolating HR machines hastily could disrupt employee onboarding—inspect all telemetry first.",
     "domain_id": "domain4",
     "difficulty": 2,
     "is_true_positive": true,
@@ -6179,9 +6344,18 @@
       ]
     },
     "translations": {
+      "en": {
+        "description": "You are a SOC Analyst coordinating with corporate HR and IT Support to defend employees against email impersonation attacks. After IT Helpdesk flags a suspicious message reported by staff member kwilliams on HR workstation WS-HR-11, you review email gateway MAIL-GW-01 and proxy records.\n\nLogs reveal an external message with subject 'Urgent: MFA Reset Required' arriving from 192.0.2.14, followed by kwilliams visiting the embedded link from WS-HR-11 and unexpected credential prompts appearing against DC-01.\n\nIf an attacker tricked kwilliams into entering passwords on a spoofed login page, intruder access to HR systems and corporate directories may already be underway; yet if an authorized internal security phishing awareness drill triggered those clicks, isolating HR machines hastily could disrupt employee onboarding—inspect all telemetry first.",
+        "story": {
+          "role_context": "You are a SOC Analyst coordinating with corporate HR and IT Support to defend employees against email impersonation attacks.",
+          "current_activity": "After IT Helpdesk flags a suspicious message reported by staff member kwilliams on HR workstation WS-HR-11, you review email gateway MAIL-GW-01 and proxy records.",
+          "what_happened": "Logs reveal an external message with subject 'Urgent: MFA Reset Required' arriving from 192.0.2.14, followed by kwilliams visiting the embedded link from WS-HR-11 and unexpected credential prompts appearing against DC-01.",
+          "potential_impact": "If an attacker tricked kwilliams into entering passwords on a spoofed login page, intruder access to HR systems and corporate directories may already be underway; yet if an authorized internal security phishing awareness drill triggered those clicks, isolating HR machines hastily could disrupt employee onboarding—inspect all telemetry first."
+        }
+      },
       "th": {
         "title": "การโจมตี Spear Phishing ที่นำไปสู่การเก็บเกี่ยวข้อมูลยืนยันตัวตน",
-        "description": "การแจ้งเตือนจาก Email Gateway รายงานโดเมนภายนอกต้องสงสัยส่งอีเมลหัวข้อ 'Urgent: MFA Reset Required' ตามด้วยกิจกรรมพร็อกซีของผู้ใช้ที่คลิกลิงก์และความผิดปกติของบัญชีภายในเครื่อง",
+        "description": "ช่วงสายวันทำงาน คุณปฏิบัติหน้าที่เป็น SOC Analyst ประสานงานร่วมกับฝ่ายบุคคล (HR) และทีม Helpdesk เพื่อรับมือภัยคุกคามทางอีเมลพนักงาน หลังจากทีม IT Helpdesk แจ้งเรื่องเข้ามาว่าพนักงานฝ่ายบุคคลชื่อ kwilliams บนเครื่อง WS-HR-11 สงสัยว่าเพิ่งกดลิงก์จากอีเมลแปลกๆ คุณจึงเปิดตรวจสอบประตูอีเมล MAIL-GW-01 และบันทึกการใช้งานเว็บทันที\n\nบันทึกเหตุการณ์พบอีเมลจากผู้ส่งภายนอก 192.0.2.14 ส่งหัวข้อ 'Urgent: MFA Reset Required' เข้ามาก่อนที่ kwilliams จะคลิกลิงก์ดังกล่าวจาก WS-HR-11 และตามด้วยความผิดปกติของการยืนยันตัวตนเข้าสู่ DC-01\n\nหากผู้โจมตีหลอกให้กรอกรหัสผ่านบนหน้าเว็บปลอมสำเร็จ คนร้ายอาจกำลังใช้บัญชีของ kwilliams เจาะเข้าข้อมูลพนักงานและระบบภายในแล้ว แต่หากเหตุการณ์นี้เป็นการทดสอบซ้อมรับมือฟิชชิ่งของทีมความมั่นคงปลอดภัยภายใน การสั่งแยกเครื่องฝ่ายบุคคลทันทีอาจทำให้งานรับสมัครพนักงานหยุดชะงักได้ คุณจึงต้องตรวจเช็ก Log ให้แน่ชัดก่อน",
         "tp_fp_explanation": "เหตุการณ์นี้เป็น True Positive เนื่องจากโดเมนผู้ส่งอีเมล 'secure-office365-portal.com' เป็นโดเมนปลอมเลียนแบบ (Lookalike Domain) ผู้ใช้ได้คลิกลิงก์และกรอกข้อมูลยืนยันตัวตน ทำให้ผู้โจมตีนำไปใช้สร้างบัญชีผู้ดูแลระบบลับ (Backdoor) ทันที",
         "playbook_steps": {
           "d4_c5": {
@@ -6230,13 +6404,19 @@
             "description": "ตรวจพบการสร้างบัญชีผู้ดูแลระบบโดยไม่ได้รับอนุญาต",
             "explanation": "บัญชี 'adm_backdoor' ถูกสร้างขึ้นโดยประสงค์ร้ายและไม่ได้รับอนุญาต"
           }
+        },
+        "story": {
+          "role_context": "ช่วงสายวันทำงาน คุณปฏิบัติหน้าที่เป็น SOC Analyst ประสานงานร่วมกับฝ่ายบุคคล (HR) และทีม Helpdesk เพื่อรับมือภัยคุกคามทางอีเมลพนักงาน",
+          "current_activity": "หลังจากทีม IT Helpdesk แจ้งเรื่องเข้ามาว่าพนักงานฝ่ายบุคคลชื่อ kwilliams บนเครื่อง WS-HR-11 สงสัยว่าเพิ่งกดลิงก์จากอีเมลแปลกๆ คุณจึงเปิดตรวจสอบประตูอีเมล MAIL-GW-01 และบันทึกการใช้งานเว็บทันที",
+          "what_happened": "บันทึกเหตุการณ์พบอีเมลจากผู้ส่งภายนอก 192.0.2.14 ส่งหัวข้อ 'Urgent: MFA Reset Required' เข้ามาก่อนที่ kwilliams จะคลิกลิงก์ดังกล่าวจาก WS-HR-11 และตามด้วยความผิดปกติของการยืนยันตัวตนเข้าสู่ DC-01",
+          "potential_impact": "หากผู้โจมตีหลอกให้กรอกรหัสผ่านบนหน้าเว็บปลอมสำเร็จ คนร้ายอาจกำลังใช้บัญชีของ kwilliams เจาะเข้าข้อมูลพนักงานและระบบภายในแล้ว แต่หากเหตุการณ์นี้เป็นการทดสอบซ้อมรับมือฟิชชิ่งของทีมความมั่นคงปลอดภัยภายใน การสั่งแยกเครื่องฝ่ายบุคคลทันทีอาจทำให้งานรับสมัครพนักงานหยุดชะงักได้ คุณจึงต้องตรวจเช็ก Log ให้แน่ชัดก่อน"
         }
       }
     }
   },
   {
     "title": "Insider Threat: Customer Database Exfiltration",
-    "description": "Alert raised on unusual CRM database export activity by sales representative 'rharper', followed by a massive outbound data transfer to a personal email domain.",
+    "description": "You are a SOC Analyst monitoring commercial data loss controls and sensitive CRM export workflows across regional sales offices. While reviewing daily Data Loss Prevention (DLP) guardrail alerts during late-evening office hours, a large data transfer notification triggers on workstation WS-SALES-15 (10.0.1.18).\n\nMonitoring records show sales user rharper exporting the entire corporate customer directory from the CRM portal and uploading compressed archives outward toward an external personal webmail service.\n\nIf customer contact lists and pricing contracts are leaving company control without authorization, competitors or threat actors could gain sensitive trade secrets; however, if rharper received special management clearance for an urgent trade-show backup, locking accounts immediately could delay commercial deals—check the supporting context first.",
     "domain_id": "domain5",
     "difficulty": 2,
     "is_true_positive": true,
@@ -6757,9 +6937,18 @@
       ]
     },
     "translations": {
+      "en": {
+        "description": "You are a SOC Analyst monitoring commercial data loss controls and sensitive CRM export workflows across regional sales offices. While reviewing daily Data Loss Prevention (DLP) guardrail alerts during late-evening office hours, a large data transfer notification triggers on workstation WS-SALES-15 (10.0.1.18).\n\nMonitoring records show sales user rharper exporting the entire corporate customer directory from the CRM portal and uploading compressed archives outward toward an external personal webmail service.\n\nIf customer contact lists and pricing contracts are leaving company control without authorization, competitors or threat actors could gain sensitive trade secrets; however, if rharper received special management clearance for an urgent trade-show backup, locking accounts immediately could delay commercial deals—check the supporting context first.",
+        "story": {
+          "role_context": "You are a SOC Analyst monitoring commercial data loss controls and sensitive CRM export workflows across regional sales offices.",
+          "current_activity": "While reviewing daily Data Loss Prevention (DLP) guardrail alerts during late-evening office hours, a large data transfer notification triggers on workstation WS-SALES-15 (10.0.1.18).",
+          "what_happened": "Monitoring records show sales user rharper exporting the entire corporate customer directory from the CRM portal and uploading compressed archives outward toward an external personal webmail service.",
+          "potential_impact": "If customer contact lists and pricing contracts are leaving company control without authorization, competitors or threat actors could gain sensitive trade secrets; however, if rharper received special management clearance for an urgent trade-show backup, locking accounts immediately could delay commercial deals—check the supporting context first."
+        }
+      },
       "th": {
         "title": "ภัยคุกคามจากบุคคลภายใน: การโจรกรรมฐานข้อมูลลูกค้า",
-        "description": "การแจ้งเตือนกิจกรรมส่งออกฐานข้อมูล CRM ผิดปกติโดยตัวแทนฝ่ายขาย 'rharper' ตามด้วยการถ่ายโอนข้อมูลขาออกขนาดใหญ่มากไปยังโดเมนอีเมลส่วนตัว",
+        "description": "ช่วงเย็นหลังเวลาเลิกงานปกติ คุณปฏิบัติหน้าที่เป็น SOC Analyst เฝ้าระวังระบบป้องกันข้อมูลรั่วไหล (DLP) สำหรับข้อมูลลูกค้าของสำนักงานฝ่ายขาย ระหว่างที่กำลังตรวจสอบรายการแจ้งเตือนการนำข้อมูลสำคัญออกจากระบบ CRM ประจำวัน การแจ้งเตือนขนาดใหญ่รายการหนึ่งก็ชี้มาที่เครื่องฝ่ายขาย WS-SALES-15 (10.0.1.18)\n\nระบบตรวจจับรายงานว่าบัญชีพนักงานขาย rharper เพิ่งสั่งส่งออกรายชื่อลูกค้าทั้งหมดจากระบบ CRM แล้วอัปโหลดไฟล์บีบอัดขนาดใหญ่ออกไปยังบริการอีเมลส่วนตัวภายนอก\n\nหากรายชื่อลูกค้าและรายละเอียดราคาสัญญาถูกนำออกนอกบริษัทโดยไม่ได้รับอนุญาต องค์กรอาจสูญเสียความลับทางการค้าให้คู่แข่งได้ แต่หาก rharper ได้รับอนุมัติจากผู้บริหารให้เตรียมข้อมูลสำรองสำหรับออกบูธงานขายนอกสถานที่ การล็อกบัญชีทันทีอาจกระทบดีลลูกค้าสำคัญได้ คุณจึงควรตรวจสอบ Log และบันทึกอนุมัติประกอบก่อน",
         "tp_fp_explanation": "เหตุการณ์นี้เป็น True Positive เนื่องจากพนักงานส่งออกฐานข้อมูลเรียกเก็บเงินลูกค้านอกเหนือขั้นตอนธุรกิจปกติ ลักลอบส่งข้อมูลขนาด 4.5MB ไปยังเว็บเมลส่วนตัว และลบไฟล์ในเครื่องทิ้งเพื่อกลบเกลื่อนร่องรอย",
         "playbook_steps": {
           "d5_c1": {
@@ -6808,13 +6997,19 @@
             "description": "เชื่อมโยงการส่งออกข้อมูลกับการโจรกรรมผ่านเว็บเมลส่วนตัว",
             "explanation": "การส่งข้อมูลไปยัง personal-gmail.com มีขนาดตรงกับข้อมูลที่ถูกส่งออก"
           }
+        },
+        "story": {
+          "role_context": "ช่วงเย็นหลังเวลาเลิกงานปกติ คุณปฏิบัติหน้าที่เป็น SOC Analyst เฝ้าระวังระบบป้องกันข้อมูลรั่วไหล (DLP) สำหรับข้อมูลลูกค้าของสำนักงานฝ่ายขาย",
+          "current_activity": "ระหว่างที่กำลังตรวจสอบรายการแจ้งเตือนการนำข้อมูลสำคัญออกจากระบบ CRM ประจำวัน การแจ้งเตือนขนาดใหญ่รายการหนึ่งก็ชี้มาที่เครื่องฝ่ายขาย WS-SALES-15 (10.0.1.18)",
+          "what_happened": "ระบบตรวจจับรายงานว่าบัญชีพนักงานขาย rharper เพิ่งสั่งส่งออกรายชื่อลูกค้าทั้งหมดจากระบบ CRM แล้วอัปโหลดไฟล์บีบอัดขนาดใหญ่ออกไปยังบริการอีเมลส่วนตัวภายนอก",
+          "potential_impact": "หากรายชื่อลูกค้าและรายละเอียดราคาสัญญาถูกนำออกนอกบริษัทโดยไม่ได้รับอนุญาต องค์กรอาจสูญเสียความลับทางการค้าให้คู่แข่งได้ แต่หาก rharper ได้รับอนุมัติจากผู้บริหารให้เตรียมข้อมูลสำรองสำหรับออกบูธงานขายนอกสถานที่ การล็อกบัญชีทันทีอาจกระทบดีลลูกค้าสำคัญได้ คุณจึงควรตรวจสอบ Log และบันทึกอนุมัติประกอบก่อน"
         }
       }
     }
   },
   {
     "title": "Anomalous Cloud Data Archiving Alert",
-    "description": "AWS compliance engine alerts on massive data migration of S3 audit log bucket contents into cold storage Glacier vaults.",
+    "description": "You are a SOC Analyst monitoring cloud compliance pipelines and long-term audit retention workflows. While checking automated cloud governance guardrails during the scheduled monthly archive window, an alert flags massive file movement inside the audit-logs-archive bucket.\n\nCloud storage logs indicate automation service account backup_agent_04 moving terabytes of historical compliance logs from active storage into cold archive vaults alongside activity involving compliance_lead.\n\nIf an intruder is deliberately sweeping active security logs into inaccessible vaults to blind SOC visibility during an attack, incident response teams could lose vital clues; conversely, if this is a planned cost-saving retention archival approved by compliance_lead, killing the job halfway could leave audit records inconsistent—verify the change logs first.",
     "domain_id": "domain5",
     "difficulty": 1,
     "is_true_positive": false,
@@ -7203,9 +7398,18 @@
       ]
     },
     "translations": {
+      "en": {
+        "description": "You are a SOC Analyst monitoring cloud compliance pipelines and long-term audit retention workflows. While checking automated cloud governance guardrails during the scheduled monthly archive window, an alert flags massive file movement inside the audit-logs-archive bucket.\n\nCloud storage logs indicate automation service account backup_agent_04 moving terabytes of historical compliance logs from active storage into cold archive vaults alongside activity involving compliance_lead.\n\nIf an intruder is deliberately sweeping active security logs into inaccessible vaults to blind SOC visibility during an attack, incident response teams could lose vital clues; conversely, if this is a planned cost-saving retention archival approved by compliance_lead, killing the job halfway could leave audit records inconsistent—verify the change logs first.",
+        "story": {
+          "role_context": "You are a SOC Analyst monitoring cloud compliance pipelines and long-term audit retention workflows.",
+          "current_activity": "While checking automated cloud governance guardrails during the scheduled monthly archive window, an alert flags massive file movement inside the audit-logs-archive bucket.",
+          "what_happened": "Cloud storage logs indicate automation service account backup_agent_04 moving terabytes of historical compliance logs from active storage into cold archive vaults alongside activity involving compliance_lead.",
+          "potential_impact": "If an intruder is deliberately sweeping active security logs into inaccessible vaults to blind SOC visibility during an attack, incident response teams could lose vital clues; conversely, if this is a planned cost-saving retention archival approved by compliance_lead, killing the job halfway could leave audit records inconsistent—verify the change logs first."
+        }
+      },
       "th": {
         "title": "การแจ้งเตือนการเก็บถาวรข้อมูลบนคลาวด์ผิดปกติ",
-        "description": "ระบบตรวจสอบความสอดคล้องของ AWS แจ้งเตือนการย้ายข้อมูลปริมาณมากจาก S3 audit log bucket ไปยัง Glacier vaults สำหรับจัดเก็บถาวรระยะยาว",
+        "description": "ช่วงต้นเดือนตามรอบตรวจระบบ คุณปฏิบัติหน้าที่เป็น SOC Analyst ดูแลความปลอดภัยข้อมูลประวัติการใช้งาน (Audit Logs) และระบบจัดเก็บข้อมูลระยะยาวบนคลาวด์ ระหว่างที่กำลังเฝ้าดูแผงแจ้งเตือนมาตรฐานความปลอดภัยคลาวด์ (Cloud Guardrail) ในช่วงรอบจัดเก็บข้อมูลประจำเดือน ระบบก็เตือนพบการย้ายข้อมูลขนาดมหึมาในคลัง audit-logs-archive\n\nบันทึกพื้นที่จัดเก็บข้อมูลบนคลาวด์ชี้ว่าบัญชีระบบอัตโนมัติ backup_agent_04 กำลังโยกย้ายบันทึกประวัติการใช้งานจำนวนหลายเทราไบต์จากพื้นที่ใช้งานปกติไปยังคลังเก็บถาวรระยะยาว โดยมีบัญชี compliance_lead เกี่ยวข้องอยู่ด้วย\n\nหากผู้บุกรุกกำลังจงใจย้ายไฟล์ประวัติเหตุการณ์สำคัญออกไปเก็บไว้ในที่ที่ค้นหายากเพื่อกลบเกลื่อนร่องรอยการโจมตี ทีมสืบสวนอาจสูญเสียหลักฐานสำคัญไป แต่หากนี่คืองานจัดเก็บข้อมูลระยะยาวตามรอบปกติเพื่อลดค่าใช้จ่ายคลาวด์ที่ compliance_lead อนุมัติไว้ การสั่งหยุดกลางคันอาจทำให้ข้อมูลตรวจสอบไม่สมบูรณ์ได้ คุณจึงควรตรวจหลักฐาน Log ยืนยันก่อน",
         "tp_fp_explanation": "เหตุการณ์นี้เป็น False Positive เนื่องจากกิจกรรมดังกล่าวคืองานเก็บถาวรบันทึกความสอดคล้องประจำเดือนตามมาตรฐานที่ได้รับอนุมัติล่วงหน้าภายใต้ CR-9022 โดยทำงานผ่าน service principal ที่ได้รับอนุญาตคือ backup_agent_04",
         "playbook_steps": {
           "d5_c3": {
@@ -7250,13 +7454,19 @@
             "description": "เชื่อมโยง backup agent เข้ากับตารางเวลาความสอดคล้อง",
             "explanation": "CR-9022 กำหนดกรอบเวลาการจัดเก็บถาวรตามตารางไว้ชัดเจน"
           }
+        },
+        "story": {
+          "role_context": "ช่วงต้นเดือนตามรอบตรวจระบบ คุณปฏิบัติหน้าที่เป็น SOC Analyst ดูแลความปลอดภัยข้อมูลประวัติการใช้งาน (Audit Logs) และระบบจัดเก็บข้อมูลระยะยาวบนคลาวด์",
+          "current_activity": "ระหว่างที่กำลังเฝ้าดูแผงแจ้งเตือนมาตรฐานความปลอดภัยคลาวด์ (Cloud Guardrail) ในช่วงรอบจัดเก็บข้อมูลประจำเดือน ระบบก็เตือนพบการย้ายข้อมูลขนาดมหึมาในคลัง audit-logs-archive",
+          "what_happened": "บันทึกพื้นที่จัดเก็บข้อมูลบนคลาวด์ชี้ว่าบัญชีระบบอัตโนมัติ backup_agent_04 กำลังโยกย้ายบันทึกประวัติการใช้งานจำนวนหลายเทราไบต์จากพื้นที่ใช้งานปกติไปยังคลังเก็บถาวรระยะยาว โดยมีบัญชี compliance_lead เกี่ยวข้องอยู่ด้วย",
+          "potential_impact": "หากผู้บุกรุกกำลังจงใจย้ายไฟล์ประวัติเหตุการณ์สำคัญออกไปเก็บไว้ในที่ที่ค้นหายากเพื่อกลบเกลื่อนร่องรอยการโจมตี ทีมสืบสวนอาจสูญเสียหลักฐานสำคัญไป แต่หากนี่คืองานจัดเก็บข้อมูลระยะยาวตามรอบปกติเพื่อลดค่าใช้จ่ายคลาวด์ที่ compliance_lead อนุมัติไว้ การสั่งหยุดกลางคันอาจทำให้ข้อมูลตรวจสอบไม่สมบูรณ์ได้ คุณจึงควรตรวจหลักฐาน Log ยืนยันก่อน"
         }
       }
     }
   },
   {
     "title": "Rogue Wireless Access Point Detection",
-    "description": "Network switch flags a Port Security violation on port Gi1/0/22 indicating multiple unauthorized MAC addresses connecting to a single LAN port, while wireless IDS detects a rogue SSID 'CORP-GUEST-FAST'.",
+    "description": "You are a SOC Analyst defending campus physical port controls and wireless network security at headquarters. While working through live morning SIEM alerts from corporate floor switches and wireless sensors, a combined switch and Wi-Fi security ticket fires simultaneously.\n\nCore switch SW-HQ-02 detected a dozen unfamiliar hardware devices sharing a single office wall jack (port Gi1/0/22) right as wireless monitor W-AP-3 noticed a brand-new unauthorized Wi-Fi network named 'CORP-GUEST-FAST' broadcasting nearby.\n\nIf an unauthorized router was plugged directly into the office network jack to lure employees onto a fake Wi-Fi hotspot, attackers could intercept corporate logins and bypass physical access controls; however, if network technicians are temporarily benchmarking lab hardware, shutting down the entire switch floor would knock dozens of staff offline—confirm the evidence cleanly first.",
     "domain_id": "domain5",
     "difficulty": 3,
     "is_true_positive": true,
@@ -7711,9 +7921,18 @@
       ]
     },
     "translations": {
+      "en": {
+        "description": "You are a SOC Analyst defending campus physical port controls and wireless network security at headquarters. While working through live morning SIEM alerts from corporate floor switches and wireless sensors, a combined switch and Wi-Fi security ticket fires simultaneously.\n\nCore switch SW-HQ-02 detected a dozen unfamiliar hardware devices sharing a single office wall jack (port Gi1/0/22) right as wireless monitor W-AP-3 noticed a brand-new unauthorized Wi-Fi network named 'CORP-GUEST-FAST' broadcasting nearby.\n\nIf an unauthorized router was plugged directly into the office network jack to lure employees onto a fake Wi-Fi hotspot, attackers could intercept corporate logins and bypass physical access controls; however, if network technicians are temporarily benchmarking lab hardware, shutting down the entire switch floor would knock dozens of staff offline—confirm the evidence cleanly first.",
+        "story": {
+          "role_context": "You are a SOC Analyst defending campus physical port controls and wireless network security at headquarters.",
+          "current_activity": "While working through live morning SIEM alerts from corporate floor switches and wireless sensors, a combined switch and Wi-Fi security ticket fires simultaneously.",
+          "what_happened": "Core switch SW-HQ-02 detected a dozen unfamiliar hardware devices sharing a single office wall jack (port Gi1/0/22) right as wireless monitor W-AP-3 noticed a brand-new unauthorized Wi-Fi network named 'CORP-GUEST-FAST' broadcasting nearby.",
+          "potential_impact": "If an unauthorized router was plugged directly into the office network jack to lure employees onto a fake Wi-Fi hotspot, attackers could intercept corporate logins and bypass physical access controls; however, if network technicians are temporarily benchmarking lab hardware, shutting down the entire switch floor would knock dozens of staff offline—confirm the evidence cleanly first."
+        }
+      },
       "th": {
         "title": "การตรวจพบ Rogue Wireless Access Point",
-        "description": "สวิตช์เครือข่ายแจ้งเตือนการละเมิด Port Security บนพอร์ต Gi1/0/22 ที่บ่งชี้ว่ามี MAC addresses ที่ไม่ได้รับอนุญาตหลายตัวเชื่อมต่อผ่านพอร์ต LAN เดียว ขณะที่ wireless IDS ตรวจพบ rogue SSID 'CORP-GUEST-FAST'",
+        "description": "ช่วงเช้าวันทำงาน คุณปฏิบัติหน้าที่เป็น SOC Analyst ดูแลความปลอดภัยจุดเชื่อมต่อสาย LAN ในอาคารและเครือข่าย Wi-Fi ของสำนักงานใหญ่ ระหว่างที่กำลังไล่ตรวจคิวแจ้งเตือน SIEM ประจำวันจากอุปกรณ์สวิตช์ประจำชั้นและเซ็นเซอร์ไร้สาย ระบบก็ส่งแจ้งเตือนสองรายการพร้อมกัน\n\nสวิตช์หลัก SW-HQ-02 ตรวจพบว่ามีอุปกรณ์มากถึงสิบกว่าเครื่องแอบพ่วงเชื่อมต่อผ่านช่องเสียบสาย LAN ช่องเดียว (พอร์ต Gi1/0/22) ในจังหวะเดียวกับที่ตัวตรวจจับไร้สาย W-AP-3 พบชื่อ Wi-Fi แปลกปลอม 'CORP-GUEST-FAST' แพร่สัญญาณอยู่ใกล้เคียง\n\nหากมีคนลักลอบนำเราเตอร์ส่วนตัวมาเสียบเข้าช่อง LAN ของบริษัทเพื่อหลอกให้พนักงานเชื่อมต่อและดักขโมยรหัสผ่าน ผู้โจมตีอาจข้ามผ่านมาตรการป้องกันหน้าด่านได้ทันที แต่หากทีมช่างเครือข่ายกำลังทดสอบอุปกรณ์แล็บชั่วคราว การสั่งปิดการทำงานทั้งสวิตช์อาจทำให้พนักงานทั้งชั้นใช้งานไม่ได้ คุณจึงควรตรวจ Log ยืนยันจุดเกิดเหตุก่อนตัดสินใจ",
         "tp_fp_explanation": "เหตุการณ์นี้เป็น True Positive เนื่องจากมีผู้ลักลอบนำอุปกรณ์เราเตอร์หรือ Access Point ที่ไม่ได้รับอนุญาตมาเสียบเข้ากับพอร์ตสวิตช์ Gi1/0/22 เพื่อข้ามมาตรการควบคุมความปลอดภัยทางกายภาพ และกำลังกระจายสัญญาณ rogue SSID เพื่อดักเก็บข้อมูลยืนยันตัวตนของพนักงานในองค์กร",
         "playbook_steps": {
           "d5_c5": {
@@ -7762,6 +7981,12 @@
             "description": "ค้นพบ rogue wireless SSID",
             "explanation": "สัญญาณ rogue SSID 'CORP-GUEST-FAST' ถูกกระจายจาก MAC ของอุปกรณ์เดียวกัน"
           }
+        },
+        "story": {
+          "role_context": "ช่วงเช้าวันทำงาน คุณปฏิบัติหน้าที่เป็น SOC Analyst ดูแลความปลอดภัยจุดเชื่อมต่อสาย LAN ในอาคารและเครือข่าย Wi-Fi ของสำนักงานใหญ่",
+          "current_activity": "ระหว่างที่กำลังไล่ตรวจคิวแจ้งเตือน SIEM ประจำวันจากอุปกรณ์สวิตช์ประจำชั้นและเซ็นเซอร์ไร้สาย ระบบก็ส่งแจ้งเตือนสองรายการพร้อมกัน",
+          "what_happened": "สวิตช์หลัก SW-HQ-02 ตรวจพบว่ามีอุปกรณ์มากถึงสิบกว่าเครื่องแอบพ่วงเชื่อมต่อผ่านช่องเสียบสาย LAN ช่องเดียว (พอร์ต Gi1/0/22) ในจังหวะเดียวกับที่ตัวตรวจจับไร้สาย W-AP-3 พบชื่อ Wi-Fi แปลกปลอม 'CORP-GUEST-FAST' แพร่สัญญาณอยู่ใกล้เคียง",
+          "potential_impact": "หากมีคนลักลอบนำเราเตอร์ส่วนตัวมาเสียบเข้าช่อง LAN ของบริษัทเพื่อหลอกให้พนักงานเชื่อมต่อและดักขโมยรหัสผ่าน ผู้โจมตีอาจข้ามผ่านมาตรการป้องกันหน้าด่านได้ทันที แต่หากทีมช่างเครือข่ายกำลังทดสอบอุปกรณ์แล็บชั่วคราว การสั่งปิดการทำงานทั้งสวิตช์อาจทำให้พนักงานทั้งชั้นใช้งานไม่ได้ คุณจึงควรตรวจ Log ยืนยันจุดเกิดเหตุก่อนตัดสินใจ"
         }
       }
     }

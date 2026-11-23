@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"sync"
 	"time"
 
 	"cybersim/models"
@@ -67,11 +68,20 @@ type aiIncidentLog struct {
 	RelativeOffsetSec int    `json:"relative_offset_sec,omitempty"`
 }
 
+type scenarioStoryBeats struct {
+	RoleContext     string `json:"role_context"`
+	CurrentActivity string `json:"current_activity"`
+	WhatHappened    string `json:"what_happened"`
+	PotentialImpact string `json:"potential_impact"`
+}
+
 type aiMicroScenario struct {
 	Title               string                   `json:"title"`
 	TitleTh             string                   `json:"title_th,omitempty"`
 	Description         string                   `json:"description"`
 	DescriptionTh       string                   `json:"description_th,omitempty"`
+	Story               *scenarioStoryBeats      `json:"story,omitempty"`
+	StoryTh             *scenarioStoryBeats      `json:"story_th,omitempty"`
 	SubTopicID          string                   `json:"sub_topic_id,omitempty"`
 	Archetype           string                   `json:"archetype,omitempty"`
 	BriefingStyle       string                   `json:"briefing_style,omitempty"`
@@ -144,11 +154,11 @@ var BriefingStyles = []string{
 }
 
 var briefingStyleInstructions = map[string]string{
-	"siem_escalation_ticket": "Write 'description' as a concise Tier-1 SIEM escalation ticket (e.g., citing rule trigger context, affected host/account, and initial alert telemetry).",
-	"shift_handover_brief":   "Write 'description' as a SOC shift handover note from the outgoing analyst summarizing an unfolding anomaly and what telemetry warrants inspection.",
-	"threat_hunting_lead":    "Write 'description' as a proactive threat-hunting lead triggered by anomalous baseline telemetry across endpoints, identity, or network logs.",
-	"helpdesk_user_report":   "Write 'description' as an escalated IT helpdesk/user report where a user or asset owner flagged unexpected behavior corroborated by system logs.",
-	"cloud_guardrail_alert":  "Write 'description' as an automated CSPM, IAM, or DLP compliance guardrail notification flagging a risky policy or data-flow event.",
+	"siem_escalation_ticket": "Open Beat 1 & 2 (`role_context`, `current_activity`) as a SOC Analyst on a monitoring shift working through the SIEM alert queue when a high-priority ticket flags unusual system behavior.",
+	"shift_handover_brief":   "Open Beat 1 & 2 (`role_context`, `current_activity`) as a SOC Analyst who just started a shift and is reviewing outgoing handover notes when an unfolding anomaly catches your attention.",
+	"threat_hunting_lead":    "Open Beat 1 & 2 (`role_context`, `current_activity`) as a SOC Analyst conducting a scheduled baseline telemetry health check when an unusual pattern stands out from normal activity.",
+	"helpdesk_user_report":   "Open Beat 1 & 2 (`role_context`, `current_activity`) as a SOC Analyst assisting IT Support with an escalated user or asset-owner report when initial logs corroborate unexpected behavior.",
+	"cloud_guardrail_alert":  "Open Beat 1 & 2 (`role_context`, `current_activity`) as a SOC Analyst monitoring cloud deployments and compliance dashboards alongside DevOps when an automated guardrail fires.",
 }
 
 var subtopicArchetypes = map[string][2]string{
@@ -415,14 +425,20 @@ func GenerateLLMScenarioWithContext(ctx context.Context, weakestDomain string, d
 		exclusionLines.WriteString("- None yet; choose fresh realistic enterprise hostnames, usernames, and RFC 5737 / internal IPs.\n")
 	}
 
-	systemPrompt := "You are a specialized CompTIA Security+ 701 bilingual (English + Thai) cybersecurity scenario generator. Output ONLY raw JSON. Every scenario MUST author a realistic 4-to-8 event English-only incident_logs chain matching its specific domain and environment (never generic web/CORR-9901 boilerplate, zero Thai characters in incident_logs), follow the assigned SY0-701 sub-topic, archetype, briefing style, and target verdict, provide natural Thai translations (*_th fields) preserving technical security terms, hosts, IPs, usernames, log source names, and MITRE IDs verbatim in English, and every incident response phase (containment_steps, eradication_steps, recovery_steps) MUST contain 3 realistic SOC options (1 correct option and 2 plausible technical distractors) with matching sentence length (15-30 words) and specific entity references."
+	systemPrompt := "You are a specialized CompTIA Security+ 701 bilingual (English + Thai) cybersecurity scenario generator. Output ONLY raw JSON. Every scenario MUST author: (1) a smooth, friendly 4-beat narrative story (`story` in English and `story_th` in Thai) written in second-person voice ('You...' / 'คุณ...') positioning the learner as a SOC Analyst (explaining infrastructure/protocols plainly inline, preserving key host/IP/user tokens verbatim in English, and framing Balanced Dual-Stakes impact without spoiling the TP/FP verdict), (2) a realistic 4-to-8 event English-only incident_logs chain matching its domain and environment (never generic web/CORR-9901 boilerplate, zero Thai characters in incident_logs), (3) full Hybrid Bilingual Thai translations (*_th fields), and (4) 3 realistic SOC playbook options per IR phase (1 correct, 2 plausible technical distractors, 15-30 words each referencing entities)."
 	userPrompt := fmt.Sprintf(`Generate a unique SOC scenario for target domain %s (%s). Current proficiency: %.1f%%.
 
 Target Scenario Blueprint:
 - SY0-701 Sub-Topic: %s (%s)
 - Operational Archetype: %s
 - Required Verdict (is_true_positive): %s
-- Narrative Briefing Style (%s): %s Naturally mention the primary target host and actor IP or username in the prose (do NOT append an "INVESTIGATION CLUES:" bullet block).
+- Narrative Briefing Style (%s): %s
+
+Rules for 4-Beat Incident Storytelling (story & story_th):
+1. Provide BOTH "story" (English) and "story_th" (Thai) objects with exact keys: role_context, current_activity, what_happened, potential_impact. (The backend composes display descriptions automatically from these 4 fields.)
+2. Second-Person Voice & Persona: Address the learner directly ("You..." in English / "คุณ..." in Thai) as an organizational SOC Analyst in a believable setting (matching the briefing_style above). Never start abruptly with raw technical jargon without introducing your role and ongoing task.
+3. Friendly Guided Prose (No Tool Commands / No Bullets): Write naturally like a story for human readers (do NOT use beat labels/numbers inside the text, do NOT append "INVESTIGATION CLUES:", and do NOT instruct the learner to run specific EDR/firewall commands in the narrative). Briefly explain specialized systems/protocols inline in plain terms while keeping primary target_host, attacker_ip, and primary_user verbatim in English inside "what_happened" (both EN and TH).
+4. Balanced Dual-Stakes in "potential_impact" (Anti-Spoiler): ALWAYS describe BOTH conditional possibilities evenly — (a) what harm could happen if this activity turns out to be a genuine attack, AND (b) what business/operational workflow could break if this is authorized legitimate activity that gets blocked prematurely. Never hint at whether is_true_positive is true or false.
 
 DO NOT REPEAT (Recent Learner History Exclusions):
 %s
@@ -461,8 +477,18 @@ Output ONLY valid JSON matching this exact structure:
 {
   "title": "Short Scenario Title",
   "title_th": "ชื่อสถานการณ์จำลองภาษาไทย (คงชื่อเทคนิค/ระบบเป็นภาษาอังกฤษ)",
-  "description": "Brief 2-3 sentence briefing following the assigned briefing style and naming the primary host/actor naturally",
-  "description_th": "คำอธิบายสถานการณ์ 2-3 ประโยคเป็นภาษาไทยโดยยังคงชื่อโฮสต์และ IP เป็นภาษาอังกฤษ",
+  "story": {
+    "role_context": "You are an on-duty SOC Analyst overseeing enterprise web infrastructure for an e-commerce company.",
+    "current_activity": "While clearing the morning alert queue during a routine software release window, a priority notification lands on your dashboard.",
+    "what_happened": "Security logs show deployment account svc_deploy logging into public storefront server SRV-WEB01 from external IP 185.220.101.45, followed by unexpected system file edits.",
+    "potential_impact": "If this is a real intrusion, attackers could hijack customer checkouts or plant backdoors; however, if it is an emergency hotfix deployment, locking SRV-WEB01 immediately could take the store offline—verify the telemetry before acting."
+  },
+  "story_th": {
+    "role_context": "เช้าวันทำงาน คุณปฏิบัติหน้าที่เป็น SOC Analyst ดูแลระบบความปลอดภัยให้กับโครงสร้างพื้นฐานเว็บของบริษัท",
+    "current_activity": "ระหว่างที่กำลังตรวจคิวแจ้งเตือนประจำวันในช่วงเวลาปรับปรุงซอฟต์แวร์ตามรอบ ระบบแจ้งเตือนความเสี่ยงระดับสูงก็เด้งขึ้นมาให้คุณตรวจสอบ",
+    "what_happened": "ระบบพบการใช้งานบัญชีจัดการอัตโนมัติ svc_deploy จาก IP ภายนอก 185.220.101.45 เข้ามาบนเซิร์ฟเวอร์หน้าร้าน SRV-WEB01 พร้อมมีการแก้ไขไฟล์ระบบสำคัญที่ไม่ได้แจ้งไว้ล่วงหน้า",
+    "potential_impact": "หากเป็นการเจาะระบบจริง ผู้โจมตีอาจฝังช่องทางลอบเข้าสู่ระบบหรือขโมยข้อมูลลูกค้าได้ แต่หากเป็นการอัปเดตฉุกเฉินของทีมพัฒนา การสั่งตัดเซิร์ฟเวอร์ SRV-WEB01 ทันทีอาจทำให้บริการหน้าร้านหยุดชะงักได้ คุณจึงต้องตรวจ Log เพื่อยืนยันให้แน่ใจก่อน"
+  },
   "sub_topic_id": "%s",
   "archetype": "%s",
   "briefing_style": "%s",
@@ -604,7 +630,7 @@ func callChatCompletion(ctx context.Context, url string, apiKey string, model st
 		return "", fmt.Errorf("failed to marshal LLM request: %w", err)
 	}
 
-	client := &http.Client{Timeout: 120 * time.Second}
+	client := &http.Client{Timeout: 145 * time.Second}
 
 	var resp *http.Response
 	maxRetries := 2
@@ -1305,10 +1331,22 @@ func buildContextualDistractors(phase string, domainID string, ai aiMicroScenari
 func GenerateFallbackScenario(weakestDomain string, domainName string) *models.Scenario {
 	templates := map[string]aiMicroScenario{
 		"domain1": {
-			Title:             "Unauthorized Security Policy Override Attempt",
-			TitleTh:           "ความพยายามแก้ไข Security Policy โดยไม่ได้รับอนุญาต",
-			Description:       "Domain controller audit telemetry detected an unauthorized Group Policy modification disabling account lockout enforcement via service account SYSTEM_SVC.",
-			DescriptionTh:     "ข้อมูล telemetry จาก Domain controller ตรวจพบการแก้ไข Group Policy โดยไม่ได้รับอนุญาตเพื่อปิดการบังคับใช้ account lockout ผ่านบัญชี SYSTEM_SVC",
+			Title:   "Unauthorized Security Policy Override Attempt",
+			TitleTh: "ความพยายามแก้ไข Security Policy โดยไม่ได้รับอนุญาต",
+			Story: &scenarioStoryBeats{
+				RoleContext:     "You are an on-duty SOC Analyst responsible for monitoring identity and access controls across the corporate headquarters network.",
+				CurrentActivity: "While reviewing incoming high-priority tickets in the SIEM queue during the late afternoon shift, a critical directory policy alert draws your focus.",
+				WhatHappened:    "Audit telemetry shows service account SYSTEM_SVC connecting from internal workstation 192.168.1.150 and modifying the domain's main login controller (DC01.corp.internal) to disable password lockout protections outside the normal maintenance schedule.",
+				PotentialImpact: "If this change is malicious, an attacker could freely run brute-force password guessing attacks across employee accounts without getting locked out; however, if an administrator triggered an emergency recovery adjustment, revoking SYSTEM_SVC prematurely could disrupt automated directory services—verify the logs first.",
+			},
+			StoryTh: &scenarioStoryBeats{
+				RoleContext:     "ช่วงบ่ายวันทำงาน คุณปฏิบัติหน้าที่เป็น SOC Analyst ดูแลความปลอดภัยด้านสิทธิ์การเข้าถึงและระบบยืนยันตัวตนของสำนักงานใหญ่",
+				CurrentActivity: "ระหว่างที่คุณกำลังไล่ตรวจสอบรายการแจ้งเตือนสำคัญบนหน้าจอ SIEM ประจำกะ ก็มี Ticket ระดับวิกฤตเด้งขึ้นมาให้ตรวจสอบทันที",
+				WhatHappened:    "ระบบบันทึกเหตุการณ์พบว่าบัญชีบริการ SYSTEM_SVC จากเครื่องภายใน 192.168.1.150 เข้าไปปรับแก้นโยบายความปลอดภัยบนเครื่องแม่ข่ายหลักควบคุมสิทธิ์ (DC01.corp.internal) เพื่อปิดระบบล็อกบัญชีเมื่อใส่รหัสผ่านผิด นอกช่วงเวลาบำรุงรักษาปกติ",
+				PotentialImpact: "หากเป็นการลักลอบแก้ไขโดยผู้โจมตี คนร้ายจะสามารถสุ่มเดารหัสผ่านบัญชีพนักงานได้ไม่จำกัดโดยไม่ถูกล็อก แต่หากเป็นการปรับค่าฉุกเฉินของผู้ดูแลระบบ การสั่งปิดบัญชี SYSTEM_SVC ทันทีอาจกระทบงานอัตโนมัติของระบบยืนยันตัวตนในองค์กรได้ คุณจึงต้องตรวจ Log เพื่อยืนยันความจริงก่อน",
+			},
+			Description:       "You are an on-duty SOC Analyst responsible for monitoring identity and access controls across the corporate headquarters network. While reviewing incoming high-priority tickets in the SIEM queue during the late afternoon shift, a critical directory policy alert draws your focus.\n\nAudit telemetry shows service account SYSTEM_SVC connecting from internal workstation 192.168.1.150 and modifying the domain's main login controller (DC01.corp.internal) to disable password lockout protections outside the normal maintenance schedule.\n\nIf this change is malicious, an attacker could freely run brute-force password guessing attacks across employee accounts without getting locked out; however, if an administrator triggered an emergency recovery adjustment, revoking SYSTEM_SVC prematurely could disrupt automated directory services—verify the logs first.",
+			DescriptionTh:     "ช่วงบ่ายวันทำงาน คุณปฏิบัติหน้าที่เป็น SOC Analyst ดูแลความปลอดภัยด้านสิทธิ์การเข้าถึงและระบบยืนยันตัวตนของสำนักงานใหญ่ ระหว่างที่คุณกำลังไล่ตรวจสอบรายการแจ้งเตือนสำคัญบนหน้าจอ SIEM ประจำกะ ก็มี Ticket ระดับวิกฤตเด้งขึ้นมาให้ตรวจสอบทันที\n\nระบบบันทึกเหตุการณ์พบว่าบัญชีบริการ SYSTEM_SVC จากเครื่องภายใน 192.168.1.150 เข้าไปปรับแก้นโยบายความปลอดภัยบนเครื่องแม่ข่ายหลักควบคุมสิทธิ์ (DC01.corp.internal) เพื่อปิดระบบล็อกบัญชีเมื่อใส่รหัสผ่านผิด นอกช่วงเวลาบำรุงรักษาปกติ\n\nหากเป็นการลักลอบแก้ไขโดยผู้โจมตี คนร้ายจะสามารถสุ่มเดารหัสผ่านบัญชีพนักงานได้ไม่จำกัดโดยไม่ถูกล็อก แต่หากเป็นการปรับค่าฉุกเฉินของผู้ดูแลระบบ การสั่งปิดบัญชี SYSTEM_SVC ทันทีอาจกระทบงานอัตโนมัติของระบบยืนยันตัวตนในองค์กรได้ คุณจึงต้องตรวจ Log เพื่อยืนยันความจริงก่อน",
 			SubTopicID:        "1.1",
 			Archetype:         "iam_policy_tampering",
 			BriefingStyle:     "siem_escalation_ticket",
@@ -1411,10 +1449,22 @@ func GenerateFallbackScenario(weakestDomain string, domainName string) *models.S
 			},
 		},
 		"domain2": {
-			Title:             "Suspicious Command Line Execution via Spearphishing Payload",
-			TitleTh:           "การรันคำสั่งต้องสงสัยผ่าน Spearphishing Payload",
-			Description:       "An endpoint EDR sensor flagged encoded PowerShell execution spawned by Microsoft Word after a finance employee opened an attached invoice document.",
-			DescriptionTh:     "เซ็นเซอร์ EDR บนเครื่องปลายทางตรวจพบการรัน PowerShell แบบเข้ารหัส (encoded) จาก Microsoft Word หลังจากพนักงานฝ่ายการเงินเปิดไฟล์ใบแจ้งหนี้ที่แนบมากับอีเมล",
+			Title:   "Suspicious Command Line Execution via Spearphishing Payload",
+			TitleTh: "การรันคำสั่งต้องสงสัยผ่าน Spearphishing Payload",
+			Story: &scenarioStoryBeats{
+				RoleContext:     "You are a SOC Analyst collaborating with the corporate IT Support desk to triage escalated employee workstation reports.",
+				CurrentActivity: "While reviewing a helpdesk ticket submitted after finance staff noticed their computer briefly stalling upon opening an email attachment, you correlate endpoint alerts on WS-FINANCE04.",
+				WhatHappened:    "Security monitoring shows that right after employee efoster opened an invoice document on WS-FINANCE04, Microsoft Word silently launched a hidden automation script that began connecting out to unfamiliar external address 185.220.101.99.",
+				PotentialImpact: "If this is a targeted phishing attack, attackers could gain remote control over WS-FINANCE04 and access sensitive accounting records; on the other hand, if it belongs to a benign macro reporting tool, cutting network access immediately could interrupt urgent financial closing tasks—review the telemetry first.",
+			},
+			StoryTh: &scenarioStoryBeats{
+				RoleContext:     "เช้าวันทำงาน คุณปฏิบัติหน้าที่เป็น SOC Analyst ที่ทำงานประสานกับทีม IT Helpdesk เพื่อช่วยตรวจสอบแจ้งเหตุผิดปกติจากเครื่องพนักงาน",
+				CurrentActivity: "ระหว่างที่คุณกำลังไล่เช็กเคสที่ทีม Helpdesk ส่งต่อมาหลังจากพนักงานฝ่ายการเงินแจ้งว่าเครื่องค้างชั่วครู่ตอนเปิดไฟล์แนบอีเมล คุณจึงเปิดดูข้อมูลเหตุการณ์บนเครื่อง WS-FINANCE04",
+				WhatHappened:    "ระบบตรวจพบว่าทันทีที่ผู้ใช้ efoster เปิดเอกสารใบแจ้งหนี้บนเครื่อง WS-FINANCE04 โปรแกรม Word ได้เรียกใช้สคริปต์คำสั่งแบบซ่อนเบื้องหลัง พร้อมความพยายามเชื่อมต่อออกไปยัง IP ภายนอกที่ไม่รู้จัก 185.220.101.99",
+				PotentialImpact: "หากเป็นการโจมตีผ่านอีเมลหลอกลวงจริง ผู้โจมตีอาจยึดควบคุมเครื่อง WS-FINANCE04 และเข้าถึงข้อมูลบัญชีการเงินสำคัญได้ แต่หากเป็นไฟล์รายงานอัตโนมัติขององค์กร การตัดเครื่องออกจากเครือข่ายทันทีอาจทำให้งานปิดงบการเงินสะดุดได้ คุณจึงควรตรวจหลักฐานใน Log ให้แน่ชัดก่อน",
+			},
+			Description:       "You are a SOC Analyst collaborating with the corporate IT Support desk to triage escalated employee workstation reports. While reviewing a helpdesk ticket submitted after finance staff noticed their computer briefly stalling upon opening an email attachment, you correlate endpoint alerts on WS-FINANCE04.\n\nSecurity monitoring shows that right after employee efoster opened an invoice document on WS-FINANCE04, Microsoft Word silently launched a hidden automation script that began connecting out to unfamiliar external address 185.220.101.99.\n\nIf this is a targeted phishing attack, attackers could gain remote control over WS-FINANCE04 and access sensitive accounting records; on the other hand, if it belongs to a benign macro reporting tool, cutting network access immediately could interrupt urgent financial closing tasks—review the telemetry first.",
+			DescriptionTh:     "เช้าวันทำงาน คุณปฏิบัติหน้าที่เป็น SOC Analyst ที่ทำงานประสานกับทีม IT Helpdesk เพื่อช่วยตรวจสอบแจ้งเหตุผิดปกติจากเครื่องพนักงาน ระหว่างที่คุณกำลังไล่เช็กเคสที่ทีม Helpdesk ส่งต่อมาหลังจากพนักงานฝ่ายการเงินแจ้งว่าเครื่องค้างชั่วครู่ตอนเปิดไฟล์แนบอีเมล คุณจึงเปิดดูข้อมูลเหตุการณ์บนเครื่อง WS-FINANCE04\n\nระบบตรวจพบว่าทันทีที่ผู้ใช้ efoster เปิดเอกสารใบแจ้งหนี้บนเครื่อง WS-FINANCE04 โปรแกรม Word ได้เรียกใช้สคริปต์คำสั่งแบบซ่อนเบื้องหลัง พร้อมความพยายามเชื่อมต่อออกไปยัง IP ภายนอกที่ไม่รู้จัก 185.220.101.99\n\nหากเป็นการโจมตีผ่านอีเมลหลอกลวงจริง ผู้โจมตีอาจยึดควบคุมเครื่อง WS-FINANCE04 และเข้าถึงข้อมูลบัญชีการเงินสำคัญได้ แต่หากเป็นไฟล์รายงานอัตโนมัติขององค์กร การตัดเครื่องออกจากเครือข่ายทันทีอาจทำให้งานปิดงบการเงินสะดุดได้ คุณจึงควรตรวจหลักฐานใน Log ให้แน่ชัดก่อน",
 			SubTopicID:        "2.2",
 			Archetype:         "spearphish_macro_lolbin",
 			BriefingStyle:     "helpdesk_user_report",
@@ -1517,10 +1567,22 @@ func GenerateFallbackScenario(weakestDomain string, domainName string) *models.S
 			},
 		},
 		"domain3": {
-			Title:             "Cloud Perimeter Firewall Misconfiguration",
-			TitleTh:           "การตั้งค่า Firewall ขอบเขตระบบคลาวด์ผิดพลาด (Public SSH)",
-			Description:       "Cloud posture monitoring and VPC flow telemetry detected public SSH ingress exposure followed by external login activity on AWS-PROD-DB01.",
-			DescriptionTh:     "ระบบตรวจสอบโครงสร้างพื้นฐานคลาวด์และ VPC flow telemetry ตรวจพบการเปิดพอร์ต SSH สู่สาธารณะและการล็อกอินจากภายนอกเข้าสู่ AWS-PROD-DB01",
+			Title:   "Cloud Perimeter Firewall Misconfiguration",
+			TitleTh: "การตั้งค่า Firewall ขอบเขตระบบคลาวด์ผิดพลาด (Public SSH)",
+			Story: &scenarioStoryBeats{
+				RoleContext:     "You are a SOC Analyst responsible for monitoring cloud infrastructure and compliance dashboards across production workloads.",
+				CurrentActivity: "While watching automated security guardrails during a morning infrastructure deployment window, a high-severity network exposure alert fires.",
+				WhatHappened:    "Cloud firewall configuration rules on primary database host AWS-PROD-DB01 were changed to allow remote login traffic from anywhere on the public internet, followed quickly by remote login activity under ec2-user from external IP 203.0.113.88.",
+				PotentialImpact: "If this remote access is unauthorized, an attacker could extract confidential customer records or alter backend databases; however, if DevOps opened temporary troubleshooting access for an active outage, locking the rule blindly could break urgent database recovery work—inspect the timeline first.",
+			},
+			StoryTh: &scenarioStoryBeats{
+				RoleContext:     "ช่วงเช้าในห้องปฏิบัติการความปลอดภัย คุณทำหน้าที่เป็น SOC Analyst ดูแลระบบแจ้งเตือนและมาตรฐานความปลอดภัยบนโครงสร้างพื้นฐานคลาวด์ของบริษัท",
+				CurrentActivity: "ระหว่างที่กำลังเฝ้าดูแผงควบคุมแจ้งเตือนความปลอดภัยอัตโนมัติ (Cloud Guardrail) ช่วงที่มีการปรับระบบงานประจำวัน ระบบก็เตือนความเสี่ยงระดับสูงเข้ามา",
+				WhatHappened:    "กฎความปลอดภัยหน้าด่านของเซิร์ฟเวอร์ฐานข้อมูลหลัก (AWS-PROD-DB01) ถูกเปลี่ยนให้เปิดรับการเชื่อมต่อระยะไกลจากอินเทอร์เน็ตสาธารณะทั้งหมด และไม่นานนักก็มีการล็อกอินเข้าใช้งานบัญชี ec2-user จาก IP ภายนอก 203.0.113.88",
+				PotentialImpact: "หากเป็นการเจาะเข้ามาโดยไม่ได้รับอนุญาต ผู้โจมตีอาจเข้าถึงหรือดูดข้อมูลฐานข้อมูลสำคัญของลูกค้าออกไปได้ แต่หากเป็นทีม DevOps เปิดช่องทางฉุกเฉินเพื่อแก้ไขระบบงานจริงที่กำลังมีปัญหา การสั่งปิดกฎทันทีอาจขัดขวางการกู้ระบบได้ คุณจึงต้องตรวจ Log ยืนยันก่อนตัดสินใจ",
+			},
+			Description:       "You are a SOC Analyst responsible for monitoring cloud infrastructure and compliance dashboards across production workloads. While watching automated security guardrails during a morning infrastructure deployment window, a high-severity network exposure alert fires.\n\nCloud firewall configuration rules on primary database host AWS-PROD-DB01 were changed to allow remote login traffic from anywhere on the public internet, followed quickly by remote login activity under ec2-user from external IP 203.0.113.88.\n\nIf this remote access is unauthorized, an attacker could extract confidential customer records or alter backend databases; however, if DevOps opened temporary troubleshooting access for an active outage, locking the rule blindly could break urgent database recovery work—inspect the timeline first.",
+			DescriptionTh:     "ช่วงเช้าในห้องปฏิบัติการความปลอดภัย คุณทำหน้าที่เป็น SOC Analyst ดูแลระบบแจ้งเตือนและมาตรฐานความปลอดภัยบนโครงสร้างพื้นฐานคลาวด์ของบริษัท ระหว่างที่กำลังเฝ้าดูแผงควบคุมแจ้งเตือนความปลอดภัยอัตโนมัติ (Cloud Guardrail) ช่วงที่มีการปรับระบบงานประจำวัน ระบบก็เตือนความเสี่ยงระดับสูงเข้ามา\n\nกฎความปลอดภัยหน้าด่านของเซิร์ฟเวอร์ฐานข้อมูลหลัก (AWS-PROD-DB01) ถูกเปลี่ยนให้เปิดรับการเชื่อมต่อระยะไกลจากอินเทอร์เน็ตสาธารณะทั้งหมด และไม่นานนักก็มีการล็อกอินเข้าใช้งานบัญชี ec2-user จาก IP ภายนอก 203.0.113.88\n\nหากเป็นการเจาะเข้ามาโดยไม่ได้รับอนุญาต ผู้โจมตีอาจเข้าถึงหรือดูดข้อมูลฐานข้อมูลสำคัญของลูกค้าออกไปได้ แต่หากเป็นทีม DevOps เปิดช่องทางฉุกเฉินเพื่อแก้ไขระบบงานจริงที่กำลังมีปัญหา การสั่งปิดกฎทันทีอาจขัดขวางการกู้ระบบได้ คุณจึงต้องตรวจ Log ยืนยันก่อนตัดสินใจ",
 			SubTopicID:        "3.2",
 			Archetype:         "cloud_security_group_exposure",
 			BriefingStyle:     "cloud_guardrail_alert",
@@ -1623,10 +1685,22 @@ func GenerateFallbackScenario(weakestDomain string, domainName string) *models.S
 			},
 		},
 		"domain4": {
-			Title:             "Suspicious Outbound C2 Beaconing Activity",
-			TitleTh:           "พบพฤติกรรมการส่งสัญญาณ C2 Beaconing ออกภายนอกต้องสงสัย",
-			Description:       "Threat hunting telemetry identified periodic outbound HTTP POST beacons from developer workstation WS-DEV09 to an uncategorized external host.",
-			DescriptionTh:     "ข้อมูล threat hunting telemetry ตรวจพบการส่ง HTTP POST beacon เป็นระยะจากเครื่องนักพัฒนา WS-DEV09 ไปยังโฮสต์ภายนอกที่ไม่ได้รับการรับรอง",
+			Title:   "Suspicious Outbound C2 Beaconing Activity",
+			TitleTh: "พบพฤติกรรมการส่งสัญญาณ C2 Beaconing ออกภายนอกต้องสงสัย",
+			Story: &scenarioStoryBeats{
+				RoleContext:     "You are a SOC Analyst monitoring corporate software engineering endpoints and outbound internet gateways.",
+				CurrentActivity: "While running a routine weekly baseline health review across developer machines to spot abnormal network patterns, one repeated traffic rhythm catches your eye.",
+				WhatHappened:    "Monitoring telemetry indicates developer workstation WS-DEV09 (logged in as dev_mholt) has begun sending automated check-in signals every 60 seconds to unrecognized external server 198.51.100.42 via an unsigned background service.",
+				PotentialImpact: "If this traffic comes from remote attacker malware, the adversary could harvest developer passwords or pivot into source-code servers; however, if dev_mholt is running an internal sandbox test script, isolating WS-DEV09 prematurely could disrupt an active release build—verify the logs first.",
+			},
+			StoryTh: &scenarioStoryBeats{
+				RoleContext:     "ช่วงบ่ายในศูนย์ปฏิบัติการความปลอดภัย คุณทำหน้าที่เป็น SOC Analyst ดูแลความปลอดภัยเครื่องคอมพิวเตอร์ทีมวิศวกรซอฟต์แวร์และประตูเชื่อมต่ออินเทอร์เน็ตขาออกของบริษัท",
+				CurrentActivity: "ระหว่างที่คุณกำลังไล่ตรวจสอบพฤติกรรมเครือข่ายประจำสัปดาห์เพื่อค้นหาความผิดปกติจากค่ามาตรฐาน (Threat Hunting) รูปแบบการส่งข้อมูลเป็นจังหวะสม่ำเสมอรายการหนึ่งก็สะดุดตาขึ้นมา",
+				WhatHappened:    "ข้อมูลตรวจจับแสดงว่าเครื่องนักพัฒนา WS-DEV09 ของผู้ใช้ dev_mholt มีโปรแกรมเบื้องหลังที่ไม่ได้ลงลายเซ็นดิจิทัลส่งสัญญาณติดต่อออกไปหาเซิร์ฟเวอร์ภายนอกที่ไม่มีประวัติ 198.51.100.42 ทุกๆ 60 วินาที",
+				PotentialImpact: "หากเป็นโปรแกรมควบคุมระยะไกลของคนร้าย ผู้โจมตีอาจดึงรหัสผ่านหรือเจาะต่อเข้าสู่ระบบซอร์สโค้ดของบริษัทได้ แต่หาก dev_mholt กำลังทดสอบสคริปต์งานในเครื่องจริง การสั่งตัดเครือข่าย WS-DEV09 ทันทีอาจทำให้งาน build ซอฟต์แวร์สำคัญสะดุดได้ คุณจึงควรตรวจ Log ก่อนดำเนินการ",
+			},
+			Description:       "You are a SOC Analyst monitoring corporate software engineering endpoints and outbound internet gateways. While running a routine weekly baseline health review across developer machines to spot abnormal network patterns, one repeated traffic rhythm catches your eye.\n\nMonitoring telemetry indicates developer workstation WS-DEV09 (logged in as dev_mholt) has begun sending automated check-in signals every 60 seconds to unrecognized external server 198.51.100.42 via an unsigned background service.\n\nIf this traffic comes from remote attacker malware, the adversary could harvest developer passwords or pivot into source-code servers; however, if dev_mholt is running an internal sandbox test script, isolating WS-DEV09 prematurely could disrupt an active release build—verify the logs first.",
+			DescriptionTh:     "ช่วงบ่ายในศูนย์ปฏิบัติการความปลอดภัย คุณทำหน้าที่เป็น SOC Analyst ดูแลความปลอดภัยเครื่องคอมพิวเตอร์ทีมวิศวกรซอฟต์แวร์และประตูเชื่อมต่ออินเทอร์เน็ตขาออกของบริษัท ระหว่างที่คุณกำลังไล่ตรวจสอบพฤติกรรมเครือข่ายประจำสัปดาห์เพื่อค้นหาความผิดปกติจากค่ามาตรฐาน (Threat Hunting) รูปแบบการส่งข้อมูลเป็นจังหวะสม่ำเสมอรายการหนึ่งก็สะดุดตาขึ้นมา\n\nข้อมูลตรวจจับแสดงว่าเครื่องนักพัฒนา WS-DEV09 ของผู้ใช้ dev_mholt มีโปรแกรมเบื้องหลังที่ไม่ได้ลงลายเซ็นดิจิทัลส่งสัญญาณติดต่อออกไปหาเซิร์ฟเวอร์ภายนอกที่ไม่มีประวัติ 198.51.100.42 ทุกๆ 60 วินาที\n\nหากเป็นโปรแกรมควบคุมระยะไกลของคนร้าย ผู้โจมตีอาจดึงรหัสผ่านหรือเจาะต่อเข้าสู่ระบบซอร์สโค้ดของบริษัทได้ แต่หาก dev_mholt กำลังทดสอบสคริปต์งานในเครื่องจริง การสั่งตัดเครือข่าย WS-DEV09 ทันทีอาจทำให้งาน build ซอฟต์แวร์สำคัญสะดุดได้ คุณจึงควรตรวจ Log ก่อนดำเนินการ",
 			SubTopicID:        "4.4",
 			Archetype:         "c2_http_beaconing",
 			BriefingStyle:     "threat_hunting_lead",
@@ -1729,10 +1803,22 @@ func GenerateFallbackScenario(weakestDomain string, domainName string) *models.S
 			},
 		},
 		"domain5": {
-			Title:             "Compliance Breach: Unencrypted Data Transfer",
-			TitleTh:           "การละเมิด Compliance: การส่งข้อมูลบัตรชำระเงินแบบไม่เข้ารหัส",
-			Description:       "DLP inspection flagged sensitive PCI-DSS cardholder records leaving payment server SRV-PAYMENT01 over cleartext HTTP toward partner relay 10.0.2.77.",
-			DescriptionTh:     "ระบบตรวจจับ DLP พบข้อมูลผู้ถือบัตรตามมาตรฐาน PCI-DSS ถูกส่งออกจากเซิร์ฟเวอร์ชำระเงิน SRV-PAYMENT01 ผ่าน HTTP แบบไม่เข้ารหัสไปยังรีเลย์ 10.0.2.77",
+			Title:   "Compliance Breach: Unencrypted Data Transfer",
+			TitleTh: "การละเมิด Compliance: การส่งข้อมูลบัตรชำระเงินแบบไม่เข้ารหัส",
+			Story: &scenarioStoryBeats{
+				RoleContext:     "You are a SOC Analyst starting the morning shift for a retail payment platform required to follow strict PCI-DSS security controls.",
+				CurrentActivity: "While reviewing the handover briefing from the overnight team along with open data-protection notifications, one settlement transfer warning stands out.",
+				WhatHappened:    "Data loss sensors report that payment processing server SRV-PAYMENT01 (running under service account svc_checkout) began sending customer payment batches in unencrypted plain text to relay endpoint 10.0.2.77 after a recent deployment.",
+				PotentialImpact: "If sensitive card numbers are leaving without encryption, anyone inspecting network traffic could capture payment data and trigger severe compliance violations; yet if 10.0.2.77 is an internal encrypted-tunnel test fixture, shutting down the checkout listener abruptly could halt customer transactions—verify the logs first.",
+			},
+			StoryTh: &scenarioStoryBeats{
+				RoleContext:     "ช่วงเช้าตอนเปลี่ยนกะ คุณปฏิบัติหน้าที่เป็น SOC Analyst ดูแลความปลอดภัยระบบชำระเงินของบริษัทซึ่งอยู่ภายใต้มาตรฐานคุ้มครองข้อมูลบัตร PCI-DSS",
+				CurrentActivity: "ระหว่างที่กำลังอ่านสรุปส่งมอบงานจากทีมกะดึกร่วมกับรายการแจ้งเตือนเฝ้าระวังข้อมูลรั่วไหลประจำวัน ระบบแจ้งเตือนข้อมูลชำระเงินรายการหนึ่งก็ปรากฏขึ้น",
+				WhatHappened:    "ระบบตรวจสอบข้อมูลสำคัญรายงานว่าเซิร์ฟเวอร์ประมวลผลการชำระเงินหลัก (SRV-PAYMENT01) ภายใต้บัญชีบริการ svc_checkout มีการส่งชุดข้อมูลการชำระเงินแบบไม่เข้ารหัสผ่าน HTTP ออกไปยังรีเลย์ปลายทาง 10.0.2.77 หลังมีการปรับตั้งค่าระบบ",
+				PotentialImpact: "หากข้อมูลบัตรลูกค้ากำลังถูกส่งออกโดยไม่เข้ารหัสจริง อาจถูกดักจับข้อมูลกลางทางและละเมิดข้อกำหนดกฎหมายรุนแรงได้ แต่หากปลายทาง 10.0.2.77 เป็นโหนดทดสอบภายในที่มีการเข้ารหัสชั้นนอกอยู่ การปิดช่องทางชำระเงินทันทีอาจทำให้ระบบตัดเงินลูกค้าขัดข้องได้ คุณจึงควรตรวจ Log ยืนยันก่อน",
+			},
+			Description:       "You are a SOC Analyst starting the morning shift for a retail payment platform required to follow strict PCI-DSS security controls. While reviewing the handover briefing from the overnight team along with open data-protection notifications, one settlement transfer warning stands out.\n\nData loss sensors report that payment processing server SRV-PAYMENT01 (running under service account svc_checkout) began sending customer payment batches in unencrypted plain text to relay endpoint 10.0.2.77 after a recent deployment.\n\nIf sensitive card numbers are leaving without encryption, anyone inspecting network traffic could capture payment data and trigger severe compliance violations; yet if 10.0.2.77 is an internal encrypted-tunnel test fixture, shutting down the checkout listener abruptly could halt customer transactions—verify the logs first.",
+			DescriptionTh:     "ช่วงเช้าตอนเปลี่ยนกะ คุณปฏิบัติหน้าที่เป็น SOC Analyst ดูแลความปลอดภัยระบบชำระเงินของบริษัทซึ่งอยู่ภายใต้มาตรฐานคุ้มครองข้อมูลบัตร PCI-DSS ระหว่างที่กำลังอ่านสรุปส่งมอบงานจากทีมกะดึกร่วมกับรายการแจ้งเตือนเฝ้าระวังข้อมูลรั่วไหลประจำวัน ระบบแจ้งเตือนข้อมูลชำระเงินรายการหนึ่งก็ปรากฏขึ้น\n\nระบบตรวจสอบข้อมูลสำคัญรายงานว่าเซิร์ฟเวอร์ประมวลผลการชำระเงินหลัก (SRV-PAYMENT01) ภายใต้บัญชีบริการ svc_checkout มีการส่งชุดข้อมูลการชำระเงินแบบไม่เข้ารหัสผ่าน HTTP ออกไปยังรีเลย์ปลายทาง 10.0.2.77 หลังมีการปรับตั้งค่าระบบ\n\nหากข้อมูลบัตรลูกค้ากำลังถูกส่งออกโดยไม่เข้ารหัสจริง อาจถูกดักจับข้อมูลกลางทางและละเมิดข้อกำหนดกฎหมายรุนแรงได้ แต่หากปลายทาง 10.0.2.77 เป็นโหนดทดสอบภายในที่มีการเข้ารหัสชั้นนอกอยู่ การปิดช่องทางชำระเงินทันทีอาจทำให้ระบบตัดเงินลูกค้าขัดข้องได้ คุณจึงควรตรวจ Log ยืนยันก่อน",
 			SubTopicID:        "5.4",
 			Archetype:         "dlp_cleartext_pci_exposure",
 			BriefingStyle:     "shift_handover_brief",
@@ -2134,9 +2220,11 @@ func translateScenarioToThaiWithCaller(
 	return parseAndValidateScenarioTranslationTh(rawJSON, scenario)
 }
 
-func buildScenarioTranslationMessages(scenario *models.Scenario) ([]chatMessage, error) {
+func extractScenarioTranslationSources(
+	scenario *models.Scenario,
+) (string, map[string]scenarioPlaybookStepTranslation, map[string]scenarioFindingTranslation, error) {
 	if scenario == nil {
-		return nil, fmt.Errorf("scenario is nil")
+		return "", nil, nil, fmt.Errorf("scenario is nil")
 	}
 
 	playbookSource := make(map[string]scenarioPlaybookStepTranslation)
@@ -2146,7 +2234,7 @@ func buildScenarioTranslationMessages(scenario *models.Scenario) ([]chatMessage,
 			id, _ := step["id"].(string)
 			id = strings.TrimSpace(id)
 			if id == "" {
-				return nil, fmt.Errorf("scenario playbook step in phase %q is missing id", phase)
+				return "", nil, nil, fmt.Errorf("scenario playbook step in phase %q is missing id", phase)
 			}
 			label, _ := step["label"].(string)
 			exp, _ := step["explanation"].(string)
@@ -2166,7 +2254,7 @@ func buildScenarioTranslationMessages(scenario *models.Scenario) ([]chatMessage,
 		id, _ := f["id"].(string)
 		id = strings.TrimSpace(id)
 		if id == "" {
-			return nil, fmt.Errorf("scenario finding is missing id")
+			return "", nil, nil, fmt.Errorf("scenario finding is missing id")
 		}
 		desc, _ := f["description"].(string)
 		exp, _ := f["explanation"].(string)
@@ -2186,6 +2274,15 @@ func buildScenarioTranslationMessages(scenario *models.Scenario) ([]chatMessage,
 		} else {
 			tpFpExp = "Explain concisely in Thai why this incident is a False Positive benign operational event."
 		}
+	}
+
+	return tpFpExp, playbookSource, findingsSource, nil
+}
+
+func buildScenarioTranslationMessages(scenario *models.Scenario) ([]chatMessage, error) {
+	tpFpExp, playbookSource, findingsSource, err := extractScenarioTranslationSources(scenario)
+	if err != nil {
+		return nil, err
 	}
 
 	sourcePayload := scenarioTranslationPayloadTh{
@@ -2232,44 +2329,13 @@ func parseAndValidateScenarioTranslationTh(rawJSON string, scenario *models.Scen
 		return nil, fmt.Errorf("invalid_translation_json: %w", err)
 	}
 
-	playbookOut := make(map[string]interface{}, len(payload.PlaybookSteps))
-	for id, step := range payload.PlaybookSteps {
-		trimmedID := strings.TrimSpace(id)
-		label := strings.TrimSpace(step.Label)
-		exp := strings.TrimSpace(step.Explanation)
-		if trimmedID == "" || label == "" || exp == "" {
-			continue
-		}
-		if !ContainsThaiRune(label) {
-			return nil, fmt.Errorf("translation_validation_failed: playbook_steps[%q].label must contain Thai text", trimmedID)
-		}
-		if !ContainsThaiRune(exp) {
-			return nil, fmt.Errorf("translation_validation_failed: playbook_steps[%q].explanation must contain Thai text", trimmedID)
-		}
-		playbookOut[trimmedID] = map[string]interface{}{
-			"label":       label,
-			"explanation": exp,
-		}
+	playbookOut, err := validateTranslatedPlaybookMap(payload.PlaybookSteps)
+	if err != nil {
+		return nil, err
 	}
-
-	findingsOut := make(map[string]interface{}, len(payload.Findings))
-	for id, f := range payload.Findings {
-		trimmedID := strings.TrimSpace(id)
-		desc := strings.TrimSpace(f.Description)
-		exp := strings.TrimSpace(f.Explanation)
-		if trimmedID == "" || desc == "" || exp == "" {
-			continue
-		}
-		if !ContainsThaiRune(desc) {
-			return nil, fmt.Errorf("translation_validation_failed: findings[%q].description must contain Thai text", trimmedID)
-		}
-		if !ContainsThaiRune(exp) {
-			return nil, fmt.Errorf("translation_validation_failed: findings[%q].explanation must contain Thai text", trimmedID)
-		}
-		findingsOut[trimmedID] = map[string]interface{}{
-			"description": desc,
-			"explanation": exp,
-		}
+	findingsOut, err := validateTranslatedFindingsMap(payload.Findings)
+	if err != nil {
+		return nil, err
 	}
 
 	thMap := map[string]interface{}{
@@ -2293,4 +2359,440 @@ func parseAndValidateScenarioTranslationTh(rawJSON string, scenario *models.Scen
 	}
 
 	return merged, nil
+}
+
+func validateTranslatedPlaybookMap(raw map[string]scenarioPlaybookStepTranslation) (map[string]interface{}, error) {
+	out := make(map[string]interface{}, len(raw))
+	for id, step := range raw {
+		trimmedID := strings.TrimSpace(id)
+		label := strings.TrimSpace(step.Label)
+		exp := strings.TrimSpace(step.Explanation)
+		if trimmedID == "" || label == "" || exp == "" {
+			continue
+		}
+		if !ContainsThaiRune(label) {
+			return nil, fmt.Errorf("translation_validation_failed: playbook_steps[%q].label must contain Thai text", trimmedID)
+		}
+		if !ContainsThaiRune(exp) {
+			return nil, fmt.Errorf("translation_validation_failed: playbook_steps[%q].explanation must contain Thai text", trimmedID)
+		}
+		out[trimmedID] = map[string]interface{}{
+			"label":       label,
+			"explanation": exp,
+		}
+	}
+	return out, nil
+}
+
+func validateTranslatedFindingsMap(raw map[string]scenarioFindingTranslation) (map[string]interface{}, error) {
+	out := make(map[string]interface{}, len(raw))
+	for id, f := range raw {
+		trimmedID := strings.TrimSpace(id)
+		desc := strings.TrimSpace(f.Description)
+		exp := strings.TrimSpace(f.Explanation)
+		if trimmedID == "" || desc == "" || exp == "" {
+			continue
+		}
+		if !ContainsThaiRune(desc) {
+			return nil, fmt.Errorf("translation_validation_failed: findings[%q].description must contain Thai text", trimmedID)
+		}
+		if !ContainsThaiRune(exp) {
+			return nil, fmt.Errorf("translation_validation_failed: findings[%q].explanation must contain Thai text", trimmedID)
+		}
+		out[trimmedID] = map[string]interface{}{
+			"description": desc,
+			"explanation": exp,
+		}
+	}
+	return out, nil
+}
+
+func hasAllStoryBeats(b *scenarioStoryBeats) bool {
+	if b == nil {
+		return false
+	}
+	return strings.TrimSpace(b.RoleContext) != "" &&
+		strings.TrimSpace(b.CurrentActivity) != "" &&
+		strings.TrimSpace(b.WhatHappened) != "" &&
+		strings.TrimSpace(b.PotentialImpact) != ""
+}
+
+func hasAllThaiStoryBeats(b *scenarioStoryBeats) bool {
+	if !hasAllStoryBeats(b) {
+		return false
+	}
+	return ContainsThaiRune(b.RoleContext) &&
+		ContainsThaiRune(b.CurrentActivity) &&
+		ContainsThaiRune(b.WhatHappened) &&
+		ContainsThaiRune(b.PotentialImpact)
+}
+
+// ComposeStoryDescription joins 4 structured story beats into 3 smooth reader-friendly
+// paragraphs separated by blank lines without visual beat tags.
+func ComposeStoryDescription(b *scenarioStoryBeats) string {
+	if b == nil {
+		return ""
+	}
+	p1 := strings.TrimSpace(strings.TrimSpace(b.RoleContext) + " " + strings.TrimSpace(b.CurrentActivity))
+	p2 := strings.TrimSpace(b.WhatHappened)
+	p3 := strings.TrimSpace(b.PotentialImpact)
+	parts := make([]string, 0, 3)
+	for _, p := range []string{p1, p2, p3} {
+		if p != "" {
+			parts = append(parts, p)
+		}
+	}
+	return strings.Join(parts, "\n\n")
+}
+
+func storyBeatsToMap(b *scenarioStoryBeats) map[string]interface{} {
+	if b == nil {
+		return nil
+	}
+	return map[string]interface{}{
+		"role_context":     strings.TrimSpace(b.RoleContext),
+		"current_activity": strings.TrimSpace(b.CurrentActivity),
+		"what_happened":    strings.TrimSpace(b.WhatHappened),
+		"potential_impact": strings.TrimSpace(b.PotentialImpact),
+	}
+}
+
+func extractStoryBeatsFromLocaleMap(localeMap map[string]interface{}) *scenarioStoryBeats {
+	if len(localeMap) == 0 {
+		return nil
+	}
+	rawStory, ok := localeMap["story"]
+	if !ok || rawStory == nil {
+		return nil
+	}
+	switch s := rawStory.(type) {
+	case *scenarioStoryBeats:
+		return s
+	case scenarioStoryBeats:
+		return &s
+	case map[string]interface{}:
+		role, _ := s["role_context"].(string)
+		act, _ := s["current_activity"].(string)
+		what, _ := s["what_happened"].(string)
+		impact, _ := s["potential_impact"].(string)
+		return &scenarioStoryBeats{
+			RoleContext:     role,
+			CurrentActivity: act,
+			WhatHappened:    what,
+			PotentialImpact: impact,
+		}
+	case map[string]string:
+		return &scenarioStoryBeats{
+			RoleContext:     s["role_context"],
+			CurrentActivity: s["current_activity"],
+			WhatHappened:    s["what_happened"],
+			PotentialImpact: s["potential_impact"],
+		}
+	default:
+		return nil
+	}
+}
+
+// HasCompleteStory reports whether both translations.en.story and translations.th.story
+// contain all 4 non-empty narrative beats (with Thai text in translations.th.story).
+func HasCompleteStory(s *models.Scenario) bool {
+	if s == nil {
+		return false
+	}
+	trans := normalizeAnyStringMap(s.Translations)
+	if len(trans) == 0 {
+		return false
+	}
+	enStory := extractStoryBeatsFromLocaleMap(normalizeAnyStringMap(trans["en"]))
+	thStory := extractStoryBeatsFromLocaleMap(normalizeAnyStringMap(trans["th"]))
+	return hasAllStoryBeats(enStory) && hasAllThaiStoryBeats(thStory)
+}
+
+func ensureStoryEntityMentions(b *scenarioStoryBeats, targetHost, attackerIP string) {
+	if b == nil {
+		return
+	}
+	what := strings.TrimSpace(b.WhatHappened)
+	host := strings.TrimSpace(targetHost)
+	ip := strings.TrimSpace(attackerIP)
+	if host != "" && !strings.Contains(strings.ToLower(what), strings.ToLower(host)) {
+		what += fmt.Sprintf(" (%s)", host)
+	}
+	if ip != "" && !strings.Contains(strings.ToLower(what), strings.ToLower(ip)) {
+		what += fmt.Sprintf(" [%s]", ip)
+	}
+	b.WhatHappened = what
+}
+
+// UpgradeScenarioStoryBilingual rewrites a legacy scenario into smooth 4-beat storytelling
+// (both EN and TH) and concurrently backfills any missing Thai title/playbook/finding translations
+// without touching canonical initial_logs, playbook options, findings rubrics, or status.
+func UpgradeScenarioStoryBilingual(ctx context.Context, scenario *models.Scenario) (string, map[string]any, error) {
+	cfg, err := resolveLLMClientConfig()
+	if err != nil {
+		return "", nil, err
+	}
+	return upgradeScenarioStoryWithCaller(ctx, scenario, func(callCtx context.Context, messages []chatMessage, temperature float64) (string, error) {
+		return callChatCompletion(callCtx, cfg.URL, cfg.APIKey, cfg.Model, messages, temperature)
+	})
+}
+
+type storyOnlyUpgradePayload struct {
+	Story   scenarioStoryBeats `json:"story"`
+	StoryTh scenarioStoryBeats `json:"story_th"`
+	TitleTh string             `json:"title_th,omitempty"`
+}
+
+type playbookFindingsTranslationPayload struct {
+	TpFpExplanation string                                     `json:"tp_fp_explanation"`
+	PlaybookSteps   map[string]scenarioPlaybookStepTranslation `json:"playbook_steps"`
+	Findings        map[string]scenarioFindingTranslation      `json:"findings"`
+}
+
+func needsNonNarrativeThaiTranslation(s *models.Scenario) bool {
+	if s == nil {
+		return true
+	}
+	thMap := normalizeAnyStringMap(normalizeAnyStringMap(s.Translations)["th"])
+	if len(thMap) == 0 {
+		return true
+	}
+	thTpFp, _ := thMap["tp_fp_explanation"].(string)
+	if strings.TrimSpace(thTpFp) == "" || !ContainsThaiRune(thTpFp) {
+		return true
+	}
+	thPlaybook := normalizeAnyNestedStringMap(thMap["playbook_steps"])
+	playbook := normalizeAnyStringMap(s.PlaybookSteps)
+	for _, phase := range []string{"containment", "eradication", "recovery"} {
+		for _, step := range normalizePhaseStepSlice(playbook[phase]) {
+			id, _ := step["id"].(string)
+			entry := thPlaybook[strings.TrimSpace(id)]
+			if strings.TrimSpace(entry["label"]) == "" || strings.TrimSpace(entry["explanation"]) == "" {
+				return true
+			}
+		}
+	}
+	thFindings := normalizeAnyNestedStringMap(thMap["findings"])
+	outcomes := normalizeAnyStringMap(s.ExpectedOutcomes)
+	for _, f := range normalizePhaseStepSlice(outcomes["key_findings"]) {
+		id, _ := f["id"].(string)
+		entry := thFindings[strings.TrimSpace(id)]
+		if strings.TrimSpace(entry["description"]) == "" || strings.TrimSpace(entry["explanation"]) == "" {
+			return true
+		}
+	}
+	return false
+}
+
+func upgradeScenarioStoryWithCaller(
+	ctx context.Context,
+	scenario *models.Scenario,
+	callFn func(ctx context.Context, messages []chatMessage, temperature float64) (string, error),
+) (string, map[string]any, error) {
+	if scenario == nil {
+		return "", nil, fmt.Errorf("scenario is nil")
+	}
+	if callFn == nil {
+		return "", nil, fmt.Errorf("story upgrader caller is nil")
+	}
+
+	thMapExisting := normalizeAnyStringMap(normalizeAnyStringMap(scenario.Translations)["th"])
+	existingTitleTh, _ := thMapExisting["title"].(string)
+	needTitleTh := strings.TrimSpace(existingTitleTh) == "" || !ContainsThaiRune(existingTitleTh)
+	needPlaybookFindings := needsNonNarrativeThaiTranslation(scenario)
+
+	storyMsgs, err := buildStoryOnlyMessages(scenario, needTitleTh)
+	if err != nil {
+		return "", nil, err
+	}
+
+	var pbMsgs []chatMessage
+	if needPlaybookFindings {
+		pbMsgs, err = buildPlaybookFindingsMessages(scenario)
+		if err != nil {
+			return "", nil, err
+		}
+	}
+
+	var (
+		storyRaw string
+		storyErr error
+		pbRaw    string
+		pbErr    error
+		wg       sync.WaitGroup
+	)
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		storyRaw, storyErr = callFn(ctx, storyMsgs, 0.25)
+	}()
+
+	if needPlaybookFindings {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			pbRaw, pbErr = callFn(ctx, pbMsgs, 0.2)
+		}()
+	}
+	wg.Wait()
+
+	if storyErr != nil {
+		return "", nil, storyErr
+	}
+	if pbErr != nil {
+		return "", nil, pbErr
+	}
+
+	return parseAndMergeParallelStoryUpgrade(storyRaw, pbRaw, scenario, needTitleTh, needPlaybookFindings)
+}
+
+func buildStoryOnlyMessages(scenario *models.Scenario, needTitleTh bool) ([]chatMessage, error) {
+	targetHost, attackerIP := ExtractPrimaryScenarioEntities(scenario)
+	inputObj := map[string]interface{}{
+		"title":              strings.TrimSpace(scenario.Title),
+		"domain_id":          strings.TrimSpace(scenario.DomainID),
+		"source_description": strings.TrimSpace(scenario.Description),
+		"target_host":        targetHost,
+		"attacker_ip":        attackerIP,
+	}
+
+	schemaHint := `{
+  "story": {
+    "role_context": "Who the learner is as an organizational SOC Analyst and shift/sector context",
+    "current_activity": "What routine operational task you are performing right before the alert hits",
+    "what_happened": "What was detected in plain friendly language keeping target_host and attacker_ip verbatim in English",
+    "potential_impact": "Balanced Dual-Stakes: what breaks if malicious AND what business workflow breaks if legitimate work is blocked (no TP/FP spoilers)"
+  },
+  "story_th": {
+    "role_context": "บทบาทของคุณในฐานะ SOC Analyst และบริบทขององค์กร/กะงาน",
+    "current_activity": "สิ่งที่คุณกำลังทำอยู่ก่อนเกิดเหตุ",
+    "what_happened": "สิ่งที่ตรวจพบด้วยภาษาที่เข้าใจง่าย คงชื่อ host, user และ IP หลักไว้เป็นภาษาอังกฤษ",
+    "potential_impact": "ความเสี่ยงสองด้านอย่างสมดุล (หากโจมตีจริง vs หากเป็นการทำงานปกติแล้วสั่งปิดผิดพลาด) โดยไม่สปอยล์ TP/FP"
+  }`
+	if needTitleTh {
+		schemaHint += `,
+  "title_th": "ชื่อสถานการณ์ภาษาไทยแบบ Hybrid Bilingual"`
+	}
+	schemaHint += "\n}"
+
+	payloadBytes, err := json.Marshal(inputObj)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal story prompt input: %w", err)
+	}
+
+	systemPrompt := "You are a bilingual cybersecurity storytelling writer. Output ONLY raw valid JSON. Rewrite the scenario into a smooth, reader-friendly 4-beat story (`story` in English and `story_th` in Thai) in second-person voice ('You...' / 'คุณ...') positioning the learner as an organizational SOC Analyst. Explain technical components inline in plain words while preserving target_host, primary_user, and attacker_ip verbatim in English. Never include tool commands or bullet clues, and ALWAYS write Balanced Dual-Stakes impact without spoiling TP/FP."
+	userPrompt := fmt.Sprintf("Rewrite this scenario narrative matching this exact schema:\n%s\n\nScenario:\n%s", schemaHint, string(payloadBytes))
+
+	return []chatMessage{
+		{Role: "system", Content: systemPrompt},
+		{Role: "user", Content: userPrompt},
+	}, nil
+}
+
+func buildPlaybookFindingsMessages(scenario *models.Scenario) ([]chatMessage, error) {
+	tpFpExp, playbookSource, findingsSource, err := extractScenarioTranslationSources(scenario)
+	if err != nil {
+		return nil, err
+	}
+
+	inputObj := map[string]interface{}{
+		"tp_fp_explanation": tpFpExp,
+		"playbook_steps":    playbookSource,
+		"findings":          findingsSource,
+	}
+	payloadBytes, err := json.Marshal(inputObj)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal playbook/findings translation source: %w", err)
+	}
+
+	systemPrompt := "You are a CompTIA Security+ 701 cybersecurity translator (English to Thai). Output ONLY raw valid JSON matching the exact input schema (`tp_fp_explanation`, `playbook_steps`, `findings`) preserving every ID verbatim. Translate into Hybrid Bilingual Thai (natural Thai prose keeping hostnames, IPs, accounts, rule names, files, commands, and MITRE IDs verbatim in English). Keep translations concise and accurate; every label, description, and explanation must contain Thai text."
+	userPrompt := fmt.Sprintf("Translate these triage explanations, playbook steps, and findings into Thai preserving every key verbatim:\n%s", string(payloadBytes))
+
+	return []chatMessage{
+		{Role: "system", Content: systemPrompt},
+		{Role: "user", Content: userPrompt},
+	}, nil
+}
+
+func parseAndMergeParallelStoryUpgrade(
+	storyRaw string,
+	pbRaw string,
+	scenario *models.Scenario,
+	needTitleTh bool,
+	needPlaybookFindings bool,
+) (string, map[string]any, error) {
+	if scenario == nil {
+		return "", nil, fmt.Errorf("scenario is nil")
+	}
+
+	var storyPayload storyOnlyUpgradePayload
+	if err := json.Unmarshal([]byte(extractJSONObject(storyRaw)), &storyPayload); err != nil {
+		return "", nil, fmt.Errorf("invalid_story_upgrade_json: %w", err)
+	}
+	if !hasAllStoryBeats(&storyPayload.Story) {
+		return "", nil, fmt.Errorf("story_validation_failed: all 4 English story beats are required")
+	}
+	if !hasAllThaiStoryBeats(&storyPayload.StoryTh) {
+		return "", nil, fmt.Errorf("story_validation_failed: all 4 Thai story beats must contain Thai text")
+	}
+
+	targetHost, attackerIP := ExtractPrimaryScenarioEntities(scenario)
+	ensureStoryEntityMentions(&storyPayload.Story, targetHost, attackerIP)
+	ensureStoryEntityMentions(&storyPayload.StoryTh, targetHost, attackerIP)
+
+	enDesc := ComposeStoryDescription(&storyPayload.Story)
+	thDesc := ComposeStoryDescription(&storyPayload.StoryTh)
+
+	merged := make(map[string]any)
+	for k, v := range normalizeAnyStringMap(scenario.Translations) {
+		merged[k] = v
+	}
+
+	enMap := make(map[string]interface{})
+	for k, v := range normalizeAnyStringMap(merged["en"]) {
+		enMap[k] = v
+	}
+	enMap["description"] = enDesc
+	enMap["story"] = storyBeatsToMap(&storyPayload.Story)
+	merged["en"] = enMap
+
+	thMap := make(map[string]interface{})
+	for k, v := range normalizeAnyStringMap(merged["th"]) {
+		thMap[k] = v
+	}
+	thMap["description"] = thDesc
+	thMap["story"] = storyBeatsToMap(&storyPayload.StoryTh)
+	if needTitleTh {
+		thMap["title"] = strings.TrimSpace(storyPayload.TitleTh)
+	}
+
+	if needPlaybookFindings {
+		var pbPayload playbookFindingsTranslationPayload
+		if err := json.Unmarshal([]byte(extractJSONObject(pbRaw)), &pbPayload); err != nil {
+			return "", nil, fmt.Errorf("invalid_playbook_translation_json: %w", err)
+		}
+		playbookOut, err := validateTranslatedPlaybookMap(pbPayload.PlaybookSteps)
+		if err != nil {
+			return "", nil, err
+		}
+		findingsOut, err := validateTranslatedFindingsMap(pbPayload.Findings)
+		if err != nil {
+			return "", nil, err
+		}
+		thMap["tp_fp_explanation"] = strings.TrimSpace(pbPayload.TpFpExplanation)
+		thMap["playbook_steps"] = playbookOut
+		thMap["findings"] = findingsOut
+	}
+	merged["th"] = thMap
+
+	candidate := *scenario
+	candidate.Description = enDesc
+	candidate.Translations = merged
+	if err := ValidateScenarioTranslationsTh(&candidate); err != nil {
+		return "", nil, err
+	}
+	if !HasCompleteStory(&candidate) {
+		return "", nil, fmt.Errorf("story_validation_failed: upgraded scenario lacks complete EN/TH story beats")
+	}
+	return enDesc, merged, nil
 }

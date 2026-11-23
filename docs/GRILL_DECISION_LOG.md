@@ -205,3 +205,18 @@ Real-time LLM Generation เป็นเส้นทางหลักในร�
 
 เจ้าของโครงการยืนยันแผนนี้เมื่อวันที่ **2026-10-20**
 
+---
+
+## Round 7 — Scenario Storytelling Narrative (`/loop-me` 2026-11-23)
+
+| ประเด็น | ข้อตัดสินใจ |
+|---|---|
+| ประเภท | Core Requirement (ปรับปรุงความเข้าใจของผู้เรียนใน Simulation User Journey) |
+| Persona & Voice | บทบาทเดียวคือ **SOC Analyst** ประจำองค์กร ใช้สรรพนามบุคคลที่ 2 (`"คุณ..."` / `"You..."`) และเปลี่ยนภารกิจ/สถานการณ์เปิดเรื่องตาม 5 `BriefingStyles` |
+| UI & Flow | จัดรูปแบบเป็น **3 ย่อหน้าสั้นๆ อ่านลื่นต่อเนื่อง** (ปูบทบาท+งานที่ทำ -> เหตุการณ์ที่พบ -> ความเสี่ยงสองด้าน) โดย **ไม่มี** ป้ายแท็กหรือตัวเลขกำกับจังหวะ |
+| Readability & Shortcuts | เล่าแบบ **Friendly Guided Prose** อธิบายหน้าที่ของระบบเป็นภาษาคน แต่คง Host/User/IP หลัก 2–3 ตัวไว้ให้ `siemShortcuts.ts` ทำงานครบถ้วน และตัดคำสั่งให้ "กะถัดไปควรทำอะไร" ออกจากเนื้อเรื่อง |
+| Anti-Spoiler | ใช้ **Balanced Dual-Stakes** เล่าผลกระทบทั้งฝั่ง "หากเป็นภัยจริง" และ "หากสั่งบล็อกผิดตอนเป็นงานปกติ" อย่างสมดุลทั้งเคส TP และ FP |
+| Storage & Coverage | เก็บ `story` 4 ฟิลด์ใน JSONB `translations.{en,th}.story` (ไม่แก้ Schema PostgreSQL) และครอบคลุม AI, 5 Fallback, 15 Static Seed (`evidence_mapping.json` hash คงเดิม) รวมถึง Lazy Backfill อัตโนมัติสำหรับเซสชันค้างเก่าบน Local โดยไม่แตะ `initial_logs` หรือคะแนน |
+
+เจ้าของโครงการยืนยันสเปกจากการ Grill ทั้ง 3 รอบ (`Q1`–`Q13`) เมื่อวันที่ **2026-11-23** — สเปกอยู่ที่ `workflows/scenario_storytelling_narrative.md` (รออนุมัติก่อนลงมือ Implement)
+

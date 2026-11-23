@@ -44,12 +44,12 @@ type userLockEntry struct {
 }
 
 type SimulationController struct {
-	DB                  *gorm.DB
-	startMu             sync.Mutex
-	userStartLocks      map[string]*userLockEntry
-	transMu             sync.Mutex
-	scenarioTransLocks  map[string]*userLockEntry
-	translateScenarioFn func(context.Context, *models.Scenario) (map[string]any, error)
+	DB                 *gorm.DB
+	startMu            sync.Mutex
+	userStartLocks     map[string]*userLockEntry
+	transMu            sync.Mutex
+	scenarioTransLocks map[string]*userLockEntry
+	upgradeStoryFn     func(context.Context, *models.Scenario) (string, map[string]any, error)
 }
 
 func NewSimulationController(db *gorm.DB) *SimulationController {
@@ -382,11 +382,20 @@ func sessionScenarioFromDB(db *gorm.DB, session models.SimulationSession) (model
 		if decodeErr != nil {
 			return scenario, true, decodeErr
 		}
-		// Pre-Spec-11 immutable snapshots may omit translations; supplement translations only from live scenario row without altering logs/playbook/findings.
-		if !hasScenarioTranslations(scenario.Translations) && db != nil && session.ScenarioID != "" {
+		// Pre-storytelling / pre-Spec-11 immutable snapshots may omit story or translations;
+		// supplement ONLY narrative fields (description & translations) from live scenario row
+		// without altering immutable initial_logs, playbook_steps, findings, or verdict.
+		if (!services.HasCompleteStory(&scenario) || !hasScenarioTranslations(scenario.Translations)) && db != nil && session.ScenarioID != "" {
 			var live models.Scenario
-			if liveErr := db.Select("translations").Where("scenario_id = ?", session.ScenarioID).First(&live).Error; liveErr == nil && hasScenarioTranslations(live.Translations) {
-				scenario.Translations = live.Translations
+			if liveErr := db.Select("description, translations").Where("scenario_id = ?", session.ScenarioID).First(&live).Error; liveErr == nil {
+				if services.HasCompleteStory(&live) {
+					if strings.TrimSpace(live.Description) != "" {
+						scenario.Description = live.Description
+					}
+					scenario.Translations = live.Translations
+				} else if !hasScenarioTranslations(scenario.Translations) && hasScenarioTranslations(live.Translations) {
+					scenario.Translations = live.Translations
+				}
 			}
 		}
 		return scenario, true, nil
@@ -596,9 +605,7 @@ func (sc *SimulationController) StartScenario(c *gin.Context) {
 			writeSimError(c, http.StatusInternalServerError, "SIM_SCENARIO_LOAD_FAILED", "Failed to load scenario")
 			return
 		}
-		if !fromSnapshot {
-			sc.ensureScenarioRemediated(&scenario)
-		}
+		sc.prepareSessionScenarioResponse(c, &scenario, fromSnapshot)
 		c.JSON(http.StatusOK, gin.H{
 			"session":              activeSession,
 			"scenario":             sanitizeScenario(scenario, activeSession.SessionID),
@@ -884,11 +891,7 @@ func (sc *SimulationController) GetActiveSession(c *gin.Context) {
 			writeSimError(c, http.StatusInternalServerError, "SIM_SCENARIO_LOAD_FAILED", "Failed to load scenario")
 			return
 		}
-		if !fromSnapshot {
-			sc.ensureScenarioRemediated(&scenario)
-		}
-		locale := sc.resolveSimulationLocale(c, userID)
-		sc.ensureScenarioThaiTranslation(c.Request.Context(), locale, &scenario)
+		sc.prepareSessionScenarioResponse(c, &scenario, fromSnapshot)
 		c.JSON(http.StatusOK, gin.H{
 			"type":                 "in_progress",
 			"session":              activeSession,
@@ -1404,12 +1407,11 @@ func (sc *SimulationController) GetResult(c *gin.Context) {
 	if scenarioErr != nil {
 		log.Printf("Failed to load scenario for result session %s: %v", sessionID, scenarioErr)
 	} else {
-		locale := sc.resolveSimulationLocale(c, userID)
 		reqCtx := context.Background()
 		if c != nil && c.Request != nil {
 			reqCtx = c.Request.Context()
 		}
-		sc.ensureScenarioThaiTranslation(reqCtx, locale, &scenario)
+		sc.ensureScenarioStoryAndTranslation(reqCtx, &scenario)
 	}
 
 	// Get all actions for this session
@@ -1921,35 +1923,29 @@ func buildHistoryEntriesFromSessions(sessions []models.SimulationSession, resolv
 	return out
 }
 
-func (sc *SimulationController) getUserPreferredLanguage(userID string) string {
-	if sc == nil || sc.DB == nil || strings.TrimSpace(userID) == "" {
-		return "en"
+func (sc *SimulationController) prepareSessionScenarioResponse(c *gin.Context, scenario *models.Scenario, fromSnapshot bool) {
+	if !fromSnapshot {
+		sc.ensureScenarioRemediated(scenario)
 	}
-	var user models.User
-	if err := sc.DB.Select("preferred_language").Where("user_id = ?", userID).First(&user).Error; err != nil {
-		return "en"
+	reqCtx := context.Background()
+	if c != nil && c.Request != nil {
+		reqCtx = c.Request.Context()
 	}
-	return services.NormalizeLocale(user.PreferredLanguage)
+	sc.ensureScenarioStoryAndTranslation(reqCtx, scenario)
 }
 
-func (sc *SimulationController) resolveSimulationLocale(c *gin.Context, userID any) string {
-	uidStr, _ := userID.(string)
-	return resolveRequestLocale(c, func() string {
-		return sc.getUserPreferredLanguage(uidStr)
-	})
-}
-
-// ensureScenarioThaiTranslation lazily backfills translations.th for legacy pre-Spec-11
-// scenarios on Thai requests and persists only the translations column so immutable snapshots,
-// status, initial_logs, and scoring remain untouched. Fails open when offline or unconfigured.
-func (sc *SimulationController) ensureScenarioThaiTranslation(ctx context.Context, locale string, scenario *models.Scenario) {
-	if sc == nil || scenario == nil || services.NormalizeLocale(locale) != "th" {
+// ensureScenarioStoryAndTranslation lazily upgrades any legacy scenario lacking complete EN+TH
+// 4-beat storytelling metadata (and any missing TH translations) on read, persisting ONLY
+// description and translations without altering initial_logs, playbook_steps, findings, or status.
+// Fails open cleanly when offline or unconfigured.
+func (sc *SimulationController) ensureScenarioStoryAndTranslation(ctx context.Context, scenario *models.Scenario) {
+	if sc == nil || scenario == nil {
 		return
 	}
-	if services.ValidateScenarioTranslationsTh(scenario) == nil {
+	if services.HasCompleteStory(scenario) && services.ValidateScenarioTranslationsTh(scenario) == nil {
 		return
 	}
-	if sc.translateScenarioFn == nil && strings.TrimSpace(os.Getenv("LLM_API_KEY")) == "" {
+	if sc.upgradeStoryFn == nil && strings.TrimSpace(os.Getenv("LLM_API_KEY")) == "" {
 		return
 	}
 
@@ -1959,11 +1955,15 @@ func (sc *SimulationController) ensureScenarioThaiTranslation(ctx context.Contex
 
 		if sc.DB != nil {
 			var live models.Scenario
-			if err := sc.DB.Select("translations").Where("scenario_id = ?", scenario.ScenarioID).First(&live).Error; err == nil && hasScenarioTranslations(live.Translations) {
+			if err := sc.DB.Select("description, translations").Where("scenario_id = ?", scenario.ScenarioID).First(&live).Error; err == nil {
 				candidate := *scenario
+				if strings.TrimSpace(live.Description) != "" {
+					candidate.Description = live.Description
+				}
 				candidate.Translations = live.Translations
-				if services.ValidateScenarioTranslationsTh(&candidate) == nil {
-					scenario.Translations = live.Translations
+				if services.HasCompleteStory(&candidate) && services.ValidateScenarioTranslationsTh(&candidate) == nil {
+					scenario.Description = candidate.Description
+					scenario.Translations = candidate.Translations
 					return
 				}
 			}
@@ -1973,33 +1973,42 @@ func (sc *SimulationController) ensureScenarioThaiTranslation(ctx context.Contex
 	if ctx == nil {
 		ctx = context.Background()
 	}
-	translateCtx, cancel := context.WithTimeout(ctx, 120*time.Second)
+	upgradeCtx, cancel := context.WithTimeout(ctx, 150*time.Second)
 	defer cancel()
 
-	translateFn := sc.translateScenarioFn
-	if translateFn == nil {
-		translateFn = services.TranslateScenarioToThai
+	upgradeFn := sc.upgradeStoryFn
+	if upgradeFn == nil {
+		upgradeFn = services.UpgradeScenarioStoryBilingual
 	}
 
-	translated, err := translateFn(translateCtx, scenario)
+	enDesc, translated, err := upgradeFn(upgradeCtx, scenario)
 	if err != nil {
-		log.Printf("[Translation Backfill] Failed to translate scenario %s to Thai: %v", scenario.ScenarioID, err)
+		log.Printf("[Story Backfill] Failed to upgrade story for scenario %s: %v", scenario.ScenarioID, err)
 		return
 	}
 
 	candidate := *scenario
+	candidate.Description = enDesc
 	candidate.Translations = translated
 	if valErr := services.ValidateScenarioTranslationsTh(&candidate); valErr != nil {
-		log.Printf("[Translation Backfill] Translated payload for scenario %s failed validation: %v", scenario.ScenarioID, valErr)
+		log.Printf("[Story Backfill] Upgraded payload for scenario %s failed TH validation: %v", scenario.ScenarioID, valErr)
+		return
+	}
+	if !services.HasCompleteStory(&candidate) {
+		log.Printf("[Story Backfill] Upgraded payload for scenario %s lacks complete EN/TH story beats", scenario.ScenarioID)
 		return
 	}
 
 	if sc.DB != nil && scenario.ScenarioID != "" {
 		if saveErr := sc.DB.Model(&models.Scenario{}).
 			Where("scenario_id = ?", scenario.ScenarioID).
-			Update("translations", translated).Error; saveErr != nil {
-			log.Printf("[Translation Backfill] Failed to persist Thai translation for scenario %s: %v", scenario.ScenarioID, saveErr)
+			Updates(map[string]interface{}{
+				"description":  enDesc,
+				"translations": translated,
+			}).Error; saveErr != nil {
+			log.Printf("[Story Backfill] Failed to persist story upgrade for scenario %s: %v", scenario.ScenarioID, saveErr)
 		}
 	}
+	scenario.Description = enDesc
 	scenario.Translations = translated
 }

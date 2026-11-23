@@ -684,9 +684,15 @@ export default function SimulationPage() {
                     {t("simulation.legacyUntranslatedNotice")}
                   </p>
                 )}
-                <p className="text-xs text-graphite-300 leading-relaxed font-light whitespace-pre-wrap">
-                  {localizedScenario.description}
-                </p>
+                <div className="space-y-3.5 text-sm text-graphite-200 leading-relaxed">
+                  {localizedScenario.description
+                    .split(/\n{2,}/)
+                    .map((para) => para.trim())
+                    .filter(Boolean)
+                    .map((para, idx) => (
+                      <p key={idx}>{para}</p>
+                    ))}
+                </div>
               </div>
 
               {/* Investigation Clues & SIEM Shortcuts */}
