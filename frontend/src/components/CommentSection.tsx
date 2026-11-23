@@ -251,10 +251,10 @@ export default function CommentSection({ threadId, threadAuthorId }: CommentSect
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <MessageSquare className="w-4 h-4 text-indigo-400" />
-          <h3 className="text-base font-bold text-white">{t("discussions.comments.title")}</h3>
+          <MessageSquare className="w-5 h-5 text-indigo-400" />
+          <h3 className="text-lg font-bold text-white">{t("discussions.comments.title")}</h3>
         </div>
-        <span className="text-xs font-mono text-graphite-500">
+        <span className="text-xs font-mono text-graphite-400">
           {t("discussions.comments.count", { count: totalComments })}
         </span>
       </div>
@@ -263,8 +263,8 @@ export default function CommentSection({ threadId, threadAuthorId }: CommentSect
       {token ? (
         <form onSubmit={handleCreateTopLevelComment} className="space-y-3">
           {errorMsg && (
-            <div className="p-3 rounded-lg bg-red-950/30 border border-red-500/20 text-red-400 text-xs flex items-center gap-2">
-              <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+            <div className="p-3 rounded-lg bg-red-950/30 border border-red-500/20 text-red-400 text-sm flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 shrink-0" />
               <span>{errorMsg}</span>
             </div>
           )}
@@ -275,21 +275,21 @@ export default function CommentSection({ threadId, threadAuthorId }: CommentSect
               placeholder={t("discussions.comments.inputPlaceholder")}
               value={newCommentContent}
               onChange={(e) => setNewCommentContent(e.target.value)}
-              className="w-full p-3 bg-transparent text-xs text-graphite-200 placeholder-graphite-600 focus:outline-none resize-y"
+              className="w-full p-3.5 bg-transparent text-sm text-graphite-100 placeholder-graphite-500 focus:outline-none resize-y leading-relaxed"
             />
-            <div className="flex items-center justify-between px-3 py-2 border-t border-graphite-800/80 text-xs">
-              <span className="text-[10px] font-mono text-graphite-500">
+            <div className="flex items-center justify-between px-3.5 py-2.5 border-t border-graphite-800/80 text-xs">
+              <span className="text-xs font-mono text-graphite-400">
                 {t("discussions.comments.markdownSupported")}
               </span>
               <button
                 type="submit"
                 disabled={submitting || !newCommentContent.trim()}
-                className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-md bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-semibold text-xs shadow-sm transition-all cursor-pointer"
+                className="flex items-center gap-1.5 px-4 py-1.5 rounded-md bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-semibold text-sm shadow-sm transition-all cursor-pointer"
               >
                 {submitting ? (
-                  <Loader2 className="w-3 h-3 animate-spin" />
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
                 ) : (
-                  <Send className="w-3 h-3" />
+                  <Send className="w-3.5 h-3.5" />
                 )}
                 <span>{t("discussions.comments.submit")}</span>
               </button>
@@ -298,19 +298,19 @@ export default function CommentSection({ threadId, threadAuthorId }: CommentSect
         </form>
       ) : (
         <div className="p-4 rounded-lg bg-graphite-950 border border-graphite-800 text-center space-y-2">
-          <p className="text-xs text-graphite-400">{t("discussions.comments.signInPrompt")}</p>
+          <p className="text-sm text-graphite-300">{t("discussions.comments.signInPrompt")}</p>
         </div>
       )}
 
       {/* Comments Listing */}
       {loading ? (
-        <div className="py-12 text-center text-graphite-500 font-mono text-xs">
+        <div className="py-12 text-center text-graphite-400 font-mono text-sm">
           {t("discussions.comments.loading")}
         </div>
       ) : comments.length === 0 ? (
-        <div className="py-10 text-center border border-dashed border-graphite-800/80 rounded-lg space-y-1 text-xs">
-          <p className="font-medium text-graphite-300">{t("discussions.comments.emptyTitle")}</p>
-          <p className="text-graphite-500">{t("discussions.comments.emptyDesc")}</p>
+        <div className="py-10 text-center border border-dashed border-graphite-800/80 rounded-lg space-y-1.5 text-sm">
+          <p className="font-medium text-graphite-200">{t("discussions.comments.emptyTitle")}</p>
+          <p className="text-graphite-400">{t("discussions.comments.emptyDesc")}</p>
         </div>
       ) : (
         <div className="space-y-4">
@@ -319,7 +319,7 @@ export default function CommentSection({ threadId, threadAuthorId }: CommentSect
               key={rootComment.comment_id}
               id={`comment-${rootComment.comment_id}`}
               className={cn(
-                "p-4 rounded-lg border transition-all space-y-3",
+                "p-4 sm:p-5 rounded-lg border transition-all space-y-3",
                 rootComment.is_pinned
                   ? "bg-amber-950/10 border-amber-500/30"
                   : "bg-graphite-950 border-graphite-800"
@@ -327,21 +327,21 @@ export default function CommentSection({ threadId, threadAuthorId }: CommentSect
             >
               {/* Pinned Label */}
               {rootComment.is_pinned && (
-                <div className="flex items-center gap-1 text-[10px] font-mono font-bold text-amber-400">
-                  <Pin className="w-3 h-3" />
+                <div className="flex items-center gap-1.5 text-xs font-mono font-bold text-amber-400">
+                  <Pin className="w-3.5 h-3.5" />
                   <span>{t("discussions.comments.pinnedByAuthor")}</span>
                 </div>
               )}
 
               {/* Comment Header */}
-              <div className="flex items-center justify-between gap-2 text-xs">
-                <div className="flex items-center gap-2">
-                  <span className="font-mono font-medium text-white text-xs">
+              <div className="flex items-center justify-between gap-2 text-sm">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="font-mono font-medium text-white text-sm">
                     {rootComment.author.nickname}
                   </span>
                   <RoleBadge role={rootComment.author.role} />
                   <span className="text-graphite-600">•</span>
-                  <span className="text-[11px] font-mono text-graphite-500">
+                  <span className="text-xs font-mono text-graphite-400">
                     {formatDate(rootComment.created_at)}
                   </span>
                 </div>
@@ -354,22 +354,22 @@ export default function CommentSection({ threadId, threadAuthorId }: CommentSect
                         onClick={() => handleTogglePin(rootComment.comment_id)}
                         title={rootComment.is_pinned ? t("discussions.comments.unpinTooltip") : t("discussions.comments.pinTooltip")}
                         className={cn(
-                          "p-1 rounded hover:bg-graphite-800 text-xs transition-colors",
-                          rootComment.is_pinned ? "text-amber-400" : "text-graphite-500 hover:text-white"
+                          "p-1.5 rounded hover:bg-graphite-800 text-xs transition-colors cursor-pointer",
+                          rootComment.is_pinned ? "text-amber-400" : "text-graphite-400 hover:text-white"
                         )}
                       >
-                        <Pin className="w-3.5 h-3.5" />
+                        <Pin className="w-4 h-4" />
                       </button>
 
                       <button
                         onClick={() => handleToggleHide(rootComment.comment_id)}
                         title={rootComment.is_hidden ? t("discussions.comments.unhideTooltip") : t("discussions.comments.hideTooltip")}
                         className={cn(
-                          "p-1 rounded hover:bg-graphite-800 text-xs transition-colors",
-                          rootComment.is_hidden ? "text-red-400" : "text-graphite-500 hover:text-white"
+                          "p-1.5 rounded hover:bg-graphite-800 text-xs transition-colors cursor-pointer",
+                          rootComment.is_hidden ? "text-red-400" : "text-graphite-400 hover:text-white"
                         )}
                       >
-                        <EyeOff className="w-3.5 h-3.5" />
+                        <EyeOff className="w-4 h-4" />
                       </button>
                     </>
                   )}
@@ -382,17 +382,17 @@ export default function CommentSection({ threadId, threadAuthorId }: CommentSect
                           setEditContent(rootComment.content);
                         }}
                         title={t("discussions.comments.editTooltip")}
-                        className="p-1 rounded text-graphite-500 hover:text-white hover:bg-graphite-800 transition-colors"
+                        className="p-1.5 rounded text-graphite-400 hover:text-white hover:bg-graphite-800 transition-colors cursor-pointer"
                       >
-                        <Edit2 className="w-3.5 h-3.5" />
+                        <Edit2 className="w-4 h-4" />
                       </button>
 
                       <button
                         onClick={() => handleDeleteComment(rootComment.comment_id)}
                         title={t("discussions.comments.deleteTooltip")}
-                        className="p-1 rounded text-graphite-500 hover:text-red-400 hover:bg-graphite-800 transition-colors"
+                        className="p-1.5 rounded text-graphite-400 hover:text-red-400 hover:bg-graphite-800 transition-colors cursor-pointer"
                       >
-                        <Trash2 className="w-3.5 h-3.5" />
+                        <Trash2 className="w-4 h-4" />
                       </button>
                     </>
                   )}
@@ -406,26 +406,26 @@ export default function CommentSection({ threadId, threadAuthorId }: CommentSect
                     rows={3}
                     value={editContent}
                     onChange={(e) => setEditContent(e.target.value)}
-                    className="w-full p-2.5 rounded bg-graphite-900 border border-graphite-800 text-xs text-white focus:outline-none focus:border-graphite-600"
+                    className="w-full p-3 rounded bg-graphite-900 border border-graphite-800 text-sm text-white focus:outline-none focus:border-graphite-600 leading-relaxed"
                   />
                   <div className="flex items-center justify-end gap-2">
                     <button
                       onClick={() => setEditingCommentId(null)}
-                      className="px-2.5 py-1 rounded border border-graphite-800 text-graphite-300 text-xs hover:bg-graphite-800"
+                      className="px-3 py-1.5 rounded border border-graphite-800 text-graphite-300 text-sm hover:bg-graphite-800 cursor-pointer"
                     >
                       {t("discussions.comments.cancel")}
                     </button>
                     <button
                       onClick={() => handleUpdateComment(rootComment.comment_id)}
                       disabled={editSubmitting}
-                      className="px-3 py-1 rounded bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs transition-colors"
+                      className="px-3.5 py-1.5 rounded bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm transition-colors cursor-pointer"
                     >
                       {editSubmitting ? t("discussions.comments.saving") : t("discussions.comments.saveChanges")}
                     </button>
                   </div>
                 </div>
               ) : (
-                <div className="text-xs text-graphite-300 leading-relaxed">
+                <div className="text-base text-graphite-200 leading-relaxed">
                   <MarkdownView content={rootComment.content} />
                 </div>
               )}
@@ -436,13 +436,13 @@ export default function CommentSection({ threadId, threadAuthorId }: CommentSect
                 <button
                   onClick={() => handleToggleUpvote(rootComment.comment_id)}
                   className={cn(
-                    "flex items-center gap-1 px-2 py-0.5 rounded font-mono text-[11px] transition-colors cursor-pointer",
+                    "flex items-center gap-1.5 px-2.5 py-1 rounded font-mono text-xs transition-colors cursor-pointer",
                     rootComment.has_upvoted
                       ? "bg-emerald-950/40 text-emerald-400 border border-emerald-500/30 font-bold"
                       : "text-graphite-400 hover:text-white hover:bg-graphite-900"
                   )}
                 >
-                  <ThumbsUp className="w-3 h-3" />
+                  <ThumbsUp className="w-3.5 h-3.5" />
                   <span>{rootComment.upvote_count}</span>
                 </button>
 
@@ -460,9 +460,9 @@ export default function CommentSection({ threadId, threadAuthorId }: CommentSect
                         setReplyContent("");
                       }
                     }}
-                    className="flex items-center gap-1 text-[11px] text-graphite-400 hover:text-indigo-400 transition-colors cursor-pointer"
+                    className="flex items-center gap-1.5 text-xs sm:text-sm text-graphite-400 hover:text-indigo-400 transition-colors cursor-pointer"
                   >
-                    <Reply className="w-3 h-3" />
+                    <Reply className="w-3.5 h-3.5" />
                     <span>{t("discussions.comments.replyBtn")}</span>
                   </button>
                 )}
@@ -470,16 +470,16 @@ export default function CommentSection({ threadId, threadAuthorId }: CommentSect
 
               {/* Nested Reply Box */}
               {replyTarget?.commentId === rootComment.comment_id && (
-                <div className="mt-3 p-3 rounded-lg bg-graphite-900/50 border border-graphite-800 space-y-2">
-                  <div className="flex items-center justify-between text-[11px] text-graphite-400">
+                <div className="mt-3 p-3.5 rounded-lg bg-graphite-900/50 border border-graphite-800 space-y-2.5">
+                  <div className="flex items-center justify-between text-xs text-graphite-300">
                     <span>
                       {t("discussions.comments.replyingTo")} <span className="text-white font-mono">@{replyTarget.authorNickname}</span>
                     </span>
                     <button
                       onClick={() => setReplyTarget(null)}
-                      className="text-graphite-500 hover:text-white"
+                      className="text-graphite-400 hover:text-white cursor-pointer"
                     >
-                      <X className="w-3 h-3" />
+                      <X className="w-4 h-4" />
                     </button>
                   </div>
                   <textarea
@@ -487,24 +487,24 @@ export default function CommentSection({ threadId, threadAuthorId }: CommentSect
                     placeholder={t("discussions.comments.replyPlaceholder")}
                     value={replyContent}
                     onChange={(e) => setReplyContent(e.target.value)}
-                    className="w-full p-2 bg-graphite-950 border border-graphite-800 rounded text-xs text-white placeholder-graphite-600 focus:outline-none focus:border-graphite-600 resize-y"
+                    className="w-full p-2.5 bg-graphite-950 border border-graphite-800 rounded text-sm text-white placeholder-graphite-500 focus:outline-none focus:border-graphite-600 resize-y leading-relaxed"
                   />
                   <div className="flex items-center justify-end gap-2">
                     <button
                       onClick={() => setReplyTarget(null)}
-                      className="px-2.5 py-1 rounded text-graphite-400 hover:text-white text-xs"
+                      className="px-3 py-1.5 rounded text-graphite-400 hover:text-white text-sm cursor-pointer"
                     >
                       {t("discussions.comments.cancel")}
                     </button>
                     <button
                       onClick={() => handleCreateReply(rootComment.comment_id)}
                       disabled={replySubmitting || !replyContent.trim()}
-                      className="flex items-center gap-1 px-3 py-1 rounded bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs shadow-sm transition-colors cursor-pointer disabled:opacity-50"
+                      className="flex items-center gap-1.5 px-3.5 py-1.5 rounded bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm shadow-sm transition-colors cursor-pointer disabled:opacity-50"
                     >
                       {replySubmitting ? (
-                        <Loader2 className="w-3 h-3 animate-spin" />
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
                       ) : (
-                        <Send className="w-3 h-3" />
+                        <Send className="w-3.5 h-3.5" />
                       )}
                       <span>{t("discussions.comments.sendReply")}</span>
                     </button>
@@ -514,21 +514,21 @@ export default function CommentSection({ threadId, threadAuthorId }: CommentSect
 
               {/* Level 2 Nested Replies */}
               {rootComment.replies && rootComment.replies.length > 0 && (
-                <div className="mt-3 ml-4 sm:ml-6 pl-3 border-l-2 border-graphite-800 space-y-3">
+                <div className="mt-3 ml-4 sm:ml-6 pl-4 border-l-2 border-graphite-800 space-y-3">
                   {rootComment.replies.map((reply) => (
                     <div
                       key={reply.comment_id}
                       id={`comment-${reply.comment_id}`}
-                      className="p-3 rounded-md bg-graphite-900/40 border border-graphite-800/80 space-y-2 text-xs"
+                      className="p-3.5 rounded-md bg-graphite-900/40 border border-graphite-800/80 space-y-2 text-sm"
                     >
                       <div className="flex items-center justify-between gap-2">
-                        <div className="flex items-center gap-2">
-                          <span className="font-mono font-medium text-white text-xs">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="font-mono font-medium text-white text-sm">
                             {reply.author.nickname}
                           </span>
                           <RoleBadge role={reply.author.role} />
                           <span className="text-graphite-600">•</span>
-                          <span className="text-[10px] font-mono text-graphite-500">
+                          <span className="text-xs font-mono text-graphite-400">
                             {formatDate(reply.created_at)}
                           </span>
                         </div>
@@ -540,11 +540,11 @@ export default function CommentSection({ threadId, threadAuthorId }: CommentSect
                               onClick={() => handleToggleHide(reply.comment_id)}
                               title={reply.is_hidden ? t("discussions.comments.unhideReplyTooltip") : t("discussions.comments.hideReplyTooltip")}
                               className={cn(
-                                "p-1 rounded hover:bg-graphite-800 text-xs transition-colors",
-                                reply.is_hidden ? "text-red-400" : "text-graphite-500 hover:text-white"
+                                "p-1 rounded hover:bg-graphite-800 text-xs transition-colors cursor-pointer",
+                                reply.is_hidden ? "text-red-400" : "text-graphite-400 hover:text-white"
                               )}
                             >
-                              <EyeOff className="w-3 h-3" />
+                              <EyeOff className="w-3.5 h-3.5" />
                             </button>
                           )}
 
@@ -556,17 +556,17 @@ export default function CommentSection({ threadId, threadAuthorId }: CommentSect
                                   setEditContent(reply.content);
                                 }}
                                 title={t("discussions.comments.editReplyTooltip")}
-                                className="p-1 rounded text-graphite-500 hover:text-white hover:bg-graphite-800 transition-colors"
+                                className="p-1 rounded text-graphite-400 hover:text-white hover:bg-graphite-800 transition-colors cursor-pointer"
                               >
-                                <Edit2 className="w-3 h-3" />
+                                <Edit2 className="w-3.5 h-3.5" />
                               </button>
 
                               <button
                                 onClick={() => handleDeleteComment(reply.comment_id)}
                                 title={t("discussions.comments.deleteReplyTooltip")}
-                                className="p-1 rounded text-graphite-500 hover:text-red-400 hover:bg-graphite-800 transition-colors"
+                                className="p-1 rounded text-graphite-400 hover:text-red-400 hover:bg-graphite-800 transition-colors cursor-pointer"
                               >
-                                <Trash2 className="w-3 h-3" />
+                                <Trash2 className="w-3.5 h-3.5" />
                               </button>
                             </>
                           )}
@@ -580,26 +580,26 @@ export default function CommentSection({ threadId, threadAuthorId }: CommentSect
                             rows={2}
                             value={editContent}
                             onChange={(e) => setEditContent(e.target.value)}
-                            className="w-full p-2 rounded bg-graphite-950 border border-graphite-800 text-xs text-white focus:outline-none"
+                            className="w-full p-2.5 rounded bg-graphite-950 border border-graphite-800 text-sm text-white focus:outline-none leading-relaxed"
                           />
                           <div className="flex items-center justify-end gap-2">
                             <button
                               onClick={() => setEditingCommentId(null)}
-                              className="px-2 py-0.5 rounded border border-graphite-800 text-graphite-400 text-xs"
+                              className="px-3 py-1.5 rounded border border-graphite-800 text-graphite-300 text-sm cursor-pointer"
                             >
                               {t("discussions.comments.cancel")}
                             </button>
                             <button
                               onClick={() => handleUpdateComment(reply.comment_id)}
                               disabled={editSubmitting}
-                              className="px-2.5 py-0.5 rounded bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs"
+                              className="px-3.5 py-1.5 rounded bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm cursor-pointer"
                             >
                               {editSubmitting ? t("discussions.comments.saving") : t("discussions.comments.saveBtn")}
                             </button>
                           </div>
                         </div>
                       ) : (
-                        <div className="text-xs text-graphite-300 leading-relaxed">
+                        <div className="text-base text-graphite-200 leading-relaxed">
                           <MarkdownView content={reply.content} />
                         </div>
                       )}
@@ -609,13 +609,13 @@ export default function CommentSection({ threadId, threadAuthorId }: CommentSect
                         <button
                           onClick={() => handleToggleUpvote(reply.comment_id)}
                           className={cn(
-                            "flex items-center gap-1 px-1.5 py-0.5 rounded font-mono text-[10px] transition-colors cursor-pointer",
+                            "flex items-center gap-1.5 px-2 py-0.5 rounded font-mono text-xs transition-colors cursor-pointer",
                             reply.has_upvoted
                               ? "bg-emerald-950/40 text-emerald-400 border border-emerald-500/30 font-bold"
                               : "text-graphite-400 hover:text-white"
                           )}
                         >
-                          <ThumbsUp className="w-2.5 h-2.5" />
+                          <ThumbsUp className="w-3 h-3" />
                           <span>{reply.upvote_count}</span>
                         </button>
 
@@ -628,9 +628,9 @@ export default function CommentSection({ threadId, threadAuthorId }: CommentSect
                               });
                               setReplyContent(`@${reply.author.nickname} `);
                             }}
-                            className="text-[10px] text-graphite-400 hover:text-indigo-400 transition-colors flex items-center gap-1 cursor-pointer"
+                            className="text-xs text-graphite-400 hover:text-indigo-400 transition-colors flex items-center gap-1 cursor-pointer"
                           >
-                            <Reply className="w-2.5 h-2.5" />
+                            <Reply className="w-3 h-3" />
                             <span>{t("discussions.comments.replyBtn")}</span>
                           </button>
                         )}

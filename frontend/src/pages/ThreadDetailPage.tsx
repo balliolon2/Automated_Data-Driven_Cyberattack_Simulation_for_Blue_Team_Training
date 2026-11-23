@@ -150,7 +150,7 @@ export default function ThreadDetailPage() {
 
   if (loading) {
     return (
-      <div className="py-24 text-center text-graphite-500 font-mono text-xs">
+      <div className="py-24 text-center text-graphite-400 font-mono text-sm">
         <Loader2 className="w-5 h-5 animate-spin mx-auto mb-2 text-indigo-400" />
         {t("discussions.detail.loading")}
       </div>
@@ -161,12 +161,12 @@ export default function ThreadDetailPage() {
     return (
       <div className="max-w-xl mx-auto text-center py-20 space-y-4">
         <h2 className="text-xl font-bold text-white">{t("discussions.detail.notFoundTitle")}</h2>
-        <p className="text-xs text-graphite-400">
+        <p className="text-base text-graphite-300">
           {t("discussions.detail.notFoundDesc")}
         </p>
         <button
           onClick={() => navigate("/discussions")}
-          className="px-4 py-2 rounded-md bg-graphite-900 hover:bg-graphite-800 text-graphite-200 border border-graphite-800 font-semibold text-xs transition-colors cursor-pointer"
+          className="px-4 py-2 rounded-md bg-graphite-900 hover:bg-graphite-800 text-graphite-200 border border-graphite-800 font-semibold text-sm transition-colors cursor-pointer"
         >
           {t("discussions.detail.backToDiscussions")}
         </button>
@@ -179,35 +179,35 @@ export default function ThreadDetailPage() {
   return (
     <div className="max-w-4xl mx-auto space-y-8 animate-fade-in pb-16">
       {/* Top Bar Navigation */}
-      <div className="flex items-center justify-between border-b border-graphite-800 pb-4">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-graphite-800 pb-4">
         <button
           onClick={() => navigate("/discussions")}
-          className="inline-flex items-center gap-2 text-xs font-medium text-graphite-400 hover:text-white transition-colors cursor-pointer"
+          className="inline-flex items-center gap-2 text-sm font-medium text-graphite-300 hover:text-white transition-colors cursor-pointer"
         >
           <ArrowLeft className="w-4 h-4" />
           <span>{t("discussions.detail.backToDiscussions")}</span>
         </button>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <button
             onClick={handleToggleThreadUpvote}
             disabled={upvoteLoading}
             className={cn(
-              "flex items-center gap-1.5 px-3 py-1.5 rounded-md border text-xs font-mono transition-all cursor-pointer",
+              "flex items-center gap-1.5 px-3.5 py-1.5 rounded-md border text-sm font-mono transition-all cursor-pointer",
               threadUpvoted
                 ? "bg-emerald-950/60 text-emerald-300 border-emerald-500/50 shadow-sm"
-                : "bg-graphite-900 hover:bg-graphite-800 text-graphite-300 hover:text-white border-graphite-800"
+                : "bg-graphite-900 hover:bg-graphite-800 text-graphite-200 hover:text-white border-graphite-800"
             )}
           >
-            <ThumbsUp className={cn("w-3.5 h-3.5", threadUpvoted ? "fill-emerald-400 text-emerald-400" : "")} />
+            <ThumbsUp className={cn("w-4 h-4", threadUpvoted ? "fill-emerald-400 text-emerald-400" : "")} />
             <span>{t("discussions.detail.helpfulCount", { count: threadUpvoteCount })}</span>
           </button>
 
           <button
             onClick={handleShare}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-graphite-800 text-graphite-300 hover:text-white hover:bg-graphite-900 text-xs transition-colors cursor-pointer"
+            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-md border border-graphite-800 text-graphite-200 hover:text-white hover:bg-graphite-900 text-sm transition-colors cursor-pointer"
           >
-            <Share2 className="w-3.5 h-3.5" />
+            <Share2 className="w-4 h-4" />
             <span>{copied ? t("discussions.detail.copiedLink") : t("discussions.detail.share")}</span>
           </button>
 
@@ -215,17 +215,17 @@ export default function ThreadDetailPage() {
             <>
               <Link
                 to={`/discussions/${thread.thread_id}/edit`}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-graphite-800 text-graphite-300 hover:text-white hover:bg-graphite-900 text-xs transition-colors"
+                className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-md border border-graphite-800 text-graphite-200 hover:text-white hover:bg-graphite-900 text-sm transition-colors"
               >
-                <Edit className="w-3.5 h-3.5" />
+                <Edit className="w-4 h-4" />
                 <span>{t("discussions.detail.edit")}</span>
               </Link>
 
               <button
                 onClick={() => setShowDeleteConfirm(true)}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-red-500/30 text-red-400 hover:bg-red-950/40 text-xs transition-colors cursor-pointer"
+                className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-md border border-red-500/30 text-red-400 hover:bg-red-950/40 text-sm transition-colors cursor-pointer"
               >
-                <Trash2 className="w-3.5 h-3.5" />
+                <Trash2 className="w-4 h-4" />
                 <span>{t("discussions.detail.delete")}</span>
               </button>
             </>
@@ -236,22 +236,22 @@ export default function ThreadDetailPage() {
       {/* Delete Confirmation Modal */}
       {showDeleteConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
-          <div className="max-w-sm w-full bg-graphite-950 border border-graphite-800 rounded-xl p-5 space-y-4 shadow-2xl">
-            <h3 className="text-base font-bold text-white">{t("discussions.detail.deleteModalTitle")}</h3>
-            <p className="text-xs text-graphite-400 leading-relaxed">
+          <div className="max-w-sm w-full bg-graphite-950 border border-graphite-800 rounded-xl p-6 space-y-4 shadow-2xl">
+            <h3 className="text-lg font-bold text-white">{t("discussions.detail.deleteModalTitle")}</h3>
+            <p className="text-sm text-graphite-300 leading-relaxed">
               {t("discussions.detail.deleteModalDesc")}
             </p>
             <div className="flex items-center justify-end gap-2 pt-2">
               <button
                 onClick={() => setShowDeleteConfirm(false)}
-                className="px-3.5 py-1.5 rounded border border-graphite-800 text-graphite-300 text-xs hover:bg-graphite-900"
+                className="px-4 py-2 rounded border border-graphite-800 text-graphite-200 text-sm hover:bg-graphite-900 cursor-pointer"
               >
                 {t("discussions.detail.cancel")}
               </button>
               <button
                 onClick={handleDelete}
                 disabled={deleteLoading}
-                className="px-4 py-1.5 rounded bg-red-600 hover:bg-red-500 text-white font-semibold text-xs transition-colors"
+                className="px-4 py-2 rounded bg-red-600 hover:bg-red-500 text-white font-semibold text-sm transition-colors cursor-pointer"
               >
                 {deleteLoading ? t("discussions.detail.deleting") : t("discussions.detail.confirmDelete")}
               </button>
@@ -263,8 +263,8 @@ export default function ThreadDetailPage() {
       {/* Post Article Header */}
       <div className="space-y-4">
         {thread.is_pinned && (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20 text-[10px] font-mono font-bold">
-            <Pin className="w-3 h-3" /> {t("discussions.detail.pinnedBySpecialist")}
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20 text-xs font-mono font-bold">
+            <Pin className="w-3.5 h-3.5" /> {t("discussions.detail.pinnedBySpecialist")}
           </span>
         )}
 
@@ -273,46 +273,46 @@ export default function ThreadDetailPage() {
         </h1>
 
         {/* Author & Meta Row */}
-        <div className="flex flex-wrap items-center justify-between gap-4 py-3 border-y border-graphite-800/80 text-xs">
+        <div className="flex flex-wrap items-center justify-between gap-4 py-3.5 border-y border-graphite-800/80 text-sm">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-full bg-graphite-900 border border-graphite-800 flex items-center justify-center">
+            <div className="w-10 h-10 rounded-full bg-graphite-900 border border-graphite-800 flex items-center justify-center shrink-0">
               {thread.author.role === "admin" ? (
-                <ShieldAlert className="w-4 h-4 text-amber-400" />
+                <ShieldAlert className="w-5 h-5 text-amber-400" />
               ) : (
-                <Award className="w-4 h-4 text-indigo-400" />
+                <Award className="w-5 h-5 text-indigo-400" />
               )}
             </div>
 
             <div>
-              <div className="flex items-center gap-1.5">
-                <span className="font-mono font-medium text-white text-xs">
+              <div className="flex items-center gap-2">
+                <span className="font-mono font-medium text-white text-sm">
                   {thread.author.nickname}
                 </span>
                 <RoleBadge role={thread.author.role} />
               </div>
-              <div className="flex items-center gap-1.5 text-graphite-500 text-[11px] font-mono mt-0.5">
-                <Calendar className="w-3 h-3" />
+              <div className="flex items-center gap-1.5 text-graphite-400 text-xs font-mono mt-1">
+                <Calendar className="w-3.5 h-3.5" />
                 <span>{t("discussions.detail.publishedOn", { date: formatDate(thread.created_at) })}</span>
               </div>
             </div>
           </div>
 
-          <div className="flex items-center gap-4 text-graphite-400 font-mono text-xs">
-            <span className="flex items-center gap-1">
-              <Eye className="w-3.5 h-3.5" />
+          <div className="flex items-center gap-4 text-graphite-300 font-mono text-xs sm:text-sm">
+            <span className="flex items-center gap-1.5">
+              <Eye className="w-4 h-4" />
               {t("discussions.detail.viewsCount", { count: thread.view_count })}
             </span>
             <button
               onClick={handleToggleThreadUpvote}
               disabled={upvoteLoading}
               className={cn(
-                "flex items-center gap-1 px-2 py-0.5 rounded border text-xs transition-colors cursor-pointer",
+                "flex items-center gap-1.5 px-2.5 py-1 rounded border text-xs sm:text-sm transition-colors cursor-pointer",
                 threadUpvoted
                   ? "bg-emerald-950/40 text-emerald-300 border-emerald-500/40 font-bold"
-                  : "text-graphite-400 hover:text-white border-graphite-800 hover:bg-graphite-900"
+                  : "text-graphite-300 hover:text-white border-graphite-800 hover:bg-graphite-900"
               )}
             >
-              <ThumbsUp className={cn("w-3.5 h-3.5", threadUpvoted ? "fill-emerald-400 text-emerald-400" : "")} />
+              <ThumbsUp className={cn("w-4 h-4", threadUpvoted ? "fill-emerald-400 text-emerald-400" : "")} />
               <span>{t("discussions.detail.helpfulStat", { count: threadUpvoteCount })}</span>
             </button>
           </div>
@@ -321,25 +321,25 @@ export default function ThreadDetailPage() {
 
       {/* Linked Scenario Banner (if applicable) */}
       {thread.scenario && localizedScenario && (
-        <div className="p-4 rounded-lg bg-indigo-950/20 border border-indigo-500/30 flex items-center justify-between gap-4">
+        <div className="p-4 sm:p-5 rounded-lg bg-indigo-950/20 border border-indigo-500/30 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center shrink-0">
+            <div className="w-9 h-9 rounded-lg bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center shrink-0">
               <Crosshair className="w-4 h-4 text-indigo-400" />
             </div>
             <div>
-              <div className="text-[10px] font-mono text-indigo-400 uppercase font-semibold">
+              <div className="text-xs font-mono text-indigo-400 uppercase font-semibold">
                 {t("discussions.detail.linkedScenarioDebrief")}
               </div>
-              <div className="text-sm font-bold text-white mt-0.5">{localizedScenario.title}</div>
+              <div className="text-base font-bold text-white mt-0.5">{localizedScenario.title}</div>
               {locale === "th" && localizedScenario.title !== thread.scenario.title && (
-                <div className="text-[10px] font-mono text-graphite-400 mt-0.5">
+                <div className="text-xs font-mono text-graphite-400 mt-0.5">
                   {t("discussions.detail.canonicalTitleLabel", { title: thread.scenario.title })}
                 </div>
               )}
             </div>
           </div>
 
-          <span className="px-2 py-1 rounded bg-graphite-900 border border-graphite-800 text-[10px] font-mono text-graphite-300 shrink-0">
+          <span className="px-2.5 py-1 rounded bg-graphite-900 border border-graphite-800 text-xs font-mono text-graphite-200 shrink-0">
             {thread.scenario.domain_id}
           </span>
         </div>
@@ -353,12 +353,12 @@ export default function ThreadDetailPage() {
       {/* Tags */}
       {thread.tags && thread.tags.length > 0 && (
         <div className="pt-6 border-t border-graphite-800 flex flex-wrap items-center gap-2">
-          <span className="text-xs text-graphite-500 font-mono">{t("discussions.detail.tagsLabel")}</span>
+          <span className="text-xs text-graphite-400 font-mono">{t("discussions.detail.tagsLabel")}</span>
           {thread.tags.map((tag) => (
             <Link
               key={tag}
               to={`/discussions?tag=${tag}`}
-              className="px-2.5 py-1 rounded-md bg-graphite-900 hover:bg-graphite-800 border border-graphite-800 text-graphite-300 text-xs font-mono transition-colors"
+              className="px-2.5 py-1 rounded-md bg-graphite-900 hover:bg-graphite-800 border border-graphite-800 text-graphite-200 text-xs font-mono transition-colors"
             >
               #{tag}
             </Link>

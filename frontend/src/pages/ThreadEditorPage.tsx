@@ -320,7 +320,7 @@ export default function ThreadEditorPage() {
 
   if (initialLoading) {
     return (
-      <div className="py-24 text-center text-graphite-500 font-mono text-xs">
+      <div className="py-24 text-center text-graphite-400 font-mono text-sm">
         {t("discussions.editor.loading")}
       </div>
     );
@@ -329,50 +329,50 @@ export default function ThreadEditorPage() {
   return (
     <div className="max-w-4xl mx-auto space-y-6 animate-fade-in pb-12">
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-graphite-800 pb-4">
+      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-graphite-800 pb-4">
         <div className="flex items-center gap-3">
           <button
             onClick={() => navigate(-1)}
-            className="p-1.5 rounded-lg text-graphite-400 hover:text-white hover:bg-graphite-900 transition-colors"
+            className="p-2 rounded-lg text-graphite-400 hover:text-white hover:bg-graphite-900 transition-colors cursor-pointer"
           >
             <ArrowLeft className="w-4 h-4" />
           </button>
           <div>
-            <h1 className="text-xl font-bold tracking-tight text-white">
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-white">
               {isEditing ? t("discussions.editor.editTitle") : t("discussions.editor.newTitle")}
             </h1>
-            <p className="text-xs text-graphite-400">
+            <p className="text-sm text-graphite-300">
               {t("discussions.editor.subtitle")}
             </p>
           </div>
         </div>
 
         {/* View Switcher on larger screens */}
-        <div className="flex items-center gap-1 p-1 rounded-lg bg-graphite-900 border border-graphite-800 text-xs">
+        <div className="flex items-center gap-1 p-1 rounded-lg bg-graphite-900 border border-graphite-800 text-sm">
           <button
             type="button"
             onClick={() => setActiveTab("write")}
-            className={`px-3 py-1 rounded font-medium transition-colors ${
+            className={`px-3 py-1.5 rounded font-medium transition-colors cursor-pointer ${
               activeTab === "write" ? "bg-graphite-800 text-white" : "text-graphite-400 hover:text-white"
             }`}
           >
-            <Edit3 className="w-3.5 h-3.5 inline mr-1" />
+            <Edit3 className="w-4 h-4 inline mr-1" />
             {t("discussions.editor.writeTab")}
           </button>
           <button
             type="button"
             onClick={() => setActiveTab("preview")}
-            className={`px-3 py-1 rounded font-medium transition-colors ${
+            className={`px-3 py-1.5 rounded font-medium transition-colors cursor-pointer ${
               activeTab === "preview" ? "bg-graphite-800 text-white" : "text-graphite-400 hover:text-white"
             }`}
           >
-            <Eye className="w-3.5 h-3.5 inline mr-1" />
+            <Eye className="w-4 h-4 inline mr-1" />
             {t("discussions.editor.previewTab")}
           </button>
           <button
             type="button"
             onClick={() => setActiveTab("split")}
-            className={`hidden md:block px-3 py-1 rounded font-medium transition-colors ${
+            className={`hidden md:block px-3 py-1.5 rounded font-medium transition-colors cursor-pointer ${
               activeTab === "split" ? "bg-graphite-800 text-white" : "text-graphite-400 hover:text-white"
             }`}
           >
@@ -382,7 +382,7 @@ export default function ThreadEditorPage() {
       </div>
 
       {errorMsg && (
-        <div className="p-3.5 rounded-lg bg-red-950/30 border border-red-500/20 text-red-400 text-xs flex items-center gap-2">
+        <div className="p-3.5 rounded-lg bg-red-950/30 border border-red-500/20 text-red-400 text-sm flex items-center gap-2">
           <AlertCircle className="w-4 h-4 shrink-0" />
           <span>{errorMsg}</span>
         </div>
@@ -391,15 +391,15 @@ export default function ThreadEditorPage() {
       <form onSubmit={handleSubmit} className="space-y-5">
         {/* Scenario Link */}
         <div className="space-y-1.5">
-          <label className="text-xs font-semibold text-graphite-300 flex items-center gap-1.5">
-            <Crosshair className="w-3.5 h-3.5 text-indigo-400" />
+          <label className="text-sm font-semibold text-graphite-200 flex items-center gap-1.5">
+            <Crosshair className="w-4 h-4 text-indigo-400" />
             <span>{t("discussions.editor.linkScenarioLabel")}</span>
           </label>
           <select
             value={scenarioId}
             onChange={(e) => setScenarioId(e.target.value)}
             disabled={isEditing}
-            className="w-full px-3 py-2 rounded-lg bg-graphite-950 border border-graphite-800 text-graphite-200 text-xs focus:outline-none focus:border-graphite-600 disabled:opacity-60"
+            className="w-full px-3.5 py-2.5 rounded-lg bg-graphite-950 border border-graphite-800 text-graphite-100 text-sm focus:outline-none focus:border-graphite-600 disabled:opacity-60"
           >
             <option value="">{t("discussions.editor.generalAnalysisOption")}</option>
             {scenarios.map((sc) => {
@@ -411,14 +411,14 @@ export default function ThreadEditorPage() {
               );
             })}
           </select>
-          <p className="text-[11px] text-graphite-500">
+          <p className="text-xs text-graphite-400">
             {t("discussions.editor.linkScenarioHint")}
           </p>
         </div>
 
         {/* Title */}
         <div className="space-y-1.5">
-          <label className="text-xs font-semibold text-graphite-300">
+          <label className="text-sm font-semibold text-graphite-200">
             {t("discussions.editor.postTitleLabel")} <span className="text-red-400">*</span>
           </label>
           <input
@@ -427,26 +427,26 @@ export default function ThreadEditorPage() {
             placeholder={t("discussions.editor.postTitlePlaceholder")}
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            className="w-full px-3.5 py-2.5 rounded-lg bg-graphite-950 border border-graphite-800 text-white placeholder-graphite-600 text-sm focus:outline-none focus:border-graphite-600"
+            className="w-full px-3.5 py-2.5 rounded-lg bg-graphite-950 border border-graphite-800 text-white placeholder-graphite-500 text-base focus:outline-none focus:border-graphite-600"
           />
         </div>
 
         {/* Tags */}
         <div className="space-y-1.5">
-          <label className="text-xs font-semibold text-graphite-300">{t("discussions.editor.tagsLabel")}</label>
-          <div className="flex flex-wrap items-center gap-1.5 p-2 rounded-lg bg-graphite-950 border border-graphite-800">
+          <label className="text-sm font-semibold text-graphite-200">{t("discussions.editor.tagsLabel")}</label>
+          <div className="flex flex-wrap items-center gap-1.5 p-2.5 rounded-lg bg-graphite-950 border border-graphite-800">
             {tags.map((tag) => (
               <span
                 key={tag}
-                className="px-2 py-0.5 rounded bg-graphite-900 border border-graphite-800 text-graphite-200 font-mono text-[11px] flex items-center gap-1"
+                className="px-2.5 py-0.5 rounded bg-graphite-900 border border-graphite-800 text-graphite-200 font-mono text-xs flex items-center gap-1"
               >
                 #{tag}
                 <button
                   type="button"
                   onClick={() => handleRemoveTag(tag)}
-                  className="text-graphite-400 hover:text-white"
+                  className="text-graphite-400 hover:text-white cursor-pointer"
                 >
-                  <X className="w-3 h-3" />
+                  <X className="w-3.5 h-3.5" />
                 </button>
               </span>
             ))}
@@ -461,7 +461,7 @@ export default function ThreadEditorPage() {
                   handleAddTag();
                 }
               }}
-              className="flex-1 min-w-[140px] bg-transparent text-xs text-white placeholder-graphite-600 focus:outline-none px-1"
+              className="flex-1 min-w-[140px] bg-transparent text-sm text-white placeholder-graphite-500 focus:outline-none px-1"
             />
           </div>
         </div>
@@ -469,7 +469,7 @@ export default function ThreadEditorPage() {
         {/* Quick-Insert Toolbar */}
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-graphite-400">{t("discussions.editor.templatesLabel")}</span>
+            <span className="text-sm font-semibold text-graphite-300">{t("discussions.editor.templatesLabel")}</span>
           </div>
 
           <div className="flex flex-wrap gap-2 text-xs">
@@ -480,9 +480,9 @@ export default function ThreadEditorPage() {
                   `### Investigation Timeline\n| Step | Action Taken | Discovered Finding |\n|---|---|---|\n| 1 | Triage SIEM Alert | Suspicious PowerShell invocation |\n| 2 | Endpoint Inspection | Outbound C2 connection detected |\n| 3 | Host Isolation | VLAN quarantine applied |`
                 )
               }
-              className="px-2.5 py-1.5 rounded bg-graphite-900 hover:bg-graphite-800 border border-graphite-800 text-graphite-300 hover:text-white flex items-center gap-1.5 text-xs transition-colors cursor-pointer"
+              className="px-3 py-2 rounded bg-graphite-900 hover:bg-graphite-800 border border-graphite-800 text-graphite-200 hover:text-white flex items-center gap-1.5 text-xs sm:text-sm transition-colors cursor-pointer"
             >
-              <Clock className="w-3.5 h-3.5 text-indigo-400" />
+              <Clock className="w-4 h-4 text-indigo-400" />
               <span>{t("discussions.editor.timelineBtn")}</span>
             </button>
 
@@ -493,9 +493,9 @@ export default function ThreadEditorPage() {
                   `### Indicators of Compromise (IOCs)\n| Type | Value | Context |\n|---|---|---|\n| IPv4 | 198.51.100.45 | C2 Command Beacon |\n| Hash (SHA256) | e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855 | Malicious Dropper |\n| Domain | update.security-patch.net | Phishing Delivery |`
                 )
               }
-              className="px-2.5 py-1.5 rounded bg-graphite-900 hover:bg-graphite-800 border border-graphite-800 text-graphite-300 hover:text-white flex items-center gap-1.5 text-xs transition-colors cursor-pointer"
+              className="px-3 py-2 rounded bg-graphite-900 hover:bg-graphite-800 border border-graphite-800 text-graphite-200 hover:text-white flex items-center gap-1.5 text-xs sm:text-sm transition-colors cursor-pointer"
             >
-              <Search className="w-3.5 h-3.5 text-amber-400" />
+              <Search className="w-4 h-4 text-amber-400" />
               <span>{t("discussions.editor.iocBtn")}</span>
             </button>
 
@@ -506,9 +506,9 @@ export default function ThreadEditorPage() {
                   "### Recommended Detection Rule (Sigma)\n```yaml\ntitle: Suspicious Base64 Encoded PowerShell\nstatus: stable\nlogsource:\n  product: windows\n  service: security\ndetection:\n  selection:\n    EventID: 4688\n    CommandLine|contains:\n      - '-enc'\n      - '-encodedcommand'\n  condition: selection\nlevel: high\n```"
                 )
               }
-              className="px-2.5 py-1.5 rounded bg-graphite-900 hover:bg-graphite-800 border border-graphite-800 text-graphite-300 hover:text-white flex items-center gap-1.5 text-xs transition-colors cursor-pointer"
+              className="px-3 py-2 rounded bg-graphite-900 hover:bg-graphite-800 border border-graphite-800 text-graphite-200 hover:text-white flex items-center gap-1.5 text-xs sm:text-sm transition-colors cursor-pointer"
             >
-              <Shield className="w-3.5 h-3.5 text-emerald-400" />
+              <Shield className="w-4 h-4 text-emerald-400" />
               <span>{t("discussions.editor.sigmaBtn")}</span>
             </button>
 
@@ -519,9 +519,9 @@ export default function ThreadEditorPage() {
                   "> 💡 **Key Takeaways & Lessons Learned**:\n> Always trace parent process execution lineage before validating alert fidelity to prevent false negative dismissals."
                 )
               }
-              className="px-2.5 py-1.5 rounded bg-graphite-900 hover:bg-graphite-800 border border-graphite-800 text-graphite-300 hover:text-white flex items-center gap-1.5 text-xs transition-colors cursor-pointer"
+              className="px-3 py-2 rounded bg-graphite-900 hover:bg-graphite-800 border border-graphite-800 text-graphite-200 hover:text-white flex items-center gap-1.5 text-xs sm:text-sm transition-colors cursor-pointer"
             >
-              <Lightbulb className="w-3.5 h-3.5 text-amber-400" />
+              <Lightbulb className="w-4 h-4 text-amber-400" />
               <span>{t("discussions.editor.takeawaysBtn")}</span>
             </button>
 
@@ -529,9 +529,9 @@ export default function ThreadEditorPage() {
               <button
                 type="button"
                 onClick={() => insertSnippet(buildEvidenceReviewMarkdown(evidenceReview))}
-                className="px-2.5 py-1.5 rounded bg-cyan-950/40 hover:bg-cyan-900/50 border border-cyan-500/30 text-cyan-200 hover:text-white flex items-center gap-1.5 text-xs transition-colors cursor-pointer"
+                className="px-3 py-2 rounded bg-cyan-950/40 hover:bg-cyan-900/50 border border-cyan-500/30 text-cyan-200 hover:text-white flex items-center gap-1.5 text-xs sm:text-sm transition-colors cursor-pointer"
               >
-                <Search className="w-3.5 h-3.5 text-cyan-400" />
+                <Search className="w-4 h-4 text-cyan-400" />
                 <span>{t("discussions.editor.evidenceReviewBtn")}</span>
               </button>
             )}
@@ -540,7 +540,7 @@ export default function ThreadEditorPage() {
 
         {/* Content Area */}
         <div className="space-y-1.5">
-          <label className="text-xs font-semibold text-graphite-300">
+          <label className="text-sm font-semibold text-graphite-200">
             {t("discussions.editor.postBodyLabel")} <span className="text-red-400">*</span>
           </label>
 
@@ -551,7 +551,7 @@ export default function ThreadEditorPage() {
               placeholder={t("discussions.editor.writePlaceholder")}
               value={content}
               onChange={(e) => setContent(e.target.value)}
-              className="w-full p-4 rounded-lg bg-graphite-950 border border-graphite-800 text-white placeholder-graphite-600 text-xs font-mono leading-relaxed focus:outline-none focus:border-graphite-600 resize-y"
+              className="w-full p-4 rounded-lg bg-graphite-950 border border-graphite-800 text-white placeholder-graphite-500 text-sm font-mono leading-relaxed focus:outline-none focus:border-graphite-600 resize-y"
             />
           )}
 
@@ -560,7 +560,7 @@ export default function ThreadEditorPage() {
               {content.trim() ? (
                 <MarkdownView content={content} />
               ) : (
-                <p className="text-xs text-graphite-500 italic">{t("discussions.editor.previewEmpty")}</p>
+                <p className="text-sm text-graphite-400 italic">{t("discussions.editor.previewEmpty")}</p>
               )}
             </div>
           )}
@@ -573,13 +573,13 @@ export default function ThreadEditorPage() {
                 placeholder={t("discussions.editor.splitPlaceholder")}
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
-                className="w-full p-4 rounded-lg bg-graphite-950 border border-graphite-800 text-white placeholder-graphite-600 text-xs font-mono leading-relaxed focus:outline-none focus:border-graphite-600 resize-y"
+                className="w-full p-4 rounded-lg bg-graphite-950 border border-graphite-800 text-white placeholder-graphite-500 text-sm font-mono leading-relaxed focus:outline-none focus:border-graphite-600 resize-y"
               />
               <div className="p-4 rounded-lg bg-graphite-950 border border-graphite-800 overflow-y-auto max-h-[420px]">
                 {content.trim() ? (
                   <MarkdownView content={content} />
                 ) : (
-                  <p className="text-xs text-graphite-500 italic">{t("discussions.editor.splitPreviewEmpty")}</p>
+                  <p className="text-sm text-graphite-400 italic">{t("discussions.editor.splitPreviewEmpty")}</p>
                 )}
               </div>
             </div>
@@ -591,7 +591,7 @@ export default function ThreadEditorPage() {
           <button
             type="button"
             onClick={() => navigate(-1)}
-            className="px-4 py-2 rounded-md border border-graphite-800 text-graphite-300 hover:text-white hover:bg-graphite-900 text-xs font-medium transition-colors"
+            className="px-4 py-2 rounded-md border border-graphite-800 text-graphite-200 hover:text-white hover:bg-graphite-900 text-sm font-medium transition-colors cursor-pointer"
           >
             {t("discussions.editor.cancel")}
           </button>
@@ -599,7 +599,7 @@ export default function ThreadEditorPage() {
           <button
             type="submit"
             disabled={loading}
-            className="flex items-center gap-2 px-5 py-2 rounded-md bg-indigo-600 hover:bg-indigo-500 disabled:opacity-60 text-white text-xs font-semibold shadow-sm transition-all cursor-pointer"
+            className="flex items-center gap-2 px-5 py-2 rounded-md bg-indigo-600 hover:bg-indigo-500 disabled:opacity-60 text-white text-sm font-semibold shadow-sm transition-all cursor-pointer"
           >
             {loading ? (
               <>

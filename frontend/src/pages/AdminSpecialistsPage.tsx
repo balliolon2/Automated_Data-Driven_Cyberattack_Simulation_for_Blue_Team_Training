@@ -128,7 +128,7 @@ export default function AdminSpecialistsPage() {
       <div className="min-h-[50vh] flex flex-col items-center justify-center space-y-4">
         <ShieldAlert className="w-12 h-12 text-rose-500" />
         <h2 className="text-xl font-bold text-white">{t("admin.accessDeniedTitle")}</h2>
-        <p className="text-xs text-graphite-400">
+        <p className="text-base text-graphite-300">
           {t("admin.accessDeniedDesc")}
         </p>
       </div>
@@ -144,9 +144,9 @@ export default function AdminSpecialistsPage() {
         <div>
           <div className="flex items-center gap-2">
             <ShieldAlert className="w-6 h-6 text-amber-400" />
-            <h1 className="text-2xl font-bold text-white tracking-tight">{t("admin.title")}</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">{t("admin.title")}</h1>
           </div>
-          <p className="text-xs text-graphite-400 mt-1 font-light">
+          <p className="text-sm sm:text-base text-graphite-300 mt-1.5 font-normal">
             {t("admin.subtitle")}
           </p>
         </div>
@@ -157,7 +157,7 @@ export default function AdminSpecialistsPage() {
             <button
               key={tab}
               onClick={() => setStatusFilter(tab)}
-              className={`px-3 py-1.5 rounded text-xs font-medium uppercase tracking-wider transition-all ${
+              className={`px-3.5 py-2 rounded text-xs sm:text-sm font-medium uppercase tracking-wider transition-all cursor-pointer ${
                 statusFilter === tab
                   ? "bg-white text-black font-semibold shadow-sm"
                   : "text-graphite-400 hover:text-white"
@@ -170,13 +170,13 @@ export default function AdminSpecialistsPage() {
       </div>
 
       {error && (
-        <div className="p-4 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-mono">
+        <div className="p-4 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm font-mono">
           {error}
         </div>
       )}
 
       {actionSuccess && (
-        <div className="p-4 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-mono flex items-center gap-2">
+        <div className="p-4 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-sm font-mono flex items-center gap-2">
           <CheckCircle2 size={16} />
           <span>{actionSuccess}</span>
         </div>
@@ -189,9 +189,9 @@ export default function AdminSpecialistsPage() {
         </div>
       ) : applications.length === 0 ? (
         <div className="py-16 text-center bg-graphite-900 border border-graphite-800 rounded-xl space-y-2">
-          <Clock className="w-8 h-8 text-graphite-600 mx-auto" />
-          <p className="text-sm text-graphite-300 font-medium">{t("admin.emptyTitle")}</p>
-          <p className="text-xs text-graphite-500">{t("admin.emptyDesc", { status: filterLabel })}</p>
+          <Clock className="w-8 h-8 text-graphite-500 mx-auto" />
+          <p className="text-base text-graphite-200 font-medium">{t("admin.emptyTitle")}</p>
+          <p className="text-sm text-graphite-400">{t("admin.emptyDesc", { status: filterLabel })}</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-6">
@@ -207,8 +207,8 @@ export default function AdminSpecialistsPage() {
                   </div>
                   <div>
                     <div className="flex items-center gap-2">
-                      <span className="text-base font-bold text-white font-mono">{app.nickname}</span>
-                      <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase tracking-wider ${
+                      <span className="text-lg font-bold text-white font-mono">{app.nickname}</span>
+                      <span className={`px-2.5 py-0.5 rounded text-xs font-mono font-bold uppercase tracking-wider ${
                         app.status === "approved"
                           ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/30"
                           : app.status === "rejected"
@@ -218,11 +218,11 @@ export default function AdminSpecialistsPage() {
                         {t(`admin.statusLabels.${app.status}`)}
                       </span>
                     </div>
-                    <span className="text-xs text-graphite-400 font-mono">{app.email}</span>
+                    <span className="text-sm text-graphite-300 font-mono">{app.email}</span>
                   </div>
                 </div>
 
-                <div className="text-xs text-graphite-500 font-mono">
+                <div className="text-xs text-graphite-400 font-mono">
                   {t("admin.appliedOn", {
                     date: formatDate(app.created_at, {
                       year: "numeric",
@@ -237,10 +237,10 @@ export default function AdminSpecialistsPage() {
 
               {/* Bio Section */}
               <div>
-                <span className="text-[11px] font-mono uppercase tracking-wider text-graphite-400 block mb-1">
+                <span className="text-xs font-mono uppercase tracking-wider text-graphite-400 block mb-1.5">
                   {t("admin.candidateBio")}
                 </span>
-                <p className="text-xs text-graphite-200 bg-graphite-950 p-3 rounded border border-graphite-800 font-light leading-relaxed whitespace-pre-wrap">
+                <p className="text-base text-graphite-100 bg-graphite-950 p-4 rounded border border-graphite-800 font-normal leading-relaxed whitespace-pre-wrap">
                   {app.bio}
                 </p>
               </div>
@@ -250,18 +250,18 @@ export default function AdminSpecialistsPage() {
                 <div className="flex flex-wrap items-center gap-3">
                   <button
                     onClick={() => handleDownload(app.application_id, "resume")}
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-graphite-950 border border-graphite-700 hover:border-white rounded text-xs text-graphite-200 transition-colors cursor-pointer"
+                    className="flex items-center gap-1.5 px-3.5 py-2 bg-graphite-950 border border-graphite-700 hover:border-white rounded text-sm text-graphite-200 transition-colors cursor-pointer"
                   >
-                    <Download size={13} />
+                    <Download size={15} />
                     <span>{t("admin.downloadResume")}</span>
                   </button>
 
                   {app.certificate_path && (
                     <button
                       onClick={() => handleDownload(app.application_id, "certificate")}
-                      className="flex items-center gap-1.5 px-3 py-1.5 bg-graphite-950 border border-graphite-700 hover:border-white rounded text-xs text-graphite-200 transition-colors cursor-pointer"
+                      className="flex items-center gap-1.5 px-3.5 py-2 bg-graphite-950 border border-graphite-700 hover:border-white rounded text-sm text-graphite-200 transition-colors cursor-pointer"
                     >
-                      <Download size={13} />
+                      <Download size={15} />
                       <span>{t("admin.downloadCert")}</span>
                     </button>
                   )}
@@ -271,9 +271,9 @@ export default function AdminSpecialistsPage() {
                       href={app.linkedin_url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex items-center gap-1 text-xs text-graphite-400 hover:text-white transition-colors"
+                      className="flex items-center gap-1.5 text-sm text-graphite-300 hover:text-white transition-colors"
                     >
-                      <ExternalLink size={12} />
+                      <ExternalLink size={14} />
                       <span>{t("admin.linkedin")}</span>
                     </a>
                   )}
@@ -283,9 +283,9 @@ export default function AdminSpecialistsPage() {
                       href={app.portfolio_url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex items-center gap-1 text-xs text-graphite-400 hover:text-white transition-colors"
+                      className="flex items-center gap-1.5 text-sm text-graphite-300 hover:text-white transition-colors"
                     >
-                      <ExternalLink size={12} />
+                      <ExternalLink size={14} />
                       <span>{t("admin.portfolio")}</span>
                     </a>
                   )}
@@ -293,20 +293,20 @@ export default function AdminSpecialistsPage() {
 
                 {/* Review Controls */}
                 {app.status === "pending" && (
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2.5">
                     <button
                       onClick={() => setRejectingAppId(app.application_id)}
                       disabled={submittingAction}
-                      className="px-3 py-1.5 bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 border border-rose-500/30 rounded text-xs font-semibold transition-all cursor-pointer"
+                      className="px-4 py-2 bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 border border-rose-500/30 rounded text-sm font-semibold transition-all cursor-pointer"
                     >
                       {t("admin.rejectBtn")}
                     </button>
                     <button
                       onClick={() => handleApprove(app.application_id)}
                       disabled={submittingAction}
-                      className="px-4 py-1.5 bg-white text-black hover:bg-white/90 rounded text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer shadow"
+                      className="px-4 py-2 bg-white text-black hover:bg-white/90 rounded text-sm font-semibold transition-all flex items-center gap-1.5 cursor-pointer shadow"
                     >
-                      <CheckCircle2 size={13} />
+                      <CheckCircle2 size={15} />
                       <span>{t("admin.approveBtn")}</span>
                     </button>
                   </div>
@@ -315,9 +315,9 @@ export default function AdminSpecialistsPage() {
 
               {/* Display Rejection Reason if Rejected */}
               {app.status === "rejected" && app.rejection_reason && (
-                <div className="p-3 bg-rose-500/5 border border-rose-500/20 rounded text-xs text-rose-300">
-                  <span className="font-semibold block mb-0.5">{t("admin.rejectionFeedbackLabel")}</span>
-                  <p className="font-mono text-[11px]">{app.rejection_reason}</p>
+                <div className="p-3.5 bg-rose-500/5 border border-rose-500/20 rounded text-sm text-rose-300">
+                  <span className="font-semibold block mb-1">{t("admin.rejectionFeedbackLabel")}</span>
+                  <p className="font-mono text-sm">{app.rejection_reason}</p>
                 </div>
               )}
             </div>
@@ -330,22 +330,22 @@ export default function AdminSpecialistsPage() {
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-graphite-900 border border-graphite-800 rounded-xl max-w-md w-full p-6 space-y-4 shadow-2xl animate-fade-in">
             <div className="flex items-center justify-between">
-              <h3 className="text-base font-bold text-white">{t("admin.rejectModalTitle")}</h3>
+              <h3 className="text-lg font-bold text-white">{t("admin.rejectModalTitle")}</h3>
               <button
                 onClick={() => setRejectingAppId(null)}
-                className="text-graphite-400 hover:text-white"
+                className="text-graphite-400 hover:text-white cursor-pointer"
               >
                 ✕
               </button>
             </div>
 
-            <p className="text-xs text-graphite-400 font-light">
+            <p className="text-sm text-graphite-300 font-normal leading-relaxed">
               {t("admin.rejectModalDesc")}
             </p>
 
             <form onSubmit={handleRejectSubmit} className="space-y-4">
               <div>
-                <label className="block text-xs font-medium text-graphite-300 mb-1">
+                <label className="block text-sm font-medium text-graphite-200 mb-1.5">
                   {t("admin.rejectionReasonLabel")} <span className="text-red-400">*</span>
                 </label>
                 <textarea
@@ -354,7 +354,7 @@ export default function AdminSpecialistsPage() {
                   required
                   minLength={3}
                   rows={4}
-                  className="w-full px-3 py-2 bg-graphite-950 border border-graphite-800 rounded text-xs text-white placeholder-graphite-600 focus:outline-none focus:border-white font-light"
+                  className="w-full px-3.5 py-2.5 bg-graphite-950 border border-graphite-800 rounded text-sm text-white placeholder-graphite-500 focus:outline-none focus:border-white leading-relaxed"
                   placeholder={t("admin.rejectionReasonPlaceholder")}
                 />
               </div>
@@ -363,16 +363,16 @@ export default function AdminSpecialistsPage() {
                 <button
                   type="button"
                   onClick={() => setRejectingAppId(null)}
-                  className="px-3 py-1.5 border border-graphite-800 rounded text-xs text-graphite-400 hover:text-white"
+                  className="px-4 py-2 border border-graphite-800 rounded text-sm text-graphite-300 hover:text-white cursor-pointer"
                 >
                   {t("admin.cancel")}
                 </button>
                 <button
                   type="submit"
                   disabled={submittingAction || !rejectionReason.trim()}
-                  className="px-4 py-1.5 bg-rose-600 text-white font-semibold rounded text-xs hover:bg-rose-500 disabled:opacity-50"
+                  className="px-4 py-2 bg-rose-600 text-white font-semibold rounded text-sm hover:bg-rose-500 disabled:opacity-50 cursor-pointer"
                 >
-                  {submittingAction ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : t("admin.confirmReject")}
+                  {submittingAction ? <Loader2 className="w-4 h-4 animate-spin" /> : t("admin.confirmReject")}
                 </button>
               </div>
             </form>

@@ -132,11 +132,11 @@ export default function DiscussionsFeedPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-graphite-800 pb-6">
         <div>
-          <div className="flex items-center gap-2.5 mb-1">
+          <div className="flex items-center gap-2.5 mb-1.5">
             <MessageSquare className="w-6 h-6 text-indigo-400" />
-            <h1 className="text-2xl font-bold tracking-tight text-white">{t("discussions.feed.title")}</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-white">{t("discussions.feed.title")}</h1>
           </div>
-          <p className="text-xs text-graphite-400">
+          <p className="text-sm sm:text-base text-graphite-300">
             {t("discussions.feed.subtitle")}
           </p>
         </div>
@@ -144,7 +144,7 @@ export default function DiscussionsFeedPage() {
         {isSpecialistOrAdmin && (
           <button
             onClick={() => navigate("/discussions/new")}
-            className="flex items-center gap-2 px-4 py-2 rounded-md bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs shadow-sm transition-all cursor-pointer self-start sm:self-auto"
+            className="flex items-center gap-2 px-4 py-2.5 rounded-md bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm shadow-sm transition-all cursor-pointer self-start sm:self-auto"
           >
             <Plus className="w-4 h-4" />
             <span>{t("discussions.feed.newPost")}</span>
@@ -153,22 +153,22 @@ export default function DiscussionsFeedPage() {
       </div>
 
       {/* Filter / Search Bar */}
-      <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 p-4 rounded-lg bg-graphite-900/50 border border-graphite-800 text-xs">
+      <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 p-4 rounded-lg bg-graphite-900/50 border border-graphite-800 text-sm">
         {/* Search */}
         <div className="relative">
-          <Search className="w-3.5 h-3.5 text-graphite-500 absolute left-3 top-1/2 -translate-y-1/2" />
+          <Search className="w-4 h-4 text-graphite-400 absolute left-3 top-1/2 -translate-y-1/2" />
           <input
             type="text"
             placeholder={t("discussions.feed.searchPlaceholder")}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-3 py-1.5 rounded bg-graphite-950 border border-graphite-800 text-graphite-200 placeholder-graphite-500 focus:outline-none focus:border-graphite-600 text-xs font-mono"
+            className="w-full pl-9 pr-3 py-2 rounded bg-graphite-950 border border-graphite-800 text-graphite-100 placeholder-graphite-500 focus:outline-none focus:border-graphite-600 text-sm font-mono"
           />
         </div>
 
         {/* Domain Filter */}
         <div className="flex items-center gap-2">
-          <Crosshair className="w-3.5 h-3.5 text-graphite-500 shrink-0" />
+          <Crosshair className="w-4 h-4 text-graphite-400 shrink-0" />
           <select
             value={currentDomainId}
             onChange={(e) => {
@@ -180,7 +180,7 @@ export default function DiscussionsFeedPage() {
               }
               setSearchParams(params);
             }}
-            className="w-full px-2.5 py-1.5 rounded bg-graphite-950 border border-graphite-800 text-graphite-200 focus:outline-none focus:border-graphite-600 text-xs"
+            className="w-full px-3 py-2 rounded bg-graphite-950 border border-graphite-800 text-graphite-100 focus:outline-none focus:border-graphite-600 text-sm"
           >
             <option value="">{t("discussions.feed.allDomains")}</option>
             <option value="domain1">{t("discussions.feed.domainOption1")}</option>
@@ -193,11 +193,11 @@ export default function DiscussionsFeedPage() {
 
         {/* Sort */}
         <div className="flex items-center gap-2">
-          <Filter className="w-3.5 h-3.5 text-graphite-500 shrink-0" />
+          <Filter className="w-4 h-4 text-graphite-400 shrink-0" />
           <select
             value={currentSort}
             onChange={(e) => handleSortChange(e.target.value)}
-            className="w-full px-2.5 py-1.5 rounded bg-graphite-950 border border-graphite-800 text-graphite-200 focus:outline-none focus:border-graphite-600 text-xs"
+            className="w-full px-3 py-2 rounded bg-graphite-950 border border-graphite-800 text-graphite-100 focus:outline-none focus:border-graphite-600 text-sm"
           >
             <option value="recent">{t("discussions.feed.sortRecent")}</option>
             <option value="popular">{t("discussions.feed.sortPopular")}</option>
@@ -205,17 +205,17 @@ export default function DiscussionsFeedPage() {
         </div>
 
         {/* Active Filter Indicators */}
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-1.5 overflow-x-auto">
             {currentTag && (
-              <span className="px-2 py-1 rounded bg-indigo-950/40 border border-indigo-500/30 text-indigo-300 font-mono text-[11px] flex items-center gap-1">
-                <TagIcon className="w-3 h-3" />
+              <span className="px-2.5 py-1 rounded bg-indigo-950/40 border border-indigo-500/30 text-indigo-300 font-mono text-xs flex items-center gap-1">
+                <TagIcon className="w-3.5 h-3.5" />
                 {currentTag}
               </span>
             )}
             {currentScenarioId && (
-              <span className="px-2 py-1 rounded bg-amber-950/40 border border-amber-500/30 text-amber-300 font-mono text-[11px] flex items-center gap-1">
-                <Crosshair className="w-3 h-3" />
+              <span className="px-2.5 py-1 rounded bg-amber-950/40 border border-amber-500/30 text-amber-300 font-mono text-xs flex items-center gap-1">
+                <Crosshair className="w-3.5 h-3.5" />
                 {t("discussions.feed.scenarioBadge")}
               </span>
             )}
@@ -224,7 +224,7 @@ export default function DiscussionsFeedPage() {
           {(currentTag || currentScenarioId || currentDomainId || searchQuery) && (
             <button
               onClick={clearFilters}
-              className="text-[11px] text-graphite-400 hover:text-white underline underline-offset-2 ml-auto cursor-pointer"
+              className="text-xs text-graphite-300 hover:text-white underline underline-offset-2 ml-auto cursor-pointer"
             >
               {t("discussions.feed.reset")}
             </button>
@@ -234,14 +234,14 @@ export default function DiscussionsFeedPage() {
 
       {/* Feed List */}
       {loading ? (
-        <div className="py-20 text-center text-graphite-500 font-mono text-xs">
+        <div className="py-20 text-center text-graphite-400 font-mono text-sm">
           {t("discussions.feed.loading")}
         </div>
       ) : filteredThreads.length === 0 ? (
         <div className="py-16 text-center border border-dashed border-graphite-800 rounded-lg space-y-3">
-          <FileText className="w-8 h-8 text-graphite-600 mx-auto" />
-          <p className="text-sm font-semibold text-graphite-300">{t("discussions.feed.emptyTitle")}</p>
-          <p className="text-xs text-graphite-500 max-w-sm mx-auto">
+          <FileText className="w-8 h-8 text-graphite-500 mx-auto" />
+          <p className="text-base font-semibold text-graphite-200">{t("discussions.feed.emptyTitle")}</p>
+          <p className="text-sm text-graphite-400 max-w-sm mx-auto">
             {isSpecialistOrAdmin
               ? t("discussions.feed.emptySpecialist")
               : t("discussions.feed.emptyLearner")}
@@ -249,67 +249,67 @@ export default function DiscussionsFeedPage() {
           {isSpecialistOrAdmin && (
             <button
               onClick={() => navigate("/discussions/new")}
-              className="mt-2 px-4 py-2 rounded-md bg-graphite-100 hover:bg-white text-graphite-950 font-semibold text-xs transition-colors cursor-pointer"
+              className="mt-2 px-4 py-2.5 rounded-md bg-graphite-100 hover:bg-white text-graphite-950 font-semibold text-sm transition-colors cursor-pointer"
             >
               {t("discussions.feed.createFirst")}
             </button>
           )}
         </div>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-4">
           {filteredThreads.map((thread) => {
             const localizedScenario = thread.scenario ? resolveScenarioLocale(thread.scenario, locale) : null;
             return (
               <div
                 key={thread.thread_id}
                 onClick={() => navigate(`/discussions/${thread.thread_id}`)}
-                className="group p-5 rounded-lg border border-graphite-800 hover:border-graphite-700 bg-graphite-950 hover:bg-graphite-900/40 transition-all cursor-pointer space-y-3"
+                className="group p-5 sm:p-6 rounded-lg border border-graphite-800 hover:border-graphite-700 bg-graphite-950 hover:bg-graphite-900/40 transition-all cursor-pointer space-y-3"
               >
                 {/* Top metadata */}
                 <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     {thread.is_pinned && (
-                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20 text-[10px] font-mono font-bold">
-                        <Pin className="w-3 h-3" /> {t("discussions.feed.pinnedBadge")}
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20 text-xs font-mono font-bold">
+                        <Pin className="w-3.5 h-3.5" /> {t("discussions.feed.pinnedBadge")}
                       </span>
                     )}
 
                     {/* Author badge */}
                     <div className="flex items-center gap-1.5">
-                      <span className="font-mono text-xs font-medium text-graphite-200">
+                      <span className="font-mono text-sm font-medium text-graphite-100">
                         {thread.author.nickname}
                       </span>
                       <RoleBadge role={thread.author.role} />
                     </div>
 
                     <span className="text-graphite-600">•</span>
-                    <span className="text-graphite-500 text-[11px] font-mono">
+                    <span className="text-graphite-400 text-xs font-mono">
                       {formatDate(thread.created_at)}
                     </span>
                   </div>
 
                   {/* Linked Scenario Badge */}
                   {thread.scenario && localizedScenario && (
-                    <div className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-graphite-900 border border-graphite-800 text-[11px] text-graphite-300">
-                      <Crosshair className="w-3 h-3 text-indigo-400" />
+                    <div className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-graphite-900 border border-graphite-800 text-xs text-graphite-200">
+                      <Crosshair className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
                       <span className="font-medium truncate max-w-xs">{localizedScenario.title}</span>
-                      <span className="text-graphite-500 font-mono text-[9px]">{thread.scenario.domain_id}</span>
+                      <span className="text-graphite-400 font-mono text-xs">{thread.scenario.domain_id}</span>
                     </div>
                   )}
                 </div>
 
                 {/* Title & Preview (preserved verbatim in author's language) */}
                 <div>
-                  <h3 className="text-base font-bold text-white group-hover:text-indigo-300 transition-colors">
+                  <h3 className="text-lg font-bold text-white group-hover:text-indigo-300 transition-colors">
                     {thread.title}
                   </h3>
-                  <p className="text-xs text-graphite-400 line-clamp-2 mt-1 leading-relaxed">
+                  <p className="text-sm text-graphite-300 line-clamp-2 mt-1.5 leading-relaxed">
                     {thread.content.replace(/[#*`>|]/g, "").slice(0, 180)}...
                   </p>
                 </div>
 
                 {/* Tags & Bottom Stats */}
-                <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-graphite-800/60 text-xs">
+                <div className="flex flex-wrap items-center justify-between gap-3 pt-2.5 border-t border-graphite-800/60 text-xs">
                   {/* Tags */}
                   <div className="flex flex-wrap gap-1.5">
                     {thread.tags &&
@@ -320,7 +320,7 @@ export default function DiscussionsFeedPage() {
                             e.stopPropagation();
                             handleTagClick(tag);
                           }}
-                          className="px-2 py-0.5 rounded bg-graphite-900 hover:bg-graphite-800 border border-graphite-800 text-graphite-300 text-[10px] font-mono transition-colors"
+                          className="px-2.5 py-0.5 rounded bg-graphite-900 hover:bg-graphite-800 border border-graphite-800 text-graphite-200 text-xs font-mono transition-colors"
                         >
                           #{tag}
                         </span>
@@ -328,7 +328,7 @@ export default function DiscussionsFeedPage() {
                   </div>
 
                   {/* Counters */}
-                  <div className="flex items-center gap-4 text-graphite-400 font-mono text-xs">
+                  <div className="flex items-center gap-4 text-graphite-300 font-mono text-xs">
                     <span className="flex items-center gap-1">
                       <ThumbsUp className="w-3.5 h-3.5" />
                       {thread.upvote_count}
@@ -337,8 +337,8 @@ export default function DiscussionsFeedPage() {
                       <Eye className="w-3.5 h-3.5" />
                       {thread.view_count}
                     </span>
-                    <span className="text-indigo-400 font-medium group-hover:translate-x-0.5 transition-transform flex items-center gap-0.5">
-                      {t("discussions.feed.readAction")} <ArrowRight className="w-3 h-3" />
+                    <span className="text-indigo-400 font-medium group-hover:translate-x-0.5 transition-transform flex items-center gap-1">
+                      {t("discussions.feed.readAction")} <ArrowRight className="w-3.5 h-3.5" />
                     </span>
                   </div>
                 </div>
