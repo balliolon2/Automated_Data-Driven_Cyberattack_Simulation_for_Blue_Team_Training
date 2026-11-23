@@ -91,19 +91,19 @@ export default function LogTable({ logs, selectedIndices = [], onToggle }: LogTa
   return (
     <div className="flex flex-col h-full border border-graphite-800/80 rounded-xl overflow-hidden glass-panel">
       {/* Table Header Info */}
-      <div className="px-5 py-3 bg-graphite-950/80 border-b border-graphite-800/80 flex items-center justify-between">
-        <span className="text-xs font-mono text-graphite-400">
-          {t("logTable.logsFound")} <span className="text-graphite-200 font-bold">{t("logTable.entriesCount", { count: logs.length })}</span>
+      <div className="px-5 py-3 bg-graphite-950/80 border-b border-graphite-800/80 flex items-center justify-between gap-4">
+        <span className="text-sm font-mono text-graphite-300">
+          {t("logTable.logsFound")} <span className="text-graphite-100 font-bold">{t("logTable.entriesCount", { count: logs.length })}</span>
         </span>
-        <span className="text-[10px] font-mono text-graphite-500">
+        <span className="text-xs font-mono text-graphite-400">
           {t("logTable.interactionHint")}
         </span>
       </div>
 
       {/* Table Body Scroll Container */}
-      <div className="flex-1 overflow-auto max-h-[500px]">
-        <table className="w-full text-left border-collapse font-mono text-xs">
-          <thead className="sticky top-0 bg-graphite-950/95 backdrop-blur-sm border-b border-graphite-800/80 z-20">
+      <div className="flex-1 overflow-auto max-h-[560px]">
+        <table className="w-full text-left border-collapse font-mono text-log">
+          <thead className="sticky top-0 bg-graphite-950/95 backdrop-blur-sm border-b border-graphite-800/80 z-20 text-xs">
             <tr>
               <th className="w-10 px-3 py-3">
                 <span className="sr-only">{t("logTable.selectEvidenceSr")}</span>
@@ -125,7 +125,7 @@ export default function LogTable({ logs, selectedIndices = [], onToggle }: LogTa
           <tbody className="divide-y divide-graphite-900/60">
             {sortedLogs.length === 0 ? (
               <tr>
-                <td colSpan={columns.length + 1} className="px-4 py-8 text-center text-graphite-500 font-medium bg-graphite-900/10">
+                <td colSpan={columns.length + 1} className="px-4 py-8 text-center text-graphite-400 font-medium bg-graphite-900/10 text-sm">
                   {t("logTable.emptyFilterResult")}
                 </td>
               </tr>
@@ -179,7 +179,7 @@ export default function LogTable({ logs, selectedIndices = [], onToggle }: LogTa
                             event.stopPropagation();
                           }
                         }}
-                        className="h-3.5 w-3.5 accent-cyan-400 cursor-pointer disabled:cursor-not-allowed"
+                        className="h-4 w-4 accent-cyan-400 cursor-pointer disabled:cursor-not-allowed"
                       />
                     </td>
                     {columns.map((col) => {

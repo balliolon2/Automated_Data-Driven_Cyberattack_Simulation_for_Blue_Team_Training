@@ -123,25 +123,25 @@ export default function ScenarioLoadingState() {
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="text-xs font-mono font-bold text-slate-200 tracking-wider">
+                <span className="text-sm font-mono font-bold text-slate-200 tracking-wider">
                   SOC_PROVISIONER // THREAT_ENGINE
                 </span>
                 <span className="inline-block w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
               </div>
-              <p className="text-[11px] text-graphite-400 font-mono">
+              <p className="text-xs text-graphite-400 font-mono">
                 TASK_ID: SIM-RUN-{Math.floor(elapsedSeconds * 17 + 1024)}
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-6 text-xs font-mono">
+          <div className="flex items-center gap-6 text-xs sm:text-sm font-mono">
             <div className="flex items-center gap-2 text-graphite-400">
-              <Clock className="w-3.5 h-3.5 text-slate-400" />
+              <Clock className="w-4 h-4 text-slate-400" />
               <span>{t("loadingState.elapsed")}</span>
               <span className="text-slate-100 font-semibold tabular-nums">{formattedTime}s</span>
             </div>
             <div className="flex items-center gap-2 text-graphite-400">
-              <Activity className="w-3.5 h-3.5 text-emerald-400" />
+              <Activity className="w-4 h-4 text-emerald-400" />
               <span>{t("loadingState.status")}</span>
               <span className="text-emerald-400 font-semibold">{t("loadingState.synthesizing")}</span>
             </div>
@@ -153,17 +153,17 @@ export default function ScenarioLoadingState() {
           
           {/* Headline & Progress Bar */}
           <div className="space-y-3">
-            <div className="flex items-baseline justify-between">
+            <div className="flex items-baseline justify-between gap-4">
               <div>
-                <h2 className="text-lg md:text-xl font-semibold text-slate-100 tracking-tight">
+                <h2 className="text-xl md:text-2xl font-semibold text-slate-100 tracking-tight">
                   {t("loadingState.headline")}
                 </h2>
-                <p className="text-xs text-graphite-400 mt-1 font-mono">
+                <p className="text-sm text-graphite-400 mt-1 font-mono">
                   {t("loadingState.subheadline")}
                 </p>
               </div>
               <div className="text-right">
-                <span className="text-xl md:text-2xl font-mono font-bold text-slate-100 tabular-nums">
+                <span className="text-2xl md:text-3xl font-mono font-bold text-slate-100 tabular-nums">
                   {progress}%
                 </span>
               </div>
@@ -198,38 +198,38 @@ export default function ScenarioLoadingState() {
                       : "bg-graphite-950 border-graphite-900 opacity-60"
                   }`}
                 >
-                  <div className="flex items-start justify-between gap-3 mb-1.5">
+                  <div className="flex items-start justify-between gap-3 mb-2">
                     <div className="flex items-center gap-2">
-                      <span className="text-[10px] font-mono text-graphite-400 px-1.5 py-0.5 rounded bg-graphite-800">
+                      <span className="text-xs font-mono text-graphite-300 px-2 py-0.5 rounded bg-graphite-800">
                         {step.code}
                       </span>
-                      <span className="text-xs font-mono font-semibold tracking-wide text-slate-200">
+                      <span className="text-sm font-mono font-semibold tracking-wide text-slate-200">
                         {t(step.labelKey)}
                       </span>
                     </div>
 
                     <div>
                       {isCompleted && (
-                        <span className="flex items-center gap-1 text-[11px] font-mono text-emerald-400">
-                          <CheckCircle2 className="w-3.5 h-3.5" />
+                        <span className="flex items-center gap-1 text-xs font-mono text-emerald-400">
+                          <CheckCircle2 className="w-4 h-4" />
                           <span>{t("loadingState.done")}</span>
                         </span>
                       )}
                       {isActive && (
-                        <span className="flex items-center gap-1 text-[11px] font-mono text-emerald-400 animate-pulse">
-                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                        <span className="flex items-center gap-1 text-xs font-mono text-emerald-400 animate-pulse">
+                          <span className="w-2 h-2 rounded-full bg-emerald-400" />
                           <span>{t("loadingState.active")}</span>
                         </span>
                       )}
                       {isWaiting && (
-                        <span className="text-[11px] font-mono text-graphite-500">
+                        <span className="text-xs font-mono text-graphite-400">
                           {t("loadingState.waiting")}
                         </span>
                       )}
                     </div>
                   </div>
 
-                  <p className="text-xs text-graphite-400 font-mono leading-relaxed pl-0.5">
+                  <p className="text-sm text-graphite-300 font-mono leading-relaxed pl-0.5">
                     {t(step.detailsKey)}
                   </p>
                 </div>
@@ -239,26 +239,26 @@ export default function ScenarioLoadingState() {
 
           {/* Live Tactical Console Log Feed */}
           <div className="space-y-2">
-            <div className="flex items-center justify-between text-xs font-mono text-graphite-400 px-1">
+            <div className="flex items-center justify-between text-xs sm:text-sm font-mono text-graphite-400 px-1">
               <div className="flex items-center gap-2">
-                <Server className="w-3.5 h-3.5 text-slate-400" />
+                <Server className="w-4 h-4 text-slate-400" />
                 <span>{t("loadingState.streamTitle")}</span>
               </div>
-              <span className="text-[10px] text-graphite-500">{t("loadingState.streamFormat")}</span>
+              <span className="text-xs text-graphite-400">{t("loadingState.streamFormat")}</span>
             </div>
 
-            <div className="bg-graphite-900 border border-graphite-800 rounded-lg p-4 font-mono text-xs text-slate-300 min-h-[140px] flex flex-col justify-end space-y-1.5 overflow-hidden">
+            <div className="bg-graphite-900 border border-graphite-800 rounded-lg p-4 font-mono text-log text-slate-300 min-h-[150px] flex flex-col justify-end space-y-1.5 overflow-hidden">
               {logs.length === 0 ? (
-                <div className="text-graphite-500 italic">{t("loadingState.initializingConsole")}</div>
+                <div className="text-graphite-400 italic">{t("loadingState.initializingConsole")}</div>
               ) : (
                 logs.map((log, idx) => (
                   <div
                     key={idx}
-                    className={`flex items-start gap-2 leading-tight transition-all duration-150 ${
+                    className={`flex items-start gap-2 leading-snug transition-all duration-150 ${
                       idx === logs.length - 1 ? "text-emerald-300 font-medium" : "text-graphite-400"
                     }`}
                   >
-                    <ArrowRight className="w-3 h-3 text-graphite-600 mt-0.5 shrink-0" />
+                    <ArrowRight className="w-3.5 h-3.5 text-graphite-500 mt-1 shrink-0" />
                     <span className="break-all">{log}</span>
                   </div>
                 ))
@@ -268,7 +268,7 @@ export default function ScenarioLoadingState() {
         </div>
 
         {/* Minimalist System Footer */}
-        <div className="px-6 py-3 bg-graphite-900/60 border-t border-graphite-800 flex flex-wrap items-center justify-between text-[11px] font-mono text-graphite-400 gap-4">
+        <div className="px-6 py-3 bg-graphite-900/60 border-t border-graphite-800 flex flex-wrap items-center justify-between text-xs font-mono text-graphite-400 gap-4">
           <div className="flex items-center gap-4">
             <span>{t("loadingState.standardLabel")} <strong className="text-slate-300">{t("loadingState.standardValue")}</strong></span>
           </div>

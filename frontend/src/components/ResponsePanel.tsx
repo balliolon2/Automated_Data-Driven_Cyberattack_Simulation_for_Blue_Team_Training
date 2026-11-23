@@ -46,7 +46,7 @@ export default function ResponsePanel({
           <div className={cn("p-1.5 rounded-lg bg-opacity-10", themeColor)}>
             {icon}
           </div>
-          <h4 className="font-semibold text-sm tracking-wider uppercase text-graphite-200">
+          <h4 className="font-semibold text-base tracking-wide uppercase text-graphite-100">
             {t("responsePanel.phaseSuffix", { title })}
           </h4>
         </div>
@@ -58,19 +58,19 @@ export default function ResponsePanel({
               <label 
                 key={act.id}
                 className={cn(
-                  "flex items-start gap-3 p-3.5 rounded-lg border cursor-pointer select-none transition-all duration-200",
+                  "flex items-start gap-3 p-4 rounded-lg border cursor-pointer select-none transition-all duration-200",
                   isChecked 
                     ? "bg-emerald-950/15 border-emerald-500/30 text-emerald-100 shadow-[0_0_8px_rgba(52,211,153,0.05)]" 
-                    : "bg-graphite-950/40 border-graphite-800/60 text-graphite-300 hover:bg-graphite-800/20 hover:border-graphite-700/60"
+                    : "bg-graphite-950/40 border-graphite-800/60 text-graphite-200 hover:bg-graphite-800/20 hover:border-graphite-700/60"
                 )}
               >
                 <input
                   type="checkbox"
                   checked={isChecked}
                   onChange={() => handleToggleAction(act.id)}
-                  className="mt-0.5 w-4 h-4 rounded text-emerald-500 bg-graphite-950 border-graphite-800 focus:ring-emerald-500/40 focus:ring-offset-graphite-900 focus:ring-2 cursor-pointer accent-emerald-500"
+                  className="mt-1 w-4 h-4 rounded text-emerald-500 bg-graphite-950 border-graphite-800 focus:ring-emerald-500/40 focus:ring-offset-graphite-900 focus:ring-2 cursor-pointer accent-emerald-500 shrink-0"
                 />
-                <span className="text-xs leading-relaxed font-medium">
+                <span className="text-sm leading-relaxed font-medium">
                   {act.label}
                 </span>
               </label>
@@ -93,48 +93,48 @@ export default function ResponsePanel({
           <div className="p-1.5 rounded-lg bg-opacity-10 bg-amber-400 text-amber-400">
             <AlertOctagon className="w-4 h-4" />
           </div>
-          <h4 className="font-semibold text-sm tracking-wider uppercase text-graphite-200">
+          <h4 className="font-semibold text-base tracking-wide uppercase text-graphite-100">
             {t("responsePanel.phase1Title")}
           </h4>
         </div>
 
-        <p className="text-xs text-graphite-400 leading-relaxed font-light">
+        <p className="text-sm text-graphite-300 leading-relaxed font-normal">
           {t("responsePanel.phase1Prompt")}
         </p>
 
-        <div className="grid grid-cols-2 gap-4 pt-1">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
           <button
             type="button"
             onClick={() => onSelectTriage && onSelectTriage(true)}
             className={cn(
-              "p-3.5 rounded-lg border text-left flex items-center justify-between font-mono text-xs transition-all duration-200",
+              "p-4 rounded-lg border text-left flex items-center justify-between font-mono text-sm transition-all duration-200 cursor-pointer",
               isTruePositive === true
                 ? "bg-red-950/30 border-red-500/50 text-red-200 font-semibold shadow-[0_0_12px_rgba(239,68,68,0.15)]"
-                : "bg-graphite-950/40 border-graphite-800/60 text-graphite-300 hover:bg-graphite-800/20"
+                : "bg-graphite-950/40 border-graphite-800/60 text-graphite-200 hover:bg-graphite-800/20"
             )}
           >
             <div className="flex items-center gap-2">
-              <AlertTriangle className={cn("w-4 h-4", isTruePositive === true ? "text-red-400" : "text-graphite-500")} />
+              <AlertTriangle className={cn("w-4 h-4 shrink-0", isTruePositive === true ? "text-red-400" : "text-graphite-400")} />
               <span>{t("responsePanel.truePositive")}</span>
             </div>
-            <span className={cn("w-2.5 h-2.5 rounded-full border border-graphite-600", isTruePositive === true && "bg-red-500 border-red-400")} />
+            <span className={cn("w-3 h-3 rounded-full border border-graphite-600 shrink-0", isTruePositive === true && "bg-red-500 border-red-400")} />
           </button>
 
           <button
             type="button"
             onClick={() => onSelectTriage && onSelectTriage(false)}
             className={cn(
-              "p-3.5 rounded-lg border text-left flex items-center justify-between font-mono text-xs transition-all duration-200",
+              "p-4 rounded-lg border text-left flex items-center justify-between font-mono text-sm transition-all duration-200 cursor-pointer",
               isTruePositive === false
                 ? "bg-emerald-950/30 border-emerald-500/50 text-emerald-200 font-semibold shadow-[0_0_12px_rgba(16,185,129,0.15)]"
-                : "bg-graphite-950/40 border-graphite-800/60 text-graphite-300 hover:bg-graphite-800/20"
+                : "bg-graphite-950/40 border-graphite-800/60 text-graphite-200 hover:bg-graphite-800/20"
             )}
           >
             <div className="flex items-center gap-2">
-              <CheckCircle className={cn("w-4 h-4", isTruePositive === false ? "text-emerald-400" : "text-graphite-500")} />
+              <CheckCircle className={cn("w-4 h-4 shrink-0", isTruePositive === false ? "text-emerald-400" : "text-graphite-400")} />
               <span>{t("responsePanel.falsePositive")}</span>
             </div>
-            <span className={cn("w-2.5 h-2.5 rounded-full border border-graphite-600", isTruePositive === false && "bg-emerald-500 border-emerald-400")} />
+            <span className={cn("w-3 h-3 rounded-full border border-graphite-600 shrink-0", isTruePositive === false && "bg-emerald-500 border-emerald-400")} />
           </button>
         </div>
       </div>

@@ -153,16 +153,16 @@ function EvidenceLogRow({
           : "border-graphite-800/80 bg-graphite-950/40";
 
   return (
-    <div className={cn("rounded border px-3 py-2 font-mono text-[10px] leading-relaxed", accent)}>
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-graphite-400">
-        <span className="text-cyan-300/80">#{index}</span>
+    <div className={cn("rounded border px-3.5 py-2.5 font-mono text-log space-y-1", accent)}>
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-graphite-400">
+        <span className="text-cyan-300">#{index}</span>
         <span>{logField(log, "timestamp", "Timestamp")}</span>
-        <span className="text-sky-300/80">{logField(log, "source", "Source")}</span>
-        <span className="uppercase font-bold text-amber-400/90">
+        <span className="text-sky-300">{logField(log, "source", "Source")}</span>
+        <span className="uppercase font-bold text-amber-400">
           {logField(log, "severity", "Severity")}
         </span>
       </div>
-      <p className="text-graphite-200 break-words">
+      <p className="text-graphite-100 break-words">
         {logField(log, "message", "Message")}
       </p>
     </div>
@@ -299,14 +299,14 @@ export default function ScenarioResultPage() {
     return (
       <div className="min-h-[60vh] flex flex-col items-center justify-center gap-3">
         <Loader2 className="w-6 h-6 text-white animate-spin" />
-        <p className="text-xs font-mono text-graphite-500">{t("result.loadingText")}</p>
+        <p className="text-sm font-mono text-graphite-400">{t("result.loadingText")}</p>
       </div>
     );
   }
 
   if (!session || !scenario || !result) {
     return (
-      <div className="text-center py-12 text-graphite-500 font-mono text-xs">
+      <div className="text-center py-12 text-graphite-400 font-mono text-sm">
         {t("result.loadFailed")}
       </div>
     );
@@ -351,12 +351,12 @@ export default function ScenarioResultPage() {
         <div className="inline-flex items-center justify-center p-3 rounded-md bg-graphite-900 border border-graphite-800 text-white mb-2">
           <Award className="w-6 h-6" />
         </div>
-        <h1 className="text-2xl font-bold tracking-tight text-white">{t("result.pageTitle")}</h1>
-        <p className="text-xs text-graphite-400 font-mono">
+        <h1 className="text-3xl font-bold tracking-tight text-white">{t("result.pageTitle")}</h1>
+        <p className="text-sm sm:text-base text-graphite-300 font-mono">
           {t("result.incidentAuditFor")} <span className="text-white font-semibold">{localizedScenario.title}</span>
         </p>
         {locale === "th" && !scenario.translations?.th?.description && !backfillingTranslation && (
-          <p className="text-[11px] text-amber-300/80 font-mono">
+          <p className="text-xs text-amber-300/90 font-mono">
             {t("simulation.legacyUntranslatedNotice")}
           </p>
         )}
@@ -367,15 +367,15 @@ export default function ScenarioResultPage() {
         <div className="space-y-6">
           {/* Main Score Panel */}
           <div className="bg-graphite-900 border border-graphite-800/80 p-6 rounded-lg flex flex-col items-center justify-center text-center space-y-3">
-            <div className="text-4xl font-extrabold text-white font-mono tracking-tighter">
+            <div className="text-5xl font-extrabold text-white font-mono tracking-tighter">
               {result.total_score.toFixed(0)}
-              <span className="text-xs text-graphite-500 font-medium ml-1">/ 100</span>
+              <span className="text-sm text-graphite-400 font-medium ml-1">/ 100</span>
             </div>
-            <div className="text-[10px] font-semibold text-graphite-300 uppercase tracking-wider font-mono">
+            <div className="text-xs font-semibold text-graphite-300 uppercase tracking-wider font-mono">
               {t("result.performanceScore")}
             </div>
             <div className={cn(
-              "px-2.5 py-0.5 rounded text-[10px] font-mono font-medium border",
+              "px-3 py-1 rounded text-xs font-mono font-semibold border",
               result.total_score >= 70 
                 ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" 
                 : "bg-amber-500/10 text-amber-400 border-amber-500/20"
@@ -390,7 +390,7 @@ export default function ScenarioResultPage() {
           {/* Action Button */}
           <button
             onClick={handleNext}
-            className="w-full py-2 bg-white text-black font-semibold text-xs rounded-md hover:bg-white/90 transition-all duration-200 flex items-center justify-center gap-2"
+            className="w-full py-2.5 bg-white text-black font-semibold text-sm rounded-md hover:bg-white/90 transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer"
           >
             {needsTraining ? (
               <>
@@ -408,7 +408,7 @@ export default function ScenarioResultPage() {
           {scenario?.domain_id && (
             <button
               onClick={() => navigate(`/learn?domain=${encodeURIComponent(scenario.domain_id)}`)}
-              className="w-full py-2 bg-graphite-800 hover:bg-graphite-700 text-graphite-200 border border-graphite-700 font-semibold text-xs rounded-md transition-all duration-200 flex items-center justify-center gap-2"
+              className="w-full py-2.5 bg-graphite-800 hover:bg-graphite-700 text-graphite-200 border border-graphite-700 font-semibold text-sm rounded-md transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer"
             >
               <BookOpen className="w-4 h-4" />
               {t("result.reviewDomainTheory")}
@@ -421,15 +421,15 @@ export default function ScenarioResultPage() {
           {/* Triage Decision */}
           <div className="bg-graphite-900 border border-graphite-800/80 p-6 rounded-lg space-y-4">
             <div className="flex items-center justify-between border-b border-graphite-800 pb-3">
-              <h3 className="font-semibold text-sm text-white flex items-center gap-2">
+              <h3 className="font-semibold text-lg text-white flex items-center gap-2">
                 {t("result.triageClassification")}
               </h3>
               {result.tp_fp_correct ? (
-                <span className="flex items-center gap-1 text-xs font-semibold text-emerald-400">
+                <span className="flex items-center gap-1.5 text-sm font-semibold text-emerald-400">
                   <ShieldCheck className="w-4 h-4" /> {t("result.correctBadge")}
                 </span>
               ) : (
-                <span className="flex items-center gap-1 text-xs font-semibold text-red-400">
+                <span className="flex items-center gap-1.5 text-sm font-semibold text-red-400">
                   <ShieldAlert className="w-4 h-4" /> {t("result.incorrectBadge")}
                 </span>
               )}
@@ -438,13 +438,13 @@ export default function ScenarioResultPage() {
             <div className={cn(
               "p-4 rounded border",
               result.tp_fp_correct 
-                ? "bg-emerald-950/10 border-emerald-500/10 text-emerald-300" 
-                : "bg-red-950/10 border-red-500/10 text-red-300"
+                ? "bg-emerald-950/10 border-emerald-500/15 text-emerald-200" 
+                : "bg-red-950/10 border-red-500/15 text-red-200"
             )}>
-              <div className="font-semibold text-[10px] mb-1.5 uppercase tracking-wider font-mono text-white">
+              <div className="font-semibold text-xs mb-2 uppercase tracking-wider font-mono text-white">
                 {t("result.explanationLabel")}
               </div>
-              <p className="text-xs leading-relaxed font-light">
+              <p className="text-base leading-relaxed font-normal">
                 {localizedTpFpExplanation}
               </p>
             </div>
@@ -452,11 +452,11 @@ export default function ScenarioResultPage() {
 
           {/* Key Findings */}
           <div className="bg-graphite-900 border border-graphite-800/80 p-6 rounded-lg space-y-4">
-            <h3 className="font-semibold text-sm text-white border-b border-graphite-800 pb-3">
+            <h3 className="font-semibold text-lg text-white border-b border-graphite-800 pb-3">
               {t("result.detectFindingsTitle")}
             </h3>
             
-            <div className="space-y-3">
+            <div className="space-y-4">
               {findingsDetail.map((finding) => {
                 const matched =
                   Array.isArray(finding.matched_log_indices) ? finding.matched_log_indices : [];
@@ -470,43 +470,43 @@ export default function ScenarioResultPage() {
                   <div
                     key={finding.id}
                     className={cn(
-                      "p-4 rounded border flex gap-3 items-start transition-all text-xs font-light",
+                      "p-4 sm:p-5 rounded border flex gap-3 items-start transition-all text-base font-normal",
                       finding.found
-                        ? "bg-emerald-950/5 border-emerald-500/10"
+                        ? "bg-emerald-950/5 border-emerald-500/15"
                         : "bg-graphite-950/40 border-graphite-800/80"
                     )}
                   >
                     {finding.found ? (
-                      <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                      <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
                     ) : (
-                      <XCircle className="w-4 h-4 text-graphite-600 shrink-0 mt-0.5" />
+                      <XCircle className="w-5 h-5 text-graphite-500 shrink-0 mt-0.5" />
                     )}
                     {showEvidenceReview ? (
-                      <div className="min-w-0 flex-1 space-y-2">
+                      <div className="min-w-0 flex-1 space-y-2.5">
                         <div className="flex flex-wrap items-center gap-2">
-                          <span className="font-semibold text-white">{findingDesc}</span>
-                          <span className="px-1.5 py-0.5 rounded bg-graphite-950 border border-graphite-800 text-[8px] font-mono text-graphite-400 uppercase">
+                          <span className="font-semibold text-white text-base leading-snug">{findingDesc}</span>
+                          <span className="px-2 py-0.5 rounded bg-graphite-950 border border-graphite-800 text-xs font-mono text-graphite-300 uppercase">
                             {finding.domain_id}
                           </span>
                           <span
                             className={cn(
-                              "text-[8px] font-mono font-bold uppercase tracking-wider",
-                              finding.found ? "text-emerald-400" : "text-graphite-500"
+                              "text-xs font-mono font-bold uppercase tracking-wider",
+                              finding.found ? "text-emerald-400" : "text-graphite-400"
                             )}
                           >
                             {finding.found ? t("result.foundBadge") : t("result.missedBadge")}
                           </span>
-                          <span className="text-[9px] font-mono text-graphite-400">
+                          <span className="text-xs font-mono text-graphite-300">
                             {earned} / {finding.points} {t("result.ptsUnit")}
                           </span>
                         </div>
-                        <p className="text-graphite-400 leading-relaxed">
+                        <p className="text-base text-graphite-300 leading-relaxed">
                           {findingExp}
                         </p>
 
                         {finding.found && matched.length > 0 && (
-                          <div className="space-y-1.5 pt-1">
-                            <div className="text-[9px] font-mono uppercase tracking-wider text-emerald-400/80">
+                          <div className="space-y-2 pt-1">
+                            <div className="text-xs font-mono uppercase tracking-wider text-emerald-400">
                               {t("result.matchedEvidenceLabel")}
                             </div>
                             {matched.map((index) => (
@@ -521,8 +521,8 @@ export default function ScenarioResultPage() {
                         )}
 
                         {!finding.found && acceptable.length > 0 && (
-                          <div className="space-y-1.5 pt-1">
-                            <div className="text-[9px] font-mono uppercase tracking-wider text-graphite-500">
+                          <div className="space-y-2 pt-1">
+                            <div className="text-xs font-mono uppercase tracking-wider text-graphite-400">
                               {t("result.acceptableEvidenceLabel")}
                             </div>
                             {acceptable.map((index) => (
@@ -537,14 +537,14 @@ export default function ScenarioResultPage() {
                         )}
                       </div>
                     ) : (
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2">
-                          <span className="font-semibold text-white">{findingDesc}</span>
-                          <span className="px-1.5 py-0.5 rounded bg-graphite-950 border border-graphite-800 text-[8px] font-mono text-graphite-400 uppercase">
+                      <div className="space-y-1.5">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="font-semibold text-white text-base leading-snug">{findingDesc}</span>
+                          <span className="px-2 py-0.5 rounded bg-graphite-950 border border-graphite-800 text-xs font-mono text-graphite-300 uppercase">
                             {finding.domain_id}
                           </span>
                         </div>
-                        <p className="text-graphite-400 leading-relaxed">
+                        <p className="text-base text-graphite-300 leading-relaxed">
                           {findingExp}
                         </p>
                       </div>
@@ -559,11 +559,11 @@ export default function ScenarioResultPage() {
           {showEvidenceReview && (
             <div className="bg-graphite-900 border border-graphite-800/80 p-6 rounded-lg space-y-4">
               <div className="flex flex-wrap items-center justify-between gap-2 border-b border-graphite-800 pb-3">
-                <h3 className="font-semibold text-sm text-white flex items-center gap-2">
-                  <Search className="w-4 h-4 text-cyan-300/80" />
+                <h3 className="font-semibold text-lg text-white flex items-center gap-2">
+                  <Search className="w-4 h-4 text-cyan-300" />
                   {t("result.evidenceReviewTitle")}
                 </h3>
-                <span className="text-[10px] font-mono text-graphite-400">
+                <span className="text-xs font-mono text-graphite-300">
                   {t(
                     selectedLogIndices.length === 1
                       ? "result.selectedEvidenceOne"
@@ -574,27 +574,27 @@ export default function ScenarioResultPage() {
               </div>
 
               {locale === "th" && (
-                <p className="text-[11px] font-mono text-sky-300/90 bg-sky-950/20 border border-sky-500/20 rounded px-3 py-1.5">
+                <p className="text-xs font-mono text-sky-300 bg-sky-950/20 border border-sky-500/20 rounded px-3.5 py-2">
                   {t("result.rawLogsEnglishNotice")}
                 </p>
               )}
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div className="rounded border border-graphite-800/80 bg-graphite-950/40 p-3">
-                  <div className="text-[9px] font-mono uppercase tracking-wider text-graphite-500">
+                <div className="rounded border border-graphite-800/80 bg-graphite-950/40 p-3.5">
+                  <div className="text-xs font-mono uppercase tracking-wider text-graphite-400">
                     {t("result.grossFindingCredit")}
                   </div>
-                  <div className="mt-1 text-lg font-mono font-bold text-white">
+                  <div className="mt-1 text-xl font-mono font-bold text-white">
                     {grossFindingCredit ?? "—"} {t("result.ptsUnit")}
                   </div>
                 </div>
-                <div className="rounded border border-graphite-800/80 bg-graphite-950/40 p-3">
-                  <div className="text-[9px] font-mono uppercase tracking-wider text-graphite-500">
+                <div className="rounded border border-graphite-800/80 bg-graphite-950/40 p-3.5">
+                  <div className="text-xs font-mono uppercase tracking-wider text-graphite-400">
                     {t("result.evidencePenalty")}
                   </div>
                   <div
                     className={cn(
-                      "mt-1 text-lg font-mono font-bold",
+                      "mt-1 text-xl font-mono font-bold",
                       result.evidence_penalty && result.evidence_penalty > 0
                         ? "text-red-400"
                         : "text-white"
@@ -606,27 +606,27 @@ export default function ScenarioResultPage() {
                     {t("result.ptsUnit")}
                   </div>
                 </div>
-                <div className="rounded border border-graphite-800/80 bg-graphite-950/40 p-3">
-                  <div className="text-[9px] font-mono uppercase tracking-wider text-graphite-500">
+                <div className="rounded border border-graphite-800/80 bg-graphite-950/40 p-3.5">
+                  <div className="text-xs font-mono uppercase tracking-wider text-graphite-400">
                     {t("result.netFindingsPoints")}
                   </div>
-                  <div className="mt-1 text-lg font-mono font-bold text-emerald-400">
+                  <div className="mt-1 text-xl font-mono font-bold text-emerald-400">
                     {result.findings_points} {t("result.ptsUnit")}
                   </div>
                 </div>
               </div>
 
               {selectedLogIndices.length === 0 ? (
-                <div className="rounded border border-dashed border-graphite-800/80 bg-graphite-950/30 px-4 py-6 text-center space-y-1">
-                  <p className="text-xs text-graphite-300">
+                <div className="rounded border border-dashed border-graphite-800/80 bg-graphite-950/30 px-4 py-6 text-center space-y-1.5">
+                  <p className="text-sm text-graphite-200">
                     {t("result.noEvidenceTitle")}
                   </p>
-                  <p className="text-[10px] font-mono text-graphite-500">
+                  <p className="text-xs font-mono text-graphite-400">
                     {t("result.noEvidenceDesc")}
                   </p>
                 </div>
               ) : (
-                <div className="space-y-2">
+                <div className="space-y-3">
                   {selectedLogIndices.map((index) => {
                     const proven = findingsDetail.filter(
                       (finding) =>
@@ -644,20 +644,20 @@ export default function ScenarioResultPage() {
                         />
                         {proven.length > 0 ? (
                           <div className="flex flex-wrap items-center gap-1.5 pl-1">
-                            <span className="text-[9px] font-mono uppercase tracking-wider text-emerald-400/80">
+                            <span className="text-xs font-mono uppercase tracking-wider text-emerald-400">
                               {t("result.provedLabel")}
                             </span>
                             {proven.map((finding) => (
                               <span
                                 key={`proven-${index}-${finding.id}`}
-                                className="px-1.5 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/20 text-[9px] font-mono text-emerald-300"
+                                className="px-2 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/20 text-xs font-mono text-emerald-300"
                               >
                                 {localizedScenario.findingDescription(finding.id, finding.description)}
                               </span>
                             ))}
                           </div>
                         ) : (
-                          <div className="pl-1 text-[9px] font-mono text-red-400/90">
+                          <div className="pl-1 text-xs font-mono text-red-400">
                             {t("result.notEvidencePenalty")}
                           </div>
                         )}
@@ -671,7 +671,7 @@ export default function ScenarioResultPage() {
 
           {/* Response Plan */}
           <div className="bg-graphite-900 border border-graphite-800/80 p-6 rounded-lg space-y-4">
-            <h3 className="font-semibold text-sm text-white border-b border-graphite-800 pb-3">
+            <h3 className="font-semibold text-lg text-white border-b border-graphite-800 pb-3">
               {t("result.responsePlanTitle")}
             </h3>
             
@@ -683,42 +683,42 @@ export default function ScenarioResultPage() {
                   <div 
                     key={action.id}
                     className={cn(
-                      "p-4 rounded border flex gap-3 items-start transition-all text-xs font-light",
+                      "p-4 rounded border flex gap-3 items-start transition-all text-base font-normal",
                       action.selected 
                         ? action.is_correct
-                          ? "bg-emerald-950/5 border-emerald-500/10"
-                          : "bg-red-950/5 border-red-500/10"
+                          ? "bg-emerald-950/5 border-emerald-500/15"
+                          : "bg-red-950/5 border-red-500/15"
                         : "bg-graphite-950/40 border-graphite-800/80"
                     )}
                   >
                     {action.selected ? (
                       action.is_correct ? (
-                        <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                        <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
                       ) : (
-                        <XCircle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
+                        <XCircle className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
                       )
                     ) : (
-                      <div className="w-4 h-4 rounded-full border border-graphite-800 shrink-0 mt-0.5 flex items-center justify-center text-[10px] font-bold text-graphite-500 font-mono">
+                      <div className="w-5 h-5 rounded-full border border-graphite-700 shrink-0 mt-0.5 flex items-center justify-center text-xs font-bold text-graphite-400 font-mono">
                         -
                       </div>
                     )}
                     
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <span className="font-semibold text-white">{actionLabel}</span>
-                        <span className="px-1.5 py-0.5 rounded bg-graphite-950 border border-graphite-800 text-[8px] font-mono text-graphite-400 uppercase">
+                    <div className="space-y-1.5">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="font-semibold text-white text-base leading-snug">{actionLabel}</span>
+                        <span className="px-2 py-0.5 rounded bg-graphite-950 border border-graphite-800 text-xs font-mono text-graphite-300 uppercase">
                           {action.phase} · {action.domain_id}
                         </span>
                         {action.selected && (
                           <span className={cn(
-                            "text-[9px] font-mono font-bold",
+                            "text-xs font-mono font-bold",
                             action.is_correct ? "text-emerald-400" : "text-red-400"
                           )}>
                             ({action.points > 0 ? `+${action.points}` : action.points} {t("result.ptsUnit")})
                           </span>
                         )}
                       </div>
-                      <p className="text-graphite-400 leading-relaxed">
+                      <p className="text-base text-graphite-300 leading-relaxed">
                         {actionExp}
                       </p>
                     </div>
@@ -729,11 +729,11 @@ export default function ScenarioResultPage() {
           </div>
 
           {/* Specialist Insights & Community Discussions */}
-          <div className="p-5 rounded-lg bg-graphite-900/40 border border-graphite-800 space-y-4">
+          <div className="p-5 sm:p-6 rounded-lg bg-graphite-900/40 border border-graphite-800 space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b border-graphite-800 pb-3">
               <div className="flex items-center gap-2">
-                <MessageSquare className="w-4 h-4 text-indigo-400" />
-                <h3 className="font-bold text-sm text-white">{t("result.debriefsTitle")}</h3>
+                <MessageSquare className="w-5 h-5 text-indigo-400" />
+                <h3 className="font-bold text-lg text-white">{t("result.debriefsTitle")}</h3>
               </div>
 
               {(localStorage.getItem("userRole") === "specialist" || localStorage.getItem("userRole") === "admin") && (
@@ -745,21 +745,21 @@ export default function ScenarioResultPage() {
                       )}`
                     )
                   }
-                  className="flex items-center gap-1.5 px-3 py-1 rounded bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold transition-colors cursor-pointer self-start sm:self-auto"
+                  className="flex items-center gap-1.5 px-3.5 py-1.5 rounded bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold transition-colors cursor-pointer self-start sm:self-auto"
                 >
-                  <Plus className="w-3.5 h-3.5" />
+                  <Plus className="w-4 h-4" />
                   <span>{t("result.writeAnalysis")}</span>
                 </button>
               )}
             </div>
 
             {threadsLoading ? (
-              <div className="py-6 text-center text-graphite-500 font-mono text-xs">
+              <div className="py-6 text-center text-graphite-400 font-mono text-sm">
                 {t("result.loadingThreads")}
               </div>
             ) : linkedThreads.length === 0 ? (
               <div className="py-8 text-center space-y-2 border border-dashed border-graphite-800/80 rounded-lg">
-                <p className="text-xs text-graphite-400">
+                <p className="text-sm text-graphite-300">
                   {t("result.noThreadsYet")}
                 </p>
                 {localStorage.getItem("userRole") === "specialist" || localStorage.getItem("userRole") === "admin" ? (
@@ -771,14 +771,14 @@ export default function ScenarioResultPage() {
                         )}`
                       )
                     }
-                    className="text-xs text-indigo-400 hover:text-indigo-300 font-semibold underline underline-offset-2 cursor-pointer"
+                    className="text-sm text-indigo-400 hover:text-indigo-300 font-semibold underline underline-offset-2 cursor-pointer"
                   >
                     {t("result.beFirstSpecialist")}
                   </button>
                 ) : (
                   <Link
                     to="/discussions"
-                    className="text-xs text-graphite-400 hover:text-white underline underline-offset-2 inline-block"
+                    className="text-sm text-graphite-300 hover:text-white underline underline-offset-2 inline-block"
                   >
                     {t("result.browseDiscussions")}
                   </Link>
@@ -790,26 +790,26 @@ export default function ScenarioResultPage() {
                   <div
                     key={tItem.thread_id}
                     onClick={() => navigate(`/discussions/${tItem.thread_id}`)}
-                    className="p-3.5 rounded-lg bg-graphite-950 border border-graphite-800 hover:border-graphite-700 transition-all cursor-pointer space-y-2"
+                    className="p-4 rounded-lg bg-graphite-950 border border-graphite-800 hover:border-graphite-700 transition-all cursor-pointer space-y-2"
                   >
                     <div className="flex items-center justify-between text-xs">
-                      <span className="font-mono text-[11px] text-graphite-300">
+                      <span className="font-mono text-xs text-graphite-300">
                         {t("result.byAuthor", { author: tItem.author.nickname })}
                       </span>
-                      <span className="px-1.5 py-0.2 rounded text-[9px] font-mono font-bold bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
+                      <span className="px-2 py-0.5 rounded text-xs font-mono font-bold bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
                         {tItem.author.role.toUpperCase()}
                       </span>
                     </div>
 
-                    <h4 className="font-semibold text-white text-xs hover:text-indigo-300 transition-colors line-clamp-1">
+                    <h4 className="font-semibold text-white text-sm hover:text-indigo-300 transition-colors line-clamp-1">
                       {tItem.title}
                     </h4>
 
-                    <p className="text-[11px] text-graphite-400 line-clamp-2 leading-relaxed">
+                    <p className="text-xs sm:text-sm text-graphite-300 line-clamp-2 leading-relaxed">
                       {tItem.content.replace(/[#*`>|]/g, "").slice(0, 100)}...
                     </p>
 
-                    <div className="flex items-center justify-between text-[10px] font-mono text-graphite-500 pt-1.5 border-t border-graphite-800/60">
+                    <div className="flex items-center justify-between text-xs font-mono text-graphite-400 pt-2 border-t border-graphite-800/60">
                       <span>{t("result.helpfulCount", { count: tItem.upvote_count })}</span>
                       <span className="text-indigo-400 flex items-center gap-0.5">
                         {t("result.readFull")}

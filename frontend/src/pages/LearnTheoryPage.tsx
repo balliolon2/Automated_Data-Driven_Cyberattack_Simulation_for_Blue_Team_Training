@@ -497,7 +497,7 @@ export default function LearnTheoryPage() {
     return (
       <div className="min-h-[60vh] flex flex-col items-center justify-center gap-3">
         <Loader2 className="w-6 h-6 text-white animate-spin" />
-        <p className="text-xs font-mono text-graphite-500">
+        <p className="text-sm font-mono text-graphite-400">
           {t("learn.loadingCurriculum")}
         </p>
       </div>
@@ -512,16 +512,16 @@ export default function LearnTheoryPage() {
           <Lock className="w-5 h-5 text-amber-400" />
         </div>
         <div className="space-y-2">
-          <h2 className="text-lg font-bold tracking-tight text-white">
+          <h2 className="text-xl font-bold tracking-tight text-white">
             {t("learn.preTestRequiredTitle")}
           </h2>
-          <p className="text-xs text-graphite-400 leading-relaxed">
+          <p className="text-base text-graphite-300 leading-relaxed">
             {lockedMessage} {t("learn.preTestRequiredBody")}
           </p>
         </div>
         <button
           onClick={() => navigate("/pre-test")}
-          className="w-full py-2.5 bg-white text-black font-semibold text-xs rounded-md hover:bg-white/90 transition-all duration-200 cursor-pointer"
+          className="w-full py-2.5 bg-white text-black font-semibold text-sm rounded-md hover:bg-white/90 transition-all duration-200 cursor-pointer"
         >
           {t("learn.takePreTest")}
         </button>
@@ -534,8 +534,8 @@ export default function LearnTheoryPage() {
     return (
       <div className="max-w-lg mx-auto mt-12 bg-graphite-900 p-8 rounded-lg border border-graphite-800 text-center space-y-4">
         <AlertTriangle className="w-8 h-8 text-amber-400 mx-auto" />
-        <h2 className="text-base font-bold text-white">{t("learn.unavailableTitle")}</h2>
-        <p className="text-xs font-mono text-graphite-400">
+        <h2 className="text-lg font-bold text-white">{t("learn.unavailableTitle")}</h2>
+        <p className="text-sm font-mono text-graphite-300">
           {errorMessage}
         </p>
       </div>
@@ -591,17 +591,17 @@ export default function LearnTheoryPage() {
               {t("learn.curriculumBadge")}
             </span>
           </div>
-          <h1 className="text-2xl font-bold tracking-tight text-white">
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-white">
             {t("learn.hubTitle")}
           </h1>
-          <p className="text-xs text-graphite-400 max-w-2xl leading-relaxed">
+          <p className="text-sm sm:text-base text-graphite-300 max-w-2xl leading-relaxed">
             {t("learn.hubSubtitle")}
           </p>
         </div>
 
         <div className="w-full lg:w-80 space-y-3 bg-graphite-950/70 border border-graphite-800 rounded-lg p-4 shrink-0">
-          <div className="flex items-center justify-between text-xs font-mono">
-            <span className="text-graphite-400">{t("learn.studyProgress")}</span>
+          <div className="flex items-center justify-between text-xs sm:text-sm font-mono">
+            <span className="text-graphite-300">{t("learn.studyProgress")}</span>
             <span
               className={cn(
                 "font-bold",
@@ -620,7 +620,7 @@ export default function LearnTheoryPage() {
               style={{ width: `${progressPct}%` }}
             />
           </div>
-          <div className="flex items-center justify-between text-[11px] font-mono text-graphite-400">
+          <div className="flex items-center justify-between text-xs font-mono text-graphite-400">
             <span>
               {t("learn.domainsAutoCompleted", { completed: data.completed_count, total: data.total_domains })}
             </span>
@@ -630,13 +630,13 @@ export default function LearnTheoryPage() {
           {data.theory_completed ? (
             <button
               onClick={() => navigate("/simulation")}
-              className="w-full py-2 px-3 bg-white text-black font-semibold text-xs rounded-md hover:bg-white/90 transition-all flex items-center justify-center gap-2 cursor-pointer"
+              className="w-full py-2.5 px-3 bg-white text-black font-semibold text-sm rounded-md hover:bg-white/90 transition-all flex items-center justify-center gap-2 cursor-pointer"
             >
               <PlayCircle className="w-4 h-4" />
               {t("learn.startAdaptiveSimulation")}
             </button>
           ) : (
-            <p className="text-[11px] font-mono text-graphite-400">
+            <p className="text-xs font-mono text-graphite-400 leading-relaxed">
               {t("learn.unlockRequirementHint", { total: totalSubtopics })}
             </p>
           )}
@@ -677,7 +677,7 @@ export default function LearnTheoryPage() {
                         )}
                       />
                       <div className="min-w-0">
-                        <span className="text-[10px] font-mono uppercase tracking-wider text-graphite-500 block">
+                        <span className="text-xs font-mono uppercase tracking-wider text-graphite-400 block">
                           {t("learn.domainNumberLabel", { index: idx + 1 })}
                         </span>
                         <h3 className="text-sm font-semibold text-white leading-snug group-hover:text-indigo-200 transition-colors">
@@ -689,10 +689,10 @@ export default function LearnTheoryPage() {
                     <div className="flex items-center gap-1.5 shrink-0 mt-0.5">
                       <span
                         className={cn(
-                          "px-1.5 py-0.5 rounded text-[10px] font-mono border",
+                          "px-2 py-0.5 rounded text-xs font-mono border",
                           domain.is_completed
                             ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30"
-                            : "bg-graphite-950 text-graphite-400 border-graphite-800"
+                            : "bg-graphite-950 text-graphite-300 border-graphite-800"
                         )}
                       >
                         {domain.completed_subtopics_in_domain}/{domain.total_subtopics_in_domain}
@@ -709,7 +709,7 @@ export default function LearnTheoryPage() {
                     {showProficiencyMetrics && (
                       <span
                         className={cn(
-                          "px-2 py-0.5 rounded text-[10px] font-mono font-semibold border",
+                          "px-2 py-0.5 rounded text-xs font-mono font-semibold border",
                           domain.passed_threshold
                             ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
                             : "bg-amber-500/10 text-amber-400 border-amber-500/20"
@@ -720,8 +720,8 @@ export default function LearnTheoryPage() {
                     )}
 
                     {domain.recommended_focus && (
-                      <span className="px-2 py-0.5 rounded text-[10px] font-mono font-semibold bg-indigo-500/15 text-indigo-300 border border-indigo-500/30 flex items-center gap-1">
-                        <Sparkles className="w-2.5 h-2.5" />
+                      <span className="px-2 py-0.5 rounded text-xs font-mono font-semibold bg-indigo-500/15 text-indigo-300 border border-indigo-500/30 flex items-center gap-1">
+                        <Sparkles className="w-3 h-3" />
                         {t("learn.recommendedBadge")}
                       </span>
                     )}
@@ -735,17 +735,17 @@ export default function LearnTheoryPage() {
                       type="button"
                       onClick={() => handleSelectOverview(domain.domain_id)}
                       className={cn(
-                        "w-full text-left px-2.5 py-1.5 rounded text-xs flex items-center justify-between gap-2 transition-colors cursor-pointer",
+                        "w-full text-left px-2.5 py-2 rounded text-sm flex items-center justify-between gap-2 transition-colors cursor-pointer",
                         isOverviewActive
                           ? "bg-white/10 text-white font-semibold"
-                          : "text-graphite-300 hover:bg-graphite-800/60 hover:text-white"
+                          : "text-graphite-200 hover:bg-graphite-800/60 hover:text-white"
                       )}
                     >
                       <span className="flex items-center gap-2 min-w-0">
-                        <Layers className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
+                        <Layers className="w-4 h-4 text-indigo-400 shrink-0" />
                         <span className="truncate">{t("learn.domainOverviewLabel")}</span>
                       </span>
-                      <span className="text-[10px] font-mono text-graphite-500 shrink-0">
+                      <span className="text-xs font-mono text-graphite-400 shrink-0">
                         {t("learn.roadmapBadge")}
                       </span>
                     </button>
@@ -758,29 +758,29 @@ export default function LearnTheoryPage() {
                           type="button"
                           onClick={() => handleSelectSubtopic(sub.sub_topic_id, domain.domain_id)}
                           className={cn(
-                            "w-full text-left px-2.5 py-1.5 rounded text-xs flex items-center justify-between gap-2 transition-colors cursor-pointer",
+                            "w-full text-left px-2.5 py-2 rounded text-sm flex items-center justify-between gap-2 transition-colors cursor-pointer",
                             isSubActive
                               ? "bg-indigo-500/20 border border-indigo-500/40 text-white font-semibold"
-                              : "text-graphite-300 hover:bg-graphite-800/60 hover:text-white border border-transparent"
+                              : "text-graphite-200 hover:bg-graphite-800/60 hover:text-white border border-transparent"
                           )}
                         >
                           <span className="flex items-center gap-2 min-w-0">
                             {sub.is_completed ? (
-                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                              <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
                             ) : (
-                              <FileText className="w-3.5 h-3.5 text-graphite-500 shrink-0" />
+                              <FileText className="w-4 h-4 text-graphite-400 shrink-0" />
                             )}
-                            <span className="font-mono text-[11px] text-indigo-300 shrink-0">
+                            <span className="font-mono text-xs text-indigo-300 shrink-0">
                               {sub.sub_topic_id}
                             </span>
-                            <span className="truncate text-[11px]">{sub.title}</span>
+                            <span className="truncate text-sm">{sub.title}</span>
                           </span>
                           <span
                             className={cn(
-                              "text-[10px] font-mono shrink-0 px-1.5 py-0.5 rounded",
+                              "text-xs font-mono shrink-0 px-1.5 py-0.5 rounded",
                               sub.sample_attempted_count >= sub.sample_total_count
                                 ? "text-emerald-400 bg-emerald-500/10"
-                                : "text-graphite-500 bg-graphite-900"
+                                : "text-graphite-400 bg-graphite-900"
                             )}
                           >
                             {sub.sample_attempted_count}/{sub.sample_total_count}
@@ -802,16 +802,16 @@ export default function LearnTheoryPage() {
             <>
               <div className="px-6 py-4 border-b border-graphite-800 bg-graphite-950/60 flex flex-wrap items-center justify-between gap-3">
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="px-2 py-0.5 rounded bg-graphite-900 border border-graphite-800 text-[10px] font-mono text-graphite-300 uppercase">
+                  <span className="px-2.5 py-0.5 rounded bg-graphite-900 border border-graphite-800 text-xs font-mono text-graphite-200 uppercase">
                     {t("learn.overviewPill", { domainId: activeDomain.domain_id })}
                   </span>
                   {activeDomain.recommended_focus && (
-                    <span className="px-2 py-0.5 rounded bg-indigo-500/15 border border-indigo-500/30 text-[10px] font-mono text-indigo-300 font-semibold">
+                    <span className="px-2.5 py-0.5 rounded bg-indigo-500/15 border border-indigo-500/30 text-xs font-mono text-indigo-300 font-semibold">
                       {t("learn.recommendedFocusBadge")}
                     </span>
                   )}
                   {showProficiencyMetrics && (
-                    <span className="text-[11px] font-mono text-graphite-400">
+                    <span className="text-xs font-mono text-graphite-300">
                       {t("learn.currentProficiency")}{" "}
                       <strong
                         className={
@@ -831,15 +831,15 @@ export default function LearnTheoryPage() {
                       href={activeDomain.source_url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/30 text-[11px] font-mono text-indigo-300 transition-colors"
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/30 text-xs font-mono text-indigo-300 transition-colors"
                     >
-                      <ExternalLink className="w-3 h-3" />
+                      <ExternalLink className="w-3.5 h-3.5" />
                       {t("learn.primaryReference")}
                     </a>
                   )}
                   {activeDomain.is_completed && (
                     <span className="inline-flex items-center gap-1.5 text-xs font-mono font-semibold text-emerald-400">
-                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      <CheckCircle2 className="w-4 h-4" />
                       {t("learn.domainAutoCompletedBadge")}
                     </span>
                   )}
@@ -853,13 +853,13 @@ export default function LearnTheoryPage() {
                 <div className="pt-6 border-t border-graphite-800 space-y-4">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div>
-                      <h3 className="text-sm font-bold text-white tracking-tight">
+                      <h3 className="text-lg font-bold text-white tracking-tight">
                         {t("learn.subtopicsSectionTitle", {
                           completed: activeDomain.completed_subtopics_in_domain,
                           total: activeDomain.total_subtopics_in_domain,
                         })}
                       </h3>
-                      <p className="text-xs text-graphite-400 mt-0.5">
+                      <p className="text-sm text-graphite-300 mt-0.5">
                         {t("learn.subtopicsSectionDesc", { domainName: activeDomainDisplayName })}
                       </p>
                     </div>
@@ -872,10 +872,10 @@ export default function LearnTheoryPage() {
                             activeDomain.domain_id
                           )
                         }
-                        className="px-3 py-1.5 rounded-md bg-white text-black font-semibold text-xs hover:bg-white/90 transition-colors flex items-center gap-1.5 cursor-pointer"
+                        className="px-3.5 py-2 rounded-md bg-white text-black font-semibold text-sm hover:bg-white/90 transition-colors flex items-center gap-1.5 cursor-pointer"
                       >
                         {t("learn.startSubtopicButton", { subTopicId: activeDomain.subtopics[0].sub_topic_id })}
-                        <ChevronRight className="w-3.5 h-3.5" />
+                        <ChevronRight className="w-4 h-4" />
                       </button>
                     )}
                   </div>
@@ -894,11 +894,11 @@ export default function LearnTheoryPage() {
                         )}
                       >
                         <div className="flex items-start justify-between gap-2">
-                          <div className="space-y-1">
-                            <span className="inline-block px-1.5 py-0.5 rounded bg-indigo-500/15 border border-indigo-500/30 text-[10px] font-mono text-indigo-300 font-semibold">
+                          <div className="space-y-1.5">
+                            <span className="inline-block px-2 py-0.5 rounded bg-indigo-500/15 border border-indigo-500/30 text-xs font-mono text-indigo-300 font-semibold">
                               {t("learn.objectiveLabel", { subTopicId: sub.sub_topic_id })}
                             </span>
-                            <h4 className="text-xs font-semibold text-white leading-snug">
+                            <h4 className="text-sm font-semibold text-white leading-snug">
                               {sub.title}
                             </h4>
                           </div>
@@ -909,7 +909,7 @@ export default function LearnTheoryPage() {
                           )}
                         </div>
 
-                        <div className="flex items-center justify-between text-[11px] font-mono pt-1 border-t border-graphite-800/60">
+                        <div className="flex items-center justify-between text-xs font-mono pt-1.5 border-t border-graphite-800/60">
                           <span
                             className={
                               sub.sample_attempted_count >= sub.sample_total_count
@@ -924,7 +924,7 @@ export default function LearnTheoryPage() {
                           </span>
                           <span className="text-indigo-300 flex items-center gap-1">
                             {sub.is_completed ? t("learn.reviewAction") : t("learn.studyAction")}
-                            <ChevronRight className="w-3 h-3" />
+                            <ChevronRight className="w-3.5 h-3.5" />
                           </span>
                         </div>
                       </button>
@@ -938,19 +938,19 @@ export default function LearnTheoryPage() {
                   type="button"
                   disabled={!prevDomain}
                   onClick={() => prevDomain && handleSelectOverview(prevDomain.domain_id)}
-                  className="px-3 py-2 rounded-md border border-graphite-800 bg-graphite-900 text-xs font-mono text-graphite-300 hover:text-white hover:border-graphite-700 disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5 cursor-pointer"
+                  className="px-3.5 py-2 rounded-md border border-graphite-800 bg-graphite-900 text-sm font-mono text-graphite-200 hover:text-white hover:border-graphite-700 disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5 cursor-pointer"
                 >
-                  <ChevronLeft className="w-3.5 h-3.5" />
+                  <ChevronLeft className="w-4 h-4" />
                   {t("learn.previousOverview")}
                 </button>
                 <button
                   type="button"
                   disabled={!nextDomain}
                   onClick={() => nextDomain && handleSelectOverview(nextDomain.domain_id)}
-                  className="px-3 py-2 rounded-md border border-graphite-800 bg-graphite-900 text-xs font-mono text-graphite-300 hover:text-white hover:border-graphite-700 disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5 cursor-pointer"
+                  className="px-3.5 py-2 rounded-md border border-graphite-800 bg-graphite-900 text-sm font-mono text-graphite-200 hover:text-white hover:border-graphite-700 disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5 cursor-pointer"
                 >
                   {t("learn.nextOverview")}
-                  <ChevronRight className="w-3.5 h-3.5" />
+                  <ChevronRight className="w-4 h-4" />
                 </button>
               </div>
             </>
@@ -958,7 +958,7 @@ export default function LearnTheoryPage() {
             /* ---------------- SUB-TOPIC LOADING ---------------- */
             <div className="min-h-[420px] flex flex-col items-center justify-center gap-3 p-8">
               <Loader2 className="w-6 h-6 text-white animate-spin" />
-              <p className="text-xs font-mono text-graphite-400">
+              <p className="text-sm font-mono text-graphite-400">
                 {t("learn.loadingSubtopic", { subTopicId: effectiveTopicId })}
               </p>
             </div>
@@ -966,13 +966,13 @@ export default function LearnTheoryPage() {
             /* ---------------- SUB-TOPIC ERROR ---------------- */
             <div className="p-8 text-center space-y-4">
               <AlertTriangle className="w-8 h-8 text-amber-400 mx-auto" />
-              <p className="text-xs font-mono text-graphite-300">
+              <p className="text-sm font-mono text-graphite-300">
                 {subError || t("learn.subtopicDetailsUnavailable")}
               </p>
               <button
                 type="button"
                 onClick={() => handleSelectOverview(activeDomain.domain_id)}
-                className="px-4 py-2 rounded-md bg-graphite-800 text-xs font-semibold text-white hover:bg-graphite-700 cursor-pointer"
+                className="px-4 py-2 rounded-md bg-graphite-800 text-sm font-semibold text-white hover:bg-graphite-700 cursor-pointer"
               >
                 {t("learn.backToOverview")}
               </button>
@@ -985,17 +985,17 @@ export default function LearnTheoryPage() {
                   <button
                     type="button"
                     onClick={() => handleSelectOverview(subDetail.domain_id)}
-                    className="px-2 py-0.5 rounded bg-graphite-900 hover:bg-graphite-800 border border-graphite-800 text-[10px] font-mono text-graphite-300 uppercase cursor-pointer"
+                    className="px-2.5 py-0.5 rounded bg-graphite-900 hover:bg-graphite-800 border border-graphite-800 text-xs font-mono text-graphite-200 uppercase cursor-pointer"
                   >
                     {t("learn.overviewBreadcrumb", { domainId: subDetail.domain_id })}
                   </button>
-                  <span className="text-graphite-600 text-xs">/</span>
-                  <span className="px-2 py-0.5 rounded bg-indigo-500/15 border border-indigo-500/30 text-[10px] font-mono text-indigo-300 font-semibold">
+                  <span className="text-graphite-500 text-xs">/</span>
+                  <span className="px-2.5 py-0.5 rounded bg-indigo-500/15 border border-indigo-500/30 text-xs font-mono text-indigo-300 font-semibold">
                     {t("learn.subtopicBadge", { subTopicId: subDetail.sub_topic_id })}
                   </span>
                   {subDetail.preview_mode && (
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-amber-500/15 border border-amber-500/30 text-[10px] font-mono text-amber-300 font-semibold">
-                      <Eye className="w-3 h-3" />
+                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded bg-amber-500/15 border border-amber-500/30 text-xs font-mono text-amber-300 font-semibold">
+                      <Eye className="w-3.5 h-3.5" />
                       {t("learn.previewModeBadge")}
                     </span>
                   )}
@@ -1007,15 +1007,15 @@ export default function LearnTheoryPage() {
                       href={subDetail.source_url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/30 text-[11px] font-mono text-indigo-300 transition-colors"
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/30 text-xs font-mono text-indigo-300 transition-colors"
                     >
-                      <ExternalLink className="w-3 h-3" />
+                      <ExternalLink className="w-3.5 h-3.5" />
                       {t("learn.webReference")}
                     </a>
                   )}
                   {subDetail.is_completed && (
                     <span className="inline-flex items-center gap-1.5 text-xs font-mono font-semibold text-emerald-400">
-                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      <CheckCircle2 className="w-4 h-4" />
                       {t("learn.subtopicCompletedBadge")}
                     </span>
                   )}
@@ -1030,11 +1030,11 @@ export default function LearnTheoryPage() {
                 <div className="pt-6 border-t border-graphite-800 space-y-4">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div className="space-y-1">
-                      <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                        <HelpCircle className="w-4 h-4 text-indigo-400" />
+                      <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                        <HelpCircle className="w-5 h-5 text-indigo-400" />
                         {t("learn.sampleSectionTitle")}
                       </h3>
-                      <p className="text-xs text-graphite-400">
+                      <p className="text-sm text-graphite-300">
                         {subDetail.preview_mode
                           ? t("learn.samplePreviewDesc")
                           : t("learn.sampleLearnerDesc")}
@@ -1042,10 +1042,10 @@ export default function LearnTheoryPage() {
                     </div>
                     <span
                       className={cn(
-                        "px-2.5 py-1 rounded text-xs font-mono font-semibold border",
+                        "px-3 py-1 rounded text-xs font-mono font-semibold border",
                         subDetail.ready_to_complete
                           ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30"
-                          : "bg-graphite-950 text-graphite-300 border-graphite-800"
+                          : "bg-graphite-950 text-graphite-200 border-graphite-800"
                       )}
                     >
                       {t("learn.attemptedRatio", {
@@ -1056,7 +1056,7 @@ export default function LearnTheoryPage() {
                   </div>
 
                   {locale === "th" && (
-                    <div className="px-3 py-2 rounded bg-graphite-900/70 border border-graphite-800 text-graphite-300 text-xs">
+                    <div className="px-3.5 py-2.5 rounded bg-graphite-900/70 border border-graphite-800 text-graphite-300 text-xs">
                       {t("learn.sampleEnglishOnlyNotice")}
                     </div>
                   )}
@@ -1080,11 +1080,11 @@ export default function LearnTheoryPage() {
                             </span>
                             <div className="flex items-center gap-2">
                               {q.is_fallback ? (
-                                <span className="px-2 py-0.5 rounded bg-amber-500/15 border border-amber-500/30 text-[10px] font-mono text-amber-300">
+                                <span className="px-2 py-0.5 rounded bg-amber-500/15 border border-amber-500/30 text-xs font-mono text-amber-300">
                                   {t("learn.domainFallbackBadge")}
                                 </span>
                               ) : (
-                                <span className="px-2 py-0.5 rounded bg-indigo-500/15 border border-indigo-500/30 text-[10px] font-mono text-indigo-300">
+                                <span className="px-2 py-0.5 rounded bg-indigo-500/15 border border-indigo-500/30 text-xs font-mono text-indigo-300">
                                   {t("learn.objectiveLabel", { subTopicId: subDetail.sub_topic_id })}
                                 </span>
                               )}
@@ -1092,7 +1092,7 @@ export default function LearnTheoryPage() {
                               {isSubmitted && (
                                 <span
                                   className={cn(
-                                    "inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-mono font-semibold border",
+                                    "inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-mono font-semibold border",
                                     q.is_correct
                                       ? "bg-emerald-500/15 text-emerald-300 border-emerald-500/30"
                                       : "bg-red-500/15 text-red-300 border-red-500/30"
@@ -1100,12 +1100,12 @@ export default function LearnTheoryPage() {
                                 >
                                   {q.is_correct ? (
                                     <>
-                                      <CheckCircle2 className="w-3 h-3" />
+                                      <CheckCircle2 className="w-3.5 h-3.5" />
                                       {t("learn.correctLockedBadge", { answer: q.submitted_answer ?? "" })}
                                     </>
                                   ) : (
                                     <>
-                                      <XCircle className="w-3 h-3" />
+                                      <XCircle className="w-3.5 h-3.5" />
                                       {t("learn.wrongLockedBadge", {
                                         submitted: q.submitted_answer ?? "",
                                         correct: q.correct_answer ?? "",
@@ -1117,9 +1117,9 @@ export default function LearnTheoryPage() {
                             </div>
                           </div>
 
-                          <p className="text-sm text-white leading-relaxed">{q.question_text}</p>
+                          <p className="text-base text-white leading-relaxed">{q.question_text}</p>
 
-                          <div className="space-y-2">
+                          <div className="space-y-2.5">
                             {optionEntries.map(([optKey, optText]) => {
                               const isChosen = chosenOption === optKey;
                               const isActualCorrect = isSubmitted && q.correct_answer === optKey;
@@ -1138,7 +1138,7 @@ export default function LearnTheoryPage() {
                                     }))
                                   }
                                   className={cn(
-                                    "w-full text-left px-3.5 py-2.5 rounded-md border text-xs transition-all flex items-start gap-3",
+                                    "w-full text-left px-4 py-3 rounded-md border text-base transition-all flex items-start gap-3",
                                     isSubmitted ? "cursor-default" : "cursor-pointer",
                                     isActualCorrect
                                       ? "bg-emerald-500/15 border-emerald-500/50 text-emerald-100"
@@ -1146,10 +1146,10 @@ export default function LearnTheoryPage() {
                                       ? "bg-red-500/15 border-red-500/50 text-red-100"
                                       : isChosen
                                       ? "bg-indigo-500/20 border-indigo-400 text-white"
-                                      : "bg-graphite-900 border-graphite-800 text-graphite-300 hover:border-graphite-700"
+                                      : "bg-graphite-900 border-graphite-800 text-graphite-200 hover:border-graphite-700"
                                   )}
                                 >
-                                  <span className="font-mono font-bold shrink-0 mt-0.5">
+                                  <span className="font-mono font-bold shrink-0">
                                     {optKey}.
                                   </span>
                                   <span className="leading-relaxed">{optText}</span>
@@ -1160,7 +1160,7 @@ export default function LearnTheoryPage() {
 
                           {!isSubmitted ? (
                             <div className="flex items-center justify-between pt-1">
-                              <span className="text-[11px] font-mono text-graphite-500">
+                              <span className="text-xs font-mono text-graphite-400">
                                 {draftAnswers[q.question_id]
                                   ? t("learn.selectedOptionStatus", { answer: draftAnswers[q.question_id] })
                                   : t("learn.selectedOptionHint")}
@@ -1172,11 +1172,11 @@ export default function LearnTheoryPage() {
                                   submittingQuestionId === q.question_id
                                 }
                                 onClick={() => handleSubmitSampleAnswer(q.question_id)}
-                                className="px-3.5 py-1.5 rounded-md bg-white text-black font-semibold text-xs hover:bg-white/90 disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5 cursor-pointer"
+                                className="px-4 py-2 rounded-md bg-white text-black font-semibold text-sm hover:bg-white/90 disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5 cursor-pointer"
                               >
                                 {submittingQuestionId === q.question_id ? (
                                   <>
-                                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                    <Loader2 className="w-4 h-4 animate-spin" />
                                     {t("learn.checkingAnswer")}
                                   </>
                                 ) : (
@@ -1186,11 +1186,11 @@ export default function LearnTheoryPage() {
                             </div>
                           ) : (
                             q.explanation && (
-                              <div className="p-3.5 rounded-md bg-graphite-900 border border-graphite-800 space-y-1">
-                                <span className="text-[10px] font-mono uppercase tracking-wider text-indigo-300 font-semibold">
+                              <div className="p-4 rounded-md bg-graphite-900 border border-graphite-800 space-y-1.5">
+                                <span className="text-xs font-mono uppercase tracking-wider text-indigo-300 font-semibold">
                                   {t("learn.explanationLabel")}
                                 </span>
-                                <p className="text-xs text-graphite-300 leading-relaxed">
+                                <p className="text-base text-graphite-200 leading-relaxed">
                                   {q.explanation}
                                 </p>
                               </div>
@@ -1206,15 +1206,15 @@ export default function LearnTheoryPage() {
               {/* Bottom Checkpoint & Navigation Bar */}
               <div className="px-6 py-5 border-t border-graphite-800 bg-graphite-950/60 space-y-4">
                 {actionError && (
-                  <p className="text-xs font-mono text-red-400 bg-red-950/30 border border-red-500/30 rounded px-3 py-2">
+                  <p className="text-sm font-mono text-red-400 bg-red-950/30 border border-red-500/30 rounded px-3.5 py-2">
                     {actionError}
                   </p>
                 )}
 
                 {unlockNotice && (
                   <div className="p-4 rounded-lg bg-emerald-950/40 border border-emerald-500/40 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                    <div className="space-y-0.5">
-                      <p className="text-xs font-bold text-emerald-300">
+                    <div className="space-y-1">
+                      <p className="text-sm font-bold text-emerald-300">
                         {unlockNotice.kind === "staff_preview"
                           ? t("learn.staffPreviewNoticeTitle")
                           : unlockNotice.kind === "all_complete"
@@ -1223,7 +1223,7 @@ export default function LearnTheoryPage() {
                               domainUpper: unlockNotice.domainId.toUpperCase(),
                             })}
                       </p>
-                      <p className="text-xs text-graphite-300">
+                      <p className="text-sm text-graphite-200">
                         {unlockNotice.kind === "staff_preview"
                           ? t("learn.staffPreviewNoticeDetail")
                           : unlockNotice.kind === "all_complete"
@@ -1237,7 +1237,7 @@ export default function LearnTheoryPage() {
                       <button
                         type="button"
                         onClick={() => navigate("/simulation")}
-                        className="px-3.5 py-2 rounded-md bg-white text-black font-semibold text-xs hover:bg-white/90 flex items-center gap-1.5 shrink-0 cursor-pointer"
+                        className="px-4 py-2 rounded-md bg-white text-black font-semibold text-sm hover:bg-white/90 flex items-center gap-1.5 shrink-0 cursor-pointer"
                       >
                         <PlayCircle className="w-4 h-4" />
                         {t("learn.enterSimulation")}
@@ -1255,9 +1255,9 @@ export default function LearnTheoryPage() {
                         subDetail.previous_sub_topic_id &&
                         handleSelectSubtopic(subDetail.previous_sub_topic_id)
                       }
-                      className="px-3 py-2 rounded-md border border-graphite-800 bg-graphite-900 text-xs font-mono text-graphite-300 hover:text-white hover:border-graphite-700 disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5 cursor-pointer"
+                      className="px-3.5 py-2 rounded-md border border-graphite-800 bg-graphite-900 text-sm font-mono text-graphite-200 hover:text-white hover:border-graphite-700 disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5 cursor-pointer"
                     >
-                      <ChevronLeft className="w-3.5 h-3.5" />
+                      <ChevronLeft className="w-4 h-4" />
                       {t("learn.previousSubtopic")}
                     </button>
                     <button
@@ -1267,10 +1267,10 @@ export default function LearnTheoryPage() {
                         subDetail.next_sub_topic_id &&
                         handleSelectSubtopic(subDetail.next_sub_topic_id)
                       }
-                      className="px-3 py-2 rounded-md border border-graphite-800 bg-graphite-900 text-xs font-mono text-graphite-300 hover:text-white hover:border-graphite-700 disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5 cursor-pointer"
+                      className="px-3.5 py-2 rounded-md border border-graphite-800 bg-graphite-900 text-sm font-mono text-graphite-200 hover:text-white hover:border-graphite-700 disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5 cursor-pointer"
                     >
                       {t("learn.nextSubtopic")}
-                      <ChevronRight className="w-3.5 h-3.5" />
+                      <ChevronRight className="w-4 h-4" />
                     </button>
                   </div>
 
@@ -1288,11 +1288,11 @@ export default function LearnTheoryPage() {
                             ? t("learn.markCompletedTitle")
                             : t("learn.attemptFirstTitle")
                         }
-                        className="px-4 py-2 rounded-md bg-emerald-500 hover:bg-emerald-400 text-black font-semibold text-xs transition-all flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                        className="px-4 py-2 rounded-md bg-emerald-500 hover:bg-emerald-400 text-black font-semibold text-sm transition-all flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
                       >
                         {completingSubtopicId === subDetail.sub_topic_id ? (
                           <>
-                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            <Loader2 className="w-4 h-4 animate-spin" />
                             {t("learn.saving")}
                           </>
                         ) : (
@@ -1316,7 +1316,7 @@ export default function LearnTheoryPage() {
                           subDetail.next_sub_topic_id &&
                           handleSelectSubtopic(subDetail.next_sub_topic_id)
                         }
-                        className="px-4 py-2 rounded-md bg-white hover:bg-white/90 text-black font-semibold text-xs transition-all flex items-center justify-center gap-2 cursor-pointer"
+                        className="px-4 py-2 rounded-md bg-white hover:bg-white/90 text-black font-semibold text-sm transition-all flex items-center justify-center gap-2 cursor-pointer"
                       >
                         {t("learn.completedNextSubtopic", { subTopicId: subDetail.next_sub_topic_id })}
                         <ChevronRight className="w-4 h-4" />
@@ -1325,13 +1325,13 @@ export default function LearnTheoryPage() {
                       <button
                         type="button"
                         onClick={() => navigate("/simulation")}
-                        className="px-4 py-2 rounded-md bg-white hover:bg-white/90 text-black font-semibold text-xs transition-all flex items-center justify-center gap-2 cursor-pointer"
+                        className="px-4 py-2 rounded-md bg-white hover:bg-white/90 text-black font-semibold text-sm transition-all flex items-center justify-center gap-2 cursor-pointer"
                       >
                         <PlayCircle className="w-4 h-4" />
                         {t("learn.startAdaptiveSimulation")}
                       </button>
                     ) : (
-                      <span className="inline-flex items-center gap-1.5 px-3 py-2 rounded-md bg-emerald-500/10 border border-emerald-500/30 text-xs font-mono font-semibold text-emerald-400">
+                      <span className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-md bg-emerald-500/10 border border-emerald-500/30 text-sm font-mono font-semibold text-emerald-400">
                         <CheckCircle2 className="w-4 h-4" />
                         {t("learn.subtopicCompletedBadge")}
                       </span>

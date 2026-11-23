@@ -68,7 +68,7 @@ export default function SimulationCompletePage() {
     return (
       <div className="min-h-[60vh] flex flex-col items-center justify-center gap-3">
         <Loader2 className="w-6 h-6 text-white animate-spin" />
-        <p className="text-xs font-mono text-graphite-500">{t("simComplete.loadingText")}</p>
+        <p className="text-sm font-mono text-graphite-400">{t("simComplete.loadingText")}</p>
       </div>
     );
   }
@@ -79,10 +79,10 @@ export default function SimulationCompletePage() {
         <div className="inline-flex items-center justify-center p-3 rounded-md bg-graphite-900 border border-graphite-800 text-white mb-2 relative">
           <Award className="w-8 h-8 text-emerald-400" />
         </div>
-        <h1 className="text-2xl font-bold tracking-tight text-white">
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-white">
           {allPassed ? t("simComplete.titleComplete") : t("simComplete.titleOverview")}
         </h1>
-        <p className="text-xs text-graphite-400 leading-relaxed font-light">
+        <p className="text-base text-graphite-300 leading-relaxed font-normal">
           {allPassed ? t("simComplete.descComplete") : t("simComplete.descIncomplete")}
         </p>
       </div>
@@ -91,22 +91,22 @@ export default function SimulationCompletePage() {
         {/* Stats card */}
         <div className="bg-graphite-900 border border-graphite-800/80 p-6 rounded-lg space-y-6 flex flex-col justify-between">
           <div className="space-y-4">
-            <h3 className="text-sm font-semibold text-white border-b border-graphite-800 pb-3">
+            <h3 className="text-lg font-semibold text-white border-b border-graphite-800 pb-3">
               {t("simComplete.metricsTitle")}
             </h3>
             
-            <div className="space-y-3 font-mono text-[10px]">
-              <div className="flex justify-between py-1 border-b border-graphite-800/60">
+            <div className="space-y-3 font-mono text-sm">
+              <div className="flex justify-between py-1.5 border-b border-graphite-800/60">
                 <span className="text-graphite-400">{t("simComplete.scenariosCompleted")}</span>
                 <span className="text-white font-semibold">{completedScenarios}</span>
               </div>
-              <div className="flex justify-between py-1 border-b border-graphite-800/60">
+              <div className="flex justify-between py-1.5 border-b border-graphite-800/60">
                 <span className="text-graphite-400">{t("simComplete.averageProficiency")}</span>
                 <span className="text-emerald-400 font-semibold">
                   {(domainProficiencies.reduce((acc, d) => acc + d.proficiency_score, 0) / Math.max(1, domainProficiencies.length)).toFixed(1)}%
                 </span>
               </div>
-              <div className="flex justify-between py-1 border-b border-graphite-800/60">
+              <div className="flex justify-between py-1.5 border-b border-graphite-800/60">
                 <span className="text-graphite-400">{t("simComplete.statusLabel")}</span>
                 <span className={allPassed ? "text-emerald-400 font-semibold" : "text-amber-400 font-semibold"}>
                   {allPassed ? t("simComplete.readyForExam") : t("simComplete.trainingInProgress")}
@@ -115,21 +115,21 @@ export default function SimulationCompletePage() {
             </div>
           </div>
 
-          <div className="space-y-2">
+          <div className="space-y-2.5">
             {!allPassed ? (
               <>
                 <button
                   onClick={() => navigate("/simulation")}
-                  className="w-full py-2.5 bg-emerald-500 hover:bg-emerald-600 text-black font-semibold text-xs rounded-md transition-all duration-200 shadow-sm"
+                  className="w-full py-2.5 bg-emerald-500 hover:bg-emerald-600 text-black font-semibold text-sm rounded-md transition-all duration-200 shadow-sm cursor-pointer"
                 >
                   {t("simComplete.continueSimulation")}
                 </button>
-                <div className="p-3 rounded border border-amber-900/50 bg-amber-950/20 text-amber-300/80 text-[11px] leading-relaxed">
+                <div className="p-3.5 rounded border border-amber-900/50 bg-amber-950/20 text-amber-300/90 text-xs sm:text-sm leading-relaxed">
                   {t("simComplete.postTestLockedNotice")}
                 </div>
                 <button
                   disabled
-                  className="w-full py-2 bg-graphite-800 text-graphite-500 font-medium text-xs rounded-md cursor-not-allowed flex items-center justify-center gap-2 border border-graphite-700/50"
+                  className="w-full py-2.5 bg-graphite-800 text-graphite-400 font-medium text-sm rounded-md cursor-not-allowed flex items-center justify-center gap-2 border border-graphite-700/50"
                 >
                   {t("simComplete.startPostTestLocked")}
                 </button>
@@ -137,7 +137,7 @@ export default function SimulationCompletePage() {
             ) : (
               <button
                 onClick={handleStartPostTest}
-                className="w-full py-2.5 bg-white text-black font-semibold text-xs rounded-md hover:bg-white/90 transition-all duration-200 flex items-center justify-center gap-2 shadow"
+                className="w-full py-2.5 bg-white text-black font-semibold text-sm rounded-md hover:bg-white/90 transition-all duration-200 flex items-center justify-center gap-2 shadow cursor-pointer"
               >
                 {t("simComplete.startPostTest")}
                 <ChevronRight className="w-4 h-4" />

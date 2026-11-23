@@ -491,8 +491,8 @@ export default function SimulationPage() {
         <div className="max-w-md mx-auto mt-12 bg-graphite-900 p-8 rounded-lg border border-graphite-800 text-center space-y-6 animate-fade-in">
           <BookOpen className="w-10 h-10 text-amber-500 mx-auto" />
           <div className="space-y-2">
-            <h3 className="text-base font-bold text-white tracking-tight">{t("simulation.theoryRequiredTitle")}</h3>
-            <p className="text-xs text-graphite-400 font-mono leading-relaxed">
+            <h3 className="text-lg font-bold text-white tracking-tight">{t("simulation.theoryRequiredTitle")}</h3>
+            <p className="text-sm text-graphite-300 font-mono leading-relaxed">
               {typeof theoryGateInfo.completedSubtopics === "number"
                 ? t("errors.SIM_THEORY_INCOMPLETE", {
                     completed_subtopics: theoryGateInfo.completedSubtopics,
@@ -500,7 +500,7 @@ export default function SimulationPage() {
                   })
                 : errorMessage}
             </p>
-            <p className="text-xs font-mono text-graphite-300">
+            <p className="text-sm font-mono text-graphite-200">
               {typeof theoryGateInfo.completedSubtopics === "number"
                 ? t("simulation.completedSubtopicsSummary", {
                     completed: theoryGateInfo.completedSubtopics,
@@ -515,14 +515,14 @@ export default function SimulationPage() {
           <div className="flex flex-col gap-2">
             <button
               onClick={() => navigate("/learn")}
-              className="w-full py-2.5 bg-white hover:bg-white/90 text-black font-semibold text-xs rounded-md transition-all duration-200 flex items-center justify-center gap-2"
+              className="w-full py-2.5 bg-white hover:bg-white/90 text-black font-semibold text-sm rounded-md transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer"
             >
               <BookOpen className="w-4 h-4" />
               {t("simulation.goToLearnHub")}
             </button>
             <button
               onClick={() => navigate("/evaluation")}
-              className="w-full py-2 bg-graphite-800 hover:bg-graphite-700 text-graphite-300 font-semibold text-xs rounded-md transition-all duration-200"
+              className="w-full py-2.5 bg-graphite-800 hover:bg-graphite-700 text-graphite-200 font-semibold text-sm rounded-md transition-all duration-200 cursor-pointer"
             >
               {t("simulation.backToEvaluation")}
             </button>
@@ -534,8 +534,8 @@ export default function SimulationPage() {
     return (
       <div className="max-w-md mx-auto mt-12 bg-graphite-900 p-8 rounded-lg border border-graphite-800 text-center space-y-6 animate-fade-in">
         <AlertCircle className="w-10 h-10 text-amber-500 mx-auto" />
-        <h3 className="text-base font-bold text-white tracking-tight">{t("nav.simulation")}</h3>
-        <p className="text-xs text-graphite-400 font-mono leading-relaxed">{errorMessage}</p>
+        <h3 className="text-lg font-bold text-white tracking-tight">{t("nav.simulation")}</h3>
+        <p className="text-sm text-graphite-300 font-mono leading-relaxed">{errorMessage}</p>
         <div className="flex flex-col gap-2">
           <button
             onClick={() => {
@@ -544,13 +544,13 @@ export default function SimulationPage() {
               setLoading(true);
               setRetryCount((prev) => prev + 1);
             }}
-            className="w-full py-2.5 bg-emerald-500 hover:bg-emerald-600 text-black font-semibold text-xs rounded-md transition-all duration-200"
+            className="w-full py-2.5 bg-emerald-500 hover:bg-emerald-600 text-black font-semibold text-sm rounded-md transition-all duration-200 cursor-pointer"
           >
             {t("simulation.retryLoading")}
           </button>
           <button
             onClick={() => navigate("/pre-test")}
-            className="w-full py-2 bg-graphite-800 hover:bg-graphite-700 text-graphite-300 font-semibold text-xs rounded-md transition-all duration-200"
+            className="w-full py-2.5 bg-graphite-800 hover:bg-graphite-700 text-graphite-200 font-semibold text-sm rounded-md transition-all duration-200 cursor-pointer"
           >
             {t("simulation.goToPreTestOverview")}
           </button>
@@ -589,14 +589,14 @@ export default function SimulationPage() {
       {/* Simulation Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-graphite-800 pb-5">
         <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-2 mb-1.5">
-            <span className="px-2 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/20 text-[10px] font-mono font-bold text-emerald-400 uppercase tracking-wider">
+          <div className="flex flex-wrap items-center gap-2 mb-2">
+            <span className="px-2.5 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/20 text-xs font-mono font-bold text-emerald-400 uppercase tracking-wider">
               {t("simulation.activeIncidentBadge")}
             </span>
 
             {session.generation_type === "ai_generated" ? (
-              <span className="px-2 py-0.5 rounded bg-cyan-500/10 border border-cyan-500/30 text-[10px] font-mono font-bold text-cyan-400 uppercase tracking-wider flex items-center gap-1.5 shadow-sm shadow-cyan-500/10">
-                <Sparkles className="w-3 h-3 text-cyan-400 animate-pulse" />
+              <span className="px-2.5 py-0.5 rounded bg-cyan-500/10 border border-cyan-500/30 text-xs font-mono font-bold text-cyan-400 uppercase tracking-wider flex items-center gap-1.5 shadow-sm shadow-cyan-500/10">
+                <Sparkles className="w-3.5 h-3.5 text-cyan-400 animate-pulse" />
                 {t("simulation.aiScenarioBadge")}
               </span>
             ) : (
@@ -606,66 +606,66 @@ export default function SimulationPage() {
                     ? t("simulation.fallbackReasonTooltip", { reason: session.fallback_reason })
                     : t("simulation.staticPoolTooltip")
                 }
-                className="px-2 py-0.5 rounded bg-amber-500/10 border border-amber-500/30 text-[10px] font-mono font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1.5 cursor-help hover:bg-amber-500/20 transition-all duration-200"
+                className="px-2.5 py-0.5 rounded bg-amber-500/10 border border-amber-500/30 text-xs font-mono font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1.5 cursor-help hover:bg-amber-500/20 transition-all duration-200"
               >
-                <AlertCircle className="w-3 h-3 text-amber-400" />
+                <AlertCircle className="w-3.5 h-3.5 text-amber-400" />
                 {t("simulation.staticScenarioBadge")}
               </span>
             )}
 
-            <span className="text-xs font-mono text-graphite-500">
+            <span className="text-xs font-mono text-graphite-400">
               {t("simulation.sessionIdPrefix", { id: session.session_id.substring(0, 8) })}
             </span>
           </div>
 
           {session.generation_type !== "ai_generated" && session.fallback_reason && (
-            <p className="text-[11px] font-mono text-amber-400/80 mb-1 flex items-center gap-1.5">
+            <p className="text-xs font-mono text-amber-300/90 mb-1.5 flex items-center gap-1.5">
               <span className="inline-block w-1.5 h-1.5 rounded-full bg-amber-400"></span>
               <span className="font-semibold">{t("simulation.fallbackReasonLabel")}</span> {session.fallback_reason}
             </p>
           )}
 
-          <h1 className="text-2xl font-bold tracking-tight text-graphite-50 break-words max-w-full" title={localizedScenario.title}>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-graphite-50 break-words max-w-full" title={localizedScenario.title}>
             {localizedScenario.title}
           </h1>
         </div>
 
         {/* Tab Navigation */}
-        <div className="flex bg-graphite-900/50 p-1 rounded-lg border border-graphite-800/80 font-mono text-xs w-full md:w-auto shrink-0">
+        <div className="flex bg-graphite-900/50 p-1 rounded-lg border border-graphite-800/80 font-mono text-sm w-full md:w-auto shrink-0">
           <button
             onClick={() => setActiveTab("scenario")}
             className={cn(
-              "flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2 rounded-md font-medium transition-all duration-200",
+              "flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2 rounded-md font-medium transition-all duration-200 cursor-pointer",
               activeTab === "scenario"
                 ? "bg-graphite-800 text-white shadow-sm"
                 : "text-graphite-400 hover:text-graphite-200"
             )}
           >
-            <Eye className="w-3.5 h-3.5" />
+            <Eye className="w-4 h-4" />
             {t("simulation.tabScenario")}
           </button>
           <button
             onClick={() => setActiveTab("detect")}
             className={cn(
-              "flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2 rounded-md font-medium transition-all duration-200",
+              "flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2 rounded-md font-medium transition-all duration-200 cursor-pointer",
               activeTab === "detect"
                 ? "bg-graphite-800 text-white shadow-sm"
                 : "text-graphite-400 hover:text-graphite-200"
             )}
           >
-            <Terminal className="w-3.5 h-3.5" />
+            <Terminal className="w-4 h-4" />
             {t("simulation.tabDetect")}
           </button>
           <button
             onClick={() => setActiveTab("response")}
             className={cn(
-              "flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2 rounded-md font-medium transition-all duration-200",
+              "flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2 rounded-md font-medium transition-all duration-200 cursor-pointer",
               activeTab === "response"
                 ? "bg-graphite-800 text-white shadow-sm"
                 : "text-graphite-400 hover:text-graphite-200"
             )}
           >
-            <Shield className="w-3.5 h-3.5" />
+            <Shield className="w-4 h-4" />
             {t("simulation.tabResponse")}
           </button>
         </div>
@@ -678,13 +678,13 @@ export default function SimulationPage() {
           <div className="grid md:grid-cols-3 gap-6 animate-fade-in">
             <div className="md:col-span-2 space-y-6">
               <div className="bg-graphite-900 border border-graphite-800/80 p-6 rounded-lg space-y-4">
-                <h3 className="text-sm font-semibold text-white">{t("simulation.incidentNarrative")}</h3>
+                <h3 className="text-lg font-semibold text-white">{t("simulation.incidentNarrative")}</h3>
                 {locale === "th" && !scenario.translations?.th?.description && !backfillingTranslation && (
-                  <p className="text-[11px] text-amber-300/80 font-mono">
+                  <p className="text-xs text-amber-300/90 font-mono">
                     {t("simulation.legacyUntranslatedNotice")}
                   </p>
                 )}
-                <div className="space-y-3.5 text-sm text-graphite-200 leading-relaxed">
+                <div className="space-y-4 text-base text-graphite-200 leading-relaxed">
                   {localizedScenario.description
                     .split(/\n{2,}/)
                     .map((para) => para.trim())
@@ -697,19 +697,19 @@ export default function SimulationPage() {
 
               {/* Investigation Clues & SIEM Shortcuts */}
               <div className="bg-graphite-900 border border-graphite-800/80 p-6 rounded-lg space-y-4">
-                <div className="flex items-center justify-between border-b border-graphite-800 pb-3">
-                  <h3 className="text-sm font-semibold text-white flex items-center gap-2">
+                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-graphite-800 pb-3">
+                  <h3 className="text-lg font-semibold text-white flex items-center gap-2">
                     <Search className="w-4 h-4 text-emerald-400" />
                     {t("simulation.cluesAndShortcutsTitle")}
                   </h3>
-                  <span className="text-[10px] font-mono text-graphite-400">{t("simulation.cluesClickHint")}</span>
+                  <span className="text-xs font-mono text-graphite-400">{t("simulation.cluesClickHint")}</span>
                 </div>
 
-                <p className="text-xs text-graphite-400 font-light">
+                <p className="text-sm text-graphite-300 font-normal leading-relaxed">
                   {t("simulation.cluesDesc")}
                 </p>
 
-                <div className="flex flex-wrap gap-2 pt-1">
+                <div className="flex flex-wrap gap-2.5 pt-1">
                   {shortcuts.map((shortcut) => {
                     const toneClasses =
                       shortcut.tone === "amber"
@@ -722,11 +722,11 @@ export default function SimulationPage() {
                         key={`${shortcut.labelPrefix}:${shortcut.query}`}
                         onClick={() => handleQuickSiemSearch(shortcut.query)}
                         className={cn(
-                          "px-3 py-1.5 rounded bg-graphite-950 border border-graphite-800 font-mono text-xs flex items-center gap-1.5 transition-all",
+                          "px-3.5 py-2 rounded bg-graphite-950 border border-graphite-800 font-mono text-log flex items-center gap-1.5 transition-all cursor-pointer",
                           toneClasses
                         )}
                       >
-                        <span className="text-graphite-500 text-[10px]">{shortcut.labelPrefix}</span>
+                        <span className="text-graphite-400 text-xs">{shortcut.labelPrefix}</span>
                         {shortcut.label}
                       </button>
                     );
@@ -737,8 +737,8 @@ export default function SimulationPage() {
 
             <div className="space-y-6">
               <div className="bg-graphite-900 border border-graphite-800/80 p-6 rounded-lg space-y-4">
-                <h3 className="text-sm font-semibold text-white">{t("simulation.triageClassification")}</h3>
-                <p className="text-[11px] text-graphite-400 font-light">
+                <h3 className="text-lg font-semibold text-white">{t("simulation.triageClassification")}</h3>
+                <p className="text-sm text-graphite-300 font-normal leading-relaxed">
                   {t("simulation.triagePrompt")}
                 </p>
 
@@ -746,15 +746,15 @@ export default function SimulationPage() {
                   <button
                     onClick={() => setIsTruePositive(true)}
                     className={cn(
-                      "w-full text-left p-4 rounded border font-mono text-xs transition-all duration-200 flex items-center justify-between",
+                      "w-full text-left p-4 rounded border font-mono text-sm transition-all duration-200 flex items-center justify-between cursor-pointer",
                       isTruePositive === true
-                        ? "bg-red-950/20 border-red-500/30 text-red-200 font-medium"
-                        : "bg-graphite-950/40 border-graphite-800/80 text-graphite-300 hover:bg-graphite-950 hover:text-white"
+                        ? "bg-red-950/20 border-red-500/30 text-red-200 font-semibold"
+                        : "bg-graphite-950/40 border-graphite-800/80 text-graphite-200 hover:bg-graphite-950 hover:text-white"
                     )}
                   >
                     <span>{t("simulation.truePositiveOption")}</span>
                     <span className={cn(
-                      "w-2.5 h-2.5 rounded-full border border-graphite-600",
+                      "w-3 h-3 rounded-full border border-graphite-600 shrink-0",
                       isTruePositive === true && "bg-red-500 border-red-400"
                     )} />
                   </button>
@@ -762,29 +762,29 @@ export default function SimulationPage() {
                   <button
                     onClick={() => setIsTruePositive(false)}
                     className={cn(
-                      "w-full text-left p-4 rounded border font-mono text-xs transition-all duration-200 flex items-center justify-between",
+                      "w-full text-left p-4 rounded border font-mono text-sm transition-all duration-200 flex items-center justify-between cursor-pointer",
                       isTruePositive === false
-                        ? "bg-emerald-950/20 border-emerald-500/30 text-emerald-200 font-medium"
-                        : "bg-graphite-950/40 border-graphite-800/80 text-graphite-300 hover:bg-graphite-950 hover:text-white"
+                        ? "bg-emerald-950/20 border-emerald-500/30 text-emerald-200 font-semibold"
+                        : "bg-graphite-950/40 border-graphite-800/80 text-graphite-200 hover:bg-graphite-950 hover:text-white"
                     )}
                   >
                     <span>{t("simulation.falsePositiveOption")}</span>
                     <span className={cn(
-                      "w-2.5 h-2.5 rounded-full border border-graphite-600",
+                      "w-3 h-3 rounded-full border border-graphite-600 shrink-0",
                       isTruePositive === false && "bg-emerald-500 border-emerald-400"
                     )} />
                   </button>
                 </div>
               </div>
 
-              <div className="bg-graphite-900 border border-graphite-800/80 p-4 rounded-lg flex items-center justify-between">
+              <div className="bg-graphite-900 border border-graphite-800/80 p-4 rounded-lg flex items-center justify-between gap-3">
                 <div className="space-y-0.5">
-                  <h4 className="text-[10px] font-semibold text-white font-mono uppercase tracking-wider">{t("simulation.nextStepLabel")}</h4>
-                  <p className="text-[10px] text-graphite-400 font-light">{t("simulation.nextStepDesc")}</p>
+                  <h4 className="text-xs font-semibold text-white font-mono uppercase tracking-wider">{t("simulation.nextStepLabel")}</h4>
+                  <p className="text-xs text-graphite-300 font-normal">{t("simulation.nextStepDesc")}</p>
                 </div>
                 <button
                   onClick={() => setActiveTab("detect")}
-                  className="p-1.5 rounded border border-graphite-800 bg-transparent text-graphite-300 hover:bg-graphite-950 hover:text-white transition-colors"
+                  className="p-2 rounded border border-graphite-800 bg-transparent text-graphite-200 hover:bg-graphite-950 hover:text-white transition-colors cursor-pointer shrink-0"
                 >
                   <ChevronRight className="w-4 h-4" />
                 </button>
@@ -798,22 +798,22 @@ export default function SimulationPage() {
           <div className="space-y-6 animate-fade-in">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div className="flex items-center gap-2">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                <h3 className="text-sm font-semibold text-white">{t("simulation.siemTerminalTitle")}</h3>
+                <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                <h3 className="text-lg font-semibold text-white">{t("simulation.siemTerminalTitle")}</h3>
               </div>
-              <div className="text-[10px] font-mono text-graphite-400 bg-graphite-900 px-3 py-1 rounded border border-graphite-800/80 select-none">
+              <div className="text-xs font-mono text-graphite-300 bg-graphite-900 px-3 py-1.5 rounded border border-graphite-800/80 select-none">
                 {t("simulation.selectedEvidenceCount", { count: selectedLogIndices.length })}
               </div>
             </div>
 
-            <p className="text-[11px] font-mono text-graphite-400 leading-relaxed">
+            <p className="text-sm font-mono text-graphite-300 leading-relaxed">
               {t("simulation.evidenceInstruction")}
             </p>
 
             {typeof scenario.total_findings === "number" && (
-              <p className="text-[10px] font-mono text-graphite-500">
+              <p className="text-xs font-mono text-graphite-400">
                 {t("simulation.keyFindingsCount")}{" "}
-                <span className="text-graphite-300 font-semibold">{scenario.total_findings}</span>
+                <span className="text-graphite-200 font-semibold">{scenario.total_findings}</span>
               </p>
             )}
 
@@ -826,7 +826,7 @@ export default function SimulationPage() {
             />
 
             {locale === "th" && (
-              <p className="text-[11px] font-mono text-sky-300/90 bg-sky-950/20 border border-sky-500/20 rounded-lg px-3.5 py-2">
+              <p className="text-xs font-mono text-sky-300 bg-sky-950/20 border border-sky-500/20 rounded-lg px-3.5 py-2">
                 {t("simulation.logsEnglishOnlyNotice")}
               </p>
             )}
@@ -838,7 +838,7 @@ export default function SimulationPage() {
             />
 
             {selectionError && (
-              <div className="flex items-center gap-2 text-amber-400 text-xs font-mono bg-amber-950/20 px-3 py-2 rounded-lg border border-amber-500/20">
+              <div className="flex items-center gap-2 text-amber-400 text-sm font-mono bg-amber-950/20 px-3.5 py-2 rounded-lg border border-amber-500/20">
                 <AlertCircle className="w-4 h-4 shrink-0" />
                 <span>{selectionError}</span>
               </div>
@@ -847,8 +847,8 @@ export default function SimulationPage() {
             <div className="bg-graphite-900 border border-cyan-500/25 rounded-xl overflow-hidden">
               <div className="px-5 py-3 bg-cyan-950/20 border-b border-cyan-500/20 flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2">
-                  <span className="text-xs font-semibold text-cyan-200">{t("simulation.selectedEvidenceTitle")}</span>
-                  <span className="text-[10px] font-mono text-cyan-400/80 bg-cyan-500/10 border border-cyan-500/20 rounded px-1.5 py-0.5">
+                  <span className="text-sm font-semibold text-cyan-200">{t("simulation.selectedEvidenceTitle")}</span>
+                  <span className="text-xs font-mono text-cyan-300 bg-cyan-500/10 border border-cyan-500/20 rounded px-2 py-0.5">
                     {selectedLogIndices.length}
                   </span>
                 </div>
@@ -856,29 +856,29 @@ export default function SimulationPage() {
                   type="button"
                   onClick={handleClearEvidence}
                   disabled={selectedLogIndices.length === 0}
-                  className="flex items-center gap-1.5 px-2.5 py-1 rounded border border-cyan-500/30 text-[10px] font-mono font-bold uppercase tracking-wider text-cyan-300 hover:bg-cyan-500/10 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded border border-cyan-500/30 text-xs font-mono font-bold uppercase tracking-wider text-cyan-300 hover:bg-cyan-500/10 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
                 >
-                  <Trash2 className="w-3 h-3" />
+                  <Trash2 className="w-3.5 h-3.5" />
                   {t("simulation.clearAll")}
                 </button>
               </div>
 
               {selectedLogs.length === 0 ? (
-                <p className="px-5 py-4 text-[11px] font-mono text-graphite-500">
+                <p className="px-5 py-4 text-sm font-mono text-graphite-400">
                   {t("simulation.noEvidenceSelected")}
                 </p>
               ) : (
                 <ul className="divide-y divide-graphite-800/60 max-h-64 overflow-y-auto">
                   {selectedLogs.map((log: any) => (
-                    <li key={log.__log_index} className="flex items-start gap-3 px-5 py-2.5">
-                      <div className="min-w-0 flex-1 font-mono">
-                        <div className="flex flex-wrap items-center gap-2 text-[10px] text-graphite-400">
-                          <span className="text-graphite-500">#{log.__log_index}</span>
+                    <li key={log.__log_index} className="flex items-start gap-3 px-5 py-3">
+                      <div className="min-w-0 flex-1 font-mono space-y-1">
+                        <div className="flex flex-wrap items-center gap-2 text-xs text-graphite-400">
+                          <span className="text-cyan-300">#{log.__log_index}</span>
                           <span>{log.timestamp}</span>
-                          <span className="text-cyan-300/80">{log.source}</span>
-                          <span className="uppercase font-bold text-amber-400/90">{log.severity}</span>
+                          <span className="text-cyan-300/90">{log.source}</span>
+                          <span className="uppercase font-bold text-amber-400">{log.severity}</span>
                         </div>
-                        <p className="text-[11px] text-graphite-200 truncate" title={String(log.message ?? "")}>
+                        <p className="text-log text-graphite-200 truncate" title={String(log.message ?? "")}>
                           {String(log.message ?? "")}
                         </p>
                       </div>
@@ -886,9 +886,9 @@ export default function SimulationPage() {
                         type="button"
                         onClick={() => handleToggleEvidence(log.__log_index)}
                         aria-label={t("simulation.removeEvidenceAria", { index: log.__log_index })}
-                        className="shrink-0 p-1 rounded border border-graphite-800 text-graphite-400 hover:text-cyan-300 hover:border-cyan-500/40 hover:bg-cyan-500/10 transition-colors"
+                        className="shrink-0 p-1.5 rounded border border-graphite-800 text-graphite-400 hover:text-cyan-300 hover:border-cyan-500/40 hover:bg-cyan-500/10 transition-colors cursor-pointer"
                       >
-                        <X className="w-3.5 h-3.5" />
+                        <X className="w-4 h-4" />
                       </button>
                     </li>
                   ))}
@@ -913,29 +913,29 @@ export default function SimulationPage() {
 
             <div className="space-y-6">
               <div className="bg-graphite-900 border border-graphite-800/80 p-6 rounded-lg space-y-4">
-                <h3 className="text-sm font-semibold text-white">{t("simulation.finalSubmissionTitle")}</h3>
-                <p className="text-[11px] text-graphite-400 font-light leading-relaxed">
+                <h3 className="text-lg font-semibold text-white">{t("simulation.finalSubmissionTitle")}</h3>
+                <p className="text-sm text-graphite-300 font-normal leading-relaxed">
                   {t("simulation.finalSubmissionDesc")}
                 </p>
 
                 <div className="space-y-3 pt-2">
-                  <div className="flex justify-between text-[10px] font-mono border-b border-graphite-850 pb-2">
+                  <div className="flex justify-between text-xs font-mono border-b border-graphite-800 pb-2">
                     <span className="text-graphite-400">{t("simulation.summaryTriageLabel")}</span>
                     {isTruePositive === null ? (
-                      <span className="text-amber-500 font-bold">{t("simulation.summaryMissing")}</span>
+                      <span className="text-amber-400 font-bold">{t("simulation.summaryMissing")}</span>
                     ) : (
                       <span className="text-emerald-400 font-bold">
                         {isTruePositive ? t("simulation.summaryTruePositive") : t("simulation.summaryFalsePositive")}
                       </span>
                     )}
                   </div>
-                  <div className="flex justify-between text-[10px] font-mono border-b border-graphite-850 pb-2">
+                  <div className="flex justify-between text-xs font-mono border-b border-graphite-800 pb-2">
                     <span className="text-graphite-400">{t("simulation.summaryResponsePlanLabel")}</span>
                     <span className="text-white font-bold">
                       {t("simulation.summaryActionsCount", { count: selectedActions.length })}
                     </span>
                   </div>
-                  <div className="flex justify-between text-[10px] font-mono border-b border-graphite-850 pb-2">
+                  <div className="flex justify-between text-xs font-mono border-b border-graphite-800 pb-2">
                     <span className="text-graphite-400">{t("simulation.summaryEvidenceLabel")}</span>
                     <span className="text-white font-bold">
                       {t("simulation.summaryLogsCount", { count: selectedLogIndices.length })}
@@ -944,7 +944,7 @@ export default function SimulationPage() {
                 </div>
 
                 {selectedLogIndices.length === 0 && (
-                  <p className="text-[10px] font-mono text-amber-400 bg-amber-950/20 border border-amber-500/20 rounded px-3 py-2">
+                  <p className="text-xs font-mono text-amber-300 bg-amber-950/20 border border-amber-500/20 rounded px-3 py-2 leading-relaxed">
                     {t("simulation.noEvidenceWarning")}
                   </p>
                 )}
@@ -952,7 +952,7 @@ export default function SimulationPage() {
                 <button
                   onClick={handleSubmit}
                   disabled={submitting}
-                  className="w-full mt-4 py-2 bg-white text-black font-semibold text-xs rounded-md hover:bg-white/90 disabled:bg-graphite-800 disabled:text-graphite-500 transition-all duration-200 flex items-center justify-center gap-2"
+                  className="w-full mt-4 py-2.5 bg-white text-black font-semibold text-sm rounded-md hover:bg-white/90 disabled:bg-graphite-800 disabled:text-graphite-400 transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer"
                 >
                   {submitting ? (
                     <>

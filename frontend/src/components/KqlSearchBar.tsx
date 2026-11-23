@@ -105,15 +105,15 @@ export default function KqlSearchBar({ sessionId, onFilter, logs, searchQuery, o
           
           {history.length > 0 && showHistory && (
             <div className="absolute top-full left-0 right-0 mt-1 bg-graphite-900 border border-graphite-800 rounded-lg shadow-2xl z-50 overflow-hidden divide-y divide-graphite-800/50 max-h-48 overflow-y-auto">
-              <div className="px-3 py-1.5 text-[10px] font-mono text-graphite-500 flex items-center gap-1 bg-graphite-950/40">
-                <History className="w-3 h-3" /> {t("kql.queryHistory")}
+              <div className="px-3 py-2 text-xs font-mono text-graphite-400 flex items-center gap-1.5 bg-graphite-950/40">
+                <History className="w-3.5 h-3.5" /> {t("kql.queryHistory")}
               </div>
               {history.map((h, i) => (
                 <button
                   key={i}
                   type="button"
                   onMouseDown={() => handleSelectHistory(h)}
-                  className="w-full text-left px-4 py-2 text-xs font-mono text-graphite-300 hover:bg-graphite-800 hover:text-white transition-colors truncate"
+                  className="w-full text-left px-4 py-2.5 text-log font-mono text-graphite-200 hover:bg-graphite-800 hover:text-white transition-colors truncate"
                 >
                   {h}
                 </button>
@@ -123,14 +123,14 @@ export default function KqlSearchBar({ sessionId, onFilter, logs, searchQuery, o
         </div>
         <button
           type="submit"
-          className="px-5 py-3 bg-emerald-500 text-emerald-950 font-bold rounded-lg shadow-md hover:bg-emerald-400 transition-all flex items-center gap-2 shrink-0 text-sm hover:-translate-y-0.5 active:translate-y-0"
+          className="px-5 py-3 bg-emerald-500 text-emerald-950 font-bold rounded-lg shadow-md hover:bg-emerald-400 transition-all flex items-center gap-2 shrink-0 text-sm hover:-translate-y-0.5 active:translate-y-0 cursor-pointer"
         >
           <Search className="w-4 h-4" /> {t("kql.runQuery")}
         </button>
       </form>
 
       {error && (
-        <div className="flex items-center gap-2 text-red-400 text-xs font-mono bg-red-950/20 px-3 py-1.5 rounded-lg border border-red-500/10 animate-fade-in">
+        <div className="flex items-center gap-2 text-red-400 text-sm font-mono bg-red-950/20 px-3.5 py-2 rounded-lg border border-red-500/10 animate-fade-in">
           <AlertCircle className="w-4 h-4 shrink-0" />
           <span>{t("kql.invalidSyntaxPrefix", { error })}</span>
         </div>

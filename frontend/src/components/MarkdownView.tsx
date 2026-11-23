@@ -26,11 +26,11 @@ export default function MarkdownView({ content, className }: MarkdownViewProps) 
 
     elements.push(
       <div key={key} className="overflow-x-auto my-4 rounded border border-graphite-800">
-        <table className="w-full text-left text-xs border-collapse">
+        <table className="w-full text-left text-sm border-collapse">
           <thead>
             <tr className="bg-graphite-900 border-b border-graphite-800">
               {headerRow.map((col, idx) => (
-                <th key={idx} className="p-2.5 font-semibold text-graphite-200">
+                <th key={idx} className="p-3 font-semibold text-graphite-100 text-sm">
                   {col.trim()}
                 </th>
               ))}
@@ -40,7 +40,7 @@ export default function MarkdownView({ content, className }: MarkdownViewProps) 
             {dataRows.map((row, rIdx) => (
               <tr key={rIdx} className="hover:bg-graphite-900/30 transition-colors">
                 {row.map((cell, cIdx) => (
-                  <td key={cIdx} className="p-2.5 text-graphite-300 font-mono text-[11px]">
+                  <td key={cIdx} className="p-3 text-graphite-200 font-mono text-log">
                     {renderInline(cell.trim())}
                   </td>
                 ))}
@@ -62,13 +62,13 @@ export default function MarkdownView({ content, className }: MarkdownViewProps) 
       if (inCodeBlock) {
         // End code block
         elements.push(
-          <div key={`code-${i}`} className="my-3 rounded-md bg-graphite-950 border border-graphite-800 overflow-hidden">
+          <div key={`code-${i}`} className="my-4 rounded-md bg-graphite-950 border border-graphite-800 overflow-hidden">
             {codeBlockLang && (
-              <div className="px-3 py-1 bg-graphite-900/80 border-b border-graphite-800 text-[10px] font-mono text-graphite-400">
+              <div className="px-3.5 py-1.5 bg-graphite-900/80 border-b border-graphite-800 text-xs font-mono text-graphite-400">
                 {codeBlockLang}
               </div>
             )}
-            <pre className="p-3 text-xs font-mono text-emerald-400 overflow-x-auto whitespace-pre leading-relaxed">
+            <pre className="p-3.5 text-log font-mono text-emerald-400 overflow-x-auto whitespace-pre leading-relaxed">
               {codeBlockContent.join("\n")}
             </pre>
           </div>
@@ -117,7 +117,7 @@ export default function MarkdownView({ content, className }: MarkdownViewProps) 
     // Headers
     if (line.startsWith("#### ")) {
       elements.push(
-        <h4 key={`h4-${i}`} className="text-sm font-semibold text-graphite-100 mt-3 mb-1.5 tracking-tight">
+        <h4 key={`h4-${i}`} className="text-base font-semibold text-graphite-100 mt-4 mb-2 tracking-tight">
           {renderInline(line.replace("#### ", ""))}
         </h4>
       );
@@ -125,7 +125,7 @@ export default function MarkdownView({ content, className }: MarkdownViewProps) 
     }
     if (line.startsWith("### ")) {
       elements.push(
-        <h3 key={`h3-${i}`} className="text-base font-semibold text-white mt-4 mb-2 tracking-tight">
+        <h3 key={`h3-${i}`} className="text-lg font-semibold text-white mt-5 mb-2 tracking-tight">
           {renderInline(line.replace("### ", ""))}
         </h3>
       );
@@ -133,7 +133,7 @@ export default function MarkdownView({ content, className }: MarkdownViewProps) 
     }
     if (line.startsWith("## ")) {
       elements.push(
-        <h2 key={`h2-${i}`} className="text-lg font-bold text-white mt-5 mb-2.5 pb-1 border-b border-graphite-800 tracking-tight">
+        <h2 key={`h2-${i}`} className="text-xl font-bold text-white mt-6 mb-3 pb-1.5 border-b border-graphite-800 tracking-tight">
           {renderInline(line.replace("## ", ""))}
         </h2>
       );
@@ -141,7 +141,7 @@ export default function MarkdownView({ content, className }: MarkdownViewProps) 
     }
     if (line.startsWith("# ")) {
       elements.push(
-        <h1 key={`h1-${i}`} className="text-xl font-bold text-white mt-6 mb-3 pb-1.5 border-b border-graphite-800 tracking-tight">
+        <h1 key={`h1-${i}`} className="text-2xl font-bold text-white mt-6 mb-3 pb-2 border-b border-graphite-800 tracking-tight">
           {renderInline(line.replace("# ", ""))}
         </h1>
       );
@@ -153,7 +153,7 @@ export default function MarkdownView({ content, className }: MarkdownViewProps) 
       elements.push(
         <blockquote
           key={`quote-${i}`}
-          className="my-2.5 border-l-2 border-indigo-500 bg-indigo-950/20 px-3.5 py-2 rounded-r text-sm text-graphite-300 italic"
+          className="my-3 border-l-2 border-indigo-500 bg-indigo-950/20 px-4 py-2.5 rounded-r text-base text-graphite-200 leading-relaxed italic"
         >
           {renderInline(line.replace("> ", ""))}
         </blockquote>
@@ -164,7 +164,7 @@ export default function MarkdownView({ content, className }: MarkdownViewProps) 
     // Unordered List (- or *)
     if (line.match(/^[-*]\s+/)) {
       elements.push(
-        <li key={`li-${i}`} className="ml-5 list-disc text-sm text-graphite-300 my-1 leading-relaxed">
+        <li key={`li-${i}`} className="ml-5 list-disc text-base text-graphite-200 my-1.5 leading-relaxed">
           {renderInline(line.replace(/^[-*]\s+/, ""))}
         </li>
       );
@@ -174,7 +174,7 @@ export default function MarkdownView({ content, className }: MarkdownViewProps) 
     // Numbered list
     if (line.match(/^\d+\.\s+/)) {
       elements.push(
-        <li key={`oli-${i}`} className="ml-5 list-decimal text-sm text-graphite-300 my-1 leading-relaxed">
+        <li key={`oli-${i}`} className="ml-5 list-decimal text-base text-graphite-200 my-1.5 leading-relaxed">
           {renderInline(line.replace(/^\d+\.\s+/, ""))}
         </li>
       );
@@ -183,7 +183,7 @@ export default function MarkdownView({ content, className }: MarkdownViewProps) 
 
     // Standard Paragraph
     elements.push(
-      <p key={`p-${i}`} className="text-sm text-graphite-300 leading-relaxed my-1.5">
+      <p key={`p-${i}`} className="text-base text-graphite-200 leading-relaxed my-2">
         {renderInline(line)}
       </p>
     );
@@ -193,7 +193,7 @@ export default function MarkdownView({ content, className }: MarkdownViewProps) 
     flushTable("table-end");
   }
 
-  return <div className={cn("space-y-1", className)}>{elements}</div>;
+  return <div className={cn("space-y-1.5", className)}>{elements}</div>;
 }
 
 // Inline formatting helper (bold, code, links)
@@ -209,7 +209,7 @@ function renderInline(text: string): React.ReactNode {
       parts.push(
         <code
           key={keyIdx++}
-          className="px-1.5 py-0.5 rounded bg-graphite-900 border border-graphite-800 text-xs font-mono text-emerald-400"
+          className="px-1.5 py-0.5 rounded bg-graphite-900 border border-graphite-800 text-log font-mono text-emerald-400"
         >
           {codeMatch[1]}
         </code>
