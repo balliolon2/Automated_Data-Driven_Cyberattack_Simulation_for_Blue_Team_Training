@@ -353,3 +353,23 @@
     - Stored inside existing `scenarios.translations.{en,th}.story` JSONB (`init.sql` unchanged).
     - Upgraded uniformly across runtime AI prompts, `GenerateFallbackScenario`, all 15 static seeds (`scripts/generate_scenarios.py`, `scripts/scenario_translations_th.json`, keeping `evidence_mapping.json` SHA-256 hashes valid), and lazy on-demand `UpgradeScenarioStoryBilingual` when existing local sessions/snapshots lack `translations.{en,th}.story` (overlaying narrative only onto legacy snapshots without altering `initial_logs`, `playbook_steps`, or scoring, failing open if `LLM_API_KEY` is unset).
     - See `workflows/scenario_storytelling_narrative.md`.
+
+## Canonical Terms (Issue #38: UI Typography & Readability)
+
+- **Semantic Typography Scale (สเกลตัวอักษรตามบทบาท)**: Role-based `rem` font-size hierarchy across the frontend (`text-base` 16px primary reading prose, `text-sm` 14px standard UI/controls, `text-log` 13px / `0.8125rem` dense SIEM logs & code, `text-xs` 12px absolute hard floor).
+- **Hard Floor (`text-xs` / 12px / `0.75rem`)**: Minimum permissible font size anywhere in `frontend/src/`; all `text-[8px]`–`text-[11px]` and arbitrary `px` font-size classes are banned.
+- **SIEM Log Token (`text-log`)**: Named Tailwind `rem` fontSize token (`0.8125rem`, line-height `1.5`) giving `LogTable`, code blocks, and evidence snippets readable compact density while scaling cleanly with browser zoom.
+- **Automated Typography Guard (`frontend/tests/typography.test.ts`)**: Static unit test run in `npm test` and GitHub Actions CI that fails builds introducing arbitrary `text-[...px]`, sub-`0.75rem` font sizes, invalid `text-graphite-550`, or missing Thai monospace fallback / `text-log` token.
+
+## Settled Decisions (Issue #38: App-Wide UI Typography & Readability — `/loop-me` Q1–Q12)
+
+52. **App-Wide Semantic Typography Scale & `rem`-Only Architecture**:
+    - Refactors all 16 pages and 10 shared components to the Balanced Modern Web Scale (`16px` reading prose, `14px` UI/controls, `13px` `text-log` SIEM telemetry/code, `12px` `text-xs` hard floor) with zero user font-size switcher in Navbar (native browser zoom preserved via 100% `rem` units).
+    - Adds `fontSize.log: ['0.8125rem', { lineHeight: '1.5' }]` and appends `"IBM Plex Sans Thai"` fallback to `fontFamily.mono` in `frontend/tailwind.config.js`; sets `body` default to `text-base leading-relaxed` in `frontend/src/index.css`.
+    - Keeps unified scale across `EN` and `TH` (no layout jump on toggle) with Thai-friendly `leading-relaxed` / `leading-snug`.
+
+53. **Targeted Anti-Truncation, Contrast Hygiene & CI Typography Guard**:
+    - Applies targeted layout polish where larger fonts could clip or crowd: un-truncates long domain names in `DomainBreakdown` (`leading-snug` wrap), preserves single-row Navbar at `>= 1280px` across all roles (`EN`/`TH`), sizes checkboxes/icons proportionally (`h-4 w-4`), and increases `LogTable` scroll height (`max-h-[560px]`).
+    - Fixes invalid `text-graphite-550` (`LandingPage.tsx`) and lifts readable muted/hint copy from `text-graphite-500` → `text-graphite-400`.
+    - Enforces regressions via `frontend/tests/typography.test.ts` wired into `npm test` & `.github/workflows/ci.yml`, with 1 Push-Right Visual Review Checkpoint (Before/After screenshots in `EN` & `TH` on 5 flagship screens) before closing Issue #38.
+    - See `workflows/ui_typography_readability.md`.

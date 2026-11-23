@@ -121,7 +121,8 @@ python scripts/test_integration.py
 
 ### 2. React Frontend
 - **Dark Mode First**: The system implements a Graphite theme. Base pages should use deep backgrounds (`bg-graphite-900`) and high-contrast text (`text-graphite-50`).
-- **Typography & Font Rules**: Use monospace font (`font-mono` / JetBrains Mono) for logging outputs, telemetry data, and CLI/Terminal emulation elements.
+- **Semantic Typography Scale (`rem`-Only, 12px Hard Floor)**: Follow the role-based scale enforced by `frontend/tests/typography.test.ts` (`npm test` + CI): `text-base` (16px, `leading-relaxed`) for primary reading prose (narratives, explanations, exams, Markdown, comments), `text-sm` (14px) for standard UI controls/navigation/forms/cards, `text-log` (`0.8125rem` / 13px) for dense SIEM telemetry and code blocks, and `text-xs` (12px / `0.75rem`) as the absolute minimum floor for badges, pills, timestamps, and helper captions. Never use arbitrary pixel font-size classes (`text-[...px]`) or sub-12px sizes, and keep `"IBM Plex Sans Thai"` as the Thai fallback in both `font-sans` and `font-mono`.
+- **Typography & Font Rules**: Use monospace font (`font-mono` / Geist Mono + IBM Plex Sans Thai fallback) for logging outputs, telemetry data, and CLI/Terminal emulation elements.
 - **State Hydration**: Always invoke `GET /api/exams/session` on page refresh or component mount to hydrate active examination states.
 
 ### 3. Zero Overlap Policy

@@ -45,7 +45,7 @@ jobs:
           cd frontend
           npm ci
 
-      - name: Frontend Unit Tests (i18n & SIEM shortcuts)
+      - name: Frontend Unit Tests (i18n, SIEM shortcuts & typography guard)
         run: |
           cd frontend
           npm test
