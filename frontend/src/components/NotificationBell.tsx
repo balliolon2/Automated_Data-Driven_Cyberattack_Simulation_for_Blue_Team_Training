@@ -129,7 +129,7 @@ export default function NotificationBell() {
       >
         <Bell className="w-4 h-4" />
         {unreadCount > 0 && (
-          <span className="absolute -top-0.5 -right-0.5 flex h-4 min-w-[16px] px-1 items-center justify-center rounded-full bg-red-500 text-[9px] font-mono font-bold text-white shadow-sm animate-pulse">
+          <span className="absolute -top-1 -right-1 flex h-5 min-w-[20px] px-1 items-center justify-center rounded-full bg-red-500 text-xs font-mono font-bold text-white shadow-sm animate-pulse leading-none">
             {unreadCount > 9 ? "9+" : unreadCount}
           </span>
         )}
@@ -137,13 +137,13 @@ export default function NotificationBell() {
 
       {/* Popover Dropdown */}
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-80 sm:w-96 rounded-xl bg-graphite-950 border border-graphite-800 shadow-2xl z-50 overflow-hidden animate-fade-in text-xs">
+        <div className="absolute right-0 mt-2 w-80 sm:w-96 rounded-xl bg-graphite-950 border border-graphite-800 shadow-2xl z-50 overflow-hidden animate-fade-in text-sm">
           {/* Header */}
-          <div className="flex items-center justify-between p-3.5 border-b border-graphite-800 bg-graphite-900/70">
+          <div className="flex items-center justify-between p-4 border-b border-graphite-800 bg-graphite-900/70">
             <div className="flex items-center gap-2">
-              <span className="font-bold text-white text-xs">{t("notifications.title")}</span>
+              <span className="font-bold text-white text-sm">{t("notifications.title")}</span>
               {unreadCount > 0 && (
-                <span className="px-1.5 py-0.2 rounded bg-indigo-500/20 text-indigo-400 font-mono text-[10px] font-semibold">
+                <span className="px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 font-mono text-xs font-semibold">
                   {t("notifications.newBadge", { count: unreadCount })}
                 </span>
               )}
@@ -153,18 +153,18 @@ export default function NotificationBell() {
               <button
                 onClick={markAllAsRead}
                 disabled={loading}
-                className="flex items-center gap-1 text-[11px] text-graphite-400 hover:text-white transition-colors cursor-pointer disabled:opacity-50"
+                className="flex items-center gap-1 text-xs text-graphite-400 hover:text-white transition-colors cursor-pointer disabled:opacity-50"
               >
-                <CheckCheck className="w-3.5 h-3.5" />
+                <CheckCheck className="w-4 h-4" />
                 <span>{t("notifications.markAllRead")}</span>
               </button>
             )}
           </div>
 
           {/* List */}
-          <div className="max-h-80 overflow-y-auto divide-y divide-graphite-800/60">
+          <div className="max-h-96 overflow-y-auto divide-y divide-graphite-800/60">
             {notifications.length === 0 ? (
-              <div className="py-10 text-center text-graphite-500 font-mono text-xs">
+              <div className="py-10 text-center text-graphite-400 font-mono text-sm">
                 {t("notifications.empty")}
               </div>
             ) : (
@@ -175,18 +175,18 @@ export default function NotificationBell() {
                     key={notif.notification_id}
                     onClick={() => markAsRead(notif)}
                     className={cn(
-                      "p-3.5 hover:bg-graphite-900/60 transition-colors cursor-pointer space-y-1 relative",
+                      "p-4 hover:bg-graphite-900/60 transition-colors cursor-pointer space-y-1.5 relative",
                       !notif.is_read && "bg-indigo-950/15"
                     )}
                   >
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-1.5">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-center gap-1.5 min-w-0">
                         {!notif.is_read && (
-                          <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 shrink-0" />
+                          <span className="w-2 h-2 rounded-full bg-indigo-400 shrink-0" />
                         )}
                         <span
                           className={cn(
-                            "font-medium truncate",
+                            "text-sm font-medium leading-snug",
                             notif.is_read ? "text-graphite-300" : "text-white font-semibold"
                           )}
                         >
@@ -194,13 +194,13 @@ export default function NotificationBell() {
                         </span>
                       </div>
 
-                      <div className="flex items-center gap-1 text-[10px] font-mono text-graphite-500 shrink-0">
-                        <Clock className="w-3 h-3" />
+                      <div className="flex items-center gap-1 text-xs font-mono text-graphite-400 shrink-0">
+                        <Clock className="w-3.5 h-3.5" />
                         <span>{formatDate(notif.created_at)}</span>
                       </div>
                     </div>
 
-                    <p className="text-[11px] text-graphite-400 leading-relaxed line-clamp-2">
+                    <p className="text-xs sm:text-sm text-graphite-300 leading-relaxed line-clamp-2">
                       {localized.message}
                     </p>
                   </div>

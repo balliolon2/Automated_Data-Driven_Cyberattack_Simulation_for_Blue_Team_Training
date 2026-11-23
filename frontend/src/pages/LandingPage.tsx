@@ -132,17 +132,17 @@ export default function LandingPage() {
         
         {/* Left Column: Heading and CTAs */}
         <div className="lg:col-span-5 space-y-6 text-left">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-graphite-800 text-graphite-400 text-[10px] font-mono bg-graphite-900/20">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-graphite-800 text-graphite-300 text-xs font-mono bg-graphite-900/40">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
             <span>{t("landing.hero.badge")}</span>
           </div>
           
-          <h1 className="text-4xl md:text-5xl font-extrabold tracking-tighter text-white leading-[1.05] text-wrap">
+          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tighter text-white leading-[1.08] text-wrap">
             {t("landing.hero.titleLine1")} <br />
             {t("landing.hero.titleLine2")}
           </h1>
           
-          <p className="text-xs md:text-sm text-graphite-400 font-light leading-relaxed max-w-[45ch]">
+          <p className="text-base sm:text-lg text-graphite-300 font-normal leading-relaxed max-w-[45ch]">
             {t("landing.hero.subtitle")}
           </p>
           
@@ -150,7 +150,7 @@ export default function LandingPage() {
             <button 
               onClick={handleStartAssessment}
               disabled={redirectLoading}
-              className="group flex items-center justify-center gap-2 px-6 py-2.5 rounded-md bg-white text-black font-semibold text-xs hover:bg-white/90 disabled:bg-graphite-800 disabled:text-graphite-500 transition-all duration-200"
+              className="group flex items-center justify-center gap-2 px-6 py-3 rounded-md bg-white text-black font-semibold text-sm sm:text-base hover:bg-white/90 disabled:bg-graphite-800 disabled:text-graphite-400 transition-all duration-200 cursor-pointer"
             >
               {redirectLoading ? (
                 <>
@@ -167,7 +167,7 @@ export default function LandingPage() {
             
             <button 
               onClick={handleViewSampleExam}
-              className="flex items-center justify-center gap-2 px-6 py-2.5 rounded-md border border-graphite-800 bg-transparent text-graphite-300 font-semibold text-xs hover:bg-graphite-900 hover:text-white transition-all duration-200"
+              className="flex items-center justify-center gap-2 px-6 py-3 rounded-md border border-graphite-800 bg-transparent text-graphite-200 font-semibold text-sm sm:text-base hover:bg-graphite-900 hover:text-white transition-all duration-200 cursor-pointer"
             >
               <Terminal className="w-4 h-4" />
               {t("landing.hero.viewSampleExam")}
@@ -176,38 +176,38 @@ export default function LandingPage() {
         </div>
 
         {/* Right Column: Tabbed Analyst Dashboard (SOC Workbench) */}
-        <div id="analyst-workbench" className="lg:col-span-7 bg-graphite-900 border border-graphite-800 rounded-lg overflow-hidden shadow-2xl min-h-[420px] flex flex-col justify-between">
+        <div id="analyst-workbench" className="lg:col-span-7 bg-graphite-900 border border-graphite-800 rounded-lg overflow-hidden shadow-2xl min-h-[440px] flex flex-col justify-between">
           
           {/* Header Tab Bar */}
-          <div className="flex bg-graphite-950 border-b border-graphite-800 px-4 h-11 items-center justify-between select-none">
+          <div className="flex bg-graphite-950 border-b border-graphite-800 px-4 h-12 items-center justify-between select-none">
             <div className="flex gap-2">
               <button
                 onClick={() => setActiveWorkbenchTab("quiz")}
-                className={`flex items-center gap-2 px-3 py-2 text-xs font-mono transition-all border-b-2 h-11 ${
+                className={`flex items-center gap-2 px-3 py-2 text-sm font-mono transition-all border-b-2 h-12 cursor-pointer ${
                   activeWorkbenchTab === "quiz"
                     ? "border-white text-white font-medium"
-                    : "border-transparent text-graphite-500 hover:text-graphite-300"
+                    : "border-transparent text-graphite-400 hover:text-graphite-200"
                 }`}
               >
-                <Terminal className="w-3.5 h-3.5" />
+                <Terminal className="w-4 h-4" />
                 triage-quiz.md
               </button>
               <button
                 onClick={() => setActiveWorkbenchTab("logs")}
-                className={`flex items-center gap-2 px-3 py-2 text-xs font-mono transition-all border-b-2 h-11 ${
+                className={`flex items-center gap-2 px-3 py-2 text-sm font-mono transition-all border-b-2 h-12 cursor-pointer ${
                   activeWorkbenchTab === "logs"
                     ? "border-white text-white font-medium"
-                    : "border-transparent text-graphite-500 hover:text-graphite-300"
+                    : "border-transparent text-graphite-400 hover:text-graphite-200"
                 }`}
               >
-                <Activity className="w-3.5 h-3.5" />
+                <Activity className="w-4 h-4" />
                 live-siem-logs.sh
               </button>
             </div>
             <div className="flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-graphite-800 border border-graphite-700" />
-              <span className="w-2 h-2 rounded-full bg-graphite-800 border border-graphite-700" />
-              <span className="w-2 h-2 rounded-full bg-graphite-800 border border-graphite-700" />
+              <span className="w-2.5 h-2.5 rounded-full bg-graphite-800 border border-graphite-700" />
+              <span className="w-2.5 h-2.5 rounded-full bg-graphite-800 border border-graphite-700" />
+              <span className="w-2.5 h-2.5 rounded-full bg-graphite-800 border border-graphite-700" />
             </div>
           </div>
 
@@ -218,23 +218,23 @@ export default function LandingPage() {
               sampleLoading ? (
                 <div className="h-full min-h-[260px] flex flex-col items-center justify-center gap-3">
                   <Loader2 className="w-6 h-6 text-white animate-spin" />
-                  <p className="text-[10px] font-mono text-graphite-550">{t("landing.workbench.fetchingSample")}</p>
+                  <p className="text-sm font-mono text-graphite-400">{t("landing.workbench.fetchingSample")}</p>
                 </div>
               ) : question ? (
                 <div className="space-y-4">
-                  <div className="flex justify-between items-center text-[10px] font-mono text-graphite-500 border-b border-graphite-850 pb-2">
+                  <div className="flex justify-between items-center text-xs font-mono text-graphite-400 border-b border-graphite-800 pb-2.5">
                     <span>{t("landing.workbench.questionSource")}</span>
                     <span>{t("landing.workbench.difficulty", { difficulty: question.difficulty })}</span>
                   </div>
-                  <div className="text-xs text-graphite-200 font-light leading-relaxed">
+                  <div className="text-base text-graphite-100 font-normal leading-relaxed">
                     {question.question_text}
                   </div>
-                  <div className="space-y-2 pt-2">
+                  <div className="space-y-2.5 pt-2">
                     {Object.entries(question.options).map(([key, value]) => {
                       const isSelected = selectedAnswer === key;
                       const isCorrectAnswer = question.correct_answer === key;
                       
-                      let optionStyles = "border-graphite-800 bg-graphite-950/40 hover:bg-graphite-950 text-graphite-300";
+                      let optionStyles = "border-graphite-800 bg-graphite-950/40 hover:bg-graphite-950 text-graphite-200";
                       if (isSelected && !isSubmitted) {
                         optionStyles = "border-white bg-graphite-950 text-white";
                       } else if (isSubmitted) {
@@ -243,7 +243,7 @@ export default function LandingPage() {
                         } else if (isSelected) {
                           optionStyles = "border-red-500/30 bg-red-950/20 text-red-400";
                         } else {
-                          optionStyles = "border-graphite-950 opacity-40 text-graphite-500";
+                          optionStyles = "border-graphite-900 opacity-50 text-graphite-400";
                         }
                       }
 
@@ -252,7 +252,7 @@ export default function LandingPage() {
                           key={key}
                           onClick={() => handleAnswerSelect(key)}
                           disabled={isSubmitted}
-                          className={`w-full text-left p-3 rounded border text-xs font-light transition-all flex items-start gap-3 ${optionStyles}`}
+                          className={`w-full text-left p-3.5 rounded border text-base font-normal leading-relaxed transition-all flex items-start gap-3 ${optionStyles}`}
                         >
                           <span className="font-semibold text-white shrink-0 font-mono">{key})</span>
                           <span>{value}</span>
@@ -262,49 +262,49 @@ export default function LandingPage() {
                   </div>
                   
                   {isSubmitted && (
-                    <div className="rounded border p-4 space-y-2 animate-fade-in bg-graphite-950 border-graphite-800 text-[11px] font-light leading-relaxed">
+                    <div className="rounded border p-4 space-y-2 animate-fade-in bg-graphite-950 border-graphite-800 text-base font-normal leading-relaxed">
                       {selectedAnswer === question.correct_answer ? (
-                        <div className="flex items-center gap-1.5 text-emerald-400 font-semibold">
-                          <CheckCircle className="w-3.5 h-3.5" />
+                        <div className="flex items-center gap-2 text-emerald-400 font-semibold">
+                          <CheckCircle className="w-4 h-4 shrink-0" />
                           <span>{t("landing.workbench.correct")}</span>
                         </div>
                       ) : (
-                        <div className="flex items-center gap-1.5 text-red-400 font-semibold">
-                          <XCircle className="w-3.5 h-3.5" />
+                        <div className="flex items-center gap-2 text-red-400 font-semibold">
+                          <XCircle className="w-4 h-4 shrink-0" />
                           <span>{t("landing.workbench.incorrect", { answer: question.correct_answer })}</span>
                         </div>
                       )}
-                      <p className="text-graphite-405">
-                        <strong className="text-white font-medium">{t("landing.workbench.explanationLabel")}</strong> {question.explanation}
+                      <p className="text-graphite-300">
+                        <strong className="text-white font-semibold">{t("landing.workbench.explanationLabel")}</strong> {question.explanation}
                       </p>
                     </div>
                   )}
                 </div>
               ) : (
-                <div className="h-full flex items-center justify-center text-graphite-500 font-mono text-xs">
+                <div className="h-full flex items-center justify-center text-graphite-400 font-mono text-sm">
                   {t("landing.workbench.noQuestion")}
                 </div>
               )
             ) : (
               // Live logs content (strictly English SIEM telemetry)
-              <div className="h-full min-h-[260px] flex flex-col justify-between font-mono text-[10px] text-graphite-300">
+              <div className="h-full min-h-[260px] flex flex-col justify-between font-mono text-log text-graphite-200">
                 <div className="space-y-2.5 select-none">
-                  <div className="text-graphite-500 border-b border-graphite-850 pb-2 mb-2 flex justify-between">
+                  <div className="text-graphite-400 border-b border-graphite-800 pb-2 mb-2 flex justify-between text-xs">
                     <span>active-sim-triage.log</span>
-                    <span className="text-emerald-500 flex items-center gap-1">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" /> {t("landing.workbench.liveStream")}
+                    <span className="text-emerald-400 flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" /> {t("landing.workbench.liveStream")}
                     </span>
                   </div>
                   <div className="text-red-400 font-semibold">[ALERT] Port Scan T1046 detected from 192.0.2.14</div>
-                  <div className="text-graphite-500">[INFO] Executing KQL filter: SecurityAlert | where ProviderName == "MDATP"</div>
-                  <div className="text-graphite-500">SrcIP: 198.51.100.45 -{"->"} DstIP: 10.0.2.15</div>
-                  <div className="text-graphite-400">&gt; T1110.001 Brute Force target identified</div>
+                  <div className="text-graphite-400">[INFO] Executing KQL filter: SecurityAlert | where ProviderName == "MDATP"</div>
+                  <div className="text-graphite-400">SrcIP: 198.51.100.45 -{"->"} DstIP: 10.0.2.15</div>
+                  <div className="text-graphite-300">&gt; T1110.001 Brute Force target identified</div>
                   <div className="text-emerald-400">&gt; Playbook Containment: Isolation rule dispatched to firewall.</div>
-                  <div className="text-graphite-500">[STATUS] Host isolation status: COMPLETED</div>
+                  <div className="text-graphite-400">[STATUS] Host isolation status: COMPLETED</div>
                 </div>
-                <div className="border-t border-graphite-850 pt-4 flex justify-between items-center">
-                  <span className="text-[9px] text-graphite-500">{t("landing.workbench.threatMitigationActive")}</span>
-                  <span className="text-white bg-graphite-800 px-2 py-0.5 rounded border border-graphite-700 text-[8px]">MITRE T1046</span>
+                <div className="border-t border-graphite-800 pt-4 flex justify-between items-center">
+                  <span className="text-xs text-graphite-400">{t("landing.workbench.threatMitigationActive")}</span>
+                  <span className="text-white bg-graphite-800 px-2.5 py-0.5 rounded border border-graphite-700 text-xs">MITRE T1046</span>
                 </div>
               </div>
             )}
@@ -312,12 +312,12 @@ export default function LandingPage() {
 
           {/* Workbench Footer Actions */}
           {activeWorkbenchTab === "quiz" && question && (
-            <div className="bg-graphite-950 border-t border-graphite-800 px-6 py-3 flex justify-between items-center select-none">
+            <div className="bg-graphite-950 border-t border-graphite-800 px-6 py-3.5 flex justify-between items-center select-none">
               <button
                 onClick={fetchSampleQuestion}
-                className="flex items-center gap-2 px-3 py-1.5 rounded border border-graphite-800 bg-transparent text-graphite-400 text-[10px] font-medium hover:bg-graphite-900 hover:text-white transition-colors"
+                className="flex items-center gap-2 px-3.5 py-2 rounded border border-graphite-800 bg-transparent text-graphite-300 text-sm font-medium hover:bg-graphite-900 hover:text-white transition-colors cursor-pointer"
               >
-                <RefreshCw className="w-3 h-3" />
+                <RefreshCw className="w-4 h-4" />
                 {t("landing.workbench.tryAnother")}
               </button>
 
@@ -325,12 +325,12 @@ export default function LandingPage() {
                 <button
                   onClick={handleSubmitAnswer}
                   disabled={!selectedAnswer}
-                  className="px-4 py-1.5 rounded bg-white text-black text-[10px] font-semibold hover:bg-white/90 disabled:bg-graphite-800 disabled:text-graphite-500 transition-all duration-200"
+                  className="px-4 py-2 rounded bg-white text-black text-sm font-semibold hover:bg-white/90 disabled:bg-graphite-800 disabled:text-graphite-400 transition-all duration-200 cursor-pointer"
                 >
                   {t("landing.workbench.submitAnswer")}
                 </button>
               ) : (
-                <span className="text-[10px] text-graphite-500 font-mono">{t("landing.workbench.submitted")}</span>
+                <span className="text-xs text-graphite-400 font-mono">{t("landing.workbench.submitted")}</span>
               )}
             </div>
           )}
@@ -339,9 +339,9 @@ export default function LandingPage() {
 
       {/* High-Visual Curriculum Bento Grid */}
       <div className="space-y-6 pt-12">
-        <div className="text-left space-y-1">
-          <h2 className="text-lg font-bold tracking-tight text-white">{t("landing.bento.heading")}</h2>
-          <p className="text-[10px] text-graphite-400 font-mono uppercase tracking-wider">{t("landing.bento.subheading")}</p>
+        <div className="text-left space-y-1.5">
+          <h2 className="text-2xl font-bold tracking-tight text-white">{t("landing.bento.heading")}</h2>
+          <p className="text-xs text-graphite-400 font-mono uppercase tracking-wider">{t("landing.bento.subheading")}</p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-6 gap-6 w-full">
@@ -349,27 +349,27 @@ export default function LandingPage() {
           {/* Cell 1: Adaptive Training Loop (2 columns) */}
           <div className="md:col-span-2 bg-graphite-900 border border-graphite-800/80 rounded-lg p-6 flex flex-col justify-between hover:border-graphite-700 transition-colors duration-300">
             <div>
-              <span className="text-[9px] uppercase tracking-wider font-mono text-graphite-500">{t("landing.bento.cell1.eyebrow")}</span>
-              <h3 className="text-sm font-semibold text-white mt-1">{t("landing.bento.cell1.title")}</h3>
-              <p className="text-graphite-400 text-xs mt-2 font-light leading-relaxed">
+              <span className="text-xs uppercase tracking-wider font-mono text-graphite-400">{t("landing.bento.cell1.eyebrow")}</span>
+              <h3 className="text-lg font-semibold text-white mt-1.5">{t("landing.bento.cell1.title")}</h3>
+              <p className="text-graphite-300 text-sm sm:text-base mt-2 font-normal leading-relaxed">
                 {t("landing.bento.cell1.description")}
               </p>
             </div>
             
             {/* Visual Loop diagram */}
-            <div className="mt-8 pt-4 border-t border-graphite-850 flex flex-col gap-3 font-mono text-[9px] text-graphite-400 select-none">
-              <div className="flex items-center gap-2">
-                <span className="w-5 h-5 rounded border border-graphite-800 bg-graphite-950 flex items-center justify-center text-white font-medium">01</span>
+            <div className="mt-8 pt-4 border-t border-graphite-800 flex flex-col gap-3 font-mono text-xs text-graphite-300 select-none">
+              <div className="flex items-center gap-2.5">
+                <span className="w-6 h-6 rounded border border-graphite-800 bg-graphite-950 flex items-center justify-center text-white font-medium shrink-0">01</span>
                 <span>{t("landing.bento.cell1.step1")}</span>
               </div>
-              <div className="w-px h-3 bg-graphite-800 ml-2.5" />
-              <div className="flex items-center gap-2">
-                <span className="w-5 h-5 rounded border border-graphite-800 bg-graphite-950 flex items-center justify-center text-white font-medium">02</span>
+              <div className="w-px h-3 bg-graphite-800 ml-3" />
+              <div className="flex items-center gap-2.5">
+                <span className="w-6 h-6 rounded border border-graphite-800 bg-graphite-950 flex items-center justify-center text-white font-medium shrink-0">02</span>
                 <span className="text-white font-medium">{t("landing.bento.cell1.step2")}</span>
               </div>
-              <div className="w-px h-3 bg-graphite-800 ml-2.5" />
-              <div className="flex items-center gap-2">
-                <span className="w-5 h-5 rounded border border-graphite-800 bg-graphite-950 flex items-center justify-center text-white font-medium">03</span>
+              <div className="w-px h-3 bg-graphite-800 ml-3" />
+              <div className="flex items-center gap-2.5">
+                <span className="w-6 h-6 rounded border border-graphite-800 bg-graphite-950 flex items-center justify-center text-white font-medium shrink-0">03</span>
                 <span>{t("landing.bento.cell1.step3")}</span>
               </div>
             </div>
@@ -378,26 +378,26 @@ export default function LandingPage() {
           {/* Cell 2: Incident Response Playbooks (4 columns) */}
           <div className="md:col-span-4 bg-graphite-900 border border-graphite-800/80 rounded-lg p-6 hover:border-graphite-700 transition-colors duration-300 flex flex-col justify-between">
             <div className="space-y-2">
-              <span className="text-[9px] uppercase tracking-wider font-mono text-graphite-500">{t("landing.bento.cell2.eyebrow")}</span>
-              <h3 className="text-sm font-semibold text-white">{t("landing.bento.cell2.title")}</h3>
-              <p className="text-graphite-400 text-xs font-light leading-relaxed">
+              <span className="text-xs uppercase tracking-wider font-mono text-graphite-400">{t("landing.bento.cell2.eyebrow")}</span>
+              <h3 className="text-lg font-semibold text-white">{t("landing.bento.cell2.title")}</h3>
+              <p className="text-graphite-300 text-sm sm:text-base font-normal leading-relaxed">
                 {t("landing.bento.cell2.description")}
               </p>
             </div>
             
             {/* Playbook interactive step visual */}
-            <div className="grid grid-cols-3 gap-3 mt-8 pt-4 border-t border-graphite-850 font-mono text-[10px] select-none">
-              <div className="border border-graphite-800 rounded bg-graphite-950/60 p-3 text-center space-y-1.5">
-                <div className="text-white font-bold">{t("landing.bento.cell2.phase1Title")}</div>
-                <div className="text-[8px] text-graphite-500">{t("landing.bento.cell2.phase1Desc")}</div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-8 pt-4 border-t border-graphite-800 font-mono text-xs select-none">
+              <div className="border border-graphite-800 rounded bg-graphite-950/60 p-3.5 text-center space-y-1.5">
+                <div className="text-white font-bold text-sm">{t("landing.bento.cell2.phase1Title")}</div>
+                <div className="text-xs text-graphite-400 leading-snug">{t("landing.bento.cell2.phase1Desc")}</div>
               </div>
-              <div className="border border-graphite-800 rounded bg-graphite-950/60 p-3 text-center space-y-1.5">
-                <div className="text-white font-bold">{t("landing.bento.cell2.phase2Title")}</div>
-                <div className="text-[8px] text-graphite-500">{t("landing.bento.cell2.phase2Desc")}</div>
+              <div className="border border-graphite-800 rounded bg-graphite-950/60 p-3.5 text-center space-y-1.5">
+                <div className="text-white font-bold text-sm">{t("landing.bento.cell2.phase2Title")}</div>
+                <div className="text-xs text-graphite-400 leading-snug">{t("landing.bento.cell2.phase2Desc")}</div>
               </div>
-              <div className="border border-graphite-800 rounded bg-graphite-950/60 p-3 text-center space-y-1.5">
-                <div className="text-white font-bold">{t("landing.bento.cell2.phase3Title")}</div>
-                <div className="text-[8px] text-graphite-500">{t("landing.bento.cell2.phase3Desc")}</div>
+              <div className="border border-graphite-800 rounded bg-graphite-950/60 p-3.5 text-center space-y-1.5">
+                <div className="text-white font-bold text-sm">{t("landing.bento.cell2.phase3Title")}</div>
+                <div className="text-xs text-graphite-400 leading-snug">{t("landing.bento.cell2.phase3Desc")}</div>
               </div>
             </div>
           </div>
@@ -406,14 +406,14 @@ export default function LandingPage() {
           <div className="md:col-span-6 bg-graphite-900 border border-graphite-800/80 rounded-lg p-6 hover:border-graphite-700 transition-colors duration-300">
             <div className="grid md:grid-cols-12 gap-6 items-center">
               <div className="md:col-span-7 space-y-2 text-left">
-                <span className="text-[9px] uppercase tracking-wider font-mono text-graphite-500">{t("landing.bento.cell3.eyebrow")}</span>
-                <h3 className="text-sm font-semibold text-white">{t("landing.bento.cell3.title")}</h3>
-                <p className="text-graphite-400 text-xs font-light leading-relaxed">
+                <span className="text-xs uppercase tracking-wider font-mono text-graphite-400">{t("landing.bento.cell3.eyebrow")}</span>
+                <h3 className="text-lg font-semibold text-white">{t("landing.bento.cell3.title")}</h3>
+                <p className="text-graphite-300 text-sm sm:text-base font-normal leading-relaxed">
                   {t("landing.bento.cell3.description")}
                 </p>
               </div>
               
-              <div className="md:col-span-5 space-y-3 font-mono text-[9px] text-graphite-400 select-none">
+              <div className="md:col-span-5 space-y-3 font-mono text-xs text-graphite-300 select-none">
                 {[
                   { id: "domain1", pct: 85 },
                   { id: "domain2", pct: 72 },
@@ -422,8 +422,8 @@ export default function LandingPage() {
                   const label = resolveDomainName(item.id, item.id, locale);
                   return (
                     <div key={item.id}>
-                      <div className="flex justify-between items-center gap-2 text-graphite-300 mb-1">
-                        <span className="truncate min-w-0 flex-1" title={label}>{label}</span>
+                      <div className="flex justify-between items-start gap-2 text-graphite-200 mb-1.5">
+                        <span className="leading-snug break-words min-w-0 flex-1" title={label}>{label}</span>
                         <span className="text-white font-bold shrink-0">{item.pct}%</span>
                       </div>
                       <div className="w-full bg-graphite-950 h-1.5 rounded overflow-hidden border border-graphite-800">

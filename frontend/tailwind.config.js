@@ -8,7 +8,10 @@ export default {
     extend: {
       fontFamily: {
         sans: ['Geist', '"IBM Plex Sans Thai"', 'sans-serif'],
-        mono: ['"Geist Mono"', 'monospace'],
+        mono: ['"Geist Mono"', '"IBM Plex Sans Thai"', 'monospace'],
+      },
+      fontSize: {
+        log: ['0.8125rem', { lineHeight: '1.5' }],
       },
       colors: {
         graphite: {

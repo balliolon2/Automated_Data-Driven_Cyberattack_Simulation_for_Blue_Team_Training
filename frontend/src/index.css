@@ -4,7 +4,7 @@
 
 @layer base {
   body {
-    @apply bg-graphite-950 text-graphite-50 font-sans antialiased;
+    @apply bg-graphite-950 text-graphite-50 font-sans text-base leading-relaxed antialiased;
     overflow-x: hidden;
   }
   

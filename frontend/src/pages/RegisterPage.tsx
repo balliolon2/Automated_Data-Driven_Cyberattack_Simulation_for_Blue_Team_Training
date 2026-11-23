@@ -111,7 +111,7 @@ export default function RegisterPage() {
             <Shield size={20} />
           </div>
           <h2 className="text-xl font-bold text-white tracking-tight">{t("auth.register.title")}</h2>
-          <p className="text-graphite-400 text-xs mt-1 text-center font-light">
+          <p className="text-graphite-300 text-sm mt-1.5 text-center font-normal">
             {t("auth.register.subtitle")}
           </p>
         </div>
@@ -121,37 +121,37 @@ export default function RegisterPage() {
           <button
             type="button"
             onClick={() => { setAccountType("learner"); setErrorState(null); }}
-            className={`flex items-center justify-center gap-2 py-2 px-3 rounded text-xs font-medium transition-all ${
+            className={`flex items-center justify-center gap-2 py-2.5 px-3 rounded text-sm font-medium transition-all cursor-pointer ${
               accountType === "learner"
                 ? "bg-white text-black font-semibold shadow-sm"
                 : "text-graphite-400 hover:text-white"
             }`}
           >
-            <BookOpen size={14} />
+            <BookOpen size={16} />
             <span>{t("auth.register.learnerTab")}</span>
           </button>
           <button
             type="button"
             onClick={() => { setAccountType("specialist"); setErrorState(null); }}
-            className={`flex items-center justify-center gap-2 py-2 px-3 rounded text-xs font-medium transition-all ${
+            className={`flex items-center justify-center gap-2 py-2.5 px-3 rounded text-sm font-medium transition-all cursor-pointer ${
               accountType === "specialist"
                 ? "bg-white text-black font-semibold shadow-sm"
                 : "text-graphite-400 hover:text-white"
             }`}
           >
-            <Award size={14} />
+            <Award size={16} />
             <span>{t("auth.register.specialistTab")}</span>
           </button>
         </div>
 
         {errorMessage && (
-          <div className="mb-4 p-3 rounded bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-mono">
+          <div className="mb-4 p-3 rounded bg-red-500/10 border border-red-500/20 text-red-400 text-sm font-mono">
             {errorMessage}
           </div>
         )}
 
         {successMessage && (
-          <div className="mb-4 p-3 rounded bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-mono flex items-center gap-2">
+          <div className="mb-4 p-3 rounded bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-sm font-mono flex items-center gap-2">
             <CheckCircle2 size={16} />
             <span>{successMessage}</span>
           </div>
@@ -159,7 +159,7 @@ export default function RegisterPage() {
 
         <form onSubmit={handleRegister} className="space-y-4">
           <div>
-            <label className="block text-xs font-medium text-graphite-300 mb-1">
+            <label className="block text-sm font-medium text-graphite-200 mb-1.5">
               {t("auth.register.nicknameLabel")} <span className="text-red-400">*</span>
             </label>
             <input
@@ -169,14 +169,14 @@ export default function RegisterPage() {
               required
               minLength={2}
               maxLength={30}
-              className="w-full px-3 py-2 bg-graphite-950 border border-graphite-800 rounded text-sm text-white placeholder-graphite-600 focus:outline-none focus:border-white transition-all font-light"
+              className="w-full px-3.5 py-2.5 bg-graphite-950 border border-graphite-800 rounded text-sm text-white placeholder-graphite-500 focus:outline-none focus:border-white transition-all"
               placeholder={t("auth.register.nicknamePlaceholder")}
             />
-            <p className="text-[10px] text-graphite-500 mt-1">{t("auth.register.nicknameHelp")}</p>
+            <p className="text-xs text-graphite-400 mt-1.5">{t("auth.register.nicknameHelp")}</p>
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-graphite-300 mb-1">
+            <label className="block text-sm font-medium text-graphite-200 mb-1.5">
               {t("auth.register.emailLabel")} <span className="text-red-400">*</span>
             </label>
             <input
@@ -184,13 +184,13 @@ export default function RegisterPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="w-full px-3 py-2 bg-graphite-950 border border-graphite-800 rounded text-sm text-white placeholder-graphite-600 focus:outline-none focus:border-white transition-all font-light"
+              className="w-full px-3.5 py-2.5 bg-graphite-950 border border-graphite-800 rounded text-sm text-white placeholder-graphite-500 focus:outline-none focus:border-white transition-all"
               placeholder={t("auth.register.emailPlaceholder")}
             />
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-graphite-300 mb-1">
+            <label className="block text-sm font-medium text-graphite-200 mb-1.5">
               {t("auth.register.passwordLabel")} <span className="text-red-400">*</span>
             </label>
             <input
@@ -199,7 +199,7 @@ export default function RegisterPage() {
               onChange={(e) => setPassword(e.target.value)}
               required
               minLength={6}
-              className="w-full px-3 py-2 bg-graphite-950 border border-graphite-800 rounded text-sm text-white placeholder-graphite-600 focus:outline-none focus:border-white transition-all font-light"
+              className="w-full px-3.5 py-2.5 bg-graphite-950 border border-graphite-800 rounded text-sm text-white placeholder-graphite-500 focus:outline-none focus:border-white transition-all"
               placeholder={t("auth.register.passwordPlaceholder")}
             />
           </div>
@@ -207,15 +207,15 @@ export default function RegisterPage() {
           {/* Specialist Fields */}
           {accountType === "specialist" && (
             <div className="pt-3 border-t border-graphite-800 space-y-4 animate-fade-in">
-              <div className="bg-graphite-950/60 p-3 rounded border border-graphite-800">
-                <p className="text-xs text-graphite-300 font-medium mb-1">{t("auth.register.specialistCardTitle")}</p>
-                <p className="text-[11px] text-graphite-400 leading-relaxed">
+              <div className="bg-graphite-950/60 p-3.5 rounded border border-graphite-800">
+                <p className="text-sm text-graphite-200 font-medium mb-1">{t("auth.register.specialistCardTitle")}</p>
+                <p className="text-xs sm:text-sm text-graphite-300 leading-relaxed">
                   {t("auth.register.specialistCardDesc")}
                 </p>
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-graphite-300 mb-1">
+                <label className="block text-sm font-medium text-graphite-200 mb-1.5">
                   {t("auth.register.bioLabel")} <span className="text-red-400">*</span>
                 </label>
                 <textarea
@@ -223,19 +223,19 @@ export default function RegisterPage() {
                   onChange={(e) => setBio(e.target.value)}
                   required={accountType === "specialist"}
                   rows={3}
-                  className="w-full px-3 py-2 bg-graphite-950 border border-graphite-800 rounded text-sm text-white placeholder-graphite-600 focus:outline-none focus:border-white transition-all font-light"
+                  className="w-full px-3.5 py-2.5 bg-graphite-950 border border-graphite-800 rounded text-sm text-white placeholder-graphite-500 focus:outline-none focus:border-white transition-all"
                   placeholder={t("auth.register.bioPlaceholder")}
                 />
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-medium text-graphite-300 mb-1">
+                  <label className="block text-sm font-medium text-graphite-200 mb-1.5">
                     {t("auth.register.resumeLabel")} <span className="text-red-400">*</span>
                   </label>
-                  <label className="flex flex-col items-center justify-center p-3 border border-dashed border-graphite-700 hover:border-white rounded bg-graphite-950 cursor-pointer transition-colors text-center">
+                  <label className="flex flex-col items-center justify-center p-3.5 border border-dashed border-graphite-700 hover:border-white rounded bg-graphite-950 cursor-pointer transition-colors text-center">
                     <Upload size={16} className="text-graphite-400 mb-1" />
-                    <span className="text-[11px] text-graphite-300 truncate max-w-full">
+                    <span className="text-xs text-graphite-300 truncate max-w-full">
                       {resumeFile ? resumeFile.name : t("auth.register.chooseResume")}
                     </span>
                     <input
@@ -248,12 +248,12 @@ export default function RegisterPage() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium text-graphite-300 mb-1">
+                  <label className="block text-sm font-medium text-graphite-200 mb-1.5">
                     {t("auth.register.certLabel")}
                   </label>
-                  <label className="flex flex-col items-center justify-center p-3 border border-dashed border-graphite-700 hover:border-white rounded bg-graphite-950 cursor-pointer transition-colors text-center">
+                  <label className="flex flex-col items-center justify-center p-3.5 border border-dashed border-graphite-700 hover:border-white rounded bg-graphite-950 cursor-pointer transition-colors text-center">
                     <Upload size={16} className="text-graphite-400 mb-1" />
-                    <span className="text-[11px] text-graphite-300 truncate max-w-full">
+                    <span className="text-xs text-graphite-300 truncate max-w-full">
                       {certFile ? certFile.name : t("auth.register.chooseCert")}
                     </span>
                     <input
@@ -268,27 +268,27 @@ export default function RegisterPage() {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-medium text-graphite-300 mb-1">
+                  <label className="block text-sm font-medium text-graphite-200 mb-1.5">
                     {t("auth.register.linkedinLabel")}
                   </label>
                   <input
                     type="url"
                     value={linkedinUrl}
                     onChange={(e) => setLinkedinUrl(e.target.value)}
-                    className="w-full px-3 py-2 bg-graphite-950 border border-graphite-800 rounded text-xs text-white placeholder-graphite-600 focus:outline-none focus:border-white transition-all font-light"
+                    className="w-full px-3.5 py-2.5 bg-graphite-950 border border-graphite-800 rounded text-sm text-white placeholder-graphite-500 focus:outline-none focus:border-white transition-all"
                     placeholder={t("auth.register.linkedinPlaceholder")}
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium text-graphite-300 mb-1">
+                  <label className="block text-sm font-medium text-graphite-200 mb-1.5">
                     {t("auth.register.portfolioLabel")}
                   </label>
                   <input
                     type="url"
                     value={portfolioUrl}
                     onChange={(e) => setPortfolioUrl(e.target.value)}
-                    className="w-full px-3 py-2 bg-graphite-950 border border-graphite-800 rounded text-xs text-white placeholder-graphite-600 focus:outline-none focus:border-white transition-all font-light"
+                    className="w-full px-3.5 py-2.5 bg-graphite-950 border border-graphite-800 rounded text-sm text-white placeholder-graphite-500 focus:outline-none focus:border-white transition-all"
                     placeholder={t("auth.register.portfolioPlaceholder")}
                   />
                 </div>
@@ -299,14 +299,14 @@ export default function RegisterPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-white text-black font-semibold py-2.5 rounded text-xs hover:bg-white/90 transition-all flex justify-center items-center gap-2 mt-4 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+            className="w-full bg-white text-black font-semibold py-2.5 rounded text-sm hover:bg-white/90 transition-all flex justify-center items-center gap-2 mt-4 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
           >
             {loading ? <Loader2 className="animate-spin w-4 h-4" /> : accountType === "specialist" ? t("auth.register.submitSpecialist") : t("auth.register.submitLearner")}
-            {!loading && <ArrowRight size={14} />}
+            {!loading && <ArrowRight size={16} />}
           </button>
         </form>
 
-        <div className="mt-6 text-center text-xs text-graphite-400">
+        <div className="mt-6 text-center text-sm text-graphite-400">
           {t("auth.register.alreadyHaveAccount")}{" "}
           <Link to="/login" className="text-white hover:underline">
             {t("auth.register.signInLink")}

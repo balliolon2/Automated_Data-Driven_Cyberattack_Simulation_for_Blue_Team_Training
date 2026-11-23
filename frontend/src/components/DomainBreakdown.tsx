@@ -25,7 +25,7 @@ export default function DomainBreakdown({ domains, title, showThresholdLine = tr
 
   return (
     <div className="bg-graphite-900 border border-graphite-800 rounded-lg p-6 space-y-6">
-      <h3 className="text-sm font-semibold tracking-tight text-white border-b border-graphite-800 pb-3">
+      <h3 className="text-lg font-semibold tracking-tight text-white border-b border-graphite-800 pb-3">
         {resolvedTitle}
       </h3>
       <div className="space-y-4">
@@ -36,15 +36,15 @@ export default function DomainBreakdown({ domains, title, showThresholdLine = tr
           
           return (
             <div key={domain.domain_id} className="space-y-2 group">
-              <div className="flex items-center justify-between gap-3 text-xs">
-                <div className="flex items-center gap-2 min-w-0 flex-1">
+              <div className="flex items-start justify-between gap-3 text-sm">
+                <div className="flex items-start gap-2 min-w-0 flex-1">
                   {domain.passed ? (
-                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                    <ShieldCheck className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
                   ) : (
-                    <ShieldAlert className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                    <ShieldAlert className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
                   )}
                   <span
-                    className="font-medium text-graphite-200 truncate group-hover:text-white transition-colors duration-200"
+                    className="font-medium text-graphite-200 leading-snug break-words group-hover:text-white transition-colors duration-200"
                     title={domainName}
                   >
                     {domainName}
@@ -54,20 +54,20 @@ export default function DomainBreakdown({ domains, title, showThresholdLine = tr
                   {studyDomainHref && (
                     <Link
                       to={studyDomainHref(domain.domain_id)}
-                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded border border-graphite-700 bg-graphite-800/80 hover:bg-graphite-700 text-graphite-300 hover:text-white text-[10px] font-sans transition-colors whitespace-nowrap"
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded border border-graphite-700 bg-graphite-800/80 hover:bg-graphite-700 text-graphite-200 hover:text-white text-xs font-sans transition-colors whitespace-nowrap"
                     >
-                      <BookOpen className="w-3 h-3" />
+                      <BookOpen className="w-3.5 h-3.5" />
                       {t("evaluation.studyTheory")}
                     </Link>
                   )}
                   <div className="flex items-baseline gap-1.5">
                     <span className={cn(
-                      "text-sm font-bold",
+                      "text-base font-bold",
                       domain.passed ? "text-emerald-400" : "text-amber-400"
                     )}>
                       {domain.proficiency_score.toFixed(1)}%
                     </span>
-                    <span className="text-[10px] text-graphite-500">/ {domain.threshold}%</span>
+                    <span className="text-xs text-graphite-400">/ {domain.threshold}%</span>
                   </div>
                 </div>
               </div>

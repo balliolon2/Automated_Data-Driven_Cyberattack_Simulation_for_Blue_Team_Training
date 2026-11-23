@@ -162,8 +162,8 @@ export default function ExamPage({ mode }: { mode: "pre" | "post" }) {
       <div className="max-w-xl mx-auto mt-12 bg-graphite-900 p-8 rounded-lg border border-graphite-800 text-center space-y-6 animate-slide-up">
         {mode === "pre" ? (
           <>
-            <h2 className="text-2xl font-bold text-white tracking-tight">{t("exam.preTest.title")}</h2>
-            <p className="text-graphite-400 font-light text-sm leading-relaxed">
+            <h2 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">{t("exam.preTest.title")}</h2>
+            <p className="text-graphite-300 font-normal text-base leading-relaxed">
               {t("exam.preTest.descBeforeCount")}
               <strong className="text-white">{t("exam.preTest.questionCountText")}</strong>
               {t("exam.preTest.descAfterCount")}
@@ -171,7 +171,7 @@ export default function ExamPage({ mode }: { mode: "pre" | "post" }) {
             <div className="pt-4">
               <button 
                 onClick={() => startExam("pre")}
-                className="w-full py-3 bg-white hover:bg-white/90 text-black font-semibold text-sm rounded-md transition-all duration-200"
+                className="w-full py-3 bg-white hover:bg-white/90 text-black font-semibold text-sm sm:text-base rounded-md transition-all duration-200 cursor-pointer"
               >
                 {t("exam.preTest.startButton")}
               </button>
@@ -179,8 +179,8 @@ export default function ExamPage({ mode }: { mode: "pre" | "post" }) {
           </>
         ) : (
           <>
-            <h2 className="text-2xl font-bold text-white tracking-tight">{t("exam.postTest.title")}</h2>
-            <p className="text-graphite-400 font-light text-sm leading-relaxed">
+            <h2 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">{t("exam.postTest.title")}</h2>
+            <p className="text-graphite-300 font-normal text-base leading-relaxed">
               {t("exam.postTest.descBeforeCount")}
               <strong className="text-white">{t("exam.postTest.questionCountText")}</strong>
               {t("exam.postTest.descAfterCount")}
@@ -188,7 +188,7 @@ export default function ExamPage({ mode }: { mode: "pre" | "post" }) {
             <div className="pt-4">
               <button 
                 onClick={() => startExam("post")}
-                className="w-full py-3 bg-white hover:bg-white/90 text-black font-semibold text-sm rounded-md transition-all duration-200"
+                className="w-full py-3 bg-white hover:bg-white/90 text-black font-semibold text-sm sm:text-base rounded-md transition-all duration-200 cursor-pointer"
               >
                 {t("exam.postTest.startButton")}
               </button>
@@ -197,7 +197,7 @@ export default function ExamPage({ mode }: { mode: "pre" | "post" }) {
         )}
         <button 
           onClick={() => navigate("/")}
-          className="mt-4 text-xs text-graphite-400 hover:text-white transition-colors underline decoration-dotted"
+          className="mt-4 text-sm text-graphite-400 hover:text-white transition-colors underline decoration-dotted cursor-pointer"
         >
           {t("exam.backToDashboard")}
         </button>
@@ -270,7 +270,7 @@ export default function ExamPage({ mode }: { mode: "pre" | "post" }) {
           <button 
             onClick={handleSubmitExam}
             disabled={submitting}
-            className="w-full py-2 bg-white text-black hover:bg-white/90 disabled:bg-graphite-800 disabled:text-graphite-500 text-xs font-semibold rounded-md transition-all flex items-center justify-center gap-2"
+            className="w-full py-2.5 bg-white text-black hover:bg-white/90 disabled:bg-graphite-800 disabled:text-graphite-400 text-sm font-semibold rounded-md transition-all flex items-center justify-center gap-2 cursor-pointer"
           >
             <CheckCircle2 className="w-4 h-4" />
             {submitting ? t("exam.submitting") : t("exam.submitExam")}
@@ -279,10 +279,10 @@ export default function ExamPage({ mode }: { mode: "pre" | "post" }) {
       </div>
 
       {/* Main Content: Question (strictly English-only content) */}
-      <div className="lg:col-span-3 bg-graphite-900 border border-graphite-800 rounded-lg p-6 flex flex-col justify-between">
+      <div className="lg:col-span-3 bg-graphite-900 border border-graphite-800 rounded-lg p-6 sm:p-8 flex flex-col justify-between">
         <div>
           <div className="flex justify-between items-center border-b border-graphite-800 pb-4 mb-6">
-            <h2 className="text-base font-semibold text-white">
+            <h2 className="text-lg font-semibold text-white">
               {t("exam.questionOf", { current: currentQuestionIdx + 1, total: totalQuestions })}
             </h2>
             <div className="flex items-center gap-2 text-white font-mono text-sm bg-graphite-950 px-3 py-1.5 rounded border border-graphite-800 select-none">
@@ -292,13 +292,13 @@ export default function ExamPage({ mode }: { mode: "pre" | "post" }) {
           </div>
 
           {locale === "th" && (
-            <div className="mb-4 px-3 py-2 rounded bg-graphite-900/70 border border-graphite-800 text-graphite-300 text-xs">
+            <div className="mb-4 px-3.5 py-2.5 rounded bg-graphite-900/70 border border-graphite-800 text-graphite-300 text-xs">
               {t("exam.englishOnlyNotice")}
             </div>
           )}
 
           {timeLeft === 0 && (
-            <div className="mb-6 bg-red-500/10 border border-red-500/20 rounded p-4 text-red-400 text-xs">
+            <div className="mb-6 bg-red-500/10 border border-red-500/20 rounded p-4 text-red-400 text-sm">
               <p className="font-medium flex items-center gap-2">
                 <span>⏰</span> {t("exam.timesUpNotice")}
               </p>
@@ -306,7 +306,7 @@ export default function ExamPage({ mode }: { mode: "pre" | "post" }) {
           )}
 
           <div className="space-y-6">
-            <div className="text-base text-graphite-100 font-light leading-relaxed">
+            <div className="text-base sm:text-lg text-graphite-100 font-normal leading-relaxed">
               {currentQ.question_text}
             </div>
             <div className="space-y-3">
@@ -315,16 +315,16 @@ export default function ExamPage({ mode }: { mode: "pre" | "post" }) {
                 return (
                   <label 
                     key={key} 
-                    className={`flex items-start gap-4 p-4 border rounded-md cursor-pointer transition-colors text-sm font-light ${
+                    className={`flex items-start gap-4 p-4 border rounded-md cursor-pointer transition-colors text-base font-normal leading-relaxed ${
                       isChecked 
                         ? 'border-white bg-graphite-950 text-white' 
-                        : 'border-graphite-800 bg-graphite-950/40 hover:bg-graphite-950 text-graphite-300'
+                        : 'border-graphite-800 bg-graphite-950/40 hover:bg-graphite-950 text-graphite-200'
                     }`}
                   >
                     <input 
                       type="radio" 
                       name={`q${currentQ.question_id}`} 
-                      className={`w-4 h-4 mt-0.5 accent-white ${timeLeft === 0 ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`} 
+                      className={`w-4 h-4 mt-1 accent-white ${timeLeft === 0 ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`} 
                       checked={isChecked}
                       onChange={() => {
                         if (timeLeft > 0) {
@@ -343,23 +343,23 @@ export default function ExamPage({ mode }: { mode: "pre" | "post" }) {
         </div>
 
         <div className="flex justify-between items-center mt-12 pt-4 border-t border-graphite-800">
-          <button className="px-3 py-1.5 flex items-center gap-2 text-xs text-graphite-400 hover:text-white transition-colors">
-            <Flag className="w-3.5 h-3.5" /> {t("exam.flagForReview")}
+          <button className="px-3 py-2 flex items-center gap-2 text-sm text-graphite-400 hover:text-white transition-colors cursor-pointer">
+            <Flag className="w-4 h-4" /> {t("exam.flagForReview")}
           </button>
           <div className="flex gap-3">
             <button 
               onClick={() => setCurrentQuestionIdx(p => Math.max(0, p - 1))}
-              className="px-4 py-2 rounded-md border border-graphite-800 text-xs text-graphite-300 hover:bg-graphite-900 hover:text-white flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-4 py-2 rounded-md border border-graphite-800 text-sm text-graphite-200 hover:bg-graphite-900 hover:text-white flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
               disabled={currentQuestionIdx === 0}
             >
-              <ChevronLeft className="w-3.5 h-3.5" /> {t("exam.previous")}
+              <ChevronLeft className="w-4 h-4" /> {t("exam.previous")}
             </button>
             <button 
               onClick={() => setCurrentQuestionIdx(p => Math.min(totalQuestions - 1, p + 1))}
-              className="px-4 py-2 rounded-md bg-white text-black text-xs font-semibold hover:bg-white/90 flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-4 py-2 rounded-md bg-white text-black text-sm font-semibold hover:bg-white/90 flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
               disabled={currentQuestionIdx === totalQuestions - 1}
             >
-              {t("exam.next")} <ChevronRight className="w-3.5 h-3.5" />
+              {t("exam.next")} <ChevronRight className="w-4 h-4" />
             </button>
           </div>
         </div>

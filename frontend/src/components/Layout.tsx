@@ -40,13 +40,13 @@ export default function Layout() {
         <div className="container mx-auto px-6 h-16 flex items-center justify-between gap-4">
           <Link to="/" className="flex items-center gap-2.5 group shrink-0">
             <ShieldCheck className="h-5 w-5 text-white transition-transform group-hover:scale-105" />
-            <span className="text-base font-semibold tracking-tight text-white">
+            <span className="text-lg font-semibold tracking-tight text-white">
               {t("common.brandPrefix")}<span className="text-graphite-400 font-normal">{t("common.brandSuffix")}</span>
             </span>
           </Link>
           
-          <nav className="flex items-center gap-4 sm:gap-6">
-            <div className="flex gap-3 sm:gap-5">
+          <nav className="flex items-center gap-3 xl:gap-5">
+            <div className="flex gap-3 xl:gap-5">
               {navLinks.map((link) => {
                 const isActive = link.path === "/exam"
                   ? ["/exam", "/pre-test", "/post-test"].includes(location.pathname)
@@ -72,7 +72,7 @@ export default function Layout() {
               })}
             </div>
             
-            <div className="h-4 w-px bg-graphite-800 hidden sm:block" />
+            <div className="h-4 w-px bg-graphite-800 hidden sm:block shrink-0" />
 
             <div
               role="group"
@@ -84,7 +84,7 @@ export default function Layout() {
                 onClick={() => setLocale("en")}
                 aria-pressed={locale === "en"}
                 className={clsx(
-                  "px-2 py-1 rounded text-[11px] font-mono font-semibold transition-colors cursor-pointer",
+                  "px-2.5 py-1 rounded text-xs font-mono font-semibold transition-colors cursor-pointer",
                   locale === "en"
                     ? "bg-white text-black"
                     : "text-graphite-400 hover:text-white"
@@ -97,7 +97,7 @@ export default function Layout() {
                 onClick={() => setLocale("th")}
                 aria-pressed={locale === "th"}
                 className={clsx(
-                  "px-2 py-1 rounded text-[11px] font-mono font-semibold transition-colors cursor-pointer",
+                  "px-2.5 py-1 rounded text-xs font-mono font-semibold transition-colors cursor-pointer",
                   locale === "th"
                     ? "bg-white text-black"
                     : "text-graphite-400 hover:text-white"
@@ -108,31 +108,31 @@ export default function Layout() {
             </div>
             
             {token ? (
-              <div className="flex items-center gap-3 sm:gap-4 shrink-0">
+              <div className="flex items-center gap-3 shrink-0">
                 <NotificationBell />
 
                 <Link to="/profile" className="hidden sm:flex items-center gap-2 text-sm text-graphite-300 hover:text-white transition-colors">
-                  <div className="w-6 h-6 rounded-full bg-graphite-900 flex items-center justify-center border border-graphite-800">
+                  <div className="w-7 h-7 rounded-full bg-graphite-900 flex items-center justify-center border border-graphite-800 shrink-0">
                     {userRole === "admin" ? (
-                      <ShieldAlert className="w-3.5 h-3.5 text-amber-400" />
+                      <ShieldAlert className="w-4 h-4 text-amber-400" />
                     ) : userRole === "specialist" ? (
-                      <Award className="w-3.5 h-3.5 text-indigo-400" />
+                      <Award className="w-4 h-4 text-indigo-400" />
                     ) : (
-                      <User className="w-3.5 h-3.5 text-graphite-400" />
+                      <User className="w-4 h-4 text-graphite-400" />
                     )}
                   </div>
-                  <span className="font-medium text-xs font-mono text-graphite-200">
+                  <span className="font-medium text-sm font-mono text-graphite-200 whitespace-nowrap">
                     {userNickname || userEmail}
                   </span>
 
                   {/* Role Badge */}
                   {userRole === "admin" && (
-                    <span className="px-1.5 py-0.5 rounded text-[10px] font-mono font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                    <span className="px-2 py-0.5 rounded text-xs font-mono font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/20 whitespace-nowrap shrink-0">
                       {t("common.roles.adminBadge")}
                     </span>
                   )}
                   {userRole === "specialist" && (
-                    <span className="px-1.5 py-0.5 rounded text-[10px] font-mono font-semibold bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
+                    <span className="px-2 py-0.5 rounded text-xs font-mono font-semibold bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 whitespace-nowrap shrink-0">
                       {t("common.roles.specialistBadge")}
                     </span>
                   )}
@@ -140,16 +140,16 @@ export default function Layout() {
 
                 <button 
                   onClick={handleLogout}
-                  className="flex items-center gap-2 px-3 py-1.5 rounded-md border border-graphite-800 bg-transparent text-graphite-300 text-xs font-medium hover:bg-graphite-900 hover:text-white transition-all duration-200 cursor-pointer"
+                  className="flex items-center gap-2 px-3.5 py-1.5 rounded-md border border-graphite-800 bg-transparent text-graphite-300 text-sm font-medium hover:bg-graphite-900 hover:text-white transition-all duration-200 cursor-pointer whitespace-nowrap"
                 >
-                  <LogOut className="w-3.5 h-3.5" />
+                  <LogOut className="w-4 h-4" />
                   <span className="hidden sm:inline">{t("nav.logout")}</span>
                 </button>
               </div>
             ) : (
               <Link 
                 to="/login" 
-                className="px-4 py-1.5 rounded-md bg-graphite-100 hover:bg-white text-graphite-950 text-xs font-semibold transition-all duration-200 shrink-0"
+                className="px-4 py-1.5 rounded-md bg-graphite-100 hover:bg-white text-graphite-950 text-sm font-semibold transition-all duration-200 shrink-0 whitespace-nowrap"
               >
                 {t("nav.login")}
               </Link>
@@ -164,13 +164,13 @@ export default function Layout() {
 
       <footer className="border-t border-graphite-800 py-8 mt-auto z-10 relative bg-graphite-950">
         <div className="container mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-2 opacity-80">
+          <div className="flex items-center gap-2 opacity-90">
             <ShieldCheck className="h-4 w-4 text-white" />
             <span className="font-semibold text-xs tracking-wider text-white uppercase font-mono">
               {t("common.footerBrand")}
             </span>
           </div>
-          <p className="text-graphite-500 text-xs font-mono">
+          <p className="text-graphite-400 text-xs font-mono">
             {t("common.copyright", { year: new Date().getFullYear() })}
           </p>
         </div>

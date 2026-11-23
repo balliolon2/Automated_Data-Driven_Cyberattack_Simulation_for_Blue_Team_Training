@@ -77,7 +77,7 @@ export default function EvaluationPage() {
     return (
       <div className="min-h-[60vh] flex flex-col items-center justify-center gap-3">
         <Loader2 className="w-6 h-6 text-white animate-spin" />
-        <p className="text-xs font-mono text-graphite-500">{t("evaluation.loading")}</p>
+        <p className="text-sm font-mono text-graphite-400">{t("evaluation.loading")}</p>
       </div>
     );
   }
@@ -100,11 +100,11 @@ export default function EvaluationPage() {
     return (
       <div className="max-w-md mx-auto mt-12 bg-graphite-900 p-8 rounded-lg border border-graphite-800 text-center space-y-6 animate-fade-in">
         <ShieldAlert className="w-10 h-10 text-red-500 mx-auto" />
-        <h3 className="text-base font-bold text-white tracking-tight">{t("evaluation.assessmentRequiredTitle")}</h3>
-        <p className="text-xs text-graphite-400 font-light leading-relaxed">{resolvedErrorMessage}</p>
+        <h3 className="text-lg font-bold text-white tracking-tight">{t("evaluation.assessmentRequiredTitle")}</h3>
+        <p className="text-base text-graphite-300 font-normal leading-relaxed">{resolvedErrorMessage}</p>
         <button
           onClick={() => navigate("/pre-test")}
-          className="w-full py-2 bg-white text-black font-semibold text-xs rounded-md hover:bg-white/90 transition-all duration-200"
+          className="w-full py-2.5 bg-white text-black font-semibold text-sm rounded-md hover:bg-white/90 transition-all duration-200 cursor-pointer"
         >
           {t("evaluation.takePreTest")}
         </button>
@@ -118,20 +118,20 @@ export default function EvaluationPage() {
   return (
     <div className="max-w-4xl mx-auto space-y-8 animate-fade-in">
       <div className="text-center space-y-2">
-        <h1 className="text-2xl font-bold tracking-tight text-white">{t("evaluation.title")}</h1>
-        <p className="text-xs text-graphite-400 font-mono">{t("evaluation.subtitle")}</p>
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-white">{t("evaluation.title")}</h1>
+        <p className="text-sm text-graphite-400 font-mono">{t("evaluation.subtitle")}</p>
       </div>
 
       <div className="grid md:grid-cols-3 gap-6">
         {/* Left Side: Summary Card */}
         <div className="bg-graphite-900 border border-graphite-800/80 p-6 rounded-lg flex flex-col items-center justify-center text-center space-y-3">
-          <div className="text-4xl font-extrabold text-white font-mono tracking-tighter">
+          <div className="text-5xl font-extrabold text-white font-mono tracking-tighter">
             {averageScore.toFixed(0)}%
           </div>
-          <div className="text-[10px] font-semibold text-graphite-300 uppercase tracking-wider font-mono">
+          <div className="text-xs font-semibold text-graphite-300 uppercase tracking-wider font-mono">
             {t("evaluation.averageProficiency")}
           </div>
-          <p className="text-[10px] text-graphite-500 font-mono">
+          <p className="text-xs text-graphite-400 font-mono">
             {failedDomains.length > 0
               ? t("evaluation.domainsBelowThreshold", { count: failedDomains.length })
               : t("evaluation.allDomainsPassed")}
@@ -149,16 +149,16 @@ export default function EvaluationPage() {
       </div>
 
       <div className="bg-graphite-900 border border-graphite-800/80 p-6 rounded-lg space-y-4">
-        <h3 className="text-sm font-semibold flex items-center gap-2 text-white border-b border-graphite-800 pb-3">
+        <h3 className="text-lg font-semibold flex items-center gap-2 text-white border-b border-graphite-800 pb-3">
           <AlertTriangle className="text-amber-500 w-4 h-4" />
           {t("evaluation.skillGapAnalysis")}
         </h3>
         
-        <ul className="space-y-4 text-xs text-graphite-400 font-light">
+        <ul className="space-y-4 text-base text-graphite-300 font-normal leading-relaxed">
           {failedDomains.length > 0 ? (
             <>
               <li className="flex gap-3 items-start">
-                <ShieldAlert className="text-amber-500 shrink-0 w-4 h-4 mt-0.5" />
+                <ShieldAlert className="text-amber-500 shrink-0 w-5 h-5 mt-0.5" />
                 <span>
                   <strong className="text-white">{t("evaluation.identifiedWeaknessLabel")}</strong>{" "}
                   {t("evaluation.identifiedWeaknessBeforeThreshold")}
@@ -167,20 +167,20 @@ export default function EvaluationPage() {
                 </span>
               </li>
               <li className="flex gap-3 items-start">
-                <CheckCircle className="text-emerald-500 shrink-0 w-4 h-4 mt-0.5" />
+                <CheckCircle className="text-emerald-500 shrink-0 w-5 h-5 mt-0.5" />
                 <span>
                   <strong className="text-white">{t("evaluation.adaptiveRoadmapLabel")}</strong> {t("evaluation.adaptiveRoadmapText")}
                 </span>
               </li>
               {!theoryCompleted && (
                 <li className="flex gap-3 items-start">
-                  <BookOpen className="text-amber-500 shrink-0 w-4 h-4 mt-0.5" />
+                  <BookOpen className="text-amber-500 shrink-0 w-5 h-5 mt-0.5" />
                   <span>
                     <strong className="text-white">{t("evaluation.requiredPreSimLabel")}</strong>{" "}
                     {t("evaluation.requiredPreSimBeforeLink")}
                     <button
                       onClick={() => navigate("/learn")}
-                      className="text-white underline hover:text-emerald-400 transition-colors"
+                      className="text-white underline hover:text-emerald-400 transition-colors cursor-pointer"
                     >
                       {t("evaluation.learningTheoryHubLink")}
                     </button>
@@ -191,7 +191,7 @@ export default function EvaluationPage() {
             </>
           ) : (
             <li className="flex gap-3 items-start">
-              <CheckCircle className="text-emerald-500 shrink-0 w-4 h-4 mt-0.5" />
+              <CheckCircle className="text-emerald-500 shrink-0 w-5 h-5 mt-0.5" />
               <span>
                 <strong className="text-white">{t("evaluation.excellentWorkLabel")}</strong>{" "}
                 {t("evaluation.excellentWorkBeforeThreshold")}
@@ -207,7 +207,7 @@ export default function EvaluationPage() {
             !theoryCompleted ? (
               <button
                 onClick={() => navigate("/learn")}
-                className="px-4 py-2 bg-white text-black font-semibold text-xs rounded-md hover:bg-white/90 transition-all duration-200 flex items-center gap-2"
+                className="px-5 py-2.5 bg-white text-black font-semibold text-sm rounded-md hover:bg-white/90 transition-all duration-200 flex items-center gap-2 cursor-pointer"
               >
                 <BookOpen className="w-4 h-4" />
                 {t("evaluation.studyTheoryFirst", { completed: completedTheoryDomains.length })}
@@ -215,7 +215,7 @@ export default function EvaluationPage() {
             ) : (
               <button
                 onClick={() => navigate("/simulation")}
-                className="px-4 py-2 bg-white text-black font-semibold text-xs rounded-md hover:bg-white/90 transition-all duration-200 flex items-center gap-2"
+                className="px-5 py-2.5 bg-white text-black font-semibold text-sm rounded-md hover:bg-white/90 transition-all duration-200 flex items-center gap-2 cursor-pointer"
               >
                 <PlayCircle className="w-4 h-4" />
                 {t("evaluation.startRecommendedScenarios", { completed: completedScenarios })}
@@ -224,7 +224,7 @@ export default function EvaluationPage() {
           ) : (
             <button
               onClick={() => navigate("/simulation/complete")}
-              className="px-4 py-2 bg-white text-black font-semibold text-xs rounded-md hover:bg-white/90 transition-all duration-200 flex items-center gap-2"
+              className="px-5 py-2.5 bg-white text-black font-semibold text-sm rounded-md hover:bg-white/90 transition-all duration-200 flex items-center gap-2 cursor-pointer"
             >
               <Award className="w-4 h-4" />
               {t("evaluation.viewCompletionCertificate")}

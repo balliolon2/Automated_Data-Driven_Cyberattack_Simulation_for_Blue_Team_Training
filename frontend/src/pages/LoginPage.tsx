@@ -55,20 +55,20 @@ export default function LoginPage() {
             <Shield size={20} />
           </div>
           <h2 className="text-xl font-bold text-white tracking-tight">{t("auth.login.title")}</h2>
-          <p className="text-graphite-400 text-xs mt-2 text-center font-light leading-relaxed">
+          <p className="text-graphite-300 text-sm mt-2 text-center font-normal leading-relaxed">
             {t("auth.login.subtitle")}
           </p>
         </div>
 
         {errorMessage && (
-          <div className="mb-4 p-3 rounded bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-mono">
+          <div className="mb-4 p-3 rounded bg-red-500/10 border border-red-500/20 text-red-400 text-sm font-mono">
             {errorMessage}
           </div>
         )}
 
         <form onSubmit={handleLogin} className="space-y-4">
           <div>
-            <label className="block text-xs font-medium text-graphite-300 mb-1">
+            <label className="block text-sm font-medium text-graphite-200 mb-1.5">
               {t("auth.login.emailLabel")}
             </label>
             <input
@@ -76,13 +76,13 @@ export default function LoginPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="w-full px-3 py-2 bg-graphite-950 border border-graphite-800 rounded text-sm text-white placeholder-graphite-600 focus:outline-none focus:border-white transition-all font-light"
+              className="w-full px-3.5 py-2.5 bg-graphite-950 border border-graphite-800 rounded text-sm text-white placeholder-graphite-500 focus:outline-none focus:border-white transition-all"
               placeholder={t("auth.login.emailPlaceholder")}
             />
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-graphite-300 mb-1 flex justify-between">
+            <label className="block text-sm font-medium text-graphite-200 mb-1.5 flex justify-between">
               <span>{t("auth.login.passwordLabel")}</span>
             </label>
             <input
@@ -90,7 +90,7 @@ export default function LoginPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              className="w-full px-3 py-2 bg-graphite-950 border border-graphite-800 rounded text-sm text-white placeholder-graphite-600 focus:outline-none focus:border-white transition-all font-light"
+              className="w-full px-3.5 py-2.5 bg-graphite-950 border border-graphite-800 rounded text-sm text-white placeholder-graphite-500 focus:outline-none focus:border-white transition-all"
               placeholder={t("auth.login.passwordPlaceholder")}
             />
           </div>
@@ -98,14 +98,14 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-white text-black font-semibold py-2 rounded text-xs hover:bg-white/90 transition-all flex justify-center items-center gap-2 mt-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full bg-white text-black font-semibold py-2.5 rounded text-sm hover:bg-white/90 transition-all flex justify-center items-center gap-2 mt-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
           >
             {loading ? <Loader2 className="animate-spin w-4 h-4" /> : t("auth.login.submitButton")}
-            {!loading && <ArrowRight size={14} />}
+            {!loading && <ArrowRight size={16} />}
           </button>
         </form>
 
-        <div className="mt-6 text-center text-xs text-graphite-400">
+        <div className="mt-6 text-center text-sm text-graphite-400">
           {t("auth.login.noAccount")}{" "}
           <Link to="/register" className="text-white hover:underline">
             {t("auth.login.registerLink")}
