@@ -49,7 +49,8 @@ export default function Layout() {
             <div className="flex gap-3 xl:gap-5">
               {navLinks.map((link) => {
                 const isActive = link.path === "/exam"
-                  ? ["/exam", "/pre-test", "/post-test"].includes(location.pathname)
+                  ? ["/exam", "/pre-test", "/post-test"].includes(location.pathname) ||
+                    location.pathname.startsWith("/exams/")
                   : location.pathname.startsWith(link.path);
 
                 return (

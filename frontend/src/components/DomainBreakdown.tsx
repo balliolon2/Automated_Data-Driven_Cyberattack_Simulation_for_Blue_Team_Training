@@ -10,6 +10,7 @@ interface DomainStatus {
   proficiency_score: number;
   threshold: number;
   passed: boolean;
+  score_meta?: string;
 }
 
 interface DomainBreakdownProps {
@@ -61,6 +62,11 @@ export default function DomainBreakdown({ domains, title, showThresholdLine = tr
                     </Link>
                   )}
                   <div className="flex items-baseline gap-1.5">
+                    {domain.score_meta && (
+                      <span className="text-xs text-graphite-400 mr-1">
+                        ({domain.score_meta})
+                      </span>
+                    )}
                     <span className={cn(
                       "text-base font-bold",
                       domain.passed ? "text-emerald-400" : "text-amber-400"

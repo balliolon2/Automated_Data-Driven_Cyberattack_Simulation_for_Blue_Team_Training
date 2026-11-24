@@ -373,3 +373,29 @@
     - Fixes invalid `text-graphite-550` (`LandingPage.tsx`) and lifts readable muted/hint copy from `text-graphite-500` → `text-graphite-400`.
     - Enforces regressions via `frontend/tests/typography.test.ts` wired into `npm test` & `.github/workflows/ci.yml`, with 1 Push-Right Visual Review Checkpoint (Before/After screenshots in `EN` & `TH` on 5 flagship screens) before closing Issue #38.
     - See `workflows/ui_typography_readability.md`.
+
+## Canonical Terms (Issue #14: Post-Exam Q&A Review & Learning Alignment)
+
+- **Exam Q&A Review (`/exams/review/:sessionId`)**: Dedicated, bookmarkable, refresh-safe post-completion review page for both Pre-Test and Post-Test showing overall score, domain scores, structured explanations, and direct Learning Hub links.
+- **Smart Expand (กางเฉพาะข้อผิด/เว้นว่างอัตโนมัติ)**: Default card state on `ExamReviewPage` where `Incorrect` and `Unanswered` cards open automatically for immediate study while `Correct` cards start collapsed to 1-line summaries (toggleable individually or via `Expand All / Collapse All`).
+- **Distractor Breakdown (การแยกอธิบายตัวเลือกที่ผิด)**: Deterministic client-side parsing of the 540/540 uniform `explanation` format into `Why <Correct> is Correct` + per-option incorrect rationales, pinning and highlighting the learner's mistaken pick (`Your pick`) first (with graceful raw fallback).
+- **Pre→Post Learning Gain Card (การ์ดพัฒนาการ Pre→Post)**: Comparison banner shown on completed Post-Test reviews comparing overall % and all 5 Security Domains against the learner's latest completed Pre-Test (`ORDER BY completed_at DESC LIMIT 1`, aligned with `GetResearchSummary`) while strictly preserving `user_skill_profiles` Proficiency Invariance.
+- **Explicit Exam Finalization (`POST /api/exams/sessions/:sessionId/finalize`)**: Idempotent completion endpoint that marks blank answers as `unanswered` (`user_answer = ""`, `is_correct = false`), records real `time_spent_seconds`, transitions the session to `completed`, and supports both confirmed partial submission and single-shot `00:00:00` auto-finalize.
+
+## Settled Decisions (Issue #14: Post-Exam Q&A Review — `/loop-me` Q1–Q10)
+
+54. **Dedicated Review Route, Revisit Entry Points & Strict Completion Guard (Zero-DDL)**:
+    - Completing either Pre-Test or Post-Test redirects immediately to `/exams/review/:sessionId`; persistent revisit links live on `/evaluation` ("Exam Answer Reviews" card) and `/profile` ("Exam History & Reviews" section).
+    - Backend adds `POST /api/exams/sessions/:sessionId/finalize`, `GET /api/exams/history`, and `GET /api/exams/sessions/:sessionId/review` with zero DB schema changes (`init.sql` untouched).
+    - Strict access guard: learners can view only their own `completed` sessions (`403 EXAM_NOT_COMPLETED` for `in_progress`, `404` for foreign/missing), ensuring zero answer leakage.
+
+55. **Learning-Aligned Review UX, Structured Explanations & Post-Test Gain**:
+    - Default view: `All` filter + `Grouped by Security Domain` (`domain1`–`domain5`) + **Smart Expand** (`Incorrect`/`Unanswered` expanded, `Correct` collapsed), with toggle to `Exam Order (1–30)`, status & domain filters, and a color-coded `01–30` Jump Grid.
+    - Deterministic `parseExamExplanation` utility splits explanations into main rationale + per-option distractor notes (pinning the learner's wrong pick with a `Your pick` badge) and every card deep-links directly to `/learn?domain=<id>&topic=<sub_topic_id>`.
+    - Post-Test review renders an Overall + 5-Domain Pre→Post Learning Gain card against the latest completed Pre-Test; `FinalizeExamSession` computes `domain_scores` for both `pre` and `post` while keeping `user_skill_profiles` untouched on `post` (Proficiency Invariance).
+
+56. **Real Time Tracking, Timeout Auto-Finalize & Visual Checkpoint**:
+    - `ExamPage` records real `time_spent_seconds` and performs a single-shot auto-submit + finalize when the 30-minute timer reaches `00:00:00`, routing cleanly to `/exams/review/:sessionId`.
+    - Verified via Go unit tests, Vitest parser/i18n/typography suites, `scripts/test_integration.py`, and 1 Push-Right Visual Review Checkpoint (EN/TH screenshots of Pre-Test Review, Post-Test Review + Gain Card, `/evaluation`, and `/profile`) before closing Issue #14.
+    - See `workflows/exam_qa_review.md`.
+

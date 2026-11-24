@@ -2,32 +2,52 @@ package controllers
 
 import (
 	"errors"
-	"math"
+	"io"
 	"net/http"
 	"os"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
 
 	"cybersim/dto"
 	"cybersim/models"
+	"cybersim/services"
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
-type ExamDomainScore struct {
-	DomainID     string  `json:"domain_id"`
-	TotalCount   int64   `json:"total"`
-	CorrectCount int64   `json:"correct"`
-	Percentage   float64 `json:"percentage"`
+type ExamDomainScore = dto.DomainScoreDTO
+type ExamDetailedResult = dto.DetailedExamResultDTO
+
+var (
+	examUUIDPattern         = regexp.MustCompile(`^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$`)
+	errExamSessionAbandoned = errors.New("exam session is abandoned")
+)
+
+func isValidExamUUID(id string) bool {
+	return examUUIDPattern.MatchString(strings.TrimSpace(id))
 }
 
-type ExamDetailedResult struct {
-	models.Question
-	UserAnswer string `json:"user_answer"`
-	IsCorrect  bool   `json:"is_correct"`
+func examGateThreshold() float64 {
+	threshold := ProficiencyThreshold
+	if envThreshold := os.Getenv("PROFICIENCY_THRESHOLD"); envThreshold != "" {
+		if val, err := strconv.ParseFloat(envThreshold, 64); err == nil {
+			threshold = val
+		}
+	}
+	return threshold
+}
+
+func examDisplayThreshold() float64 {
+	threshold := examGateThreshold()
+	if threshold <= 0 {
+		return ProficiencyThreshold
+	}
+	return threshold
 }
 
 // ExamStore abstracts persistence for ExamController handlers so the HTTP
@@ -40,10 +60,15 @@ type ExamStore interface {
 	CreateExamSession(session *models.ExamSession, questions []models.Question) error
 	GetSessionQuestions(sessionID string) ([]QuestionResponse, error)
 	FindActiveSessionByIDAndUser(sessionID, userID string) (*models.ExamSession, error)
+	FindSessionByIDAndUser(sessionID, userID string) (*models.ExamSession, error)
 	FindQuestionByID(questionID string) (*models.Question, error)
 	FindSessionQuestion(sessionID, questionID string) (*models.ExamSessionQuestion, error)
 	SaveExamAnswer(session *models.ExamSession, esq *models.ExamSessionQuestion) (int64, error)
-	FinalizeExamSession(session *models.ExamSession, userID string) (int64, []ExamDomainScore, []ExamDetailedResult, error)
+	FinalizeExamSession(session *models.ExamSession, userID string) (*services.ExamReviewData, error)
+	MarkUnansweredAndFinalize(session *models.ExamSession, userID string) (*services.ExamReviewData, error)
+	GetExamSessionReviewData(session *models.ExamSession) (*services.ExamReviewData, error)
+	GetCompletedExamHistory(userID string) ([]dto.ExamHistoryItemDTO, error)
+	GetLatestCompletedPreTestSession(userID string) (*models.ExamSession, error)
 	GetRandomSampleQuestion() (*models.Question, error)
 }
 
@@ -146,8 +171,22 @@ func (s *gormExamStore) GetSessionQuestions(sessionID string) ([]QuestionRespons
 }
 
 func (s *gormExamStore) FindActiveSessionByIDAndUser(sessionID, userID string) (*models.ExamSession, error) {
+	if !isValidExamUUID(sessionID) {
+		return nil, gorm.ErrRecordNotFound
+	}
 	var session models.ExamSession
 	if err := s.DB.Where("session_id = ? AND user_id = ? AND status = 'in_progress'", sessionID, userID).First(&session).Error; err != nil {
+		return nil, err
+	}
+	return &session, nil
+}
+
+func (s *gormExamStore) FindSessionByIDAndUser(sessionID, userID string) (*models.ExamSession, error) {
+	if !isValidExamUUID(sessionID) {
+		return nil, gorm.ErrRecordNotFound
+	}
+	var session models.ExamSession
+	if err := s.DB.Where("session_id = ? AND user_id = ?", sessionID, userID).First(&session).Error; err != nil {
 		return nil, err
 	}
 	return &session, nil
@@ -190,70 +229,130 @@ func (s *gormExamStore) SaveExamAnswer(session *models.ExamSession, esq *models.
 	return unansweredCount, err
 }
 
-func (s *gormExamStore) FinalizeExamSession(session *models.ExamSession, userID string) (int64, []ExamDomainScore, []ExamDetailedResult, error) {
-	var correctCount int64
-	var domainScores []ExamDomainScore
+func (s *gormExamStore) queryDetailedResults(db *gorm.DB, sessionID string) ([]dto.DetailedExamResultDTO, error) {
+	var rows []struct {
+		models.Question
+		OrderIndex int    `gorm:"column:order_index"`
+		UserAnswer string `gorm:"column:user_answer"`
+		IsCorrect  bool   `gorm:"column:is_correct"`
+	}
+	if err := db.Table("exam_session_questions").
+		Select("questions.*, exam_session_questions.order_index, COALESCE(exam_session_questions.user_answer, '') AS user_answer, COALESCE(exam_session_questions.is_correct, false) AS is_correct").
+		Joins("JOIN questions ON questions.question_id = exam_session_questions.question_id").
+		Where("exam_session_questions.session_id = ?", sessionID).
+		Order("exam_session_questions.order_index ASC").
+		Scan(&rows).Error; err != nil {
+		return nil, err
+	}
+
+	detailedResults := make([]dto.DetailedExamResultDTO, len(rows))
+	for i, r := range rows {
+		detailedResults[i] = dto.DetailedExamResultDTO{
+			QuestionID:    r.QuestionID,
+			DomainID:      r.DomainID,
+			SubTopicID:    r.SubTopicID,
+			Type:          r.Type,
+			QuestionText:  r.QuestionText,
+			Options:       r.Options,
+			CorrectAnswer: r.CorrectAnswer,
+			Explanation:   r.Explanation,
+			MitreRef:      r.MitreRef,
+			OrderIndex:    r.OrderIndex,
+			UserAnswer:    r.UserAnswer,
+			IsCorrect:     r.IsCorrect,
+		}
+	}
+	return detailedResults, nil
+}
+
+func (s *gormExamStore) finalizeSessionInternal(session *models.ExamSession, userID string, markBlankUnanswered bool) (*services.ExamReviewData, error) {
+	var reviewData *services.ExamReviewData
+	threshold := examDisplayThreshold()
 
 	err := s.DB.Transaction(func(tx *gorm.DB) error {
-		if err := tx.Model(&models.ExamSessionQuestion{}).
-			Where("session_id = ? AND is_correct = true", session.SessionID).
-			Count(&correctCount).Error; err != nil {
+		var locked models.ExamSession
+		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
+			Where("session_id = ? AND user_id = ?", session.SessionID, userID).
+			First(&locked).Error; err != nil {
 			return err
 		}
-
-		scorePercent := math.Round((float64(correctCount)/float64(session.TotalQuestions))*100*100) / 100
-		session.Score = &scorePercent
-		session.Status = "completed"
-		now := time.Now()
-		session.CompletedAt = &now
-
-		if err := tx.Save(session).Error; err != nil {
-			return err
+		if locked.Status == "abandoned" {
+			return errExamSessionAbandoned
 		}
-
-		if session.ExamType == "pre" {
-			var domainResults []struct {
-				DomainID     string `gorm:"column:domain_id"`
-				TotalCount   int64  `gorm:"column:total_count"`
-				CorrectCount int64  `gorm:"column:correct_count"`
+		if locked.Status == "completed" {
+			*session = locked
+			results, qErr := s.queryDetailedResults(tx, locked.SessionID)
+			if qErr != nil {
+				return qErr
 			}
+			reviewData = services.SummarizeExamResults(results, threshold)
+			return nil
+		}
 
-			tx.Table("exam_session_questions").
-				Select("questions.domain_id, COUNT(*) as total_count, SUM(CASE WHEN exam_session_questions.is_correct = true THEN 1 ELSE 0 END) as correct_count").
-				Joins("JOIN questions ON questions.question_id = exam_session_questions.question_id").
-				Where("exam_session_questions.session_id = ?", session.SessionID).
-				Group("questions.domain_id").
-				Scan(&domainResults)
+		if session.TimeSpentSeconds != nil {
+			existing := 0
+			if locked.TimeSpentSeconds != nil {
+				existing = *locked.TimeSpentSeconds
+			}
+			clamped := services.ClampExamDuration(*session.TimeSpentSeconds, existing)
+			locked.TimeSpentSeconds = &clamped
+		}
 
-			domainScores = make([]ExamDomainScore, 0, len(domainResults))
-			for _, dr := range domainResults {
-				pct := 0.0
-				if dr.TotalCount > 0 {
-					pct = math.Round((float64(dr.CorrectCount)/float64(dr.TotalCount))*100*100) / 100
-				}
+		if markBlankUnanswered {
+			if err := tx.Model(&models.ExamSessionQuestion{}).
+				Where("session_id = ? AND (user_answer IS NULL OR TRIM(user_answer) = '')", locked.SessionID).
+				Updates(map[string]any{
+					"user_answer": "",
+					"is_correct":  false,
+				}).Error; err != nil {
+				return err
+			}
+		}
 
-				domainScores = append(domainScores, ExamDomainScore{
-					DomainID:     dr.DomainID,
-					TotalCount:   dr.TotalCount,
-					CorrectCount: dr.CorrectCount,
-					Percentage:   pct,
-				})
+		detailedResults, err := s.queryDetailedResults(tx, locked.SessionID)
+		if err != nil {
+			return err
+		}
 
+		reviewData = services.SummarizeExamResults(detailedResults, threshold)
+
+		denom := locked.TotalQuestions
+		if denom <= 0 {
+			denom = len(detailedResults)
+		}
+		scorePercent := services.ComputeSessionScore(nil, reviewData.CorrectCount, denom)
+		locked.Score = &scorePercent
+		locked.Status = "completed"
+		now := time.Now()
+		locked.CompletedAt = &now
+
+		if err := tx.Save(&locked).Error; err != nil {
+			return err
+		}
+		*session = locked
+
+		// Strictly preserve Proficiency Invariance: only Pre-Test updates user_skill_profiles.
+		if locked.ExamType == "pre" {
+			for _, ds := range reviewData.DomainScores {
 				var profile models.UserSkillProfile
-				if err := tx.Where("user_id = ? AND domain_id = ?", userID, dr.DomainID).First(&profile).Error; err != nil {
-					now := time.Now()
+				if err := tx.Where("user_id = ? AND domain_id = ?", userID, ds.DomainID).First(&profile).Error; err != nil {
+					profileNow := time.Now()
 					profile = models.UserSkillProfile{
 						UserID:           userID,
-						DomainID:         dr.DomainID,
-						ProficiencyScore: pct,
-						LastPracticed:    &now,
+						DomainID:         ds.DomainID,
+						ProficiencyScore: ds.Percentage,
+						LastPracticed:    &profileNow,
 					}
-					tx.Create(&profile)
+					if createErr := tx.Create(&profile).Error; createErr != nil {
+						return createErr
+					}
 				} else {
-					profile.ProficiencyScore = pct
-					now := time.Now()
-					profile.LastPracticed = &now
-					tx.Save(&profile)
+					profile.ProficiencyScore = ds.Percentage
+					profileNow := time.Now()
+					profile.LastPracticed = &profileNow
+					if saveErr := tx.Save(&profile).Error; saveErr != nil {
+						return saveErr
+					}
 				}
 			}
 		}
@@ -261,19 +360,99 @@ func (s *gormExamStore) FinalizeExamSession(session *models.ExamSession, userID 
 		return nil
 	})
 	if err != nil {
-		return 0, nil, nil, err
+		return nil, err
 	}
 
-	var detailedResults []ExamDetailedResult
+	return reviewData, nil
+}
+
+func (s *gormExamStore) FinalizeExamSession(session *models.ExamSession, userID string) (*services.ExamReviewData, error) {
+	return s.finalizeSessionInternal(session, userID, false)
+}
+
+func (s *gormExamStore) MarkUnansweredAndFinalize(session *models.ExamSession, userID string) (*services.ExamReviewData, error) {
+	return s.finalizeSessionInternal(session, userID, true)
+}
+
+func (s *gormExamStore) GetExamSessionReviewData(session *models.ExamSession) (*services.ExamReviewData, error) {
+	detailedResults, err := s.queryDetailedResults(s.DB, session.SessionID)
+	if err != nil {
+		return nil, err
+	}
+	return services.SummarizeExamResults(detailedResults, examDisplayThreshold()), nil
+}
+
+func (s *gormExamStore) GetCompletedExamHistory(userID string) ([]dto.ExamHistoryItemDTO, error) {
+	var sessions []models.ExamSession
+	if err := s.DB.Where("user_id = ? AND status = 'completed'", userID).
+		Order("completed_at DESC, started_at DESC").
+		Find(&sessions).Error; err != nil {
+		return nil, err
+	}
+	if len(sessions) == 0 {
+		return []dto.ExamHistoryItemDTO{}, nil
+	}
+
+	sessionIDs := make([]string, len(sessions))
+	for i, sess := range sessions {
+		sessionIDs[i] = sess.SessionID
+	}
+
+	type aggRow struct {
+		SessionID       string `gorm:"column:session_id"`
+		TotalRows       int64  `gorm:"column:total_rows"`
+		CorrectCount    int64  `gorm:"column:correct_count"`
+		UnansweredCount int64  `gorm:"column:unanswered_count"`
+	}
+	var aggs []aggRow
 	if err := s.DB.Table("exam_session_questions").
-		Select("questions.*, exam_session_questions.user_answer, exam_session_questions.is_correct").
-		Joins("join questions on questions.question_id = exam_session_questions.question_id").
-		Where("exam_session_questions.session_id = ?", session.SessionID).
-		Scan(&detailedResults).Error; err != nil {
-		return 0, nil, nil, err
+		Select("session_id, COUNT(*) AS total_rows, SUM(CASE WHEN is_correct = true THEN 1 ELSE 0 END) AS correct_count, SUM(CASE WHEN user_answer IS NULL OR TRIM(user_answer) = '' THEN 1 ELSE 0 END) AS unanswered_count").
+		Where("session_id IN ?", sessionIDs).
+		Group("session_id").
+		Scan(&aggs).Error; err != nil {
+		return nil, err
+	}
+	aggMap := make(map[string]aggRow, len(aggs))
+	for _, row := range aggs {
+		aggMap[row.SessionID] = row
 	}
 
-	return correctCount, domainScores, detailedResults, nil
+	items := make([]dto.ExamHistoryItemDTO, 0, len(sessions))
+	for _, sess := range sessions {
+		agg := aggMap[sess.SessionID]
+		total := sess.TotalQuestions
+		if agg.TotalRows > 0 {
+			total = int(agg.TotalRows)
+		}
+		incorrect := int64(total) - agg.CorrectCount - agg.UnansweredCount
+		if incorrect < 0 {
+			incorrect = 0
+		}
+		items = append(items, dto.ExamHistoryItemDTO{
+			SessionID:        sess.SessionID,
+			ExamType:         sess.ExamType,
+			Status:           sess.Status,
+			Score:            services.ComputeSessionScore(sess.Score, agg.CorrectCount, total),
+			CorrectCount:     agg.CorrectCount,
+			IncorrectCount:   incorrect,
+			UnansweredCount:  agg.UnansweredCount,
+			TotalQuestions:   total,
+			StartedAt:        sess.StartedAt,
+			CompletedAt:      sess.CompletedAt,
+			TimeSpentSeconds: sess.TimeSpentSeconds,
+		})
+	}
+	return items, nil
+}
+
+func (s *gormExamStore) GetLatestCompletedPreTestSession(userID string) (*models.ExamSession, error) {
+	var session models.ExamSession
+	if err := s.DB.Where("user_id = ? AND exam_type = 'pre' AND status = 'completed'", userID).
+		Order("completed_at DESC, started_at DESC").
+		First(&session).Error; err != nil {
+		return nil, err
+	}
+	return &session, nil
 }
 
 func (s *gormExamStore) GetRandomSampleQuestion() (*models.Question, error) {
@@ -434,12 +613,7 @@ func (ec *ExamController) StartPostTest(c *gin.Context) {
 	}
 
 	// 2. Verify all 5 domains have reached the proficiency threshold (Default 70%)
-	threshold := 70.0
-	if envThreshold := os.Getenv("PROFICIENCY_THRESHOLD"); envThreshold != "" {
-		if val, err := strconv.ParseFloat(envThreshold, 64); err == nil {
-			threshold = val
-		}
-	}
+	threshold := examGateThreshold()
 	bypassThreshold := os.Getenv("BYPASS_POST_TEST_THRESHOLD") == "true"
 
 	if !bypassThreshold && threshold > 0 {
@@ -632,8 +806,9 @@ func (ec *ExamController) SubmitAnswer(c *gin.Context) {
 		return
 	}
 
-	isCorrect := input.UserAnswer == question.CorrectAnswer
-	esq.UserAnswer = input.UserAnswer
+	trimmedAns := strings.TrimSpace(input.UserAnswer)
+	isCorrect := strings.EqualFold(trimmedAns, strings.TrimSpace(question.CorrectAnswer))
+	esq.UserAnswer = trimmedAns
 	esq.IsCorrect = &isCorrect
 
 	if input.TimeSpentSeconds > 0 {
@@ -641,55 +816,299 @@ func (ec *ExamController) SubmitAnswer(c *gin.Context) {
 		if session.TimeSpentSeconds != nil {
 			currentSpent = *session.TimeSpentSeconds
 		}
-		newSpent := currentSpent + input.TimeSpentSeconds
+		newSpent := services.ClampExamDuration(currentSpent+input.TimeSpentSeconds, currentSpent)
 		session.TimeSpentSeconds = &newSpent
 	}
 
 	unansweredCount, err := ec.store.SaveExamAnswer(session, esq)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save answer", "code": "INTERNAL_SERVER_ERROR"})
+		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Error: "Failed to save answer", Code: "INTERNAL_SERVER_ERROR"})
 		return
 	}
 
-	var responseData gin.H
-
 	if unansweredCount == 0 {
-		correctCount, domainScores, detailedResults, err := ec.store.FinalizeExamSession(session, userIDStr)
+		reviewData, err := ec.store.FinalizeExamSession(session, userIDStr)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to finalize session", "code": "INTERNAL_SERVER_ERROR"})
+			c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Error: "Failed to finalize session", Code: "INTERNAL_SERVER_ERROR"})
 			return
 		}
 
-		scorePercent := 0.0
-		if session.Score != nil {
-			scorePercent = *session.Score
-		}
+		totalQ := effectiveExamTotal(session, reviewData)
+		c.JSON(http.StatusOK, dto.SubmitAnswerResponse{
+			SessionID:        session.SessionID,
+			ExamType:         session.ExamType,
+			Completed:        true,
+			Message:          "Exam completed successfully!",
+			Score:            services.ComputeSessionScore(session.Score, reviewData.CorrectCount, totalQ),
+			CorrectCount:     reviewData.CorrectCount,
+			TotalQuestions:   totalQ,
+			TimeSpentSeconds: session.TimeSpentSeconds,
+			Results:          reviewData.Results,
+			DomainScores:     reviewData.DomainScores,
+		})
+		return
+	}
 
-		if session.ExamType == "pre" {
-			responseData = gin.H{
-				"message":       "Exam completed successfully!",
-				"completed":     true,
-				"score":         scorePercent,
-				"results":       detailedResults,
-				"correct_count": correctCount,
-				"domain_scores": domainScores,
-			}
-		} else {
-			responseData = gin.H{
-				"message":       "Exam completed successfully!",
-				"completed":     true,
-				"score":         scorePercent,
-				"results":       detailedResults,
-				"correct_count": correctCount,
-			}
-		}
-	} else {
-		responseData = gin.H{
-			"completed": false,
+	c.JSON(http.StatusOK, dto.SubmitAnswerResponse{Completed: false})
+}
+
+func effectiveExamTotal(session *models.ExamSession, reviewData *services.ExamReviewData) int {
+	if session.TotalQuestions > 0 {
+		return session.TotalQuestions
+	}
+	if reviewData != nil {
+		return len(reviewData.Results)
+	}
+	return 0
+}
+
+func buildExamHistoryItemDTO(session *models.ExamSession, reviewData *services.ExamReviewData) dto.ExamHistoryItemDTO {
+	totalQ := effectiveExamTotal(session, reviewData)
+	return dto.ExamHistoryItemDTO{
+		SessionID:        session.SessionID,
+		ExamType:         session.ExamType,
+		Status:           session.Status,
+		Score:            services.ComputeSessionScore(session.Score, reviewData.CorrectCount, totalQ),
+		CorrectCount:     reviewData.CorrectCount,
+		IncorrectCount:   reviewData.IncorrectCount,
+		UnansweredCount:  reviewData.UnansweredCount,
+		TotalQuestions:   totalQ,
+		StartedAt:        session.StartedAt,
+		CompletedAt:      session.CompletedAt,
+		TimeSpentSeconds: session.TimeSpentSeconds,
+	}
+}
+
+func extractAuthUserID(c *gin.Context) (string, bool) {
+	userID, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, dto.ErrorResponse{Error: "Unauthorized", Code: "AUTH_UNAUTHORIZED"})
+		return "", false
+	}
+	userIDStr, ok := userID.(string)
+	if !ok || userIDStr == "" {
+		c.JSON(http.StatusUnauthorized, dto.ErrorResponse{Error: "Unauthorized", Code: "AUTH_UNAUTHORIZED"})
+		return "", false
+	}
+	return userIDStr, true
+}
+
+// FinalizeSession godoc
+// @Summary Finalize an active exam session
+// @Description Marks unanswered questions as incorrect, records elapsed time, transitions the session to completed, and returns full review results. Idempotent when already completed.
+// @Tags Exams
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param sessionId path string true "Exam Session ID"
+// @Param request body dto.FinalizeExamRequest false "Optional elapsed exam time"
+// @Success 200 {object} dto.FinalizeExamResponse
+// @Failure 400 {object} dto.ErrorResponse
+// @Failure 401 {object} dto.ErrorResponse
+// @Failure 404 {object} dto.ErrorResponse
+// @Failure 500 {object} dto.ErrorResponse
+// @Router /exams/sessions/{sessionId}/finalize [post]
+func (ec *ExamController) FinalizeSession(c *gin.Context) {
+	userIDStr, ok := extractAuthUserID(c)
+	if !ok {
+		return
+	}
+
+	sessionID := c.Param("sessionId")
+	var input dto.FinalizeExamRequest
+	if c.Request != nil && c.Request.Body != nil {
+		if err := c.ShouldBindJSON(&input); err != nil && !errors.Is(err, io.EOF) {
+			c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: err.Error(), Code: "AUTH_INVALID_PAYLOAD"})
+			return
 		}
 	}
 
-	c.JSON(http.StatusOK, responseData)
+	session, err := ec.store.FindSessionByIDAndUser(sessionID, userIDStr)
+	if err != nil {
+		c.JSON(http.StatusNotFound, dto.ErrorResponse{Error: "Exam session not found", Code: "EXAM_SESSION_NOT_FOUND"})
+		return
+	}
+
+	if session.Status == "abandoned" {
+		c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: "Exam session is abandoned", Code: "EXAM_SESSION_NOT_FOUND"})
+		return
+	}
+
+	var reviewData *services.ExamReviewData
+	if session.Status == "completed" {
+		reviewData, err = ec.store.GetExamSessionReviewData(session)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Error: "Failed to load completed session", Code: "INTERNAL_SERVER_ERROR"})
+			return
+		}
+	} else {
+		existingSpent := 0
+		if session.TimeSpentSeconds != nil {
+			existingSpent = *session.TimeSpentSeconds
+		}
+		finalSpent := services.ClampExamDuration(input.TimeSpentSeconds, existingSpent)
+		session.TimeSpentSeconds = &finalSpent
+
+		reviewData, err = ec.store.MarkUnansweredAndFinalize(session, userIDStr)
+		if err != nil {
+			if errors.Is(err, errExamSessionAbandoned) {
+				c.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: "Exam session is abandoned", Code: "EXAM_SESSION_NOT_FOUND"})
+				return
+			}
+			c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Error: "Failed to finalize session", Code: "INTERNAL_SERVER_ERROR"})
+			return
+		}
+	}
+
+	totalQ := effectiveExamTotal(session, reviewData)
+	spentOut := 0
+	if session.TimeSpentSeconds != nil {
+		spentOut = *session.TimeSpentSeconds
+	}
+
+	c.JSON(http.StatusOK, dto.FinalizeExamResponse{
+		SessionID:        session.SessionID,
+		ExamType:         session.ExamType,
+		Message:          "Exam completed successfully!",
+		Completed:        true,
+		Score:            services.ComputeSessionScore(session.Score, reviewData.CorrectCount, totalQ),
+		CorrectCount:     reviewData.CorrectCount,
+		IncorrectCount:   reviewData.IncorrectCount,
+		UnansweredCount:  reviewData.UnansweredCount,
+		TotalQuestions:   totalQ,
+		TimeSpentSeconds: spentOut,
+		DomainScores:     reviewData.DomainScores,
+		Results:          reviewData.Results,
+	})
+}
+
+// GetExamHistory godoc
+// @Summary List completed exam sessions for the authenticated learner
+// @Description Returns all completed Pre-Test and Post-Test sessions ordered most-recent-first along with latest session shortcuts.
+// @Tags Exams
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {object} dto.ExamHistoryResponse
+// @Failure 401 {object} dto.ErrorResponse
+// @Failure 500 {object} dto.ErrorResponse
+// @Router /exams/history [get]
+func (ec *ExamController) GetExamHistory(c *gin.Context) {
+	userIDStr, ok := extractAuthUserID(c)
+	if !ok {
+		return
+	}
+
+	items, err := ec.store.GetCompletedExamHistory(userIDStr)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Error: "Failed to load exam history", Code: "INTERNAL_SERVER_ERROR"})
+		return
+	}
+	if items == nil {
+		items = []dto.ExamHistoryItemDTO{}
+	}
+
+	var latestPre *string
+	var latestPost *string
+	var latestPreScore, latestPostScore *float64
+	for i := range items {
+		if items[i].ExamType == "pre" && latestPre == nil {
+			id := items[i].SessionID
+			s := items[i].Score
+			latestPre = &id
+			latestPreScore = &s
+		}
+		if items[i].ExamType == "post" && latestPost == nil {
+			id := items[i].SessionID
+			s := items[i].Score
+			latestPost = &id
+			latestPostScore = &s
+		}
+		if latestPre != nil && latestPost != nil {
+			break
+		}
+	}
+
+	var latestDelta *float64
+	if latestPreScore != nil && latestPostScore != nil {
+		d := services.RoundExamScore(*latestPostScore - *latestPreScore)
+		latestDelta = &d
+	}
+
+	c.JSON(http.StatusOK, dto.ExamHistoryResponse{
+		LatestPreSessionID:   latestPre,
+		LatestPostSessionID:  latestPost,
+		LatestPreToPostDelta: latestDelta,
+		Sessions:             items,
+	})
+}
+
+// GetExamReview godoc
+// @Summary Get complete Q&A review for a completed exam session
+// @Description Returns score metrics, domain breakdown, ordered 30-question Q&A details with explanations and sub-topic metadata, and Pre-to-Post learning gains on Post-Tests. Strictly rejects in-progress sessions with 403 EXAM_NOT_COMPLETED.
+// @Tags Exams
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param sessionId path string true "Completed Exam Session ID"
+// @Success 200 {object} dto.ExamReviewResponse
+// @Failure 401 {object} dto.ErrorResponse
+// @Failure 403 {object} dto.ErrorResponse
+// @Failure 404 {object} dto.ErrorResponse
+// @Failure 500 {object} dto.ErrorResponse
+// @Router /exams/sessions/{sessionId}/review [get]
+func (ec *ExamController) GetExamReview(c *gin.Context) {
+	userIDStr, ok := extractAuthUserID(c)
+	if !ok {
+		return
+	}
+
+	sessionID := c.Param("sessionId")
+	session, err := ec.store.FindSessionByIDAndUser(sessionID, userIDStr)
+	if err != nil {
+		c.JSON(http.StatusNotFound, dto.ErrorResponse{Error: "Exam session not found", Code: "EXAM_SESSION_NOT_FOUND"})
+		return
+	}
+
+	if session.Status != "completed" {
+		c.JSON(http.StatusForbidden, dto.ErrorResponse{
+			Error:  "Exam session is not completed yet. Complete the exam before reviewing answers.",
+			Code:   "EXAM_NOT_COMPLETED",
+			Params: map[string]any{"exam_type": session.ExamType},
+		})
+		return
+	}
+
+	reviewData, err := ec.store.GetExamSessionReviewData(session)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Error: "Failed to load exam review", Code: "INTERNAL_SERVER_ERROR"})
+		return
+	}
+
+	totalQ := effectiveExamTotal(session, reviewData)
+	var preComparison *dto.ExamPreComparisonDTO
+	if session.ExamType == "post" {
+		if preSession, preErr := ec.store.GetLatestCompletedPreTestSession(userIDStr); preErr == nil && preSession != nil {
+			if preReview, revErr := ec.store.GetExamSessionReviewData(preSession); revErr == nil {
+				preComparison = services.BuildPreComparison(
+					preSession.SessionID,
+					preSession.Score,
+					effectiveExamTotal(preSession, preReview),
+					preReview,
+					session.Score,
+					totalQ,
+					reviewData,
+				)
+			}
+		}
+	}
+
+	c.JSON(http.StatusOK, dto.ExamReviewResponse{
+		Session:       buildExamHistoryItemDTO(session, reviewData),
+		DomainScores:  reviewData.DomainScores,
+		PreComparison: preComparison,
+		Results:       reviewData.Results,
+	})
 }
 
 // GetSampleQuestion godoc

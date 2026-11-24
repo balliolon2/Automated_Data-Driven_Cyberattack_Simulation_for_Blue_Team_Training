@@ -1,9 +1,12 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Clock, Flag, ChevronLeft, ChevronRight, CheckCircle2 } from "lucide-react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { useI18n } from "../i18n/index.tsx";
 import { resolveApiError } from "../i18n/format.ts";
+import { EXAM_MAX_DURATION_SECONDS } from "../lib/examReview";
+
+const EXAM_DURATION_SECONDS = 30 * 60;
 
 interface Question {
   question_id: string;
@@ -30,23 +33,32 @@ export default function ExamPage({ mode }: { mode: "pre" | "post" }) {
   const [questions, setQuestions] = useState<Question[]>([]);
   const [session, setSession] = useState<ExamSession | null>(null);
   const [answers, setAnswers] = useState<Record<string, string>>({});
-  const [timeLeft, setTimeLeft] = useState(30 * 60);
+  const [timeLeft, setTimeLeft] = useState(EXAM_DURATION_SECONDS);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [autoSubmitting, setAutoSubmitting] = useState(false);
   const navigate = useNavigate();
 
+  const hasTickedRef = useRef(false);
+  const autoFinalizeTriggeredRef = useRef(false);
+  const submittingRef = useRef(false);
+
   useEffect(() => {
+    let cancelled = false;
+    hasTickedRef.current = false;
+    autoFinalizeTriggeredRef.current = false;
+
     const fetchSession = async () => {
       try {
         const token = localStorage.getItem("token");
         const res = await axios.get("/api/exams/session", {
           headers: { Authorization: `Bearer ${token}` }
         });
+        if (cancelled) return;
 
         if (res.data && res.data.session) {
           const activeType = res.data.session.exam_type;
           if (activeType !== mode) {
-            // Mismatch! Redirect to the correct page
             if (activeType === "pre") {
               navigate("/pre-test");
             } else {
@@ -56,7 +68,7 @@ export default function ExamPage({ mode }: { mode: "pre" | "post" }) {
           }
           setSession(res.data.session);
           setQuestions(res.data.questions);
-          
+
           const initialAnswers: Record<string, string> = {};
           res.data.questions.forEach((q: Question) => {
             if (q.user_answer) {
@@ -64,27 +76,43 @@ export default function ExamPage({ mode }: { mode: "pre" | "post" }) {
             }
           });
           setAnswers(initialAnswers);
+          setTimeLeft(EXAM_DURATION_SECONDS);
+        } else {
+          setSession(null);
+          setQuestions([]);
+          setAnswers({});
         }
       } catch (err) {
         console.error("Failed to load exam session:", err);
+        if (!cancelled) {
+          setSession(null);
+          setQuestions([]);
+          setAnswers({});
+        }
       } finally {
-        setLoading(false);
+        if (!cancelled) {
+          setLoading(false);
+        }
       }
     };
-    setLoading(true);
-    setQuestions([]);
-    setSession(null);
-    setAnswers({});
-    fetchSession();
+
+    void fetchSession();
+    return () => {
+      cancelled = true;
+    };
   }, [mode, navigate]);
 
   useEffect(() => {
-    if (loading) return;
+    if (loading || !session || questions.length === 0) return;
     const timer = setInterval(() => {
-      setTimeLeft((prev) => (prev > 0 ? prev - 1 : 0));
+      setTimeLeft((prev) => {
+        if (prev <= 0) return 0;
+        hasTickedRef.current = true;
+        return prev - 1;
+      });
     }, 1000);
     return () => clearInterval(timer);
-  }, [loading]);
+  }, [loading, session, questions.length]);
 
   const formatTime = (seconds: number) => {
     const h = Math.floor(seconds / 3600);
@@ -97,40 +125,85 @@ export default function ExamPage({ mode }: { mode: "pre" | "post" }) {
     setAnswers(prev => ({ ...prev, [qId]: answer }));
   };
 
-  const handleSubmitExam = async () => {
-    if (!session) return;
-    
+  const submitAndFinalize = useCallback(async (skipConfirm: boolean) => {
+    if (!session || submittingRef.current) return;
+
     const unanswered = questions.filter(q => !answers[q.question_id]).length;
-    if (unanswered > 0) {
+    if (!skipConfirm && unanswered > 0) {
       if (!window.confirm(t("exam.confirmUnansweredSubmit", { count: unanswered }))) {
         return;
       }
     }
 
+    submittingRef.current = true;
     setSubmitting(true);
     const token = localStorage.getItem("token");
-    
+
+    const previousTimeSpent = session.time_spent_seconds ?? 0;
+    const currentRunElapsed = Math.max(1, EXAM_DURATION_SECONDS - timeLeft);
+    const totalTimeSpent = Math.min(EXAM_MAX_DURATION_SECONDS, previousTimeSpent + currentRunElapsed);
+
     try {
-      for (const q of questions) {
+      const unsavedQuestions = questions.filter((q) => {
         const userAns = answers[q.question_id];
-        if (userAns && userAns !== q.user_answer) {
-          await axios.post("/api/exams/submit-answer", {
-            session_id: session.session_id,
-            question_id: q.question_id,
-            user_answer: userAns,
-            time_spent_seconds: 0
-          }, {
-            headers: { Authorization: `Bearer ${token}` }
-          });
+        return Boolean(userAns && userAns !== q.user_answer);
+      });
+
+      let completedViaAnswer = false;
+      for (let i = 0; i < unsavedQuestions.length; i++) {
+        const q = unsavedQuestions[i];
+        const userAns = answers[q.question_id];
+        const isLastCompletePick = unanswered === 0 && i === unsavedQuestions.length - 1;
+        const ansRes = await axios.post("/api/exams/submit-answer", {
+          session_id: session.session_id,
+          question_id: q.question_id,
+          user_answer: userAns,
+          time_spent_seconds: isLastCompletePick ? currentRunElapsed : 0
+        }, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (ansRes.data?.completed) {
+          completedViaAnswer = true;
         }
       }
-      navigate("/evaluation");
+
+      if (!completedViaAnswer) {
+        await axios.post(
+          `/api/exams/sessions/${encodeURIComponent(session.session_id)}/finalize`,
+          { time_spent_seconds: totalTimeSpent },
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+      }
+
+      navigate(`/exams/review/${encodeURIComponent(session.session_id)}`, { replace: true });
     } catch (err: unknown) {
       console.error(err);
       alert(resolveApiError(err, t, t("exam.submitFailed")));
+      setAutoSubmitting(false);
     } finally {
+      submittingRef.current = false;
       setSubmitting(false);
     }
+  }, [answers, navigate, questions, session, t, timeLeft]);
+
+  useEffect(() => {
+    if (
+      hasTickedRef.current &&
+      timeLeft === 0 &&
+      session &&
+      questions.length > 0 &&
+      !loading &&
+      !submitting &&
+      !autoFinalizeTriggeredRef.current
+    ) {
+      autoFinalizeTriggeredRef.current = true;
+      setAutoSubmitting(true);
+      void submitAndFinalize(true);
+    }
+  }, [loading, questions.length, session, submitAndFinalize, submitting, timeLeft]);
+
+  const handleSubmitExam = () => {
+    void submitAndFinalize(false);
   };
 
   const startExam = async (type: "pre" | "post") => {
@@ -141,10 +214,13 @@ export default function ExamPage({ mode }: { mode: "pre" | "post" }) {
       const res = await axios.post(endpoint, {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
+      hasTickedRef.current = false;
+      autoFinalizeTriggeredRef.current = false;
       setSession(res.data.session);
       setQuestions(res.data.questions);
       setAnswers({});
       setCurrentQuestionIdx(0);
+      setTimeLeft(EXAM_DURATION_SECONDS);
     } catch (err: unknown) {
       console.error("Failed to start exam:", err);
       alert(resolveApiError(err, t, t("exam.startFailed")));
@@ -300,7 +376,7 @@ export default function ExamPage({ mode }: { mode: "pre" | "post" }) {
           {timeLeft === 0 && (
             <div className="mb-6 bg-red-500/10 border border-red-500/20 rounded p-4 text-red-400 text-sm">
               <p className="font-medium flex items-center gap-2">
-                <span>⏰</span> {t("exam.timesUpNotice")}
+                <span>⏰</span> {autoSubmitting ? t("exam.autoSubmittingNotice") : t("exam.timesUpNotice")}
               </p>
             </div>
           )}

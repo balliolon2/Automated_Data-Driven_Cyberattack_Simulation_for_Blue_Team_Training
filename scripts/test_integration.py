@@ -1,12 +1,104 @@
 import requests
 import random
 import sys
+import uuid
 
 BASE_URL = "http://localhost:8080/api"
 
+
+def assert_review_payload(review_data, expected_exam_type, expected_unanswered=0):
+    sess = review_data.get("session") or {}
+    if sess.get("exam_type") != expected_exam_type or sess.get("status") != "completed":
+        print(f"Error: Unexpected review session metadata: {sess}")
+        sys.exit(1)
+    if sess.get("unanswered_count") != expected_unanswered:
+        print(f"Error: Expected unanswered_count={expected_unanswered}, got {sess.get('unanswered_count')}")
+        sys.exit(1)
+
+    domain_scores = review_data.get("domain_scores") or []
+    if len(domain_scores) != 5:
+        print(f"Error: Expected 5 domain_scores, got {len(domain_scores)}")
+        sys.exit(1)
+
+    results = review_data.get("results") or []
+    if len(results) != 30:
+        print(f"Error: Expected 30 review results, got {len(results)}")
+        sys.exit(1)
+    orders = [r.get("order_index") for r in results]
+    if orders != list(range(30)):
+        print(f"Error: Expected order_index 0..29, got {orders}")
+        sys.exit(1)
+    for idx, item in enumerate(results):
+        if not item.get("correct_answer") or not item.get("explanation"):
+            print(f"Error: Missing correct_answer/explanation on review item {idx}")
+            sys.exit(1)
+        if not item.get("sub_topic_id") or not item.get("sub_topic_title"):
+            print(f"Error: Missing sub_topic metadata on review item {idx}: {item.get('sub_topic_id')}")
+            sys.exit(1)
+
+
+def verify_partial_exam_finalize():
+    suffix = uuid.uuid4().hex[:8]
+    email = f"partial_{suffix}@example.com"
+    password = "password123"
+
+    reg = requests.post(f"{BASE_URL}/register", json={"email": email, "password": password})
+    if reg.status_code != 201:
+        print("Partial test user registration failed", reg.text)
+        sys.exit(1)
+    tok = requests.post(f"{BASE_URL}/login", json={"email": email, "password": password}).json().get("token")
+    hdrs = {"Authorization": f"Bearer {tok}"}
+
+    pre_res = requests.post(f"{BASE_URL}/exams/pre-test", headers=hdrs)
+    if pre_res.status_code != 201:
+        print("Partial test StartPreTest failed", pre_res.text)
+        sys.exit(1)
+    pre_body = pre_res.json()
+    sid = pre_body["session"]["session_id"]
+    qs = pre_body["questions"]
+
+    for q in qs[:28]:
+        r = requests.post(f"{BASE_URL}/exams/submit-answer", headers=hdrs, json={
+            "session_id": sid,
+            "question_id": q["question_id"],
+            "user_answer": "A",
+            "time_spent_seconds": 0
+        })
+        if r.status_code != 200:
+            print("Partial submit-answer failed", r.text)
+            sys.exit(1)
+
+    fin = requests.post(f"{BASE_URL}/exams/sessions/{sid}/finalize", headers=hdrs, json={
+        "time_spent_seconds": 321
+    })
+    if fin.status_code != 200:
+        print("Partial finalize failed", fin.status_code, fin.text)
+        sys.exit(1)
+    fin_data = fin.json()
+    if (
+        not fin_data.get("completed")
+        or fin_data.get("unanswered_count") != 2
+        or fin_data.get("time_spent_seconds") != 321
+        or len(fin_data.get("domain_scores") or []) != 5
+    ):
+        print(f"Error: Unexpected partial finalize payload: {fin_data}")
+        sys.exit(1)
+
+    rev = requests.get(f"{BASE_URL}/exams/sessions/{sid}/review", headers=hdrs)
+    if rev.status_code != 200:
+        print("Partial review fetch failed", rev.status_code, rev.text)
+        sys.exit(1)
+    rev_data = rev.json()
+    assert_review_payload(rev_data, "pre", expected_unanswered=2)
+    if not rev_data["results"][28].get("is_unanswered") or not rev_data["results"][29].get("is_unanswered"):
+        print("Error: Expected last 2 items to be marked is_unanswered=True")
+        sys.exit(1)
+    print("Partial finalization and unanswered review check PASSED!")
+
+
 def run_tests():
     # 1. Register a test user
-    email = f"test_{random.randint(1000, 9999)}@example.com"
+    email = f"test_{uuid.uuid4().hex[:8]}@example.com"
     password = "password123"
     
     print(f"Registering user: {email}")
@@ -69,6 +161,20 @@ def run_tests():
         sys.exit(1)
     print("Session recovery successful. Recovered questions:", len(session_res.json()["questions"]))
 
+    # 4b. Verify Review Completion Guard while Pre-Test is still in_progress
+    print("Verifying 403 EXAM_NOT_COMPLETED while Pre-Test is in_progress...")
+    inprog_rev = requests.get(f"{BASE_URL}/exams/sessions/{session_id}/review", headers=headers)
+    if (
+        inprog_rev.status_code != 403
+        or inprog_rev.json().get("code") != "EXAM_NOT_COMPLETED"
+        or (inprog_rev.json().get("params") or {}).get("exam_type") != "pre"
+    ):
+        print(f"Error: Expected 403 EXAM_NOT_COMPLETED, got {inprog_rev.status_code}: {inprog_rev.text}")
+        sys.exit(1)
+    if "correct_answer" in inprog_rev.text:
+        print("Error: Answer leaked in 403 review response")
+        sys.exit(1)
+
     # 5. Submit Answers
     print("Submitting answers...")
     pre_questions_used = []
@@ -93,6 +199,30 @@ def run_tests():
     if not pre_questions_used:
         print("Error: Pre-Test did not complete during the answer loop; cannot verify zero overlap")
         sys.exit(1)
+
+    # 5a. Verify Exam History & Pre-Test Review after completion
+    print("Verifying GET /api/exams/history and Pre-Test Q&A Review...")
+    hist_res = requests.get(f"{BASE_URL}/exams/history", headers=headers)
+    if hist_res.status_code != 200:
+        print("Error: GET /api/exams/history failed", hist_res.status_code, hist_res.text)
+        sys.exit(1)
+    hist_data = hist_res.json()
+    if hist_data.get("latest_pre_session_id") != session_id or not hist_data.get("sessions"):
+        print(f"Error: Unexpected exam history after Pre-Test: {hist_data}")
+        sys.exit(1)
+
+    pre_rev_res = requests.get(f"{BASE_URL}/exams/sessions/{session_id}/review", headers=headers)
+    if pre_rev_res.status_code != 200:
+        print("Error: Pre-Test review failed", pre_rev_res.status_code, pre_rev_res.text)
+        sys.exit(1)
+    pre_rev_data = pre_rev_res.json()
+    assert_review_payload(pre_rev_data, "pre", expected_unanswered=0)
+    if pre_rev_data.get("pre_comparison") is not None:
+        print("Error: Expected pre_comparison to be null on Pre-Test review")
+        sys.exit(1)
+
+    # 5a-2. Verify partial exam finalization (28/30 answered + finalize)
+    verify_partial_exam_finalize()
 
     # 5b. Lock sample questions across Learn Sub-topics before Post-Test to verify Pre ∪ Learn ∪ Post = empty
     print("Locking Learn Sub-topic sample questions (1.1, 2.1, 3.1, 4.8, 5.6)...")
@@ -143,6 +273,65 @@ def run_tests():
         sys.exit(1)
     else:
         print("Verification SUCCESS: Zero question overlap between Pre-Test and Post-Test!")
+
+    # Capture simulation/status proficiency scores BEFORE completing Post-Test (Proficiency Invariance check)
+    status_before = requests.get(f"{BASE_URL}/simulation/status", headers=headers).json()
+    prof_before = {d["domain_id"]: d["proficiency_score"] for d in (status_before.get("domains") or [])}
+
+    # 7. Complete Post-Test and verify Review + Pre->Post Learning Gain + Proficiency Invariance
+    print("Submitting Post-Test answers to verify review and Pre->Post comparison...")
+    post_completed = False
+    for i, q in enumerate(post_questions):
+        ans_res = requests.post(f"{BASE_URL}/exams/submit-answer", headers=headers, json={
+            "session_id": post_session_id,
+            "question_id": q["question_id"],
+            "user_answer": "A",
+            "time_spent_seconds": 15 if i == len(post_questions) - 1 else 0
+        })
+        if ans_res.status_code != 200:
+            print(f"Failed to submit post-test answer {i}: {ans_res.text}")
+            sys.exit(1)
+        body = ans_res.json()
+        if body.get("completed"):
+            post_completed = True
+            if len(body.get("domain_scores") or []) != 5:
+                print(f"Error: Expected 5 domain_scores on completed Post-Test, got {body.get('domain_scores')}")
+                sys.exit(1)
+            break
+
+    if not post_completed:
+        print("Error: Post-Test did not complete after answering all 30 questions")
+        sys.exit(1)
+
+    post_rev_res = requests.get(f"{BASE_URL}/exams/sessions/{post_session_id}/review", headers=headers)
+    if post_rev_res.status_code != 200:
+        print("Error: Post-Test review failed", post_rev_res.status_code, post_rev_res.text)
+        sys.exit(1)
+    post_rev_data = post_rev_res.json()
+    assert_review_payload(post_rev_data, "post", expected_unanswered=0)
+
+    pre_comp = post_rev_data.get("pre_comparison")
+    if not pre_comp or pre_comp.get("pre_session_id") != session_id or len(pre_comp.get("domain_deltas") or []) != 5:
+        print(f"Error: Invalid pre_comparison payload on Post-Test review: {pre_comp}")
+        sys.exit(1)
+
+    # Verify Proficiency Invariance: Post-Test must NOT overwrite user_skill_profiles
+    status_after = requests.get(f"{BASE_URL}/simulation/status", headers=headers).json()
+    prof_after = {d["domain_id"]: d["proficiency_score"] for d in (status_after.get("domains") or [])}
+    if prof_after != prof_before:
+        print(f"Error: Proficiency Invariance violated! before={prof_before}, after={prof_after}")
+        sys.exit(1)
+
+    # Verify history now exposes both latest_pre_session_id, latest_post_session_id, and latest_pre_to_post_delta
+    hist_after = requests.get(f"{BASE_URL}/exams/history", headers=headers).json()
+    if (
+        hist_after.get("latest_pre_session_id") != session_id
+        or hist_after.get("latest_post_session_id") != post_session_id
+        or hist_after.get("latest_pre_to_post_delta") is None
+    ):
+        print(f"Error: Expected latest_pre, latest_post, and delta in history, got {hist_after}")
+        sys.exit(1)
+    print("Post-Test Review, Pre->Post Gain, History & Proficiency Invariance VERIFIED!")
 
 if __name__ == "__main__":
     if len(sys.argv) > 1:

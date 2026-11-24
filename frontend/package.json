@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "test": "node --test tests/i18n.test.ts tests/siemShortcuts.test.ts tests/typography.test.ts",
+    "test": "node --test tests/i18n.test.ts tests/siemShortcuts.test.ts tests/typography.test.ts tests/examReview.test.ts",
     "preview": "vite preview"
   },
   "dependencies": {

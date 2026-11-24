@@ -190,6 +190,9 @@ func main() {
 			exams.POST("/post-test", examController.StartPostTest)
 			exams.GET("/session", examController.GetActiveSession)
 			exams.POST("/submit-answer", examController.SubmitAnswer)
+			exams.POST("/sessions/:sessionId/finalize", examController.FinalizeSession)
+			exams.GET("/history", examController.GetExamHistory)
+			exams.GET("/sessions/:sessionId/review", examController.GetExamReview)
 		}
 
 		// Protected Learning Theory Hub routes

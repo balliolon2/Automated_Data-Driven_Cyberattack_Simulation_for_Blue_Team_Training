@@ -49,6 +49,46 @@
                 }
             }
         },
+        "/exams/history": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns all completed Pre-Test and Post-Test sessions ordered most-recent-first along with latest session shortcuts.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Exams"
+                ],
+                "summary": "List completed exam sessions for the authenticated learner",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ExamHistoryResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/exams/post-test": {
             "post": {
                 "security": [
@@ -203,6 +243,136 @@
                     },
                     "401": {
                         "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/exams/sessions/{sessionId}/finalize": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Marks unanswered questions as incorrect, records elapsed time, transitions the session to completed, and returns full review results. Idempotent when already completed.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Exams"
+                ],
+                "summary": "Finalize an active exam session",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Exam Session ID",
+                        "name": "sessionId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Optional elapsed exam time",
+                        "name": "request",
+                        "in": "body",
+                        "schema": {
+                            "$ref": "#/definitions/dto.FinalizeExamRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.FinalizeExamResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/exams/sessions/{sessionId}/review": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns score metrics, domain breakdown, ordered 30-question Q\u0026A details with explanations and sub-topic metadata, and Pre-to-Post learning gains on Post-Tests. Strictly rejects in-progress sessions with 403 EXAM_NOT_COMPLETED.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Exams"
+                ],
+                "summary": "Get complete Q\u0026A review for a completed exam session",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Completed Exam Session ID",
+                        "name": "sessionId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ExamReviewResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
                         "schema": {
                             "$ref": "#/definitions/dto.ErrorResponse"
                         }
@@ -1623,15 +1793,31 @@
                     "type": "string",
                     "example": "domain1"
                 },
+                "domain_name": {
+                    "type": "string",
+                    "example": "General Security Concepts"
+                },
                 "explanation": {
                     "type": "string",
-                    "example": "Digital signatures ensure non-repudiation."
+                    "example": "Correct Answer: A. Digital signatures ensure non-repudiation."
                 },
                 "is_correct": {
                     "type": "boolean",
                     "example": true
                 },
+                "is_unanswered": {
+                    "type": "boolean",
+                    "example": false
+                },
+                "mitre_ref": {
+                    "type": "string",
+                    "example": "T1078"
+                },
                 "options": {},
+                "order_index": {
+                    "type": "integer",
+                    "example": 0
+                },
                 "question_id": {
                     "type": "string",
                     "example": "d1-q01"
@@ -1639,6 +1825,14 @@
                 "question_text": {
                     "type": "string",
                     "example": "Which security control provides non-repudiation?"
+                },
+                "sub_topic_id": {
+                    "type": "string",
+                    "example": "1.1"
+                },
+                "sub_topic_title": {
+                    "type": "string",
+                    "example": "Compare and contrast various types of security controls"
                 },
                 "type": {
                     "type": "string",
@@ -1653,7 +1847,7 @@
         "dto.DomainScoreDTO": {
             "type": "object",
             "properties": {
-                "correct_count": {
+                "correct": {
                     "type": "integer",
                     "example": 3
                 },
@@ -1661,13 +1855,33 @@
                     "type": "string",
                     "example": "domain1"
                 },
+                "domain_name": {
+                    "type": "string",
+                    "example": "General Security Concepts"
+                },
+                "incorrect": {
+                    "type": "integer",
+                    "example": 1
+                },
+                "passed": {
+                    "type": "boolean",
+                    "example": true
+                },
                 "percentage": {
                     "type": "number",
                     "example": 75
                 },
-                "total_count": {
+                "threshold": {
+                    "type": "number",
+                    "example": 70
+                },
+                "total": {
                     "type": "integer",
                     "example": 4
+                },
+                "unanswered": {
+                    "type": "integer",
+                    "example": 0
                 }
             }
         },
@@ -1800,6 +2014,158 @@
                 }
             }
         },
+        "dto.ExamDomainDeltaDTO": {
+            "type": "object",
+            "properties": {
+                "delta": {
+                    "type": "number",
+                    "example": 50
+                },
+                "domain_id": {
+                    "type": "string",
+                    "example": "domain1"
+                },
+                "domain_name": {
+                    "type": "string",
+                    "example": "General Security Concepts"
+                },
+                "post_percentage": {
+                    "type": "number",
+                    "example": 100
+                },
+                "pre_percentage": {
+                    "type": "number",
+                    "example": 50
+                }
+            }
+        },
+        "dto.ExamHistoryItemDTO": {
+            "type": "object",
+            "properties": {
+                "completed_at": {
+                    "type": "string"
+                },
+                "correct_count": {
+                    "type": "integer",
+                    "example": 22
+                },
+                "exam_type": {
+                    "type": "string",
+                    "example": "pre"
+                },
+                "incorrect_count": {
+                    "type": "integer",
+                    "example": 6
+                },
+                "score": {
+                    "type": "number",
+                    "example": 73.33
+                },
+                "session_id": {
+                    "type": "string",
+                    "example": "987e6543-e21b-12d3-a456-426614174000"
+                },
+                "started_at": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string",
+                    "example": "completed"
+                },
+                "time_spent_seconds": {
+                    "type": "integer",
+                    "example": 842
+                },
+                "total_questions": {
+                    "type": "integer",
+                    "example": 30
+                },
+                "unanswered_count": {
+                    "type": "integer",
+                    "example": 2
+                }
+            }
+        },
+        "dto.ExamHistoryResponse": {
+            "type": "object",
+            "properties": {
+                "latest_post_session_id": {
+                    "type": "string"
+                },
+                "latest_pre_session_id": {
+                    "type": "string",
+                    "example": "987e6543-e21b-12d3-a456-426614174000"
+                },
+                "latest_pre_to_post_delta": {
+                    "type": "number",
+                    "example": 26.67
+                },
+                "sessions": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.ExamHistoryItemDTO"
+                    }
+                }
+            }
+        },
+        "dto.ExamPreComparisonDTO": {
+            "type": "object",
+            "properties": {
+                "domain_deltas": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.ExamDomainDeltaDTO"
+                    }
+                },
+                "post_correct_count": {
+                    "type": "integer",
+                    "example": 26
+                },
+                "post_score": {
+                    "type": "number",
+                    "example": 86.67
+                },
+                "pre_correct_count": {
+                    "type": "integer",
+                    "example": 18
+                },
+                "pre_score": {
+                    "type": "number",
+                    "example": 60
+                },
+                "pre_session_id": {
+                    "type": "string",
+                    "example": "987e6543-e21b-12d3-a456-426614174000"
+                },
+                "score_delta": {
+                    "type": "number",
+                    "example": 26.67
+                }
+            }
+        },
+        "dto.ExamReviewResponse": {
+            "type": "object",
+            "properties": {
+                "domain_scores": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.DomainScoreDTO"
+                    }
+                },
+                "pre_comparison": {
+                    "$ref": "#/definitions/dto.ExamPreComparisonDTO"
+                },
+                "results": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.DetailedExamResultDTO"
+                    }
+                },
+                "session": {
+                    "$ref": "#/definitions/dto.ExamHistoryItemDTO"
+                }
+            }
+        },
         "dto.ExamSessionResponse": {
             "type": "object",
             "properties": {
@@ -1810,6 +2176,72 @@
                     }
                 },
                 "session": {}
+            }
+        },
+        "dto.FinalizeExamRequest": {
+            "type": "object",
+            "properties": {
+                "time_spent_seconds": {
+                    "type": "integer",
+                    "example": 842
+                }
+            }
+        },
+        "dto.FinalizeExamResponse": {
+            "type": "object",
+            "properties": {
+                "completed": {
+                    "type": "boolean",
+                    "example": true
+                },
+                "correct_count": {
+                    "type": "integer",
+                    "example": 22
+                },
+                "domain_scores": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.DomainScoreDTO"
+                    }
+                },
+                "exam_type": {
+                    "type": "string",
+                    "example": "pre"
+                },
+                "incorrect_count": {
+                    "type": "integer",
+                    "example": 6
+                },
+                "message": {
+                    "type": "string",
+                    "example": "Exam completed successfully!"
+                },
+                "results": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.DetailedExamResultDTO"
+                    }
+                },
+                "score": {
+                    "type": "number",
+                    "example": 73.33
+                },
+                "session_id": {
+                    "type": "string",
+                    "example": "987e6543-e21b-12d3-a456-426614174000"
+                },
+                "time_spent_seconds": {
+                    "type": "integer",
+                    "example": 842
+                },
+                "total_questions": {
+                    "type": "integer",
+                    "example": 30
+                },
+                "unanswered_count": {
+                    "type": "integer",
+                    "example": 2
+                }
             }
         },
         "dto.LearnDomainBreakdownDTO": {
@@ -2577,6 +3009,10 @@
                         "$ref": "#/definitions/dto.DomainScoreDTO"
                     }
                 },
+                "exam_type": {
+                    "type": "string",
+                    "example": "pre"
+                },
                 "message": {
                     "type": "string",
                     "example": "Exam completed successfully!"
@@ -2590,6 +3026,18 @@
                 "score": {
                     "type": "number",
                     "example": 83.33
+                },
+                "session_id": {
+                    "type": "string",
+                    "example": "987e6543-e21b-12d3-a456-426614174000"
+                },
+                "time_spent_seconds": {
+                    "type": "integer",
+                    "example": 842
+                },
+                "total_questions": {
+                    "type": "integer",
+                    "example": 30
                 }
             }
         },

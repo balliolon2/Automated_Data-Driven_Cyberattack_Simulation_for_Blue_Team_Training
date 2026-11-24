@@ -164,18 +164,36 @@ definitions:
       domain_id:
         example: domain1
         type: string
+      domain_name:
+        example: General Security Concepts
+        type: string
       explanation:
-        example: Digital signatures ensure non-repudiation.
+        example: 'Correct Answer: A. Digital signatures ensure non-repudiation.'
         type: string
       is_correct:
         example: true
         type: boolean
+      is_unanswered:
+        example: false
+        type: boolean
+      mitre_ref:
+        example: T1078
+        type: string
       options: {}
+      order_index:
+        example: 0
+        type: integer
       question_id:
         example: d1-q01
         type: string
       question_text:
         example: Which security control provides non-repudiation?
+        type: string
+      sub_topic_id:
+        example: "1.1"
+        type: string
+      sub_topic_title:
+        example: Compare and contrast various types of security controls
         type: string
       type:
         example: multiple_choice
@@ -186,17 +204,32 @@ definitions:
     type: object
   dto.DomainScoreDTO:
     properties:
-      correct_count:
+      correct:
         example: 3
         type: integer
       domain_id:
         example: domain1
         type: string
+      domain_name:
+        example: General Security Concepts
+        type: string
+      incorrect:
+        example: 1
+        type: integer
+      passed:
+        example: true
+        type: boolean
       percentage:
         example: 75
         type: number
-      total_count:
+      threshold:
+        example: 70
+        type: number
+      total:
         example: 4
+        type: integer
+      unanswered:
+        example: 0
         type: integer
     type: object
   dto.DomainStatusDTO:
@@ -287,6 +320,113 @@ definitions:
           type: integer
         type: array
     type: object
+  dto.ExamDomainDeltaDTO:
+    properties:
+      delta:
+        example: 50
+        type: number
+      domain_id:
+        example: domain1
+        type: string
+      domain_name:
+        example: General Security Concepts
+        type: string
+      post_percentage:
+        example: 100
+        type: number
+      pre_percentage:
+        example: 50
+        type: number
+    type: object
+  dto.ExamHistoryItemDTO:
+    properties:
+      completed_at:
+        type: string
+      correct_count:
+        example: 22
+        type: integer
+      exam_type:
+        example: pre
+        type: string
+      incorrect_count:
+        example: 6
+        type: integer
+      score:
+        example: 73.33
+        type: number
+      session_id:
+        example: 987e6543-e21b-12d3-a456-426614174000
+        type: string
+      started_at:
+        type: string
+      status:
+        example: completed
+        type: string
+      time_spent_seconds:
+        example: 842
+        type: integer
+      total_questions:
+        example: 30
+        type: integer
+      unanswered_count:
+        example: 2
+        type: integer
+    type: object
+  dto.ExamHistoryResponse:
+    properties:
+      latest_post_session_id:
+        type: string
+      latest_pre_session_id:
+        example: 987e6543-e21b-12d3-a456-426614174000
+        type: string
+      latest_pre_to_post_delta:
+        example: 26.67
+        type: number
+      sessions:
+        items:
+          $ref: '#/definitions/dto.ExamHistoryItemDTO'
+        type: array
+    type: object
+  dto.ExamPreComparisonDTO:
+    properties:
+      domain_deltas:
+        items:
+          $ref: '#/definitions/dto.ExamDomainDeltaDTO'
+        type: array
+      post_correct_count:
+        example: 26
+        type: integer
+      post_score:
+        example: 86.67
+        type: number
+      pre_correct_count:
+        example: 18
+        type: integer
+      pre_score:
+        example: 60
+        type: number
+      pre_session_id:
+        example: 987e6543-e21b-12d3-a456-426614174000
+        type: string
+      score_delta:
+        example: 26.67
+        type: number
+    type: object
+  dto.ExamReviewResponse:
+    properties:
+      domain_scores:
+        items:
+          $ref: '#/definitions/dto.DomainScoreDTO'
+        type: array
+      pre_comparison:
+        $ref: '#/definitions/dto.ExamPreComparisonDTO'
+      results:
+        items:
+          $ref: '#/definitions/dto.DetailedExamResultDTO'
+        type: array
+      session:
+        $ref: '#/definitions/dto.ExamHistoryItemDTO'
+    type: object
   dto.ExamSessionResponse:
     properties:
       questions:
@@ -294,6 +434,53 @@ definitions:
           $ref: '#/definitions/dto.QuestionDTO'
         type: array
       session: {}
+    type: object
+  dto.FinalizeExamRequest:
+    properties:
+      time_spent_seconds:
+        example: 842
+        type: integer
+    type: object
+  dto.FinalizeExamResponse:
+    properties:
+      completed:
+        example: true
+        type: boolean
+      correct_count:
+        example: 22
+        type: integer
+      domain_scores:
+        items:
+          $ref: '#/definitions/dto.DomainScoreDTO'
+        type: array
+      exam_type:
+        example: pre
+        type: string
+      incorrect_count:
+        example: 6
+        type: integer
+      message:
+        example: Exam completed successfully!
+        type: string
+      results:
+        items:
+          $ref: '#/definitions/dto.DetailedExamResultDTO'
+        type: array
+      score:
+        example: 73.33
+        type: number
+      session_id:
+        example: 987e6543-e21b-12d3-a456-426614174000
+        type: string
+      time_spent_seconds:
+        example: 842
+        type: integer
+      total_questions:
+        example: 30
+        type: integer
+      unanswered_count:
+        example: 2
+        type: integer
     type: object
   dto.LearnDomainBreakdownDTO:
     properties:
@@ -835,6 +1022,9 @@ definitions:
         items:
           $ref: '#/definitions/dto.DomainScoreDTO'
         type: array
+      exam_type:
+        example: pre
+        type: string
       message:
         example: Exam completed successfully!
         type: string
@@ -845,6 +1035,15 @@ definitions:
       score:
         example: 83.33
         type: number
+      session_id:
+        example: 987e6543-e21b-12d3-a456-426614174000
+        type: string
+      time_spent_seconds:
+        example: 842
+        type: integer
+      total_questions:
+        example: 30
+        type: integer
     type: object
   dto.SubmitScenarioRequest:
     properties:
@@ -1142,6 +1341,32 @@ paths:
       summary: Get research evaluation summary
       tags:
       - Analytics
+  /exams/history:
+    get:
+      consumes:
+      - application/json
+      description: Returns all completed Pre-Test and Post-Test sessions ordered most-recent-first
+        along with latest session shortcuts.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.ExamHistoryResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List completed exam sessions for the authenticated learner
+      tags:
+      - Exams
   /exams/post-test:
     post:
       consumes:
@@ -1255,6 +1480,93 @@ paths:
       security:
       - BearerAuth: []
       summary: Get active exam session
+      tags:
+      - Exams
+  /exams/sessions/{sessionId}/finalize:
+    post:
+      consumes:
+      - application/json
+      description: Marks unanswered questions as incorrect, records elapsed time,
+        transitions the session to completed, and returns full review results. Idempotent
+        when already completed.
+      parameters:
+      - description: Exam Session ID
+        in: path
+        name: sessionId
+        required: true
+        type: string
+      - description: Optional elapsed exam time
+        in: body
+        name: request
+        schema:
+          $ref: '#/definitions/dto.FinalizeExamRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.FinalizeExamResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Finalize an active exam session
+      tags:
+      - Exams
+  /exams/sessions/{sessionId}/review:
+    get:
+      consumes:
+      - application/json
+      description: Returns score metrics, domain breakdown, ordered 30-question Q&A
+        details with explanations and sub-topic metadata, and Pre-to-Post learning
+        gains on Post-Tests. Strictly rejects in-progress sessions with 403 EXAM_NOT_COMPLETED.
+      parameters:
+      - description: Completed Exam Session ID
+        in: path
+        name: sessionId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.ExamReviewResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get complete Q&A review for a completed exam session
       tags:
       - Exams
   /exams/submit-answer:

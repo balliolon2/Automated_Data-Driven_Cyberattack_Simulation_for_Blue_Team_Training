@@ -69,6 +69,7 @@ test("canonical M1 error codes and bilingual domain names are present", () => {
     "EXAM_QUESTION_NOT_FOUND",
     "EXAM_INVALID_ANSWER",
     "EXAM_SESSION_ACTIVE",
+    "EXAM_NOT_COMPLETED",
     "LEARN_PRETEST_REQUIRED",
     "LEARN_DOMAIN_NOT_FOUND",
     "LEARN_SUBTOPIC_NOT_FOUND",

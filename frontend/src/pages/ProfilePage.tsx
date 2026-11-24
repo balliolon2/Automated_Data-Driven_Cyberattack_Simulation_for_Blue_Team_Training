@@ -1,12 +1,19 @@
 import { useState, useEffect, useCallback } from "react";
-import { 
-  User, Shield, Award, Clock, AlertTriangle, CheckCircle2, 
-  Upload, Edit2, Loader2, ArrowRight, Globe 
+import { Link } from "react-router-dom";
+import {
+  User, Shield, Award, Clock, AlertTriangle, CheckCircle2,
+  Upload, Edit2, Loader2, ArrowRight, Globe, ClipboardCheck
 } from "lucide-react";
 import axios from "axios";
 import { useI18n } from "../i18n/index.tsx";
 import { resolveApiError } from "../i18n/format.ts";
 import type { Locale } from "../i18n/types.ts";
+import {
+  formatDurationSeconds,
+  getExamTypeBadgeClass,
+  type ExamHistoryItem,
+  type ExamHistoryResponse,
+} from "../lib/examReview";
 
 interface SpecialistApplication {
   application_id: string;
@@ -48,6 +55,9 @@ export default function ProfilePage() {
   const [newNickname, setNewNickname] = useState("");
   const [savingNickname, setSavingNickname] = useState(false);
 
+  // Exam history state
+  const [examHistory, setExamHistory] = useState<ExamHistoryItem[]>([]);
+
   // Specialist application form state
   const [showApplyForm, setShowApplyForm] = useState(false);
   const [bio, setBio] = useState("");
@@ -66,22 +76,34 @@ export default function ProfilePage() {
     }
     try {
       setLoading(true);
-      const res = await axios.get("/api/user/profile", {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      setProfile(res.data);
-      setNewNickname(res.data.nickname);
+      const [res, historyRes] = await Promise.allSettled([
+        axios.get("/api/user/profile", {
+          headers: { Authorization: `Bearer ${token}` }
+        }),
+        axios.get<ExamHistoryResponse>("/api/exams/history", {
+          headers: { Authorization: `Bearer ${token}` }
+        })
+      ]);
+      if (historyRes.status === "fulfilled" && Array.isArray(historyRes.value.data?.sessions)) {
+        setExamHistory(historyRes.value.data.sessions);
+      }
+      if (res.status === "rejected") {
+        throw res.reason;
+      }
+      const profileData = res.value.data;
+      setProfile(profileData);
+      setNewNickname(profileData.nickname);
       
       // Update local storage and sync language from DB
-      localStorage.setItem("userNickname", res.data.nickname);
-      localStorage.setItem("userRole", res.data.role);
-      syncLocaleFromUser(res.data.preferred_language);
+      localStorage.setItem("userNickname", profileData.nickname);
+      localStorage.setItem("userRole", profileData.role);
+      syncLocaleFromUser(profileData.preferred_language);
 
       // If rejected application exists, prefill fields for easy re-apply
-      if (res.data.latest_application?.status === "rejected") {
-        setBio(res.data.latest_application.bio || "");
-        setLinkedinUrl(res.data.latest_application.linkedin_url || "");
-        setPortfolioUrl(res.data.latest_application.portfolio_url || "");
+      if (profileData.latest_application?.status === "rejected") {
+        setBio(profileData.latest_application.bio || "");
+        setLinkedinUrl(profileData.latest_application.linkedin_url || "");
+        setPortfolioUrl(profileData.latest_application.portfolio_url || "");
       }
     } catch (err: unknown) {
       setErrorState({ kind: "api", err, fallbackKey: "profile.loadError" });
@@ -324,6 +346,89 @@ export default function ProfilePage() {
             {t("profile.languageThai")}
           </button>
         </div>
+      </div>
+
+      {/* Exam History & Reviews Section */}
+      <div className="bg-graphite-900 border border-graphite-800 rounded-xl p-6 sm:p-8 space-y-5">
+        <div className="space-y-1.5 border-b border-graphite-800 pb-4">
+          <h2 className="text-lg font-semibold text-white tracking-tight flex items-center gap-2">
+            <ClipboardCheck className="w-5 h-5 text-emerald-400" />
+            {t("profile.examHistory.title")}
+          </h2>
+          <p className="text-sm text-graphite-300 font-normal leading-relaxed">
+            {t("profile.examHistory.subtitle")}
+          </p>
+        </div>
+
+        {examHistory.length === 0 ? (
+          <div className="p-5 rounded-lg bg-graphite-950 border border-graphite-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="space-y-1">
+              <h3 className="text-base font-semibold text-white">
+                {t("profile.examHistory.emptyTitle")}
+              </h3>
+              <p className="text-sm text-graphite-300">
+                {t("profile.examHistory.emptyDesc")}
+              </p>
+            </div>
+            <Link
+              to="/pre-test"
+              className="px-4 py-2.5 bg-white text-black font-semibold rounded text-sm hover:bg-white/90 transition-all whitespace-nowrap inline-flex items-center gap-2"
+            >
+              <span>{t("profile.examHistory.startPreTest")}</span>
+              <ArrowRight className="w-4 h-4" />
+            </Link>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {examHistory.map((item) => {
+              const isPost = item.exam_type === "post";
+              return (
+                <div
+                  key={item.session_id}
+                  className="p-4 rounded-lg bg-graphite-950/70 border border-graphite-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+                >
+                  <div className="space-y-1.5">
+                    <div className="flex flex-wrap items-center gap-2.5">
+                      <span
+                        className={`px-2.5 py-0.5 rounded text-xs font-mono font-semibold border ${getExamTypeBadgeClass(item.exam_type)}`}
+                      >
+                        {isPost
+                          ? t("profile.examHistory.postTestBadge")
+                          : t("profile.examHistory.preTestBadge")}
+                      </span>
+                      <span className="text-base font-mono font-bold text-white">
+                        {item.score.toFixed(1)}%
+                      </span>
+                      <span className="text-sm font-mono text-graphite-300">
+                        {t("profile.examHistory.scoreSummary", {
+                          correct: item.correct_count,
+                          total: item.total_questions,
+                        })}
+                      </span>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-4 text-xs font-mono text-graphite-400">
+                      {item.completed_at && <span>{formatDate(item.completed_at)}</span>}
+                      <span>
+                        {t("profile.examHistory.duration", {
+                          duration: formatDurationSeconds(item.time_spent_seconds),
+                        })}
+                      </span>
+                    </div>
+                  </div>
+
+                  <Link
+                    to={`/exams/review/${encodeURIComponent(item.session_id)}`}
+                    className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-md border border-graphite-700 bg-graphite-900 hover:bg-graphite-800 text-sm font-medium text-white transition-colors whitespace-nowrap"
+                  >
+                    <span>{t("profile.examHistory.reviewAction")}</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </Link>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* Role-Specific Workflows & Specialist Application Section */}
