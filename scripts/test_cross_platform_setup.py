@@ -329,8 +329,18 @@ def test_secret_precedence_and_non_leakage_across_both_installers() -> None:
             "$env:LLM_API_KEY_FILE = '" + str(llm_file) + "'; "
             "$cfg1 = Initialize-EnvConfig; "
             "Write-Host ('FRONTEND=' + $cfg1.FrontendUrl); "
+            # Verify .env ACL grants owner FullControl (F) (not R,W-only which breaks renames/OneDrive) and blocks Users/Everyone
+            "$ic = (& icacls '.env' | Out-String); "
+            "if ($ic -notmatch '\\(F\\)') { throw ('Locked .env must grant FullControl (F), got: ' + $ic) }; "
+            "if ($ic -match 'BUILTIN\\\\Users|Everyone|Authenticated Users') { throw ('Locked .env leaked broad ACL: ' + $ic) }; "
+            # Also confirm Test-EnvFileAcl runs cleanly without Microsoft.PowerShell.Security Get-Acl dependency
+            "Test-EnvFileAcl '.env'; "
+            # Simulate an older (R,W)-locked .env left in OneDrive/Windows and verify re-run rescues ACL cleanly
+            "$id = [System.Security.Principal.WindowsIdentity]::GetCurrent().User.Value; "
+            "& icacls '.env' /inheritance:r /grant:r ('*' + $id + ':(R,W)') | Out-Null; "
             # Customize ENABLE_SWAGGER=true, drop *_FILE env vars, and verify re-run preserves secrets + custom flags
-            "(Get-Content '.env' -Raw).Replace('ENABLE_SWAGGER=false', 'ENABLE_SWAGGER=true') | Set-Content '.env' -Encoding ASCII; "
+            "$c = ([System.IO.File]::ReadAllText('.env')).Replace('ENABLE_SWAGGER=false', 'ENABLE_SWAGGER=true'); "
+            "[System.IO.File]::WriteAllText('.env', $c); "
             "Remove-Item Env:POSTGRES_PASSWORD_FILE, Env:JWT_SECRET_FILE, Env:LLM_API_KEY_FILE; "
             "$cfg2 = Initialize-EnvConfig; "
             "if ($cfg2.AdminPassword -ne $cfg1.AdminPassword) { throw 'AdminPassword changed on re-run!' }; "

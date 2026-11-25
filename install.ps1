@@ -276,33 +276,41 @@ function Resolve-ExistingOrDefault([string]$Key, [System.Collections.IDictionary
 }
 
 function Set-EnvFileAcl([string]$Path, [bool]$Fatal = $true) {
-    $identity = if ($env:USERDOMAIN) { "$($env:USERDOMAIN)\$($env:USERNAME)" } else { $env:USERNAME }
-    $rc = Invoke-NativeQuiet "icacls" @($Path, "/inheritance:r", "/grant:r", "${identity}:(R,W)")
+    $currentSid = ([System.Security.Principal.WindowsIdentity]::GetCurrent()).User.Value
+    $userAce = "*${currentSid}:(F)"
+    # Grant Full Control (F) strictly to file owner, SYSTEM (*S-1-5-18), and Built-in Administrators (*S-1-5-32-544)
+    # so Move/Write/Elevated-Admin/OneDrive sync work while blocking Users/Everyone/Authenticated Users.
+    try {
+        $attrs = [System.IO.File]::GetAttributes($Path)
+        if (($attrs -band [System.IO.FileAttributes]::ReadOnly) -ne 0) {
+            [System.IO.File]::SetAttributes($Path, ($attrs -band (-bnot [System.IO.FileAttributes]::ReadOnly)))
+        }
+    } catch {}
+
+    $rc = Invoke-NativeQuiet "icacls" @($Path, "/inheritance:r", "/grant:r", $userAce, "*S-1-5-18:(F)", "*S-1-5-32-544:(F)")
+    if ($rc -ne 0) {
+        # Fallback if an earlier broken ACL stripped WRITE_DAC; reclaim ownership and re-lock
+        $null = Invoke-NativeQuiet "takeown" @("/F", $Path)
+        $rc = Invoke-NativeQuiet "icacls" @($Path, "/inheritance:r", "/grant:r", $userAce, "*S-1-5-18:(F)", "*S-1-5-32-544:(F)")
+    }
     if ($rc -ne 0) {
         if ($Fatal) {
-            Fail-Stage "Secret File Protection" $rc "Failed to lock ACL on $Path via icacls for $identity." "icacls '$Path'" "Ensure current user owns $Path and retry."
+            Fail-Stage "Secret File Protection" $rc "Failed to lock ACL on $Path via icacls." "icacls '$Path'" "Ensure current user owns $Path (and OneDrive is not blocking access) and retry."
         }
         Write-LogWarn "icacls returned exit code $rc for $Path."
     }
 }
 
 function Test-EnvFileAcl([string]$Path) {
-    try {
-        $acl = Get-Acl -Path $Path -ErrorAction Stop
-        $risky = @()
-        foreach ($rule in $acl.Access) {
-            $id = $rule.IdentityReference.Value
-            if ($id -match '^(BUILTIN\\Users|Everyone|NT AUTHORITY\\Authenticated Users)$' -and $rule.AccessControlType -eq 'Allow') {
-                $risky += $id
-            }
-        }
-        if ($risky.Count -gt 0) {
-            Write-LogWarn ".env ACL allows broad read/access ($($risky -join ', ')); re-run install to tighten via icacls."
-        } else {
-            Write-LogOk ".env File ACL: Owner-restricted"
-        }
-    } catch {
-        Write-LogWarn "Could not inspect .env ACL: $_"
+    $res = Invoke-NativeCapture "icacls" @($Path)
+    if ($res.ExitCode -ne 0 -or -not $res.Output) {
+        Write-LogWarn "Could not inspect .env ACL via icacls."
+        return
+    }
+    if ($res.Output -match '(?i)(BUILTIN\\Users|Everyone|NT AUTHORITY\\Authenticated Users)') {
+        Write-LogWarn ".env ACL allows broad read/access ($($Matches[1])); re-run install to tighten via icacls."
+    } else {
+        Write-LogOk ".env File ACL: Owner/Admin-restricted"
     }
 }
 
@@ -339,18 +347,36 @@ function Write-MergedEnvFile([System.Collections.IDictionary]$Updates) {
         }
     }
 
-    # Pre-create & lock ACL before writing any secrets (zero plaintext race window)
-    $tmpPath = Join-Path $Script:RootDir (".env.tmp." + ([Guid]::NewGuid().ToString("N")))
-    try {
-        Write-Utf8NoBom $tmpPath ""
-        Set-EnvFileAcl $tmpPath $true
-        Write-Utf8NoBom $tmpPath (($out -join "`n") + "`n")
-        Move-Item -Path $tmpPath -Destination $envPath -Force
-        Set-EnvFileAcl $envPath $true
-        Write-LogOk "Locked .env file permissions (owner-only via icacls)."
-    } finally {
-        if (Test-Path $tmpPath) { Remove-Item $tmpPath -Force -ErrorAction SilentlyContinue }
+    # Pre-create empty .env (zero secrets) and lock ACL BEFORE writing secrets directly
+    # Avoids Move-Item rename races inside OneDrive/cloud-synced folders and rescues older (R,W) locks.
+    if (-not (Test-Path $envPath -PathType Leaf)) {
+        Write-Utf8NoBom $envPath ""
     }
+    Set-EnvFileAcl $envPath $true
+
+    $payload = ($out -join "`n") + "`n"
+    $written = $false
+    $lastErr = $null
+    for ($attempt = 1; $attempt -le 4; $attempt++) {
+        try {
+            Write-Utf8NoBom $envPath $payload
+            $written = $true
+            break
+        } catch {
+            $lastErr = $_
+            Start-Sleep -Milliseconds 250
+        }
+    }
+    if (-not $written) {
+        Fail-Stage "Environment Setup" 1 "Could not write secrets to ${envPath}: $lastErr" "icacls '$envPath'" "Pause OneDrive sync briefly or check folder permissions, then re-run."
+    }
+
+    # Clean up any stale .env.tmp.* files left from earlier failed attempts (unlock ACL first if needed)
+    foreach ($stale in @(Get-ChildItem -Path $Script:RootDir -Filter ".env.tmp.*" -Force -ErrorAction SilentlyContinue)) {
+        Set-EnvFileAcl $stale.FullName $false
+        Remove-Item -LiteralPath $stale.FullName -Force -ErrorAction SilentlyContinue
+    }
+    Write-LogOk "Locked .env file permissions (owner-only Full Control via icacls)."
 }
 
 function Ensure-ComposeProcessEnv {
