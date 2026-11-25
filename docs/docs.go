@@ -21,6 +21,151 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/admin/evaluations": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns learner cohort funnel counts, aggregate CSUQ/NASA-TLX summary stats, and pseudonymized individual evaluation rows without email PII.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Admin"
+                ],
+                "summary": "List pseudonymized learner post-test evaluations and summary KPIs (Admin only)",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.AdminEvaluationsResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/evaluations/export": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Streams RFC 4180 CSV bytes (default format=csv, with UTF-8 BOM and formula-injection neutralization) or returns AdminEvaluationsExportJSONResponse (format=json) for Excel, SPSS, or Python analysis.",
+                "produces": [
+                    "text/csv",
+                    "application/json"
+                ],
+                "tags": [
+                    "Admin"
+                ],
+                "summary": "Export pseudonymized learner evaluations as UTF-8 BOM CSV or JSON (Admin only)",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "default": "csv",
+                        "description": "Export format (csv or json)",
+                        "name": "format",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.AdminEvaluationsExportJSONResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/evaluations/statistics": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Computes descriptive statistics (Student-t 95% CI, R-7 IQR), Cronbach's alpha, Pre-to-Post Paired t-test (Cohen's d_z) and Wilcoxon signed-rank (rank-biserial r_rb), and Spearman rank correlations over learner evaluations.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Admin"
+                ],
+                "summary": "Get paper-ready statistical analysis report (Admin only)",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.AdminPaperStatisticsResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/analytics/research-summary": {
             "get": {
                 "security": [
@@ -48,6 +193,75 @@ const docTemplate = `{
                     },
                     "401": {
                         "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/evaluation/questionnaire": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Validates and records one CSUQ v3 + Raw NASA-TLX + qualitative evaluation per learner after completing the Post-Test, snapshotting Pre/Post and Skill Profile data server-side.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Evaluation"
+                ],
+                "summary": "Submit post-test evaluation questionnaire",
+                "parameters": [
+                    {
+                        "description": "Questionnaire ratings and qualitative impressions",
+                        "name": "payload",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.SubmitQuestionnaireRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/dto.SubmitQuestionnaireResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
                         "schema": {
                             "$ref": "#/definitions/dto.ErrorResponse"
                         }
@@ -1589,6 +1803,223 @@ const docTemplate = `{
                 "session": {}
             }
         },
+        "dto.AdminEvaluationRowDTO": {
+            "type": "object",
+            "properties": {
+                "average_proficiency": {
+                    "type": "number"
+                },
+                "completed_scenarios": {
+                    "type": "integer"
+                },
+                "csuq_scores": {
+                    "$ref": "#/definitions/dto.CSUQScoresPayloadDTO"
+                },
+                "eval_date": {
+                    "type": "string"
+                },
+                "eval_id": {
+                    "type": "string"
+                },
+                "improvement_pct": {
+                    "type": "number"
+                },
+                "nasa_tlx_scores": {
+                    "$ref": "#/definitions/dto.NASATLXScoresPayloadDTO"
+                },
+                "nickname": {
+                    "type": "string",
+                    "example": "shadow_analyst"
+                },
+                "notes": {
+                    "type": "string"
+                },
+                "participant_code": {
+                    "type": "string",
+                    "example": "P-123E4567"
+                },
+                "post_score": {
+                    "type": "number"
+                },
+                "pre_score": {
+                    "type": "number"
+                },
+                "qualitative_feedback": {
+                    "$ref": "#/definitions/dto.QualitativeFeedbackDTO"
+                },
+                "submitted_locale": {
+                    "type": "string",
+                    "example": "en"
+                }
+            }
+        },
+        "dto.AdminEvaluationsExportJSONResponse": {
+            "type": "object",
+            "properties": {
+                "cohort": {
+                    "$ref": "#/definitions/dto.EvaluationCohortFunnelDTO"
+                },
+                "exported_at": {
+                    "type": "string"
+                },
+                "responses": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.AdminEvaluationRowDTO"
+                    }
+                },
+                "summary": {
+                    "$ref": "#/definitions/dto.AdminEvaluationsSummaryDTO"
+                }
+            }
+        },
+        "dto.AdminEvaluationsResponse": {
+            "type": "object",
+            "properties": {
+                "cohort": {
+                    "$ref": "#/definitions/dto.EvaluationCohortFunnelDTO"
+                },
+                "responses": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.AdminEvaluationRowDTO"
+                    }
+                },
+                "summary": {
+                    "$ref": "#/definitions/dto.AdminEvaluationsSummaryDTO"
+                }
+            }
+        },
+        "dto.AdminEvaluationsSummaryDTO": {
+            "type": "object",
+            "properties": {
+                "csuq_subscales": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.AdminMeanSDDTO"
+                    }
+                },
+                "learning_gain": {
+                    "$ref": "#/definitions/dto.AdminLearningGainSummaryDTO"
+                },
+                "nasa_tlx_dimensions": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.AdminMeanSDDTO"
+                    }
+                }
+            }
+        },
+        "dto.AdminLearningGainSummaryDTO": {
+            "type": "object",
+            "properties": {
+                "improvement_mean": {
+                    "type": "number",
+                    "example": 21.7
+                },
+                "improvement_sd": {
+                    "type": "number",
+                    "example": 9.4
+                },
+                "n": {
+                    "type": "integer",
+                    "example": 20
+                },
+                "post_mean": {
+                    "type": "number",
+                    "example": 83.2
+                },
+                "pre_mean": {
+                    "type": "number",
+                    "example": 61.5
+                },
+                "qualitative_count": {
+                    "type": "integer",
+                    "example": 14
+                }
+            }
+        },
+        "dto.AdminMeanSDDTO": {
+            "type": "object",
+            "properties": {
+                "key": {
+                    "type": "string",
+                    "example": "overall"
+                },
+                "mean": {
+                    "type": "number",
+                    "example": 6.25
+                },
+                "n": {
+                    "type": "integer",
+                    "example": 20
+                },
+                "sd": {
+                    "type": "number",
+                    "example": 0.54
+                }
+            }
+        },
+        "dto.AdminPaperStatisticsResponse": {
+            "type": "object",
+            "properties": {
+                "cohort": {
+                    "$ref": "#/definitions/dto.EvaluationCohortFunnelDTO"
+                },
+                "correlations": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.SpearmanCorrelationDTO"
+                    }
+                },
+                "csuq_items": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.DescriptiveStatDTO"
+                    }
+                },
+                "csuq_schema_version": {
+                    "type": "string",
+                    "example": "csuq-v3-asc-7"
+                },
+                "csuq_subscales": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.DescriptiveStatDTO"
+                    }
+                },
+                "generated_at": {
+                    "type": "string"
+                },
+                "is_pilot_sample": {
+                    "type": "boolean",
+                    "example": true
+                },
+                "learning_gain": {
+                    "$ref": "#/definitions/dto.LearningGainStatisticsDTO"
+                },
+                "nasa_tlx": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.DescriptiveStatDTO"
+                    }
+                },
+                "nasa_tlx_schema_version": {
+                    "type": "string",
+                    "example": "nasa-tlx-rtlx-v1"
+                },
+                "protocol_version": {
+                    "type": "string",
+                    "example": "protocol-v1"
+                },
+                "reliability": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.CronbachAlphaDTO"
+                    }
+                }
+            }
+        },
         "dto.AttemptSampleQuestionRequest": {
             "type": "object",
             "required": [
@@ -1674,6 +2105,85 @@ const docTemplate = `{
                 "user_id": {
                     "type": "string",
                     "example": "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11"
+                }
+            }
+        },
+        "dto.CSUQScoresPayloadDTO": {
+            "type": "object",
+            "properties": {
+                "direction": {
+                    "type": "string",
+                    "example": "higher_is_better"
+                },
+                "items": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "integer"
+                    }
+                },
+                "locale": {
+                    "type": "string",
+                    "example": "en"
+                },
+                "scale_max": {
+                    "type": "integer",
+                    "example": 7
+                },
+                "scale_min": {
+                    "type": "integer",
+                    "example": 1
+                },
+                "schema_version": {
+                    "type": "string",
+                    "example": "csuq-v3-asc-7"
+                },
+                "subscales": {
+                    "$ref": "#/definitions/dto.CSUQSubscalesDTO"
+                },
+                "valid_counts": {
+                    "$ref": "#/definitions/dto.CSUQValidCountsDTO"
+                }
+            }
+        },
+        "dto.CSUQSubscalesDTO": {
+            "type": "object",
+            "properties": {
+                "infoqual": {
+                    "type": "number",
+                    "example": 6.2
+                },
+                "interqual": {
+                    "type": "number",
+                    "example": 6.33
+                },
+                "overall": {
+                    "type": "number",
+                    "example": 6.33
+                },
+                "sysuse": {
+                    "type": "number",
+                    "example": 6.33
+                }
+            }
+        },
+        "dto.CSUQValidCountsDTO": {
+            "type": "object",
+            "properties": {
+                "infoqual": {
+                    "type": "integer",
+                    "example": 5
+                },
+                "interqual": {
+                    "type": "integer",
+                    "example": 3
+                },
+                "overall": {
+                    "type": "integer",
+                    "example": 15
+                },
+                "sysuse": {
+                    "type": "integer",
+                    "example": 6
                 }
             }
         },
@@ -1785,6 +2295,108 @@ const docTemplate = `{
                 "total_domains": {
                     "type": "integer",
                     "example": 5
+                }
+            }
+        },
+        "dto.CronbachAlphaDTO": {
+            "type": "object",
+            "properties": {
+                "alpha": {
+                    "type": "number",
+                    "example": 0.91
+                },
+                "band": {
+                    "type": "string",
+                    "example": "excellent"
+                },
+                "complete_cases_n": {
+                    "type": "integer",
+                    "example": 18
+                },
+                "excluded_na_cases": {
+                    "type": "integer",
+                    "example": 2
+                },
+                "item_count": {
+                    "type": "integer",
+                    "example": 16
+                },
+                "key": {
+                    "type": "string",
+                    "example": "csuq_overall"
+                },
+                "status": {
+                    "type": "string",
+                    "example": "ok"
+                }
+            }
+        },
+        "dto.DescriptiveStatDTO": {
+            "type": "object",
+            "properties": {
+                "band": {
+                    "type": "string",
+                    "example": "excellent"
+                },
+                "ci_high": {
+                    "type": "number",
+                    "example": 6.37
+                },
+                "ci_low": {
+                    "type": "number",
+                    "example": 5.87
+                },
+                "group": {
+                    "type": "string",
+                    "example": "SYSUSE"
+                },
+                "iqr": {
+                    "type": "number",
+                    "example": 0.75
+                },
+                "key": {
+                    "type": "string",
+                    "example": "overall"
+                },
+                "max": {
+                    "type": "number",
+                    "example": 6.94
+                },
+                "mean": {
+                    "type": "number",
+                    "example": 6.12
+                },
+                "median": {
+                    "type": "number",
+                    "example": 6.19
+                },
+                "min": {
+                    "type": "number",
+                    "example": 5
+                },
+                "n": {
+                    "type": "integer",
+                    "example": 20
+                },
+                "q1": {
+                    "type": "number",
+                    "example": 5.75
+                },
+                "q3": {
+                    "type": "number",
+                    "example": 6.5
+                },
+                "sd": {
+                    "type": "number",
+                    "example": 0.54
+                },
+                "se": {
+                    "type": "number",
+                    "example": 0.12
+                },
+                "status": {
+                    "type": "string",
+                    "example": "ok"
                 }
             }
         },
@@ -1934,6 +2546,79 @@ const docTemplate = `{
                 "params": {
                     "type": "object",
                     "additionalProperties": {}
+                }
+            }
+        },
+        "dto.EvaluationCohortFunnelDTO": {
+            "type": "object",
+            "properties": {
+                "completed_post_test_learners": {
+                    "type": "integer",
+                    "example": 24
+                },
+                "completed_pre_test_learners": {
+                    "type": "integer",
+                    "example": 28
+                },
+                "questionnaire_respondents": {
+                    "type": "integer",
+                    "example": 20
+                },
+                "response_rate_pct": {
+                    "type": "number",
+                    "example": 83.33
+                },
+                "total_learners": {
+                    "type": "integer",
+                    "example": 30
+                }
+            }
+        },
+        "dto.EvaluationMetricSummaryDTO": {
+            "type": "object",
+            "properties": {
+                "average_proficiency": {
+                    "type": "number",
+                    "example": 78.4
+                },
+                "completed_scenarios": {
+                    "type": "integer",
+                    "example": 4
+                },
+                "csuq_scores": {
+                    "$ref": "#/definitions/dto.CSUQScoresPayloadDTO"
+                },
+                "eval_date": {
+                    "type": "string"
+                },
+                "eval_id": {
+                    "type": "string",
+                    "example": "123e4567-e89b-12d3-a456-426614174000"
+                },
+                "improvement_pct": {
+                    "type": "number",
+                    "example": 23.33
+                },
+                "nasa_tlx_scores": {
+                    "$ref": "#/definitions/dto.NASATLXScoresPayloadDTO"
+                },
+                "notes": {
+                    "type": "string"
+                },
+                "post_score": {
+                    "type": "number",
+                    "example": 83.33
+                },
+                "pre_score": {
+                    "type": "number",
+                    "example": 60
+                },
+                "qualitative_feedback": {
+                    "$ref": "#/definitions/dto.QualitativeFeedbackDTO"
+                },
+                "submitted_locale": {
+                    "type": "string",
+                    "example": "en"
                 }
             }
         },
@@ -2466,6 +3151,26 @@ const docTemplate = `{
                 }
             }
         },
+        "dto.LearningGainStatisticsDTO": {
+            "type": "object",
+            "properties": {
+                "difference": {
+                    "$ref": "#/definitions/dto.DescriptiveStatDTO"
+                },
+                "paired_t_test": {
+                    "$ref": "#/definitions/dto.PairedTTestDTO"
+                },
+                "post": {
+                    "$ref": "#/definitions/dto.DescriptiveStatDTO"
+                },
+                "pre": {
+                    "$ref": "#/definitions/dto.DescriptiveStatDTO"
+                },
+                "wilcoxon": {
+                    "$ref": "#/definitions/dto.WilcoxonTestDTO"
+                }
+            }
+        },
         "dto.LogQueryRequest": {
             "type": "object",
             "required": [
@@ -2519,6 +3224,166 @@ const docTemplate = `{
                 "message": {
                     "type": "string",
                     "example": "Operation completed successfully"
+                }
+            }
+        },
+        "dto.NASATLXDimensionsDTO": {
+            "type": "object",
+            "properties": {
+                "effort": {
+                    "type": "integer",
+                    "example": 55
+                },
+                "frustration": {
+                    "type": "integer",
+                    "example": 20
+                },
+                "mental_demand": {
+                    "type": "integer",
+                    "example": 60
+                },
+                "performance_rating": {
+                    "type": "integer",
+                    "example": 85
+                },
+                "performance_workload": {
+                    "type": "integer",
+                    "example": 15
+                },
+                "physical_demand": {
+                    "type": "integer",
+                    "example": 10
+                },
+                "temporal_demand": {
+                    "type": "integer",
+                    "example": 45
+                }
+            }
+        },
+        "dto.NASATLXInputDTO": {
+            "type": "object",
+            "properties": {
+                "effort": {
+                    "type": "integer",
+                    "example": 55
+                },
+                "frustration": {
+                    "type": "integer",
+                    "example": 20
+                },
+                "mental_demand": {
+                    "type": "integer",
+                    "example": 60
+                },
+                "performance_rating": {
+                    "type": "integer",
+                    "example": 85
+                },
+                "physical_demand": {
+                    "type": "integer",
+                    "example": 10
+                },
+                "temporal_demand": {
+                    "type": "integer",
+                    "example": 45
+                }
+            }
+        },
+        "dto.NASATLXScoresPayloadDTO": {
+            "type": "object",
+            "properties": {
+                "dimensions": {
+                    "$ref": "#/definitions/dto.NASATLXDimensionsDTO"
+                },
+                "overall_workload": {
+                    "type": "number",
+                    "example": 34.17
+                },
+                "scale_max": {
+                    "type": "integer",
+                    "example": 100
+                },
+                "scale_min": {
+                    "type": "integer",
+                    "example": 0
+                },
+                "schema_version": {
+                    "type": "string",
+                    "example": "nasa-tlx-rtlx-v1"
+                },
+                "step": {
+                    "type": "integer",
+                    "example": 5
+                },
+                "variant": {
+                    "type": "string",
+                    "example": "raw_tlx"
+                }
+            }
+        },
+        "dto.PairedTTestDTO": {
+            "type": "object",
+            "properties": {
+                "ci_high": {
+                    "type": "number",
+                    "example": 25.76
+                },
+                "ci_low": {
+                    "type": "number",
+                    "example": 17.24
+                },
+                "cohens_dz": {
+                    "type": "number",
+                    "example": 2.36
+                },
+                "df": {
+                    "type": "integer",
+                    "example": 19
+                },
+                "effect_band": {
+                    "type": "string",
+                    "example": "large"
+                },
+                "mean_diff": {
+                    "type": "number",
+                    "example": 21.5
+                },
+                "n": {
+                    "type": "integer",
+                    "example": 20
+                },
+                "p_value": {
+                    "type": "number",
+                    "example": 0.0001
+                },
+                "sd_diff": {
+                    "type": "number",
+                    "example": 9.1
+                },
+                "status": {
+                    "type": "string",
+                    "example": "ok"
+                },
+                "t_stat": {
+                    "type": "number",
+                    "example": 10.57
+                }
+            }
+        },
+        "dto.QualitativeFeedbackDTO": {
+            "type": "object",
+            "properties": {
+                "additional_comments": {
+                    "type": "string",
+                    "example": "Bilingual hints helped me understand domain concepts."
+                },
+                "areas_to_improve": {
+                    "type": "string",
+                    "example": "Add more cloud IAM scenarios."
+                },
+                "most_impressive": {
+                    "type": "string",
+                    "example": "The SIEM log investigation felt realistic."
                 }
             }
         },
@@ -2603,6 +3468,10 @@ const docTemplate = `{
                         "type": "string"
                     }
                 },
+                "csuq_overall": {
+                    "type": "number",
+                    "example": 6.33
+                },
                 "domain_profiles": {
                     "type": "array",
                     "items": {
@@ -2632,6 +3501,10 @@ const docTemplate = `{
                     "type": "integer",
                     "example": 10
                 },
+                "nasa_tlx_overall": {
+                    "type": "number",
+                    "example": 34.17
+                },
                 "participant_id": {},
                 "post_test_score": {
                     "type": "number",
@@ -2644,6 +3517,13 @@ const docTemplate = `{
                 "protocol_version": {
                     "type": "string",
                     "example": "protocol-v1"
+                },
+                "questionnaire_submitted": {
+                    "type": "boolean",
+                    "example": true
+                },
+                "questionnaire_submitted_at": {
+                    "type": "string"
                 },
                 "rubric_version": {
                     "type": "string",
@@ -2793,6 +3673,35 @@ const docTemplate = `{
                 "total_subtopics": {
                     "type": "integer",
                     "example": 28
+                }
+            }
+        },
+        "dto.SpearmanCorrelationDTO": {
+            "type": "object",
+            "properties": {
+                "band": {
+                    "type": "string",
+                    "example": "strong"
+                },
+                "key": {
+                    "type": "string",
+                    "example": "learning_gain_vs_csuq_overall"
+                },
+                "n": {
+                    "type": "integer",
+                    "example": 20
+                },
+                "p_value": {
+                    "type": "number",
+                    "example": 0.014
+                },
+                "rho": {
+                    "type": "number",
+                    "example": 0.54
+                },
+                "status": {
+                    "type": "string",
+                    "example": "ok"
                 }
             }
         },
@@ -3047,6 +3956,42 @@ const docTemplate = `{
                 }
             }
         },
+        "dto.SubmitQuestionnaireRequest": {
+            "type": "object",
+            "required": [
+                "csuq"
+            ],
+            "properties": {
+                "csuq": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "integer"
+                    }
+                },
+                "locale": {
+                    "type": "string",
+                    "example": "en"
+                },
+                "nasa_tlx": {
+                    "$ref": "#/definitions/dto.NASATLXInputDTO"
+                },
+                "qualitative_feedback": {
+                    "$ref": "#/definitions/dto.QualitativeFeedbackDTO"
+                }
+            }
+        },
+        "dto.SubmitQuestionnaireResponse": {
+            "type": "object",
+            "properties": {
+                "message": {
+                    "type": "string",
+                    "example": "Post-test evaluation questionnaire submitted successfully."
+                },
+                "submission": {
+                    "$ref": "#/definitions/dto.EvaluationMetricSummaryDTO"
+                }
+            }
+        },
         "dto.SubmitScenarioRequest": {
             "type": "object",
             "required": [
@@ -3280,6 +4225,51 @@ const docTemplate = `{
                 "preferred_language": {
                     "type": "string",
                     "example": "th"
+                }
+            }
+        },
+        "dto.WilcoxonTestDTO": {
+            "type": "object",
+            "properties": {
+                "effective_n": {
+                    "type": "integer",
+                    "example": 19
+                },
+                "method": {
+                    "type": "string",
+                    "example": "exact"
+                },
+                "n": {
+                    "type": "integer",
+                    "example": 20
+                },
+                "p_value": {
+                    "type": "number",
+                    "example": 0.0001
+                },
+                "rank_biserial": {
+                    "type": "number",
+                    "example": 1
+                },
+                "status": {
+                    "type": "string",
+                    "example": "ok"
+                },
+                "w_minus": {
+                    "type": "number",
+                    "example": 0
+                },
+                "w_plus": {
+                    "type": "number",
+                    "example": 190
+                },
+                "w_stat": {
+                    "type": "number",
+                    "example": 0
+                },
+                "zero_diff_count": {
+                    "type": "integer",
+                    "example": 1
                 }
             }
         },

@@ -18,7 +18,7 @@ This document is documentation only. It does not change the database schema or t
 |---|---|
 | Status | Active — used as the project's primary registry |
 | Date created | 2026-10-20 |
-| Last updated | 2026-11-15 |
+| Last updated | 2026-11-25 |
 | Document owner | Project Owner |
 | Scope | Content sources and data ingested into the database |
 
@@ -46,6 +46,9 @@ Example:
 | R4 | (The MITRE Corporation, 2024) | Threat Knowledge Base (ATT&CK® Enterprise) | Clickable adversary tactics, techniques, and telemetry detection mappings in Theory Modules & Scenarios | Active |
 | R5 | (OWASP Foundation, 2021; Wikipedia contributors, 2026) | Open Web Standard & Wikipedia Reference Articles | Core security terminology, CIA triad, cryptography/PKI, vulnerabilities, network defense, SIEM, and compliance in Theory Modules | Active |
 | R6 | (CISA, 2023–2025; CMU ISO, 2025; Stanford UIT, 2025; Microsoft Learn, 2025) | Federal Cybersecurity Agency (CISA), Universities (CMU & Stanford), & Query Docs | Ransomware/phishing/Zero Trust maturity guidance, university IR procedures, and KQL reference in Theory Modules | Active |
+| R7 | (NIST, 2006–2024; Wikipedia contributors, 2026) | Federal Technical Publications & Open Encyclopedia | Sub-topic curriculum modules (`1.1`–`5.6`) across `theory/domain1/`–`theory/domain5/` | Active |
+| R8 | (Lewis, 1995, 2018) | Peer-Reviewed Psychometric Usability Instrument (CSUQ v3) | Post-Test Evaluation Questionnaire usability items (`q1`–`q16`) & subscales (`SYSUSE`, `INFOQUAL`, `INTERQUAL`, `OVERALL`) | Active |
+| R9 | (Hart & Staveland, 1988; Hart, 2006) | Peer-Reviewed Cognitive Workload Instrument (NASA-TLX / Raw TLX) | Post-Test Evaluation Questionnaire 6-dimension workload assessment (`nasa_tlx_scores`) & Paper Statistics methodology guide | Active |
 
 `R-ID` codes are permanent. They must never be reused or redefined, even after the reference is retired.
 
@@ -255,10 +258,31 @@ To ground all **28 granular SY0-701 Sub-Topic Markdown modules** (`theory/domain
 - **Mapping**: Covers all 28 SY0-701 Sub-topics (`1.1`–`5.6`) under `theory/domain1/` through `theory/domain5/` and database table `theory_subtopics`.
 - **Usage & Copyright**: NIST SPs are U.S. government public domain; Wikipedia articles are CC BY-SA 4.0. All prose is originally synthesized with direct clickable HTTPS links.
 
-## 15. Revision History
+## 15. Post-Test Evaluation Instruments Provenance (R8–R9)
+
+### R8 — Computer System Usability Questionnaire (CSUQ Version 3)
+
+1. Lewis, J. R. (1995). IBM computer usability satisfaction questionnaires: Psychometric evaluation and instructions for use. *International Journal of Human-Computer Interaction*, 7(1), 57–78. [https://doi.org/10.1080/10447319509526110](https://doi.org/10.1080/10447319509526110)
+2. Lewis, J. R. (2018). Measuring perceived usability: The CSUQ, SUS, and UMUX. *International Journal of Human-Computer Interaction*, 34(12), 1148–1156. [https://doi.org/10.1080/10447318.2017.1418805](https://doi.org/10.1080/10447318.2017.1418805)
+
+- **BibTeX keys**: `lewis1995csuq`, `lewis2018measuring`
+- **Mapping**: Grounds the 16-item Post-Test usability survey (`q1`–`q16`), ascending `1–7` Likert scoring with `N/A` omission rules, and subscale definitions (`SYSUSE` Q1–Q6, `INFOQUAL` Q7–Q12, `INTERQUAL` Q13–Q15, `OVERALL` Q1–Q16) persisted in `evaluation_metrics.csuq_scores`.
+- **Usage & Copyright**: Standard published academic psychometric instrument; cited in research publications and thesis methodology per APA 7th.
+
+### R9 — NASA Task Load Index (NASA-TLX & Raw NASA-TLX)
+
+1. Hart, S. G., & Staveland, L. E. (1988). Development of NASA-TLX (Task Load Index): Results of empirical and theoretical research. In P. A. Hancock & N. Meshkati (Eds.), *Human Mental Workload* (*Advances in Psychology*, Vol. 52, pp. 139–183). North-Holland. [https://doi.org/10.1016/S0166-4115(08)62386-9](https://doi.org/10.1016/S0166-4115(08)62386-9)
+2. Hart, S. G. (2006). NASA-Task Load Index (NASA-TLX); 20 years later. *Proceedings of the Human Factors and Ergonomics Society Annual Meeting*, 50(9), 904–908. [https://doi.org/10.1177/154193120605000909](https://doi.org/10.1177/154193120605000909)
+
+- **BibTeX keys**: `hart1988nasatlx`, `hart2006nasatlx`
+- **Mapping**: Grounds the unweighted 6-dimension Raw NASA-TLX (`Mental Demand`, `Physical Demand`, `Temporal Demand`, `Performance`, `Effort`, `Frustration` on a `0–100` step-`5` scale, with `performance_workload = 100 - performance_rating`) persisted in `evaluation_metrics.nasa_tlx_scores`.
+- **Usage & Copyright**: Originally developed at NASA Ames Research Center; widely documented public research workload assessment methodology cited via `[R9]`.
+
+## 16. Revision History
 
 | Date | Item |
 |---|---|
 | 2026-10-20 | Created the document and registered reference R1 (Gorgotsias, 2024), with the provenance table, Question 444 normalization record, copyright restrictions, and open risk. |
 | 2026-11-15 | Registered references R2–R6 (Domain taxonomy, NIST SP 800-53r5/800-61r2/800-61r3/800-207/800-30r1, CISA guides, CMU ISO & Stanford UIT resources, MITRE ATT&CK, OWASP Top 10 2021, Microsoft Learn KQL, and Wikipedia Security Articles) with clickable URLs across all 5 `theory/*.md` modules. |
 | 2026-11-16 | Registered reference R7 covering verified NIST CSRC SPs (`800-88r1`, `800-40r4`, `800-63-3`, `800-161r1`, `800-86`, `800-115`, `800-50r1`) and Wikipedia encyclopedia articles for all 28 SY0-701 Sub-topic Markdown files (`theory/domain1/*.md`–`theory/domain5/*.md`). |
+| 2026-11-25 | Registered permanent references **R8** (CSUQ v3 — Lewis, 1995; 2018) and **R9** (NASA-TLX / Raw TLX — Hart & Staveland, 1988; Hart, 2006) for Spec 14 Post-Test Evaluation Questionnaire and Paper Statistics (`#13`). |

@@ -20,6 +20,8 @@ import {
   AlertCircle,
 } from "lucide-react";
 import DomainBreakdown from "../components/DomainBreakdown";
+import QuestionnairePromptBanner from "../components/QuestionnairePromptBanner";
+import type { QuestionnaireStatusResponse } from "../lib/questionnaire";
 import { useI18n } from "../i18n/index.tsx";
 import { resolveApiError, resolveDomainName } from "../i18n/format.ts";
 import { cn } from "../lib/utils";
@@ -464,6 +466,7 @@ export default function ExamReviewPage() {
   const [groupMode, setGroupMode] = useState<ReviewGroupMode>("domain");
   const [expandedIds, setExpandedIds] = useState<Set<string>>(() => new Set());
   const [highlightedOrderIdx, setHighlightedOrderIdx] = useState<number | null>(null);
+  const [questionnaireStatus, setQuestionnaireStatus] = useState<QuestionnaireStatusResponse | null>(null);
 
   const cardRefs = useRef<Record<number, HTMLDivElement | null>>({});
 
@@ -493,6 +496,23 @@ export default function ExamReviewPage() {
         setReview(res.data);
         setExpandedIds(createInitialExpandedIds(res.data.results ?? []));
         setStatusFilter("all");
+
+        if (res.data.session?.exam_type === "post") {
+          axios
+            .get<QuestionnaireStatusResponse>("/api/evaluation/questionnaire/status", {
+              headers: { Authorization: `Bearer ${token}` },
+            })
+            .then((qRes) => {
+              if (!cancelled) {
+                setQuestionnaireStatus(qRes.data);
+              }
+            })
+            .catch(() => {
+              // Fail-open so questionnaire status fetch never blocks Post-Test review
+            });
+        } else {
+          setQuestionnaireStatus(null);
+        }
         setDomainFilter("all");
         setGroupMode("domain");
         setErrorState(null);
@@ -767,6 +787,11 @@ export default function ExamReviewPage() {
         />
       )}
 
+      {/* Non-blocking Post-Test Evaluation Questionnaire Banner */}
+      {isPostTest && questionnaireStatus && (
+        <QuestionnairePromptBanner status={questionnaireStatus} variant="prominent" />
+      )}
+
       {/* Domain Breakdown + 01-30 Jump Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2">
@@ -1035,6 +1060,15 @@ export default function ExamReviewPage() {
         </div>
 
         <div className="flex flex-wrap items-center gap-3 shrink-0">
+          {isPostTest && questionnaireStatus?.eligible && !questionnaireStatus?.submitted && (
+            <Link
+              to="/questionnaire"
+              className="px-4 py-2.5 rounded-md border border-emerald-500/40 bg-emerald-500/15 text-sm font-semibold text-emerald-300 hover:bg-emerald-500/25 transition-colors inline-flex items-center gap-2"
+            >
+              <span>{t("questionnaire.banner.startAction")}</span>
+              <ArrowRight className="w-4 h-4" />
+            </Link>
+          )}
           <button
             type="button"
             onClick={() => navigate(isPostTest ? "/profile" : "/learn")}

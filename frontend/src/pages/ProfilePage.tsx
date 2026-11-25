@@ -5,6 +5,8 @@ import {
   Upload, Edit2, Loader2, ArrowRight, Globe, ClipboardCheck
 } from "lucide-react";
 import axios from "axios";
+import QuestionnairePromptBanner from "../components/QuestionnairePromptBanner";
+import type { QuestionnaireStatusResponse } from "../lib/questionnaire";
 import { useI18n } from "../i18n/index.tsx";
 import { resolveApiError } from "../i18n/format.ts";
 import type { Locale } from "../i18n/types.ts";
@@ -55,8 +57,9 @@ export default function ProfilePage() {
   const [newNickname, setNewNickname] = useState("");
   const [savingNickname, setSavingNickname] = useState(false);
 
-  // Exam history state
+  // Exam history & questionnaire state
   const [examHistory, setExamHistory] = useState<ExamHistoryItem[]>([]);
+  const [questionnaireStatus, setQuestionnaireStatus] = useState<QuestionnaireStatusResponse | null>(null);
 
   // Specialist application form state
   const [showApplyForm, setShowApplyForm] = useState(false);
@@ -76,16 +79,22 @@ export default function ProfilePage() {
     }
     try {
       setLoading(true);
-      const [res, historyRes] = await Promise.allSettled([
+      const [res, historyRes, qStatusRes] = await Promise.allSettled([
         axios.get("/api/user/profile", {
           headers: { Authorization: `Bearer ${token}` }
         }),
         axios.get<ExamHistoryResponse>("/api/exams/history", {
           headers: { Authorization: `Bearer ${token}` }
+        }),
+        axios.get<QuestionnaireStatusResponse>("/api/evaluation/questionnaire/status", {
+          headers: { Authorization: `Bearer ${token}` }
         })
       ]);
       if (historyRes.status === "fulfilled" && Array.isArray(historyRes.value.data?.sessions)) {
         setExamHistory(historyRes.value.data.sessions);
+      }
+      if (qStatusRes.status === "fulfilled" && qStatusRes.value.data) {
+        setQuestionnaireStatus(qStatusRes.value.data);
       }
       if (res.status === "rejected") {
         throw res.reason;
@@ -97,6 +106,9 @@ export default function ProfilePage() {
       // Update local storage and sync language from DB
       localStorage.setItem("userNickname", profileData.nickname);
       localStorage.setItem("userRole", profileData.role);
+      if (profileData.user_id) {
+        localStorage.setItem("userId", profileData.user_id);
+      }
       syncLocaleFromUser(profileData.preferred_language);
 
       // If rejected application exists, prefill fields for easy re-apply
@@ -359,6 +371,10 @@ export default function ProfilePage() {
             {t("profile.examHistory.subtitle")}
           </p>
         </div>
+
+        {examHistory.some((item) => item.exam_type === "post") && questionnaireStatus && (
+          <QuestionnairePromptBanner status={questionnaireStatus} variant="compact" />
+        )}
 
         {examHistory.length === 0 ? (
           <div className="p-5 rounded-lg bg-graphite-950 border border-graphite-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">

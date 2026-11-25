@@ -131,6 +131,10 @@ type ResearchSummaryResponse struct {
 	AverageProficiency     float64                    `json:"average_proficiency" example:"78.5"`
 	DomainProfiles         []DomainStatusDTO          `json:"domain_profiles,omitempty"`
 	LearnSubtopicTelemetry *LearnSubtopicTelemetryDTO `json:"learn_subtopic_telemetry,omitempty"`
+	QuestionnaireSubmitted   bool                       `json:"questionnaire_submitted" example:"true"`
+	QuestionnaireSubmittedAt *time.Time                 `json:"questionnaire_submitted_at,omitempty"`
+	CSUQOverall              *float64                   `json:"csuq_overall,omitempty" example:"6.33"`
+	NASATLXOverall           *float64                   `json:"nasa_tlx_overall,omitempty" example:"34.17"`
 }
 
 // LearnDomainBreakdownDTO summarizes Sub-topic completion and sample accuracy for one domain.

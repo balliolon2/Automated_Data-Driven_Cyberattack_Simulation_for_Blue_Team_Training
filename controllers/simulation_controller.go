@@ -1699,28 +1699,54 @@ func (sc *SimulationController) GetResearchSummary(c *gin.Context) {
 	completedTheoryDomains, _, theoryCompleted, theoryCompletedAt := sc.getUserTheoryProgressSummary(userID)
 	learnTelemetry := sc.loadLearnSubtopicTelemetry(userID)
 
+	questionnaireSubmitted := false
+	var questionnaireSubmittedAt *time.Time
+	var csuqOverall *float64
+	var nasaTlxOverall *float64
+	if sc.DB != nil {
+		var evalMetric models.EvaluationMetric
+		if err := sc.DB.Where("user_id = ?", userID).Order("eval_date DESC").First(&evalMetric).Error; err == nil {
+			questionnaireSubmitted = true
+			submittedAt := evalMetric.EvalDate
+			questionnaireSubmittedAt = &submittedAt
+			summary := services.EvaluationMetricToSummaryDTO(evalMetric)
+			if summary.CSUQScores.Subscales.Overall != nil {
+				v := *summary.CSUQScores.Subscales.Overall
+				csuqOverall = &v
+			}
+			if summary.NASATLXScores.SchemaVersion != "" {
+				v := summary.NASATLXScores.OverallWorkload
+				nasaTlxOverall = &v
+			}
+		}
+	}
+
 	c.JSON(http.StatusOK, dto.ResearchSummaryResponse{
-		ProtocolVersion:        "protocol-v1",
-		CalculationVersion:     services.CalculationVersion,
-		RubricVersion:          services.RubricVersion,
-		ParticipantID:          userID,
-		HasPreTest:             hasPre,
-		PreTestScore:           preExam.Score,
-		HasPostTest:            hasPost,
-		PostTestScore:          postExam.Score,
-		ImprovementScore:       scoreImprovement,
-		AllDomainsPassed:       allPassed,
-		EligibleForPost:        allPassed && len(completedSessions) >= MinScenarios,
-		TheoryCompleted:        theoryCompleted,
-		CompletedTheoryDomains: completedTheoryDomains,
-		TheoryCompletedAt:      theoryCompletedAt,
-		CompletedScenarios:     len(completedSessions),
-		MaxScenarios:           MaxScenarios,
-		TotalActions:           totalActions,
-		TotalElapsedSec:        totalSimElapsed,
-		AverageProficiency:     avgProficiency,
-		DomainProfiles:         domainProfileDTOs,
-		LearnSubtopicTelemetry: &learnTelemetry,
+		ProtocolVersion:          "protocol-v1",
+		CalculationVersion:       services.CalculationVersion,
+		RubricVersion:            services.RubricVersion,
+		ParticipantID:            userID,
+		HasPreTest:               hasPre,
+		PreTestScore:             preExam.Score,
+		HasPostTest:              hasPost,
+		PostTestScore:            postExam.Score,
+		ImprovementScore:         scoreImprovement,
+		AllDomainsPassed:         allPassed,
+		EligibleForPost:          allPassed && len(completedSessions) >= MinScenarios,
+		TheoryCompleted:          theoryCompleted,
+		CompletedTheoryDomains:   completedTheoryDomains,
+		TheoryCompletedAt:        theoryCompletedAt,
+		CompletedScenarios:       len(completedSessions),
+		MaxScenarios:             MaxScenarios,
+		TotalActions:             totalActions,
+		TotalElapsedSec:          totalSimElapsed,
+		AverageProficiency:       avgProficiency,
+		DomainProfiles:           domainProfileDTOs,
+		LearnSubtopicTelemetry:   &learnTelemetry,
+		QuestionnaireSubmitted:   questionnaireSubmitted,
+		QuestionnaireSubmittedAt: questionnaireSubmittedAt,
+		CSUQOverall:              csuqOverall,
+		NASATLXOverall:           nasaTlxOverall,
 	})
 }
 

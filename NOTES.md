@@ -399,3 +399,27 @@
     - Verified via Go unit tests, Vitest parser/i18n/typography suites, `scripts/test_integration.py`, and 1 Push-Right Visual Review Checkpoint (EN/TH screenshots of Pre-Test Review, Post-Test Review + Gain Card, `/evaluation`, and `/profile`) before closing Issue #14.
     - See `workflows/exam_qa_review.md`.
 
+## Canonical Terms (Issue #13: Post-Test Evaluation Questionnaire & Paper-Ready Statistics)
+
+- **Post-Test Evaluation Questionnaire (`/questionnaire`)**: The bilingual (`EN`/`TH`) 3-step subjective evaluation completed once per `learner` after finishing the 30-question Post-Test, combining **CSUQ v3 (16 items)**, **Raw NASA-TLX (6 dimensions)**, and **3 optional qualitative impression prompts**, persisted into the existing `evaluation_metrics` table (Zero-DDL).
+- **CSUQ v3 Ascending Scale (`1–7`, Higher = Better + `N/A`)**: Standardized 16-item usability instrument (`[R8]` Lewis, 1995; 2018) scored `1 = Strongly Disagree` → `7 = Strongly Agree` across `SYSUSE` (`Q1–Q6`), `INFOQUAL` (`Q7–Q12`), `INTERQUAL` (`Q13–Q15`), and `OVERALL` (`Q1–Q16`), excluding `N/A` items from subscale means while forbidding all-16 `N/A`.
+- **Raw NASA-TLX with Polarity Normalization (RTLX `0–100`, step `5`)**: Unweighted 6-dimension cognitive workload instrument (`[R9]` Hart & Staveland, 1988; Hart, 2006); UI renders `Performance` intuitively (`0 = Failure` → `100 = Perfect`) while the backend stores both `performance_rating` and inverted `performance_workload = 100 - performance_rating` to compute `overall_workload = mean(6 workloads)`.
+- **Server Auto-Snapshot (`evaluation_metrics`)**: Authoritative server-side capture of latest completed `pre_score`, `post_score`, `improvement_pct = post - pre`, and `user_skill_profiles` (`skill_gap_summary`) executed inside a `pg_advisory_xact_lock` transaction on submission so client scores are never trusted and duplicate rows per user are prevented without schema changes.
+- **Paper-Ready Statistical Report (`/admin/evaluations/statistics`)**: Admin-only publication workbench powered by a pure-Go statistical engine computing descriptive stats (`n`, `M`, `SD`, Student-$t$ `95% CI`, `Median`, `IQR`, `Min–Max`), **Cronbach's $\alpha$**, **Paired $t$-test + Cohen's $d_z$**, **Wilcoxon signed-rank + $r_{rb}$**, and **Spearman $\rho$**, paired with `Copy LaTeX (IEEEtran)`, `Copy Markdown`, an Auto-Generated Academic Results Paragraph (`EN` default / `TH` thesis option), a bilingual Methodology & Formula Guide, Print/PDF mode, and Small-$n$ Guardrails (`n < 2/3/5/30`).
+
+## Settled Decisions (Issue #13: Post-Test Evaluation Questionnaire & Paper Statistics — `/loop-me` Q1–Q16)
+
+57. **Standard Research Bundle, Non-Blocking Flow & Zero-DDL Server Snapshot**:
+    - Uses **CSUQ v3 (16 items, ascending `1–7` + `N/A`) + Raw NASA-TLX (6 dims, `0–100` step `5`, UI `Performance` inverted server-side) + 3 Optional Qualitative Impression Prompts** (stored as structured JSONB and readable sectioned `notes TEXT`), bilingual (`EN`/`TH`) with `localStorage` auto-draft persistence.
+    - Finishing Post-Test still routes to `/exams/review/:sessionId` with a prominent non-blocking CTA banner to `/questionnaire` (plus persistent reminders on `/evaluation` and `/profile` until submitted).
+    - Strictly 1 submission per `learner` gated on having a completed Post-Test (`403` before Post-Test, `409` on duplicate via `pg_advisory_xact_lock`); `specialist`/`admin` see interactive Preview Mode only; Zero-DDL using existing `evaluation_metrics` with server auto-snapshot + additive fields on `GET /api/analytics/research-summary`.
+    - Registers `R8` (CSUQ v3 — Lewis, 1995; 2018) and `R9` (NASA-TLX / RTLX — Hart & Staveland, 1988; Hart, 2006) in `docs/REFERENCES.md` and `docs/references.bib`.
+
+58. **Admin Evaluations Dashboard, Paper-Ready Statistics & Verification**:
+    - Adds shared `AdminPortalTabs` (`Specialist Applications` | `Post-Test Evaluations` | `Paper Statistics`) across `/admin/specialists`, `/admin/evaluations`, and `/admin/evaluations/statistics` with zero Top Navbar bloat (keeping Issue #15 scoped strictly to technical NFR benchmarks).
+    - `/admin/evaluations` provides KPI cards, Recharts CSUQ & NASA-TLX bar charts, a pseudonymized response table (`P-XXXXXXXX` + `nickname`, expandable qualitative notes), and UTF-8 BOM CSV (with formula-injection neutralization) + JSON export.
+    - `/admin/evaluations/statistics` provides the full pure-Go IEEE statistical suite (`Descriptive + 95% CI`, `Cronbach's α`, `Paired t-test + Cohen's d_z`, `Wilcoxon + r_rb`, `Spearman ρ`), `Copy LaTeX (IEEEtran)` & `Copy Markdown`, Auto-Generated Academic Results Paragraph (`EN` default + `TH` thesis toggle), bilingual Statistical Methodology & Formula Guide, `@media print` PDF layout, and strict Small-$n$ Guardrails (`n < 2/3/5`, Pilot Caveat when `n < 30`).
+    - Verified via Go unit tests (including SciPy/textbook-checked math), Node frontend tests (questionnaire, paper generators, i18n parity, typography guard), OpenAPI Swagger sync, `scripts/test_integration.py`, and 1 Push-Right Visual Review Checkpoint (EN & TH screenshots) before closing Issue #13.
+    - See `workflows/post_test_questionnaire.md`.
+
+

@@ -14,6 +14,154 @@ definitions:
         type: array
       session: {}
     type: object
+  dto.AdminEvaluationRowDTO:
+    properties:
+      average_proficiency:
+        type: number
+      completed_scenarios:
+        type: integer
+      csuq_scores:
+        $ref: '#/definitions/dto.CSUQScoresPayloadDTO'
+      eval_date:
+        type: string
+      eval_id:
+        type: string
+      improvement_pct:
+        type: number
+      nasa_tlx_scores:
+        $ref: '#/definitions/dto.NASATLXScoresPayloadDTO'
+      nickname:
+        example: shadow_analyst
+        type: string
+      notes:
+        type: string
+      participant_code:
+        example: P-123E4567
+        type: string
+      post_score:
+        type: number
+      pre_score:
+        type: number
+      qualitative_feedback:
+        $ref: '#/definitions/dto.QualitativeFeedbackDTO'
+      submitted_locale:
+        example: en
+        type: string
+    type: object
+  dto.AdminEvaluationsExportJSONResponse:
+    properties:
+      cohort:
+        $ref: '#/definitions/dto.EvaluationCohortFunnelDTO'
+      exported_at:
+        type: string
+      responses:
+        items:
+          $ref: '#/definitions/dto.AdminEvaluationRowDTO'
+        type: array
+      summary:
+        $ref: '#/definitions/dto.AdminEvaluationsSummaryDTO'
+    type: object
+  dto.AdminEvaluationsResponse:
+    properties:
+      cohort:
+        $ref: '#/definitions/dto.EvaluationCohortFunnelDTO'
+      responses:
+        items:
+          $ref: '#/definitions/dto.AdminEvaluationRowDTO'
+        type: array
+      summary:
+        $ref: '#/definitions/dto.AdminEvaluationsSummaryDTO'
+    type: object
+  dto.AdminEvaluationsSummaryDTO:
+    properties:
+      csuq_subscales:
+        items:
+          $ref: '#/definitions/dto.AdminMeanSDDTO'
+        type: array
+      learning_gain:
+        $ref: '#/definitions/dto.AdminLearningGainSummaryDTO'
+      nasa_tlx_dimensions:
+        items:
+          $ref: '#/definitions/dto.AdminMeanSDDTO'
+        type: array
+    type: object
+  dto.AdminLearningGainSummaryDTO:
+    properties:
+      improvement_mean:
+        example: 21.7
+        type: number
+      improvement_sd:
+        example: 9.4
+        type: number
+      "n":
+        example: 20
+        type: integer
+      post_mean:
+        example: 83.2
+        type: number
+      pre_mean:
+        example: 61.5
+        type: number
+      qualitative_count:
+        example: 14
+        type: integer
+    type: object
+  dto.AdminMeanSDDTO:
+    properties:
+      key:
+        example: overall
+        type: string
+      mean:
+        example: 6.25
+        type: number
+      "n":
+        example: 20
+        type: integer
+      sd:
+        example: 0.54
+        type: number
+    type: object
+  dto.AdminPaperStatisticsResponse:
+    properties:
+      cohort:
+        $ref: '#/definitions/dto.EvaluationCohortFunnelDTO'
+      correlations:
+        items:
+          $ref: '#/definitions/dto.SpearmanCorrelationDTO'
+        type: array
+      csuq_items:
+        items:
+          $ref: '#/definitions/dto.DescriptiveStatDTO'
+        type: array
+      csuq_schema_version:
+        example: csuq-v3-asc-7
+        type: string
+      csuq_subscales:
+        items:
+          $ref: '#/definitions/dto.DescriptiveStatDTO'
+        type: array
+      generated_at:
+        type: string
+      is_pilot_sample:
+        example: true
+        type: boolean
+      learning_gain:
+        $ref: '#/definitions/dto.LearningGainStatisticsDTO'
+      nasa_tlx:
+        items:
+          $ref: '#/definitions/dto.DescriptiveStatDTO'
+        type: array
+      nasa_tlx_schema_version:
+        example: nasa-tlx-rtlx-v1
+        type: string
+      protocol_version:
+        example: protocol-v1
+        type: string
+      reliability:
+        items:
+          $ref: '#/definitions/dto.CronbachAlphaDTO'
+        type: array
+    type: object
   dto.AttemptSampleQuestionRequest:
     properties:
       answer:
@@ -76,6 +224,62 @@ definitions:
       user_id:
         example: a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11
         type: string
+    type: object
+  dto.CSUQScoresPayloadDTO:
+    properties:
+      direction:
+        example: higher_is_better
+        type: string
+      items:
+        additionalProperties:
+          type: integer
+        type: object
+      locale:
+        example: en
+        type: string
+      scale_max:
+        example: 7
+        type: integer
+      scale_min:
+        example: 1
+        type: integer
+      schema_version:
+        example: csuq-v3-asc-7
+        type: string
+      subscales:
+        $ref: '#/definitions/dto.CSUQSubscalesDTO'
+      valid_counts:
+        $ref: '#/definitions/dto.CSUQValidCountsDTO'
+    type: object
+  dto.CSUQSubscalesDTO:
+    properties:
+      infoqual:
+        example: 6.2
+        type: number
+      interqual:
+        example: 6.33
+        type: number
+      overall:
+        example: 6.33
+        type: number
+      sysuse:
+        example: 6.33
+        type: number
+    type: object
+  dto.CSUQValidCountsDTO:
+    properties:
+      infoqual:
+        example: 5
+        type: integer
+      interqual:
+        example: 3
+        type: integer
+      overall:
+        example: 15
+        type: integer
+      sysuse:
+        example: 6
+        type: integer
     type: object
   dto.ClearLogSelectionRequest:
     properties:
@@ -155,6 +359,81 @@ definitions:
       total_domains:
         example: 5
         type: integer
+    type: object
+  dto.CronbachAlphaDTO:
+    properties:
+      alpha:
+        example: 0.91
+        type: number
+      band:
+        example: excellent
+        type: string
+      complete_cases_n:
+        example: 18
+        type: integer
+      excluded_na_cases:
+        example: 2
+        type: integer
+      item_count:
+        example: 16
+        type: integer
+      key:
+        example: csuq_overall
+        type: string
+      status:
+        example: ok
+        type: string
+    type: object
+  dto.DescriptiveStatDTO:
+    properties:
+      band:
+        example: excellent
+        type: string
+      ci_high:
+        example: 6.37
+        type: number
+      ci_low:
+        example: 5.87
+        type: number
+      group:
+        example: SYSUSE
+        type: string
+      iqr:
+        example: 0.75
+        type: number
+      key:
+        example: overall
+        type: string
+      max:
+        example: 6.94
+        type: number
+      mean:
+        example: 6.12
+        type: number
+      median:
+        example: 6.19
+        type: number
+      min:
+        example: 5
+        type: number
+      "n":
+        example: 20
+        type: integer
+      q1:
+        example: 5.75
+        type: number
+      q3:
+        example: 6.5
+        type: number
+      sd:
+        example: 0.54
+        type: number
+      se:
+        example: 0.12
+        type: number
+      status:
+        example: ok
+        type: string
     type: object
   dto.DetailedExamResultDTO:
     properties:
@@ -264,6 +543,58 @@ definitions:
       params:
         additionalProperties: {}
         type: object
+    type: object
+  dto.EvaluationCohortFunnelDTO:
+    properties:
+      completed_post_test_learners:
+        example: 24
+        type: integer
+      completed_pre_test_learners:
+        example: 28
+        type: integer
+      questionnaire_respondents:
+        example: 20
+        type: integer
+      response_rate_pct:
+        example: 83.33
+        type: number
+      total_learners:
+        example: 30
+        type: integer
+    type: object
+  dto.EvaluationMetricSummaryDTO:
+    properties:
+      average_proficiency:
+        example: 78.4
+        type: number
+      completed_scenarios:
+        example: 4
+        type: integer
+      csuq_scores:
+        $ref: '#/definitions/dto.CSUQScoresPayloadDTO'
+      eval_date:
+        type: string
+      eval_id:
+        example: 123e4567-e89b-12d3-a456-426614174000
+        type: string
+      improvement_pct:
+        example: 23.33
+        type: number
+      nasa_tlx_scores:
+        $ref: '#/definitions/dto.NASATLXScoresPayloadDTO'
+      notes:
+        type: string
+      post_score:
+        example: 83.33
+        type: number
+      pre_score:
+        example: 60
+        type: number
+      qualitative_feedback:
+        $ref: '#/definitions/dto.QualitativeFeedbackDTO'
+      submitted_locale:
+        example: en
+        type: string
     type: object
   dto.EvidenceFindingDTO:
     properties:
@@ -633,6 +964,19 @@ definitions:
         example: 28
         type: integer
     type: object
+  dto.LearningGainStatisticsDTO:
+    properties:
+      difference:
+        $ref: '#/definitions/dto.DescriptiveStatDTO'
+      paired_t_test:
+        $ref: '#/definitions/dto.PairedTTestDTO'
+      post:
+        $ref: '#/definitions/dto.DescriptiveStatDTO'
+      pre:
+        $ref: '#/definitions/dto.DescriptiveStatDTO'
+      wilcoxon:
+        $ref: '#/definitions/dto.WilcoxonTestDTO'
+    type: object
   dto.LogQueryRequest:
     properties:
       query:
@@ -670,6 +1014,122 @@ definitions:
     properties:
       message:
         example: Operation completed successfully
+        type: string
+    type: object
+  dto.NASATLXDimensionsDTO:
+    properties:
+      effort:
+        example: 55
+        type: integer
+      frustration:
+        example: 20
+        type: integer
+      mental_demand:
+        example: 60
+        type: integer
+      performance_rating:
+        example: 85
+        type: integer
+      performance_workload:
+        example: 15
+        type: integer
+      physical_demand:
+        example: 10
+        type: integer
+      temporal_demand:
+        example: 45
+        type: integer
+    type: object
+  dto.NASATLXInputDTO:
+    properties:
+      effort:
+        example: 55
+        type: integer
+      frustration:
+        example: 20
+        type: integer
+      mental_demand:
+        example: 60
+        type: integer
+      performance_rating:
+        example: 85
+        type: integer
+      physical_demand:
+        example: 10
+        type: integer
+      temporal_demand:
+        example: 45
+        type: integer
+    type: object
+  dto.NASATLXScoresPayloadDTO:
+    properties:
+      dimensions:
+        $ref: '#/definitions/dto.NASATLXDimensionsDTO'
+      overall_workload:
+        example: 34.17
+        type: number
+      scale_max:
+        example: 100
+        type: integer
+      scale_min:
+        example: 0
+        type: integer
+      schema_version:
+        example: nasa-tlx-rtlx-v1
+        type: string
+      step:
+        example: 5
+        type: integer
+      variant:
+        example: raw_tlx
+        type: string
+    type: object
+  dto.PairedTTestDTO:
+    properties:
+      ci_high:
+        example: 25.76
+        type: number
+      ci_low:
+        example: 17.24
+        type: number
+      cohens_dz:
+        example: 2.36
+        type: number
+      df:
+        example: 19
+        type: integer
+      effect_band:
+        example: large
+        type: string
+      mean_diff:
+        example: 21.5
+        type: number
+      "n":
+        example: 20
+        type: integer
+      p_value:
+        example: 0.0001
+        type: number
+      sd_diff:
+        example: 9.1
+        type: number
+      status:
+        example: ok
+        type: string
+      t_stat:
+        example: 10.57
+        type: number
+    type: object
+  dto.QualitativeFeedbackDTO:
+    properties:
+      additional_comments:
+        example: Bilingual hints helped me understand domain concepts.
+        type: string
+      areas_to_improve:
+        example: Add more cloud IAM scenarios.
+        type: string
+      most_impressive:
+        example: The SIEM log investigation felt realistic.
         type: string
     type: object
   dto.QuestionDTO:
@@ -731,6 +1191,9 @@ definitions:
         items:
           type: string
         type: array
+      csuq_overall:
+        example: 6.33
+        type: number
       domain_profiles:
         items:
           $ref: '#/definitions/dto.DomainStatusDTO'
@@ -752,6 +1215,9 @@ definitions:
       max_scenarios:
         example: 10
         type: integer
+      nasa_tlx_overall:
+        example: 34.17
+        type: number
       participant_id: {}
       post_test_score:
         example: 85
@@ -761,6 +1227,11 @@ definitions:
         type: number
       protocol_version:
         example: protocol-v1
+        type: string
+      questionnaire_submitted:
+        example: true
+        type: boolean
+      questionnaire_submitted_at:
         type: string
       rubric_version:
         example: rubric-v2-evidence-click
@@ -872,6 +1343,27 @@ definitions:
       total_subtopics:
         example: 28
         type: integer
+    type: object
+  dto.SpearmanCorrelationDTO:
+    properties:
+      band:
+        example: strong
+        type: string
+      key:
+        example: learning_gain_vs_csuq_overall
+        type: string
+      "n":
+        example: 20
+        type: integer
+      p_value:
+        example: 0.014
+        type: number
+      rho:
+        example: 0.54
+        type: number
+      status:
+        example: ok
+        type: string
     type: object
   dto.SpecialistSubmissionDetail:
     properties:
@@ -1045,6 +1537,30 @@ definitions:
         example: 30
         type: integer
     type: object
+  dto.SubmitQuestionnaireRequest:
+    properties:
+      csuq:
+        additionalProperties:
+          type: integer
+        type: object
+      locale:
+        example: en
+        type: string
+      nasa_tlx:
+        $ref: '#/definitions/dto.NASATLXInputDTO'
+      qualitative_feedback:
+        $ref: '#/definitions/dto.QualitativeFeedbackDTO'
+    required:
+    - csuq
+    type: object
+  dto.SubmitQuestionnaireResponse:
+    properties:
+      message:
+        example: Post-test evaluation questionnaire submitted successfully.
+        type: string
+      submission:
+        $ref: '#/definitions/dto.EvaluationMetricSummaryDTO'
+    type: object
   dto.SubmitScenarioRequest:
     properties:
       is_true_positive:
@@ -1213,6 +1729,39 @@ definitions:
         example: th
         type: string
     type: object
+  dto.WilcoxonTestDTO:
+    properties:
+      effective_n:
+        example: 19
+        type: integer
+      method:
+        example: exact
+        type: string
+      "n":
+        example: 20
+        type: integer
+      p_value:
+        example: 0.0001
+        type: number
+      rank_biserial:
+        example: 1
+        type: number
+      status:
+        example: ok
+        type: string
+      w_minus:
+        example: 0
+        type: number
+      w_plus:
+        example: 190
+        type: number
+      w_stat:
+        example: 0
+        type: number
+      zero_diff_count:
+        example: 1
+        type: integer
+    type: object
   models.DomainScoreDetail:
     properties:
       earned:
@@ -1319,6 +1868,105 @@ info:
   title: SOC Trainer REST API
   version: "1.0"
 paths:
+  /admin/evaluations:
+    get:
+      description: Returns learner cohort funnel counts, aggregate CSUQ/NASA-TLX summary
+        stats, and pseudonymized individual evaluation rows without email PII.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.AdminEvaluationsResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List pseudonymized learner post-test evaluations and summary KPIs (Admin
+        only)
+      tags:
+      - Admin
+  /admin/evaluations/export:
+    get:
+      description: Streams RFC 4180 CSV bytes (default format=csv, with UTF-8 BOM
+        and formula-injection neutralization) or returns AdminEvaluationsExportJSONResponse
+        (format=json) for Excel, SPSS, or Python analysis.
+      parameters:
+      - default: csv
+        description: Export format (csv or json)
+        in: query
+        name: format
+        type: string
+      produces:
+      - text/csv
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.AdminEvaluationsExportJSONResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Export pseudonymized learner evaluations as UTF-8 BOM CSV or JSON (Admin
+        only)
+      tags:
+      - Admin
+  /admin/evaluations/statistics:
+    get:
+      description: Computes descriptive statistics (Student-t 95% CI, R-7 IQR), Cronbach's
+        alpha, Pre-to-Post Paired t-test (Cohen's d_z) and Wilcoxon signed-rank (rank-biserial
+        r_rb), and Spearman rank correlations over learner evaluations.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.AdminPaperStatisticsResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get paper-ready statistical analysis report (Admin only)
+      tags:
+      - Admin
   /analytics/research-summary:
     get:
       consumes:
@@ -1341,6 +1989,52 @@ paths:
       summary: Get research evaluation summary
       tags:
       - Analytics
+  /evaluation/questionnaire:
+    post:
+      consumes:
+      - application/json
+      description: Validates and records one CSUQ v3 + Raw NASA-TLX + qualitative
+        evaluation per learner after completing the Post-Test, snapshotting Pre/Post
+        and Skill Profile data server-side.
+      parameters:
+      - description: Questionnaire ratings and qualitative impressions
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/dto.SubmitQuestionnaireRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/dto.SubmitQuestionnaireResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Submit post-test evaluation questionnaire
+      tags:
+      - Evaluation
   /exams/history:
     get:
       consumes:

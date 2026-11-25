@@ -146,6 +146,14 @@ test("canonical M1 error codes and bilingual domain names are present", () => {
     "COMMENT_UPVOTE_FAILED",
     "NOTIF_FETCH_FAILED",
     "NOTIF_UPDATE_FAILED",
+    "QUESTIONNAIRE_LEARNER_ONLY",
+    "QUESTIONNAIRE_POST_TEST_REQUIRED",
+    "QUESTIONNAIRE_ALREADY_SUBMITTED",
+    "QUESTIONNAIRE_INVALID_CSUQ",
+    "QUESTIONNAIRE_ALL_NA",
+    "QUESTIONNAIRE_INVALID_TLX",
+    "QUESTIONNAIRE_FEEDBACK_TOO_LONG",
+    "EVALUATION_INVALID_EXPORT_FORMAT",
   ] as const;
 
   for (const code of requiredCodes) {

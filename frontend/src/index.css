@@ -28,3 +28,37 @@
     @apply bg-graphite-900/60 backdrop-blur-md border border-graphite-800/50 shadow-xl;
   }
 }
+
+@media print {
+  @page {
+    margin: 14mm;
+  }
+
+  html,
+  body {
+    background: #ffffff !important;
+    color: #111827 !important;
+  }
+
+  main {
+    max-width: 100% !important;
+    padding: 0 !important;
+  }
+
+  .paper-report-section {
+    background: #ffffff !important;
+    color: #111827 !important;
+    border: 1px solid #d1d5db !important;
+    break-inside: avoid-page;
+    box-shadow: none !important;
+  }
+
+  .paper-report-section * {
+    color: #111827 !important;
+    border-color: #d1d5db !important;
+  }
+
+  .paper-report-card {
+    background: #f9fafb !important;
+  }
+}

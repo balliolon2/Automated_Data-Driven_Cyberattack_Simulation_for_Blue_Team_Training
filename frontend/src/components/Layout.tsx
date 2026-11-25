@@ -36,29 +36,34 @@ export default function Layout() {
 
   return (
     <div className="min-h-screen flex flex-col relative bg-graphite-950 text-graphite-50 selection:bg-white selection:text-black">
-      <header className="sticky top-0 z-50 border-b border-graphite-800 bg-graphite-950/80 backdrop-blur-md">
-        <div className="container mx-auto px-6 h-16 flex items-center justify-between gap-4">
-          <Link to="/" className="flex items-center gap-2.5 group shrink-0">
+      <header className="print:hidden sticky top-0 z-50 border-b border-graphite-800 bg-graphite-950/80 backdrop-blur-md">
+        <div className="w-full max-w-screen-2xl mx-auto px-4 lg:px-6 h-16 flex items-center justify-between gap-3">
+          <Link to="/" className="flex items-center gap-2 group shrink-0">
             <ShieldCheck className="h-5 w-5 text-white transition-transform group-hover:scale-105" />
-            <span className="text-lg font-semibold tracking-tight text-white">
+            <span className="text-lg font-semibold tracking-tight text-white whitespace-nowrap">
               {t("common.brandPrefix")}<span className="text-graphite-400 font-normal">{t("common.brandSuffix")}</span>
             </span>
           </Link>
           
-          <nav className="flex items-center gap-3 xl:gap-5">
-            <div className="flex gap-3 xl:gap-5">
+          <nav className="flex items-center gap-2.5 lg:gap-3 xl:gap-4 min-w-0">
+            <div className="flex items-center gap-2.5 lg:gap-3.5 xl:gap-4">
               {navLinks.map((link) => {
                 const isActive = link.path === "/exam"
                   ? ["/exam", "/pre-test", "/post-test"].includes(location.pathname) ||
                     location.pathname.startsWith("/exams/")
-                  : location.pathname.startsWith(link.path);
+                  : link.path === "/evaluation"
+                    ? location.pathname.startsWith("/evaluation") ||
+                      location.pathname.startsWith("/questionnaire")
+                    : link.path === "/admin/specialists"
+                      ? location.pathname.startsWith("/admin")
+                      : location.pathname.startsWith(link.path);
 
                 return (
                   <Link
                     key={link.path}
                     to={link.path}
                     className={clsx(
-                      "text-sm font-medium transition-colors py-1 relative whitespace-nowrap",
+                      "text-sm font-medium transition-colors py-1 relative whitespace-nowrap shrink-0",
                       isActive
                         ? "text-white"
                         : "text-graphite-400 hover:text-white"
@@ -85,7 +90,7 @@ export default function Layout() {
                 onClick={() => setLocale("en")}
                 aria-pressed={locale === "en"}
                 className={clsx(
-                  "px-2.5 py-1 rounded text-xs font-mono font-semibold transition-colors cursor-pointer",
+                  "px-2 py-1 rounded text-xs font-mono font-semibold transition-colors cursor-pointer",
                   locale === "en"
                     ? "bg-white text-black"
                     : "text-graphite-400 hover:text-white"
@@ -98,7 +103,7 @@ export default function Layout() {
                 onClick={() => setLocale("th")}
                 aria-pressed={locale === "th"}
                 className={clsx(
-                  "px-2.5 py-1 rounded text-xs font-mono font-semibold transition-colors cursor-pointer",
+                  "px-2 py-1 rounded text-xs font-mono font-semibold transition-colors cursor-pointer",
                   locale === "th"
                     ? "bg-white text-black"
                     : "text-graphite-400 hover:text-white"
@@ -109,10 +114,10 @@ export default function Layout() {
             </div>
             
             {token ? (
-              <div className="flex items-center gap-3 shrink-0">
+              <div className="flex items-center gap-2 lg:gap-2.5 shrink-0">
                 <NotificationBell />
 
-                <Link to="/profile" className="hidden sm:flex items-center gap-2 text-sm text-graphite-300 hover:text-white transition-colors">
+                <Link to="/profile" className="hidden sm:flex items-center gap-1.5 text-sm text-graphite-300 hover:text-white transition-colors min-w-0">
                   <div className="w-7 h-7 rounded-full bg-graphite-900 flex items-center justify-center border border-graphite-800 shrink-0">
                     {userRole === "admin" ? (
                       <ShieldAlert className="w-4 h-4 text-amber-400" />
@@ -122,7 +127,7 @@ export default function Layout() {
                       <User className="w-4 h-4 text-graphite-400" />
                     )}
                   </div>
-                  <span className="font-medium text-sm font-mono text-graphite-200 whitespace-nowrap">
+                  <span className="font-medium text-sm font-mono text-graphite-200 whitespace-nowrap max-w-[7rem] xl:max-w-[9.5rem] truncate">
                     {userNickname || userEmail}
                   </span>
 
@@ -140,11 +145,14 @@ export default function Layout() {
                 </Link>
 
                 <button 
+                  type="button"
                   onClick={handleLogout}
-                  className="flex items-center gap-2 px-3.5 py-1.5 rounded-md border border-graphite-800 bg-transparent text-graphite-300 text-sm font-medium hover:bg-graphite-900 hover:text-white transition-all duration-200 cursor-pointer whitespace-nowrap"
+                  aria-label={t("nav.logout")}
+                  title={t("nav.logout")}
+                  className="flex items-center gap-1.5 px-2.5 lg:px-3 py-1.5 rounded-md border border-graphite-800 bg-transparent text-graphite-300 text-sm font-medium hover:bg-graphite-900 hover:text-white transition-all duration-200 cursor-pointer whitespace-nowrap shrink-0"
                 >
-                  <LogOut className="w-4 h-4" />
-                  <span className="hidden sm:inline">{t("nav.logout")}</span>
+                  <LogOut className="w-4 h-4 shrink-0" />
+                  <span className="hidden lg:inline">{t("nav.logout")}</span>
                 </button>
               </div>
             ) : (
@@ -163,7 +171,7 @@ export default function Layout() {
         <Outlet />
       </main>
 
-      <footer className="border-t border-graphite-800 py-8 mt-auto z-10 relative bg-graphite-950">
+      <footer className="print:hidden border-t border-graphite-800 py-8 mt-auto z-10 relative bg-graphite-950">
         <div className="container mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2 opacity-90">
             <ShieldCheck className="h-4 w-4 text-white" />

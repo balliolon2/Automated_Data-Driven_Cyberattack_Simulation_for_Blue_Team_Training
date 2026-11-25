@@ -104,6 +104,7 @@ func main() {
 	commentController := controllers.NewCommentController(db)
 	upvoteController := controllers.NewUpvoteController(db)
 	notificationController := controllers.NewNotificationController(db)
+	evaluationController := controllers.NewEvaluationController(db)
 
 	// Routes
 	api := r.Group("/api")
@@ -181,6 +182,9 @@ func main() {
 			admin.GET("/applications", adminController.ListApplications)
 			admin.POST("/applications/:id/approve", adminController.Approve)
 			admin.POST("/applications/:id/reject", adminController.Reject)
+			admin.GET("/evaluations", evaluationController.GetAdminEvaluations)
+			admin.GET("/evaluations/statistics", evaluationController.GetAdminStatistics)
+			admin.GET("/evaluations/export", evaluationController.ExportAdminEvaluations)
 		}
 
 		// Protected exam routes
@@ -222,6 +226,13 @@ func main() {
 		analytics := api.Group("/analytics", middlewares.AuthMiddleware())
 		{
 			analytics.GET("/research-summary", simController.GetResearchSummary)
+		}
+
+		// Protected post-test evaluation questionnaire routes
+		evaluation := api.Group("/evaluation", middlewares.AuthMiddleware())
+		{
+			evaluation.GET("/questionnaire/status", evaluationController.GetQuestionnaireStatus)
+			evaluation.POST("/questionnaire", evaluationController.SubmitQuestionnaire)
 		}
 
 		// Health Check Endpoint

@@ -4,6 +4,7 @@ import {
   ExternalLink, Loader2, Clock 
 } from "lucide-react";
 import axios from "axios";
+import AdminPortalTabs from "../components/AdminPortalTabs";
 import { useI18n } from "../i18n";
 import { resolveApiError } from "../i18n/format";
 
@@ -139,6 +140,8 @@ export default function AdminSpecialistsPage() {
 
   return (
     <div className="max-w-6xl mx-auto space-y-8 animate-fade-in">
+      <AdminPortalTabs active="specialists" />
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-graphite-800 pb-6">
         <div>

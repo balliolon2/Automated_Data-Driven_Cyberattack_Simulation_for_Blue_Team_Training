@@ -3,6 +3,8 @@ import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { AlertTriangle, BookOpen, CheckCircle, ShieldAlert, Award, PlayCircle, Loader2, ClipboardCheck, ArrowRight } from "lucide-react";
 import DomainBreakdown from "../components/DomainBreakdown";
+import QuestionnairePromptBanner from "../components/QuestionnairePromptBanner";
+import type { QuestionnaireStatusResponse } from "../lib/questionnaire";
 import { useI18n } from "../i18n/index.tsx";
 import { resolveApiError } from "../i18n/format.ts";
 import { formatSignedDelta, getExamTypeBadgeClass, type ExamHistoryItem, type ExamHistoryResponse } from "../lib/examReview";
@@ -29,6 +31,7 @@ export default function EvaluationPage() {
   const [theoryCompleted, setTheoryCompleted] = useState(false);
   const [completedTheoryDomains, setCompletedTheoryDomains] = useState<string[]>([]);
   const [examHistory, setExamHistory] = useState<ExamHistoryResponse | null>(null);
+  const [questionnaireStatus, setQuestionnaireStatus] = useState<QuestionnaireStatusResponse | null>(null);
   const [errorState, setErrorState] = useState<EvalErrorState>(null);
 
   const navigate = useNavigate();
@@ -42,17 +45,23 @@ export default function EvaluationPage() {
           return;
         }
 
-        const [statusRes, historyRes] = await Promise.allSettled([
+        const [statusRes, historyRes, qStatusRes] = await Promise.allSettled([
           axios.get("/api/simulation/status", {
             headers: { Authorization: `Bearer ${token}` }
           }),
           axios.get<ExamHistoryResponse>("/api/exams/history", {
+            headers: { Authorization: `Bearer ${token}` }
+          }),
+          axios.get<QuestionnaireStatusResponse>("/api/evaluation/questionnaire/status", {
             headers: { Authorization: `Bearer ${token}` }
           })
         ]);
 
         if (historyRes.status === "fulfilled" && historyRes.value.data) {
           setExamHistory(historyRes.value.data);
+        }
+        if (qStatusRes.status === "fulfilled" && qStatusRes.value.data) {
+          setQuestionnaireStatus(qStatusRes.value.data);
         }
 
         if (statusRes.status === "rejected") {
@@ -256,6 +265,10 @@ export default function EvaluationPage() {
           )}
         </div>
       </div>
+
+      {latestPostExam && questionnaireStatus && (
+        <QuestionnairePromptBanner status={questionnaireStatus} variant="compact" />
+      )}
 
       {(latestPreExam || latestPostExam) && (
         <div className="bg-graphite-900 border border-graphite-800/80 p-6 rounded-lg space-y-4">
