@@ -72,58 +72,63 @@ The post-assessment dashboard summarizes learner performance against the **70% p
 
 ---
 
-## ⚙️ Setup & Running
+## ⚙️ Quick Setup & Deployment (Linux, macOS & Windows)
 
-### Prerequisites
-- Docker & Docker Compose
-- Python 3.x (with `psycopg2` and `requests` libraries)
+No host **Go**, **Node.js**, or **Python** installation is required—everything (PostgreSQL `pgvector`, deterministic seeding, backend API, React frontend, and optional Cloud Auto-HTTPS) runs cleanly via **Docker Compose**.  
+Full specification: [workflows/cross_platform_setup.md](workflows/cross_platform_setup.md).
 
-### 1. Build and Run the Services
-Spin up the PostgreSQL database, Go backend, and React frontend containers:
-```bash
-docker-compose up -d --build
-```
+### Option A — Bare Machine / Fresh Cloud VM (Not Cloned Yet)
 
-### 2. Ingest Exam Questions
-Since the pre-parsed `parsed_questions.json` is already committed in the repository, you can directly seed the security domains and load the questions into the database:
-```bash
-# 1. Seed security domains and load the questions into Postgres
-python scripts/load_exams_to_db.py
-```
+- **Linux (Ubuntu/Debian `apt`, RHEL/Alma/Rocky/Fedora `dnf`/`yum`, Amazon Linux 2023) & macOS:**
+  ```bash
+  # Interactive wizard (or add --non-interactive --mode cloud --domain soc.example.com --auto-deps)
+  curl -fsSL https://raw.githubusercontent.com/balliolon2/Automated_Data-Driven_Cyberattack_Simulation_for_Blue_Team_Training/main/scripts/bootstrap.sh | bash
+  ```
+- **Windows 10/11 / Server (PowerShell 5.1+ / 7+ with Docker Desktop WSL2):**
+  ```powershell
+  irm https://raw.githubusercontent.com/balliolon2/Automated_Data-Driven_Cyberattack_Simulation_for_Blue_Team_Training/main/scripts/bootstrap.ps1 | iex
+  ```
+  *(Pass `-AutoDeps` / `--auto-deps` if Git or Docker Desktop needs installation via `winget`; if Windows prompts to reboot after WSL2 setup, reboot and re-run.)*
 
-*(Optional)* If you ever modify the markdown files in `examination/` and need to regenerate the JSON before loading:
-```bash
-# 2. (Optional) Re-parse raw markdown files in /examination to parsed_questions.json
-python scripts/parse_exams.py
-```
+### Option B — From an Existing Clone
 
-### 3. Run Integration Tests
-Verify the entire API pipeline (registration, login, pre-test start, session recovery, submission, and post-test overlap protection):
-```bash
-python scripts/test_integration.py
-```
+- **Linux / macOS (`install.sh`):**
+  ```bash
+  chmod +x install.sh
+  ./install.sh                  # Interactive menu
+  ./install.sh install --mode local
+  ./install.sh install --mode cloud --domain soc.example.com --acme-email admin@example.com
+  ```
+- **Windows (`install.bat` / `install.ps1` — bypasses ExecutionPolicy automatically):**
+  ```powershell
+  .\install.bat                 # Double-click or run for interactive menu
+  .\install.bat install --mode local
+  .\install.bat install --mode cloud --domain soc.example.com --acme-email admin@example.com
+  ```
 
----
+### Supported Subcommands (Linux & Windows Parity)
 
-## 📊 Verification Output example
-When running `test_integration.py`, the output should confirm a successful end-to-end test run:
-```text
-Registering user: test_4037@example.com
-Registration successful
-Logging in...
-Login successful, token retrieved
-Starting Pre-Test...
-Pre-Test started. Session ID: 5b2ec05a-02ce-4479-ac12-a5a859747062. Questions count: 100
-Domain distribution: {'domain3': 18, 'domain1': 12, 'domain4': 28, 'domain5': 20, 'domain2': 22}
-Testing Session Recovery...
-Session recovery successful. Recovered questions: 100
-Submitting answers...
-Pre-test completed! Final Score: 0
-Starting Post-Test...
-Post-Test started. Session ID: a25cf54a-c2f5-40d8-9412-7160f6735177. Questions count: 100
-Overlap count between Pre-Test and Post-Test: 0
-Verification SUCCESS: Zero question overlap between Pre-Test and Post-Test!
-```
+| Command | Behavior |
+| :--- | :--- |
+| `install` | Preflight checks, CSPRNG `.env` generation + permission lockdown (`chmod 600` / `icacls`), containerized `db -> seed -> backend -> frontend` (+ Caddy HTTPS if Cloud domain), and non-polluting smoke verification (DB counts + `/api/health` + Admin login) |
+| `check` | Read-only preflight audit (OS/WSL2, Docker/Compose, RAM/disk, ports, `.env`, LF/CRLF hygiene) |
+| `status` | Active deployment mode, public URL, Cloud TLS state, redacted LLM mode, and `docker compose ps` |
+| `seed` / `check-seed` | Run idempotent Docker seeding (`5` domains, `540` questions, `28` subtopics, `33` TH docs, `15` scenarios) or read-only count verification |
+| `backup` | Writes timestamped `.sql.gz` DB dump + `uploads` volume `.tar.gz` to `backups/` (retains newest 10 sets) |
+| `restore <file>` | Typed `RESTORE` guard + pre-restore safety backup + restores DB and matching uploads archive |
+| `update` | Auto-backup + optional `git pull --ff-only` (`--no-pull`) + rebuild/re-seed + health check |
+| `logs [service]` | Stream Docker Compose container logs |
+| `uninstall` | Stops & removes containers while keeping persistent volumes (`--volumes` requires typed `DELETE DATA`) |
+| `reset-dev-data` | Local-only runtime table wipe + re-seed (**strictly refused** when `APP_ENVIRONMENT=cloud`) |
+
+### Cloud Security & Optional Daily Backups
+
+- **Cloud HTTPS (`docker-compose.cloud.yml` + `Caddyfile.template`):** Passing `--mode cloud --domain <hostname>` configures Caddy (`80/443`, Let's Encrypt), persists `COMPOSE_FILE=docker-compose.yml:docker-compose.cloud.yml` and `COMPOSE_PATH_SEPARATOR=:` inside `.env`, and sets `FRONTEND_URL=https://<hostname>`. Without a domain, Cloud mode runs HTTP `:80` with a clear TLS warning.
+- **Firewall Baseline:** Only ports `80/tcp` and `443/tcp` (plus restricted `SSH`/`RDP`) should be open publicly; `5432`, `8080`, and `5050` remain isolated. Installers inspect ports without modifying firewall rules unless `--configure-firewall` is passed explicitly.
+- **Optional Developer E2E Verification (`--mode local` only):** Pass `--verify-e2e` (or run `python scripts/test_integration.py`) only in local dev environments; never run synthetic test scripts against live research databases. Cross-OS setup contract suite: `python scripts/test_cross_platform_setup.py`.
+- **Optional Manual Daily Backup Schedule Examples:**
+  - Linux `crontab -e`: `0 2 * * * cd /path/to/repo && ./install.sh backup --non-interactive >/var/log/cybersim-backup.log 2>&1`
+  - Windows Task Scheduler: `schtasks /create /tn "CyberSimBackup" /tr "cmd /c cd /d C:\path\to\repo && .\install.bat backup --non-interactive" /sc daily /st 02:00`
 
 ---
 

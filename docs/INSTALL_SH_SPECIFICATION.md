@@ -1,3 +1,5 @@
+> **SUPERSEDED (2026-11-25):** This early draft has been superseded by the unified cross-platform specification in [workflows/cross_platform_setup.md](../workflows/cross_platform_setup.md) and GitHub Issue `#64` (`install.sh`, `install.ps1`, `install.bat`, `scripts/bootstrap.sh`, `scripts/bootstrap.ps1`, `docker-compose.cloud.yml`). Keep for historical reference only.
+
 # install.sh Specification
 
 ## Purpose

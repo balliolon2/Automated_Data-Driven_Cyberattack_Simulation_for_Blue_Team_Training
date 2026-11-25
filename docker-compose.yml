@@ -39,7 +39,7 @@ services:
     build:
       context: ./docker/seeder
       dockerfile: Dockerfile
-    image: soc-trainer-seeder
+    image: ${SOC_IMAGE_PREFIX:-soc-trainer}-seeder:${IMAGE_TAG:-latest}
     container_name: cyber_sim_seed
     depends_on:
       db:
@@ -113,11 +113,13 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+    image: ${SOC_IMAGE_PREFIX:-soc-trainer}-backend:${IMAGE_TAG:-latest}
     container_name: cyber_sim_backend
     ports:
       - "127.0.0.1:8080:8080"
     environment:
       DATABASE_URL: "host=db user=${POSTGRES_USER:-admin} password=${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required} dbname=${POSTGRES_DB:-cyber_sim} port=5432 sslmode=disable TimeZone=Asia/Bangkok"
+      APP_ENVIRONMENT: ${APP_ENVIRONMENT:-local}
       GIN_MODE: ${GIN_MODE:-release}
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required - set a strong value in .env}
       ADMIN_EMAIL: ${ADMIN_EMAIL:-}
@@ -131,6 +133,7 @@ services:
       PROFICIENCY_THRESHOLD: ${PROFICIENCY_THRESHOLD:-70.0}
       PORT: "8080"
       BYPASS_POST_TEST_THRESHOLD: ${BYPASS_POST_TEST_THRESHOLD:-false}
+      BYPASS_THEORY_GATE: ${BYPASS_THEORY_GATE:-false}
     user: "65534:65534"
     read_only: true
     tmpfs:
@@ -174,6 +177,7 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+    image: ${SOC_IMAGE_PREFIX:-soc-trainer}-frontend:${IMAGE_TAG:-latest}
     container_name: cyber_sim_frontend
     ports:
       - "80:80"

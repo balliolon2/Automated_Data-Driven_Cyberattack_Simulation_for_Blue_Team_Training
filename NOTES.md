@@ -447,5 +447,30 @@
     - Verified via Go unit tests, OpenAPI Swagger sync (`dto/nfr.go`), Node frontend tests (`nfrReport.test.ts`, `i18n.test.ts`, `typography.test.ts`), `scripts/test_integration.py`, `scripts/run_nfr_benchmark.py`, and 1 Push-Right Visual Review Checkpoint (EN & TH screenshots) before closing Issue #15.
     - See `workflows/nfr_evaluation.md`.
 
+## Canonical Terms (Cross-Platform Setup & Cloud Bootstrap)
+
+- **Cross-Platform Installer Harness (`install.sh` & `install.ps1`)**: Symmetric Linux Bash and Windows PowerShell CLIs (paired with `install.bat` ExecutionPolicy bypass wrapper) orchestrating preflight checks, `.env` provisioning, containerized `db → seed → backend → frontend` startup, smoke verification, and `backup` / `restore` / `update` / `uninstall` without requiring host Python, Go, or Node.js.
+- **Clean-VM Bootstrapper (`scripts/bootstrap.sh` & `scripts/bootstrap.ps1`)**: Standalone entrypoints for bare Linux/Windows hosts that install `git` if missing, clone or fast-forward this repository, and hand off directly to `install.sh` / `install.ps1`.
+- **Cloud TLS Compose Overlay (`docker-compose.cloud.yml` + `Caddyfile`)**: Optional Compose override persisted via `COMPOSE_FILE` and `COMPOSE_PATH_SEPARATOR=:` in `.env` whenever a Cloud `DOMAIN` is configured, resetting `frontend` host ports (`!reset []`) so `caddy:2-alpine` terminates `:80/:443` with automatic Let's Encrypt TLS cleanly.
+- **Secret Resolution Precedence (`ENV → <KEY>_FILE → .env → Prompt/CSPRNG`)**: Fail-closed credential lookup preserving existing `.env` secrets on re-runs, generating CSPRNG `POSTGRES_PASSWORD`/`JWT_SECRET` (no weak `"password"` fallback), locking `.env` file permissions (`chmod 600` / `icacls`), and suppressing secrets in stdout/logs.
+- **Non-Polluting Smoke Verification**: Post-install readiness checks asserting `5` domains, `540` questions, `28` subtopics, `33` Thai theory docs, `15` scenarios, `/api/health` (`db_status=up`), frontend HTTP `200`, and Admin login verification without inserting synthetic test/learner records into research tables.
+
+## Settled Decisions (Cross-Platform Setup & Cloud Bootstrap — `/loop-me` Q1–Q17)
+
+62. **Unified Self-Hosted Docker Stack, Clean-Machine Bootstrapping & Full OS Parity**:
+    - Standardizes Local and Cloud deployments on the Spec 6 Docker Compose stack across **Linux (`install.sh`: Ubuntu/Debian `apt`, RHEL/Alma/Rocky/Fedora `dnf`/`yum`, Amazon Linux 2023 + macOS Docker Desktop check)** and **Windows (`install.ps1` + `install.bat` wrapper: Windows 10/11 Docker Desktop WSL2 & Windows Server)**, plus bare-metal `scripts/bootstrap.{sh,ps1}` repo cloners.
+    - Offers confirmed (`--auto-deps`) host dependency installation (`git`, Docker Engine/Compose on Linux; WSL2/`winget` Git + Docker Desktop with clear reboot resume guidance on Windows) and adds `.gitattributes` enforcing `eol=lf` on shell/Docker/Caddy scripts and `eol=crlf` on `.ps1`/`.bat`.
+    - Supports full lifecycle parity (`install`, `check`, `status`, `seed`, `check-seed`, `update`, `backup`, `restore`, `logs`, `uninstall`, `reset-dev-data`), interactive menu when invoked bare, and `--non-interactive` flags.
+
+63. **Cloud Auto-HTTPS (`Caddy`), Low-RAM Protection & Safe Firewall Posture**:
+    - `--mode cloud` sets `APP_ENVIRONMENT=cloud`; providing a Domain runs optional DNS A-record check, generates `Caddyfile` + activates `docker-compose.cloud.yml` (`ports: !reset []` on `frontend`, Caddy `:80/:443`), and persists `FRONTEND_URL=https://<domain>` + `COMPOSE_FILE` + `COMPOSE_PATH_SEPARATOR=:` inside `.env`. IP-only Cloud mode stays on HTTP `:80` with an explicit TLS warning.
+    - Source build (`--build`) is default, supplemented by a 2 GB Linux Cloud swap helper when RAM < 2 GB (no swap) and optional `--image-tag`; host firewall rules (`ufw` / Windows Firewall) are audited and listed cleanly by default and altered only on explicit `--configure-firewall` opt-in.
+
+64. **Fail-Closed Secrets, 100% Containerized Seeding, Guarded Ops & Doc Consolidation**:
+    - Removes host Python requirement by running seeding inside Docker `seed` cleanly; post-install smoke checks verify DB counts, health, HTTP, and Admin login without generating synthetic learner rows (`--verify-e2e` optional in `--mode local` only).
+    - `backup` writes timestamped `.sql.gz` + `uploads` volume `.tar.gz` (retaining last 10 sets) using actual `.env` credentials; `update` auto-backs up before rebuild & safe re-seed; `restore` enforces typed `RESTORE` + pre-restore safety backup; `reset-dev-data` is strictly forbidden in Cloud mode; `uninstall --volumes` requires typed `DELETE DATA`.
+    - Consolidates setup documentation into `workflows/cross_platform_setup.md`, updates `.env.example` & `README.md`, and marks legacy setup drafts superseded.
+    - See `workflows/cross_platform_setup.md`.
+
 
 

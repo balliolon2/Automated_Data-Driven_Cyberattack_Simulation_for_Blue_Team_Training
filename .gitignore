@@ -1,4 +1,8 @@
 .env
+.env.tmp.*
+Caddyfile
+backups/
+*.sql.gz
 .agents/
 skills-lock.json
 .freebuff

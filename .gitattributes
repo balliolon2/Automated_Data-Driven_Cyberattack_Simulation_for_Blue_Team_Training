@@ -1,0 +1,16 @@
+# Enforce consistent cross-platform line endings (Windows <-> Linux Docker)
+* text=auto
+
+# Unix shell scripts, Dockerfiles, and reverse-proxy templates MUST stay LF
+*.sh text eol=lf
+Dockerfile text eol=lf
+Dockerfile.* text eol=lf
+Caddyfile text eol=lf
+Caddyfile.* text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+
+# Windows PowerShell & Batch scripts stay CRLF
+*.ps1 text eol=crlf
+*.bat text eol=crlf
+*.cmd text eol=crlf

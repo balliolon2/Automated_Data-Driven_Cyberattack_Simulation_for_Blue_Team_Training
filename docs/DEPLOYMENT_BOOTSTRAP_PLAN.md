@@ -1,3 +1,5 @@
+> **SUPERSEDED (2026-11-25):** This early design plan and its open decisions have been resolved and superseded by [workflows/cross_platform_setup.md](../workflows/cross_platform_setup.md) and GitHub Issue `#64`. Refer to that specification and `README.md` for active Linux and Windows setup procedures.
+
 # Deployment Bootstrap Plan
 
 ## Purpose
