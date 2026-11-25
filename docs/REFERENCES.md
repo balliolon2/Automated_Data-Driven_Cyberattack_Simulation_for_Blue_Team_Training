@@ -49,6 +49,7 @@ Example:
 | R7 | (NIST, 2006–2024; Wikipedia contributors, 2026) | Federal Technical Publications & Open Encyclopedia | Sub-topic curriculum modules (`1.1`–`5.6`) across `theory/domain1/`–`theory/domain5/` | Active |
 | R8 | (Lewis, 1995, 2018) | Peer-Reviewed Psychometric Usability Instrument (CSUQ v3) | Post-Test Evaluation Questionnaire usability items (`q1`–`q16`) & subscales (`SYSUSE`, `INFOQUAL`, `INTERQUAL`, `OVERALL`) | Active |
 | R9 | (Hart & Staveland, 1988; Hart, 2006) | Peer-Reviewed Cognitive Workload Instrument (NASA-TLX / Raw TLX) | Post-Test Evaluation Questionnaire 6-dimension workload assessment (`nasa_tlx_scores`) & Paper Statistics methodology guide | Active |
+| R10 | (ISO/IEC, 2023) | International Software Quality Standard (SQuaRE — ISO/IEC 25010:2023; superseding 25010:2011) | 10-dimension System-Level Non-Functional Requirement (NFR) Evaluation Matrix & IEEE engineering report (`/admin/nfr`, Issue #15) | Active |
 
 `R-ID` codes are permanent. They must never be reused or redefined, even after the reference is retired.
 
@@ -278,7 +279,18 @@ To ground all **28 granular SY0-701 Sub-Topic Markdown modules** (`theory/domain
 - **Mapping**: Grounds the unweighted 6-dimension Raw NASA-TLX (`Mental Demand`, `Physical Demand`, `Temporal Demand`, `Performance`, `Effort`, `Frustration` on a `0–100` step-`5` scale, with `performance_workload = 100 - performance_rating`) persisted in `evaluation_metrics.nasa_tlx_scores`.
 - **Usage & Copyright**: Originally developed at NASA Ames Research Center; widely documented public research workload assessment methodology cited via `[R9]`.
 
-## 16. Revision History
+## 16. System Quality Model Provenance (R10)
+
+### R10 — ISO/IEC 25010 Systems and Software Quality Requirements and Evaluation (SQuaRE)
+
+1. International Organization for Standardization & International Electrotechnical Commission. (2023). *Systems and software engineering — Systems and software Quality Requirements and Evaluation (SQuaRE) — Product quality model* (ISO/IEC Standard No. 25010:2023). ISO/IEC. [https://www.iso.org/standard/78176.html](https://www.iso.org/standard/78176.html)
+2. International Organization for Standardization & International Electrotechnical Commission. (2011). *Systems and software engineering — Systems and software Quality Requirements and Evaluation (SQuaRE) — System and software quality models* (ISO/IEC Standard No. 25010:2011). ISO/IEC. [https://www.iso.org/standard/35733.html](https://www.iso.org/standard/35733.html)
+
+- **BibTeX keys**: `iso25010_2023`, `iso25010_2011`
+- **Mapping**: Grounds the 10-dimension Non-Functional Requirement (NFR) evaluation matrix (`Performance`, `Availability`, `Scalability`, `Reliability`, `Security`, `Data Integrity`, `Reproducibility`, `Usability`, `Maintainability`, `Safety`), metric rubric (`nfr-rubric-v1`), and Admin paper-ready LaTeX/Markdown/Narrative reporting on `/admin/nfr` (Issue #15).
+- **Usage & Copyright**: Official international standard citation referenced via standard metadata and APA 7th attribution (`[R10]`); no copyrighted ISO standard text is reproduced.
+
+## 17. Revision History
 
 | Date | Item |
 |---|---|
@@ -286,3 +298,4 @@ To ground all **28 granular SY0-701 Sub-Topic Markdown modules** (`theory/domain
 | 2026-11-15 | Registered references R2–R6 (Domain taxonomy, NIST SP 800-53r5/800-61r2/800-61r3/800-207/800-30r1, CISA guides, CMU ISO & Stanford UIT resources, MITRE ATT&CK, OWASP Top 10 2021, Microsoft Learn KQL, and Wikipedia Security Articles) with clickable URLs across all 5 `theory/*.md` modules. |
 | 2026-11-16 | Registered reference R7 covering verified NIST CSRC SPs (`800-88r1`, `800-40r4`, `800-63-3`, `800-161r1`, `800-86`, `800-115`, `800-50r1`) and Wikipedia encyclopedia articles for all 28 SY0-701 Sub-topic Markdown files (`theory/domain1/*.md`–`theory/domain5/*.md`). |
 | 2026-11-25 | Registered permanent references **R8** (CSUQ v3 — Lewis, 1995; 2018) and **R9** (NASA-TLX / Raw TLX — Hart & Staveland, 1988; Hart, 2006) for Spec 14 Post-Test Evaluation Questionnaire and Paper Statistics (`#13`). |
+| 2026-11-25 | Registered permanent reference **R10** (ISO/IEC 25010:2023 / 2011 SQuaRE Product Quality Model) for Spec 15 System-Level Non-Functional Requirement Evaluation Portal (`#15`). |

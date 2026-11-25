@@ -360,6 +360,26 @@ definitions:
         example: 5
         type: integer
     type: object
+  dto.CreateNFRRunRequest:
+    properties:
+      environment:
+        example: local-docker
+        type: string
+      maintainability_report:
+        $ref: '#/definitions/dto.NFRMaintainabilityReportDTO'
+      notes:
+        example: Baseline run before tuning
+        type: string
+      run_label:
+        example: Local Docker Benchmark
+        type: string
+      scalability:
+        $ref: '#/definitions/dto.NFRScalabilityBenchmarkDTO'
+      source:
+        description: live_snapshot | in_app_probe | cli_benchmark | imported_json
+        example: live_snapshot
+        type: string
+    type: object
   dto.CronbachAlphaDTO:
     properties:
       alpha:
@@ -382,6 +402,14 @@ definitions:
         type: string
       status:
         example: ok
+        type: string
+    type: object
+  dto.DeleteNFRRunResponse:
+    properties:
+      deleted:
+        example: true
+        type: boolean
+      run_id:
         type: string
     type: object
   dto.DescriptiveStatDTO:
@@ -813,6 +841,24 @@ definitions:
         example: 2
         type: integer
     type: object
+  dto.HealthResponse:
+    properties:
+      db_latency_ms:
+        example: 2.41
+        type: number
+      db_status:
+        example: up
+        type: string
+      service:
+        example: soc-trainer-api
+        type: string
+      status:
+        example: healthy
+        type: string
+      uptime_seconds:
+        example: 1842
+        type: integer
+    type: object
   dto.LearnDomainBreakdownDTO:
     properties:
       completed_subtopics:
@@ -1084,6 +1130,499 @@ definitions:
         example: raw_tlx
         type: string
     type: object
+  dto.NFRCheckItemDTO:
+    properties:
+      key:
+        example: non_llm_p95_ms
+        type: string
+      measured:
+        example: "48.20"
+        type: string
+      status:
+        description: pass | warn | fail | not_measured | insufficient_data
+        example: pass
+        type: string
+      target:
+        example: <= 300 ms
+        type: string
+      unit:
+        example: ms
+        type: string
+    type: object
+  dto.NFRDimensionResultDTO:
+    properties:
+      checks:
+        items:
+          $ref: '#/definitions/dto.NFRCheckItemDTO'
+        type: array
+      evidence_source:
+        example: In-Memory HTTP Ring Buffer & Live DB Ping
+        type: string
+      id:
+        example: performance
+        type: string
+      iso_characteristic:
+        example: Performance Efficiency (Time Behaviour)
+        type: string
+      status:
+        description: pass | warn | fail | not_measured | insufficient_data
+        example: pass
+        type: string
+      summary_metric:
+        example: p95 48.2 ms | DB 2.4 ms
+        type: string
+      target_expression:
+        example: Non-LLM p95 <= 300 ms; DB <= 50 ms
+        type: string
+    type: object
+  dto.NFREndpointLatencyDTO:
+    properties:
+      category:
+        example: non_llm_api
+        type: string
+      count:
+        example: 45
+        type: integer
+      error_count:
+        example: 0
+        type: integer
+      max_ms:
+        example: 82.1
+        type: number
+      mean_ms:
+        example: 16.2
+        type: number
+      p50_ms:
+        example: 12.5
+        type: number
+      p95_ms:
+        example: 48.9
+        type: number
+      p99_ms:
+        example: 75
+        type: number
+      route:
+        example: GET /api/simulation/status
+        type: string
+    type: object
+  dto.NFRLLMTelemetryDTO:
+    properties:
+      error_count:
+        example: 0
+        type: integer
+      fallback_count:
+        example: 1
+        type: integer
+      latency:
+        $ref: '#/definitions/dto.NFRPercentilesDTO'
+      models:
+        items:
+          type: string
+        type: array
+      outcome_counts:
+        additionalProperties:
+          type: integer
+        type: object
+      providers:
+        items:
+          type: string
+        type: array
+      success_count:
+        example: 3
+        type: integer
+      total_attempts:
+        example: 5
+        type: integer
+      total_calls:
+        example: 4
+        type: integer
+      total_retries:
+        example: 1
+        type: integer
+    type: object
+  dto.NFRMaintainabilityReportDTO:
+    properties:
+      collected_at:
+        type: string
+      evidence_gate_passed:
+        example: true
+        type: boolean
+      frontend_test_passed:
+        example: true
+        type: boolean
+      frontend_tsc_passed:
+        example: true
+        type: boolean
+      git_commit:
+        example: aef5b35
+        type: string
+      gitleaks_findings:
+        example: 0
+        type: integer
+      go_coverage_pct:
+        example: 68.4
+        type: number
+      go_test_passed:
+        example: true
+        type: boolean
+      govulncheck_high_critical:
+        example: 0
+        type: integer
+      integration_harness_passed:
+        example: true
+        type: boolean
+      npm_audit_high_critical:
+        example: 0
+        type: integer
+      theory_gate_passed:
+        example: true
+        type: boolean
+    type: object
+  dto.NFRPercentilesDTO:
+    properties:
+      count:
+        example: 142
+        type: integer
+      max:
+        example: 144
+        type: number
+      mean:
+        example: 18.4
+        type: number
+      min:
+        example: 1.2
+        type: number
+      p50:
+        example: 14.1
+        type: number
+      p95:
+        example: 62.3
+        type: number
+      p99:
+        example: 118.7
+        type: number
+    type: object
+  dto.NFRReliabilityBreakdownDTO:
+    properties:
+      ai_generated_count:
+        example: 8
+        type: integer
+      fallback_reasons:
+        additionalProperties:
+          type: integer
+        type: object
+      static_fallback_count:
+        example: 4
+        type: integer
+      system_failure_count:
+        example: 0
+        type: integer
+      total_sessions:
+        example: 12
+        type: integer
+      total_snapshot_count:
+        example: 12
+        type: integer
+      valid_snapshot_count:
+        example: 12
+        type: integer
+    type: object
+  dto.NFRReportResponse:
+    properties:
+      dimensions:
+        items:
+          $ref: '#/definitions/dto.NFRDimensionResultDTO'
+        type: array
+      environment:
+        example: local
+        type: string
+      evaluated_at:
+        type: string
+      maintainability_report:
+        $ref: '#/definitions/dto.NFRMaintainabilityReportDTO'
+      notes:
+        type: string
+      reliability_breakdown:
+        $ref: '#/definitions/dto.NFRReliabilityBreakdownDTO'
+      rubric_version:
+        example: nfr-rubric-v1
+        type: string
+      run_id:
+        type: string
+      run_label:
+        example: Live System Evaluation
+        type: string
+      runtime:
+        $ref: '#/definitions/dto.NFRRuntimeSnapshotDTO'
+      scalability:
+        $ref: '#/definitions/dto.NFRScalabilityBenchmarkDTO'
+      source:
+        example: live
+        type: string
+      summary:
+        $ref: '#/definitions/dto.NFRSummaryDTO'
+      thresholds:
+        $ref: '#/definitions/dto.NFRThresholdsDTO'
+    type: object
+  dto.NFRRunDetailResponse:
+    properties:
+      report:
+        $ref: '#/definitions/dto.NFRReportResponse'
+      run:
+        $ref: '#/definitions/dto.NFRRunListItemDTO'
+    type: object
+  dto.NFRRunListItemDTO:
+    properties:
+      availability_pct:
+        type: number
+      created_at:
+        type: string
+      environment:
+        type: string
+      fail_count:
+        type: integer
+      measured_pass_rate:
+        type: number
+      non_llm_p95_ms:
+        type: number
+      not_measured_count:
+        type: integer
+      notes:
+        type: string
+      overall_status:
+        type: string
+      passed_count:
+        type: integer
+      rubric_version:
+        type: string
+      run_id:
+        type: string
+      run_label:
+        type: string
+      source:
+        type: string
+      warn_count:
+        type: integer
+    type: object
+  dto.NFRRunListResponse:
+    properties:
+      runs:
+        items:
+          $ref: '#/definitions/dto.NFRRunListItemDTO'
+        type: array
+    type: object
+  dto.NFRRuntimeSnapshotDTO:
+    properties:
+      availability_pct:
+        example: 100
+        type: number
+      db_latency_ms:
+        example: 2.35
+        type: number
+      db_status:
+        example: up
+        type: string
+      endpoints:
+        items:
+          $ref: '#/definitions/dto.NFREndpointLatencyDTO'
+        type: array
+      error_rate_5xx_pct:
+        example: 0
+        type: number
+      gin_mode:
+        example: release
+        type: string
+      in_flight_current:
+        example: 1
+        type: integer
+      llm_calls:
+        $ref: '#/definitions/dto.NFRLLMTelemetryDTO'
+      llm_latency:
+        $ref: '#/definitions/dto.NFRPercentilesDTO'
+      llm_requests:
+        example: 4
+        type: integer
+      non_llm_latency:
+        $ref: '#/definitions/dto.NFRPercentilesDTO'
+      non_llm_requests:
+        example: 236
+        type: integer
+      peak_concurrent_requests:
+        example: 12
+        type: integer
+      process_started_at:
+        type: string
+      status_2xx:
+        example: 228
+        type: integer
+      status_3xx:
+        example: 0
+        type: integer
+      status_4xx:
+        example: 12
+        type: integer
+      status_5xx:
+        example: 0
+        type: integer
+      total_requests:
+        example: 240
+        type: integer
+      uptime_seconds:
+        example: 3600
+        type: integer
+      window_started_at:
+        type: string
+    type: object
+  dto.NFRScalabilityBenchmarkDTO:
+    properties:
+      executed_at:
+        type: string
+      levels:
+        items:
+          $ref: '#/definitions/dto.NFRScalabilityLevelDTO'
+        type: array
+      mode:
+        description: in_app_probe | cli_benchmark
+        example: in_app_probe
+        type: string
+      preset:
+        example: standard
+        type: string
+      target_endpoints:
+        items:
+          type: string
+        type: array
+    type: object
+  dto.NFRScalabilityLevelDTO:
+    properties:
+      concurrency:
+        example: 10
+        type: integer
+      duration_ms:
+        example: 320
+        type: number
+      error_count:
+        example: 0
+        type: integer
+      error_rate_pct:
+        example: 0
+        type: number
+      max_ms:
+        example: 84
+        type: number
+      mean_ms:
+        example: 28.4
+        type: number
+      p50_ms:
+        example: 24
+        type: number
+      p95_ms:
+        example: 55.2
+        type: number
+      p99_ms:
+        example: 78.1
+        type: number
+      success_count:
+        example: 100
+        type: integer
+      throughput_rps:
+        example: 312.5
+        type: number
+      total_requests:
+        example: 100
+        type: integer
+    type: object
+  dto.NFRSummaryDTO:
+    properties:
+      fail_count:
+        example: 0
+        type: integer
+      measured_pass_rate:
+        example: 87.5
+        type: number
+      not_measured_count:
+        example: 2
+        type: integer
+      overall_status:
+        description: all_passed | pass_with_warnings | partial_pending | fail
+        example: partial_pending
+        type: string
+      passed_count:
+        example: 7
+        type: integer
+      total_dimensions:
+        example: 10
+        type: integer
+      warn_count:
+        example: 1
+        type: integer
+    type: object
+  dto.NFRThresholdsDTO:
+    properties:
+      availability_target_pct:
+        example: 99
+        type: number
+      availability_warn_pct:
+        example: 95
+        type: number
+      coverage_target_pct:
+        example: 60
+        type: number
+      coverage_warn_pct:
+        example: 40
+        type: number
+      csuq_target_mean:
+        example: 5
+        type: number
+      csuq_warn_mean:
+        example: 4
+        type: number
+      db_ping_target_ms:
+        example: 50
+        type: number
+      db_ping_warn_ms:
+        example: 150
+        type: number
+      llm_p95_target_ms:
+        example: 20000
+        type: number
+      llm_p95_warn_ms:
+        example: 45000
+        type: number
+      non_llm_p95_target_ms:
+        example: 300
+        type: number
+      non_llm_p95_warn_ms:
+        example: 500
+        type: number
+      non_llm_p99_target_ms:
+        example: 800
+        type: number
+      non_llm_p99_warn_ms:
+        example: 1200
+        type: number
+      rubric_version:
+        example: nfr-rubric-v1
+        type: string
+      scalability_error_target_pct:
+        example: 1
+        type: number
+      scalability_error_warn_pct:
+        example: 5
+        type: number
+      scalability_p95_target_ms:
+        example: 500
+        type: number
+      scalability_p95_warn_ms:
+        example: 1000
+        type: number
+      tlx_target_max:
+        example: 55
+        type: number
+      tlx_warn_max:
+        example: 70
+        type: number
+    type: object
   dto.PairedTTestDTO:
     properties:
       ci_high:
@@ -1247,6 +1786,35 @@ definitions:
       total_elapsed_sec:
         example: 720
         type: integer
+    type: object
+  dto.RunScalabilityProbeRequest:
+    properties:
+      concurrency:
+        example: 10
+        type: integer
+      environment:
+        example: local
+        type: string
+      preset:
+        description: light | standard | burst
+        example: standard
+        type: string
+      run_label:
+        example: In-App Safe Concurrency Probe
+        type: string
+      save_run:
+        example: false
+        type: boolean
+      total_requests:
+        example: 100
+        type: integer
+    type: object
+  dto.ScalabilityProbeResponse:
+    properties:
+      benchmark:
+        $ref: '#/definitions/dto.NFRScalabilityBenchmarkDTO'
+      saved_run:
+        $ref: '#/definitions/dto.NFRRunListItemDTO'
     type: object
   dto.ScenarioResponse:
     properties:
@@ -1599,6 +2167,17 @@ definitions:
         example: false
         type: boolean
       result: {}
+    type: object
+  dto.TelemetryResetResponse:
+    properties:
+      message:
+        example: In-memory HTTP and LLM telemetry window reset.
+        type: string
+      reset:
+        example: true
+        type: boolean
+      window_started_at:
+        type: string
     type: object
   dto.TheoryDomainDTO:
     properties:
@@ -1967,6 +2546,305 @@ paths:
       summary: Get paper-ready statistical analysis report (Admin only)
       tags:
       - Admin
+  /admin/nfr/export:
+    get:
+      description: Streams RFC 4180 CSV bytes (with UTF-8 BOM and formula-injection
+        neutralization) or canonical JSON for the live evaluation or a specified run_id.
+      parameters:
+      - default: json
+        description: Export format (csv or json)
+        in: query
+        name: format
+        type: string
+      - description: Optional saved run UUID; omits for live view
+        in: query
+        name: run_id
+        type: string
+      produces:
+      - text/csv
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.NFRReportResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Export live or saved NFR evaluation report as UTF-8 BOM CSV or JSON
+        (Admin only)
+      tags:
+      - Admin
+  /admin/nfr/live:
+    get:
+      description: Aggregates passive HTTP/LLM ring-buffer telemetry, live PostgreSQL
+        integrity/reproducibility/safety/usability audits, read-only security probes,
+        and the latest scalability probe result.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.NFRReportResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get live 10-dimension ISO/IEC 25010 NFR evaluation (Admin only)
+      tags:
+      - Admin
+  /admin/nfr/probe/scalability:
+    post:
+      consumes:
+      - application/json
+      description: Runs a mutex-guarded, telemetry-isolated read-only concurrency
+        probe (light 5/50, standard 10/100, burst 20/200) and optionally persists
+        a snapshot.
+      parameters:
+      - description: Scalability probe options
+        in: body
+        name: request
+        schema:
+          $ref: '#/definitions/dto.RunScalabilityProbeRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.ScalabilityProbeResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Execute bounded safe in-app concurrency probe (Admin only)
+      tags:
+      - Admin
+  /admin/nfr/runs:
+    get:
+      description: Lists immutable NFR snapshots ordered newest first.
+      parameters:
+      - default: 50
+        description: Maximum runs to return (1-200)
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.NFRRunListResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List persisted NFR evaluation runs (Admin only)
+      tags:
+      - Admin
+    post:
+      consumes:
+      - application/json
+      description: Evaluates current live DB/runtime checks merged with optional scalability
+        and CI maintainability attachments (max 1 MB body) and saves an immutable
+        snapshot in nfr_evaluation_runs.
+      parameters:
+      - description: Run snapshot or benchmark ingestion payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreateNFRRunRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/dto.NFRRunDetailResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "413":
+          description: Request Entity Too Large
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Capture a live NFR snapshot or ingest a CLI/JSON benchmark run (Admin
+        only)
+      tags:
+      - Admin
+  /admin/nfr/runs/{runId}:
+    delete:
+      description: Permanently deletes a saved NFR evaluation snapshot by UUID.
+      parameters:
+      - description: Run UUID
+        in: path
+        name: runId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.DeleteNFRRunResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete a persisted NFR evaluation run (Admin only)
+      tags:
+      - Admin
+    get:
+      description: Returns the immutable NFR report snapshot stored for a specific
+        run UUID.
+      parameters:
+      - description: Run UUID
+        in: path
+        name: runId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.NFRRunDetailResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get a saved NFR evaluation run by ID (Admin only)
+      tags:
+      - Admin
+  /admin/nfr/telemetry/reset:
+    post:
+      description: Clears the passive in-memory HTTP and LLM telemetry ring buffers
+        and resets window_started_at without modifying persisted NFR evaluation runs.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.TelemetryResetResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Reset in-memory HTTP and LLM telemetry window (Admin only)
+      tags:
+      - Admin
   /analytics/research-summary:
     get:
       consumes:
@@ -2308,6 +3186,24 @@ paths:
       summary: Submit an exam answer
       tags:
       - Exams
+  /health:
+    get:
+      description: Executes a 2-second PostgreSQL ping and reports database status,
+        latency in milliseconds, and service uptime.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.HealthResponse'
+        "503":
+          description: Service Unavailable
+          schema:
+            $ref: '#/definitions/dto.HealthResponse'
+      summary: Service and database connectivity health check
+      tags:
+      - System
   /learn/domains:
     get:
       consumes:

@@ -97,6 +97,136 @@ def verify_partial_exam_finalize():
     print("Partial finalization and unanswered review check PASSED!")
 
 
+def resolve_admin_headers():
+    admin_email = os.environ.get("ADMIN_EMAIL", "admin@soc.local")
+    admin_password = os.environ.get("ADMIN_PASSWORD", "password")
+    if not os.environ.get("ADMIN_PASSWORD") and os.path.exists(".env"):
+        with open(".env", "r", encoding="utf-8") as envf:
+            for line in envf:
+                line = line.strip()
+                if line.startswith("ADMIN_EMAIL=") and not os.environ.get("ADMIN_EMAIL"):
+                    admin_email = line.split("=", 1)[1].strip()
+                elif line.startswith("ADMIN_PASSWORD="):
+                    val = line.split("=", 1)[1].strip()
+                    if val:
+                        admin_password = val
+
+    admin_login = requests.post(f"{BASE_URL}/login", json={"email": admin_email, "password": admin_password})
+    if admin_login.status_code != 200:
+        print(f"Error: Admin login failed for {admin_email}: {admin_login.status_code} {admin_login.text}")
+        sys.exit(1)
+    return {"Authorization": f"Bearer {admin_login.json()['token']}"}
+
+
+def verify_nfr_portal(learner_headers):
+    print("Verifying /api/health DB ping & Admin-only NFR endpoints...")
+    health_res = requests.get(f"{BASE_URL}/health")
+    if health_res.status_code != 200:
+        print(f"Error: GET /health failed: {health_res.status_code} {health_res.text}")
+        sys.exit(1)
+    h_data = health_res.json()
+    if (
+        h_data.get("status") != "healthy"
+        or h_data.get("db_status") != "up"
+        or not isinstance(h_data.get("db_latency_ms"), (int, float))
+        or h_data.get("db_latency_ms", 0) <= 0
+    ):
+        print(f"Error: Unexpected /health payload: {h_data}")
+        sys.exit(1)
+
+    if requests.get(f"{BASE_URL}/admin/nfr/live").status_code != 401:
+        print("Error: Expected 401 for unauthenticated /admin/nfr/live")
+        sys.exit(1)
+
+    for method, ep in [
+        ("GET", "/admin/nfr/live"),
+        ("GET", "/admin/nfr/runs"),
+        ("POST", "/admin/nfr/runs"),
+        ("POST", "/admin/nfr/probe/scalability"),
+        ("POST", "/admin/nfr/telemetry/reset"),
+        ("GET", "/admin/nfr/export?format=csv"),
+    ]:
+        r_forb = requests.request(method, f"{BASE_URL}{ep}", headers=learner_headers)
+        if r_forb.status_code != 403:
+            print(f"Error: Expected 403 for learner on {method} {ep}, got {r_forb.status_code}")
+            sys.exit(1)
+
+    admin_hdrs = resolve_admin_headers()
+
+    nfr_live = requests.get(f"{BASE_URL}/admin/nfr/live", headers=admin_hdrs)
+    if nfr_live.status_code != 200:
+        print(f"Error: GET /admin/nfr/live failed: {nfr_live.status_code} {nfr_live.text}")
+        sys.exit(1)
+    nfr_data = nfr_live.json()
+    dims = nfr_data.get("dimensions") or []
+    if len(dims) != 10:
+        print(f"Error: Expected 10 NFR dimensions, got {len(dims)}")
+        sys.exit(1)
+    dim_map = {d["id"]: d for d in dims}
+    for key in ["data_integrity", "safety", "security"]:
+        if dim_map.get(key, {}).get("status") == "fail":
+            print(f"Error: Live NFR dimension {key} failed unexpectedly: {dim_map[key]}")
+            sys.exit(1)
+
+    for env_key in ["JWT_SECRET", "LLM_API_KEY", "POSTGRES_PASSWORD"]:
+        sec_val = os.environ.get(env_key, "").strip()
+        if len(sec_val) >= 12 and sec_val in nfr_live.text:
+            print(f"Error: Secret leakage detected for {env_key} in /admin/nfr/live!")
+            sys.exit(1)
+
+    probe_res = requests.post(
+        f"{BASE_URL}/admin/nfr/probe/scalability",
+        headers=admin_hdrs,
+        json={"preset": "light", "save_run": True, "run_label": "Integration Probe"},
+    )
+    if probe_res.status_code != 200:
+        print(f"Error: Safe scalability probe failed: {probe_res.status_code} {probe_res.text}")
+        sys.exit(1)
+    probe_data = probe_res.json()
+    saved_run = probe_data.get("saved_run") or {}
+    saved_run_id = saved_run.get("run_id")
+    if not saved_run_id or (probe_data.get("benchmark") or {}).get("levels", [{}])[0].get("total_requests") != 50:
+        print(f"Error: Unexpected scalability probe response: {probe_data}")
+        sys.exit(1)
+
+    runs_list = requests.get(f"{BASE_URL}/admin/nfr/runs", headers=admin_hdrs)
+    if runs_list.status_code != 200 or not any(r.get("run_id") == saved_run_id for r in (runs_list.json().get("runs") or [])):
+        print(f"Error: Saved probe run missing from GET /admin/nfr/runs: {runs_list.text}")
+        sys.exit(1)
+
+    run_detail = requests.get(f"{BASE_URL}/admin/nfr/runs/{saved_run_id}", headers=admin_hdrs)
+    if run_detail.status_code != 200 or not (run_detail.json().get("report") or {}).get("scalability"):
+        print(f"Error: GET /admin/nfr/runs/{saved_run_id} failed: {run_detail.status_code}")
+        sys.exit(1)
+
+    nfr_csv = requests.get(f"{BASE_URL}/admin/nfr/export?format=csv&run_id={saved_run_id}", headers=admin_hdrs)
+    if (
+        nfr_csv.status_code != 200
+        or not nfr_csv.content.startswith(b"\xef\xbb\xbf")
+        or "Integration Probe" not in nfr_csv.text
+        or "scalability_level" not in nfr_csv.text
+    ):
+        print(f"Error: Unexpected NFR CSV export: {nfr_csv.status_code}")
+        sys.exit(1)
+
+    nfr_json = requests.get(f"{BASE_URL}/admin/nfr/export?format=json&run_id={saved_run_id}", headers=admin_hdrs)
+    if nfr_json.status_code != 200 or nfr_json.json().get("run_id") != saved_run_id:
+        print(f"Error: Unexpected NFR JSON export: {nfr_json.status_code}")
+        sys.exit(1)
+
+    nfr_del = requests.delete(f"{BASE_URL}/admin/nfr/runs/{saved_run_id}", headers=admin_hdrs)
+    if nfr_del.status_code != 200 or requests.get(f"{BASE_URL}/admin/nfr/runs/{saved_run_id}", headers=admin_hdrs).status_code != 404:
+        print(f"Error: Expected run delete + 404 verification: {nfr_del.status_code}")
+        sys.exit(1)
+
+    nfr_reset = requests.post(f"{BASE_URL}/admin/nfr/telemetry/reset", headers=admin_hdrs)
+    if nfr_reset.status_code != 200 or nfr_reset.json().get("reset") is not True:
+        print(f"Error: Expected 200 telemetry reset, got {nfr_reset.status_code}: {nfr_reset.text}")
+        sys.exit(1)
+
+    print("System-Level NFR Evaluation Portal, Probes, Run History & Export VERIFIED!")
+
+
 def run_tests():
     # 1. Register a test user
     email = f"test_{uuid.uuid4().hex[:8]}@example.com"
@@ -289,6 +419,7 @@ def run_tests():
             print("Post-Test eligibility gate blocked the zero-overlap flow.")
             print("Verified enforced gate: learner is below the proficiency threshold and BYPASS_POST_TEST_THRESHOLD is not true.")
             print("Zero-overlap verification requires BYPASS_POST_TEST_THRESHOLD=true; skipping that check for this environment.")
+            verify_nfr_portal(headers)
             sys.exit(0)
         print("Failed to start Post-Test (403)", post_body)
         sys.exit(1)
@@ -427,24 +558,7 @@ def run_tests():
             sys.exit(1)
 
     # Admin evaluations, paper statistics, and export checks
-    admin_email = os.environ.get("ADMIN_EMAIL", "admin@soc.local")
-    admin_password = os.environ.get("ADMIN_PASSWORD", "password")
-    if not os.environ.get("ADMIN_PASSWORD") and os.path.exists(".env"):
-        with open(".env", "r", encoding="utf-8") as envf:
-            for line in envf:
-                line = line.strip()
-                if line.startswith("ADMIN_EMAIL=") and not os.environ.get("ADMIN_EMAIL"):
-                    admin_email = line.split("=", 1)[1].strip()
-                elif line.startswith("ADMIN_PASSWORD="):
-                    val = line.split("=", 1)[1].strip()
-                    if val:
-                        admin_password = val
-
-    admin_login = requests.post(f"{BASE_URL}/login", json={"email": admin_email, "password": admin_password})
-    if admin_login.status_code != 200:
-        print(f"Error: Admin login failed for {admin_email}: {admin_login.status_code} {admin_login.text}")
-        sys.exit(1)
-    admin_hdrs = {"Authorization": f"Bearer {admin_login.json()['token']}"}
+    admin_hdrs = resolve_admin_headers()
 
     adm_eval = requests.get(f"{BASE_URL}/admin/evaluations", headers=admin_hdrs)
     if adm_eval.status_code != 200:
@@ -479,6 +593,7 @@ def run_tests():
         sys.exit(1)
 
     print("Questionnaire, Research Summary & Admin Evaluation/Statistics/Export VERIFIED!")
+    verify_nfr_portal(headers)
 
 if __name__ == "__main__":
     if len(sys.argv) > 1:

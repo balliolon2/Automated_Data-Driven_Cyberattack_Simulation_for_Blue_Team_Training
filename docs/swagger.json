@@ -160,6 +160,458 @@
                 }
             }
         },
+        "/admin/nfr/export": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Streams RFC 4180 CSV bytes (with UTF-8 BOM and formula-injection neutralization) or canonical JSON for the live evaluation or a specified run_id.",
+                "produces": [
+                    "text/csv",
+                    "application/json"
+                ],
+                "tags": [
+                    "Admin"
+                ],
+                "summary": "Export live or saved NFR evaluation report as UTF-8 BOM CSV or JSON (Admin only)",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "default": "json",
+                        "description": "Export format (csv or json)",
+                        "name": "format",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Optional saved run UUID; omits for live view",
+                        "name": "run_id",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.NFRReportResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/nfr/live": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Aggregates passive HTTP/LLM ring-buffer telemetry, live PostgreSQL integrity/reproducibility/safety/usability audits, read-only security probes, and the latest scalability probe result.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Admin"
+                ],
+                "summary": "Get live 10-dimension ISO/IEC 25010 NFR evaluation (Admin only)",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.NFRReportResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/nfr/probe/scalability": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Runs a mutex-guarded, telemetry-isolated read-only concurrency probe (light 5/50, standard 10/100, burst 20/200) and optionally persists a snapshot.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Admin"
+                ],
+                "summary": "Execute bounded safe in-app concurrency probe (Admin only)",
+                "parameters": [
+                    {
+                        "description": "Scalability probe options",
+                        "name": "request",
+                        "in": "body",
+                        "schema": {
+                            "$ref": "#/definitions/dto.RunScalabilityProbeRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ScalabilityProbeResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/nfr/runs": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Lists immutable NFR snapshots ordered newest first.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Admin"
+                ],
+                "summary": "List persisted NFR evaluation runs (Admin only)",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "default": 50,
+                        "description": "Maximum runs to return (1-200)",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.NFRRunListResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Evaluates current live DB/runtime checks merged with optional scalability and CI maintainability attachments (max 1 MB body) and saves an immutable snapshot in nfr_evaluation_runs.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Admin"
+                ],
+                "summary": "Capture a live NFR snapshot or ingest a CLI/JSON benchmark run (Admin only)",
+                "parameters": [
+                    {
+                        "description": "Run snapshot or benchmark ingestion payload",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.CreateNFRRunRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/dto.NFRRunDetailResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "413": {
+                        "description": "Request Entity Too Large",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/nfr/runs/{runId}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns the immutable NFR report snapshot stored for a specific run UUID.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Admin"
+                ],
+                "summary": "Get a saved NFR evaluation run by ID (Admin only)",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Run UUID",
+                        "name": "runId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.NFRRunDetailResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Permanently deletes a saved NFR evaluation snapshot by UUID.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Admin"
+                ],
+                "summary": "Delete a persisted NFR evaluation run (Admin only)",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Run UUID",
+                        "name": "runId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.DeleteNFRRunResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/nfr/telemetry/reset": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Clears the passive in-memory HTTP and LLM telemetry ring buffers and resets window_started_at without modifying persisted NFR evaluation runs.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Admin"
+                ],
+                "summary": "Reset in-memory HTTP and LLM telemetry window (Admin only)",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.TelemetryResetResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/analytics/research-summary": {
             "get": {
                 "security": [
@@ -670,6 +1122,32 @@
                         "description": "Internal Server Error",
                         "schema": {
                             "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/health": {
+            "get": {
+                "description": "Executes a 2-second PostgreSQL ping and reports database status, latency in milliseconds, and service uptime.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "System"
+                ],
+                "summary": "Service and database connectivity health check",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.HealthResponse"
+                        }
+                    },
+                    "503": {
+                        "description": "Service Unavailable",
+                        "schema": {
+                            "$ref": "#/definitions/dto.HealthResponse"
                         }
                     }
                 }
@@ -2292,6 +2770,34 @@
                 }
             }
         },
+        "dto.CreateNFRRunRequest": {
+            "type": "object",
+            "properties": {
+                "environment": {
+                    "type": "string",
+                    "example": "local-docker"
+                },
+                "maintainability_report": {
+                    "$ref": "#/definitions/dto.NFRMaintainabilityReportDTO"
+                },
+                "notes": {
+                    "type": "string",
+                    "example": "Baseline run before tuning"
+                },
+                "run_label": {
+                    "type": "string",
+                    "example": "Local Docker Benchmark"
+                },
+                "scalability": {
+                    "$ref": "#/definitions/dto.NFRScalabilityBenchmarkDTO"
+                },
+                "source": {
+                    "description": "live_snapshot | in_app_probe | cli_benchmark | imported_json",
+                    "type": "string",
+                    "example": "live_snapshot"
+                }
+            }
+        },
         "dto.CronbachAlphaDTO": {
             "type": "object",
             "properties": {
@@ -2322,6 +2828,18 @@
                 "status": {
                     "type": "string",
                     "example": "ok"
+                }
+            }
+        },
+        "dto.DeleteNFRRunResponse": {
+            "type": "object",
+            "properties": {
+                "deleted": {
+                    "type": "boolean",
+                    "example": true
+                },
+                "run_id": {
+                    "type": "string"
                 }
             }
         },
@@ -2929,6 +3447,31 @@
                 }
             }
         },
+        "dto.HealthResponse": {
+            "type": "object",
+            "properties": {
+                "db_latency_ms": {
+                    "type": "number",
+                    "example": 2.41
+                },
+                "db_status": {
+                    "type": "string",
+                    "example": "up"
+                },
+                "service": {
+                    "type": "string",
+                    "example": "soc-trainer-api"
+                },
+                "status": {
+                    "type": "string",
+                    "example": "healthy"
+                },
+                "uptime_seconds": {
+                    "type": "integer",
+                    "example": 1842
+                }
+            }
+        },
         "dto.LearnDomainBreakdownDTO": {
             "type": "object",
             "properties": {
@@ -3315,6 +3858,696 @@
                 }
             }
         },
+        "dto.NFRCheckItemDTO": {
+            "type": "object",
+            "properties": {
+                "key": {
+                    "type": "string",
+                    "example": "non_llm_p95_ms"
+                },
+                "measured": {
+                    "type": "string",
+                    "example": "48.20"
+                },
+                "status": {
+                    "description": "pass | warn | fail | not_measured | insufficient_data",
+                    "type": "string",
+                    "example": "pass"
+                },
+                "target": {
+                    "type": "string",
+                    "example": "\u003c= 300 ms"
+                },
+                "unit": {
+                    "type": "string",
+                    "example": "ms"
+                }
+            }
+        },
+        "dto.NFRDimensionResultDTO": {
+            "type": "object",
+            "properties": {
+                "checks": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.NFRCheckItemDTO"
+                    }
+                },
+                "evidence_source": {
+                    "type": "string",
+                    "example": "In-Memory HTTP Ring Buffer \u0026 Live DB Ping"
+                },
+                "id": {
+                    "type": "string",
+                    "example": "performance"
+                },
+                "iso_characteristic": {
+                    "type": "string",
+                    "example": "Performance Efficiency (Time Behaviour)"
+                },
+                "status": {
+                    "description": "pass | warn | fail | not_measured | insufficient_data",
+                    "type": "string",
+                    "example": "pass"
+                },
+                "summary_metric": {
+                    "type": "string",
+                    "example": "p95 48.2 ms | DB 2.4 ms"
+                },
+                "target_expression": {
+                    "type": "string",
+                    "example": "Non-LLM p95 \u003c= 300 ms; DB \u003c= 50 ms"
+                }
+            }
+        },
+        "dto.NFREndpointLatencyDTO": {
+            "type": "object",
+            "properties": {
+                "category": {
+                    "type": "string",
+                    "example": "non_llm_api"
+                },
+                "count": {
+                    "type": "integer",
+                    "example": 45
+                },
+                "error_count": {
+                    "type": "integer",
+                    "example": 0
+                },
+                "max_ms": {
+                    "type": "number",
+                    "example": 82.1
+                },
+                "mean_ms": {
+                    "type": "number",
+                    "example": 16.2
+                },
+                "p50_ms": {
+                    "type": "number",
+                    "example": 12.5
+                },
+                "p95_ms": {
+                    "type": "number",
+                    "example": 48.9
+                },
+                "p99_ms": {
+                    "type": "number",
+                    "example": 75
+                },
+                "route": {
+                    "type": "string",
+                    "example": "GET /api/simulation/status"
+                }
+            }
+        },
+        "dto.NFRLLMTelemetryDTO": {
+            "type": "object",
+            "properties": {
+                "error_count": {
+                    "type": "integer",
+                    "example": 0
+                },
+                "fallback_count": {
+                    "type": "integer",
+                    "example": 1
+                },
+                "latency": {
+                    "$ref": "#/definitions/dto.NFRPercentilesDTO"
+                },
+                "models": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "outcome_counts": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "integer"
+                    }
+                },
+                "providers": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "success_count": {
+                    "type": "integer",
+                    "example": 3
+                },
+                "total_attempts": {
+                    "type": "integer",
+                    "example": 5
+                },
+                "total_calls": {
+                    "type": "integer",
+                    "example": 4
+                },
+                "total_retries": {
+                    "type": "integer",
+                    "example": 1
+                }
+            }
+        },
+        "dto.NFRMaintainabilityReportDTO": {
+            "type": "object",
+            "properties": {
+                "collected_at": {
+                    "type": "string"
+                },
+                "evidence_gate_passed": {
+                    "type": "boolean",
+                    "example": true
+                },
+                "frontend_test_passed": {
+                    "type": "boolean",
+                    "example": true
+                },
+                "frontend_tsc_passed": {
+                    "type": "boolean",
+                    "example": true
+                },
+                "git_commit": {
+                    "type": "string",
+                    "example": "aef5b35"
+                },
+                "gitleaks_findings": {
+                    "type": "integer",
+                    "example": 0
+                },
+                "go_coverage_pct": {
+                    "type": "number",
+                    "example": 68.4
+                },
+                "go_test_passed": {
+                    "type": "boolean",
+                    "example": true
+                },
+                "govulncheck_high_critical": {
+                    "type": "integer",
+                    "example": 0
+                },
+                "integration_harness_passed": {
+                    "type": "boolean",
+                    "example": true
+                },
+                "npm_audit_high_critical": {
+                    "type": "integer",
+                    "example": 0
+                },
+                "theory_gate_passed": {
+                    "type": "boolean",
+                    "example": true
+                }
+            }
+        },
+        "dto.NFRPercentilesDTO": {
+            "type": "object",
+            "properties": {
+                "count": {
+                    "type": "integer",
+                    "example": 142
+                },
+                "max": {
+                    "type": "number",
+                    "example": 144
+                },
+                "mean": {
+                    "type": "number",
+                    "example": 18.4
+                },
+                "min": {
+                    "type": "number",
+                    "example": 1.2
+                },
+                "p50": {
+                    "type": "number",
+                    "example": 14.1
+                },
+                "p95": {
+                    "type": "number",
+                    "example": 62.3
+                },
+                "p99": {
+                    "type": "number",
+                    "example": 118.7
+                }
+            }
+        },
+        "dto.NFRReliabilityBreakdownDTO": {
+            "type": "object",
+            "properties": {
+                "ai_generated_count": {
+                    "type": "integer",
+                    "example": 8
+                },
+                "fallback_reasons": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "integer"
+                    }
+                },
+                "static_fallback_count": {
+                    "type": "integer",
+                    "example": 4
+                },
+                "system_failure_count": {
+                    "type": "integer",
+                    "example": 0
+                },
+                "total_sessions": {
+                    "type": "integer",
+                    "example": 12
+                },
+                "total_snapshot_count": {
+                    "type": "integer",
+                    "example": 12
+                },
+                "valid_snapshot_count": {
+                    "type": "integer",
+                    "example": 12
+                }
+            }
+        },
+        "dto.NFRReportResponse": {
+            "type": "object",
+            "properties": {
+                "dimensions": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.NFRDimensionResultDTO"
+                    }
+                },
+                "environment": {
+                    "type": "string",
+                    "example": "local"
+                },
+                "evaluated_at": {
+                    "type": "string"
+                },
+                "maintainability_report": {
+                    "$ref": "#/definitions/dto.NFRMaintainabilityReportDTO"
+                },
+                "notes": {
+                    "type": "string"
+                },
+                "reliability_breakdown": {
+                    "$ref": "#/definitions/dto.NFRReliabilityBreakdownDTO"
+                },
+                "rubric_version": {
+                    "type": "string",
+                    "example": "nfr-rubric-v1"
+                },
+                "run_id": {
+                    "type": "string"
+                },
+                "run_label": {
+                    "type": "string",
+                    "example": "Live System Evaluation"
+                },
+                "runtime": {
+                    "$ref": "#/definitions/dto.NFRRuntimeSnapshotDTO"
+                },
+                "scalability": {
+                    "$ref": "#/definitions/dto.NFRScalabilityBenchmarkDTO"
+                },
+                "source": {
+                    "type": "string",
+                    "example": "live"
+                },
+                "summary": {
+                    "$ref": "#/definitions/dto.NFRSummaryDTO"
+                },
+                "thresholds": {
+                    "$ref": "#/definitions/dto.NFRThresholdsDTO"
+                }
+            }
+        },
+        "dto.NFRRunDetailResponse": {
+            "type": "object",
+            "properties": {
+                "report": {
+                    "$ref": "#/definitions/dto.NFRReportResponse"
+                },
+                "run": {
+                    "$ref": "#/definitions/dto.NFRRunListItemDTO"
+                }
+            }
+        },
+        "dto.NFRRunListItemDTO": {
+            "type": "object",
+            "properties": {
+                "availability_pct": {
+                    "type": "number"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "environment": {
+                    "type": "string"
+                },
+                "fail_count": {
+                    "type": "integer"
+                },
+                "measured_pass_rate": {
+                    "type": "number"
+                },
+                "non_llm_p95_ms": {
+                    "type": "number"
+                },
+                "not_measured_count": {
+                    "type": "integer"
+                },
+                "notes": {
+                    "type": "string"
+                },
+                "overall_status": {
+                    "type": "string"
+                },
+                "passed_count": {
+                    "type": "integer"
+                },
+                "rubric_version": {
+                    "type": "string"
+                },
+                "run_id": {
+                    "type": "string"
+                },
+                "run_label": {
+                    "type": "string"
+                },
+                "source": {
+                    "type": "string"
+                },
+                "warn_count": {
+                    "type": "integer"
+                }
+            }
+        },
+        "dto.NFRRunListResponse": {
+            "type": "object",
+            "properties": {
+                "runs": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.NFRRunListItemDTO"
+                    }
+                }
+            }
+        },
+        "dto.NFRRuntimeSnapshotDTO": {
+            "type": "object",
+            "properties": {
+                "availability_pct": {
+                    "type": "number",
+                    "example": 100
+                },
+                "db_latency_ms": {
+                    "type": "number",
+                    "example": 2.35
+                },
+                "db_status": {
+                    "type": "string",
+                    "example": "up"
+                },
+                "endpoints": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.NFREndpointLatencyDTO"
+                    }
+                },
+                "error_rate_5xx_pct": {
+                    "type": "number",
+                    "example": 0
+                },
+                "gin_mode": {
+                    "type": "string",
+                    "example": "release"
+                },
+                "in_flight_current": {
+                    "type": "integer",
+                    "example": 1
+                },
+                "llm_calls": {
+                    "$ref": "#/definitions/dto.NFRLLMTelemetryDTO"
+                },
+                "llm_latency": {
+                    "$ref": "#/definitions/dto.NFRPercentilesDTO"
+                },
+                "llm_requests": {
+                    "type": "integer",
+                    "example": 4
+                },
+                "non_llm_latency": {
+                    "$ref": "#/definitions/dto.NFRPercentilesDTO"
+                },
+                "non_llm_requests": {
+                    "type": "integer",
+                    "example": 236
+                },
+                "peak_concurrent_requests": {
+                    "type": "integer",
+                    "example": 12
+                },
+                "process_started_at": {
+                    "type": "string"
+                },
+                "status_2xx": {
+                    "type": "integer",
+                    "example": 228
+                },
+                "status_3xx": {
+                    "type": "integer",
+                    "example": 0
+                },
+                "status_4xx": {
+                    "type": "integer",
+                    "example": 12
+                },
+                "status_5xx": {
+                    "type": "integer",
+                    "example": 0
+                },
+                "total_requests": {
+                    "type": "integer",
+                    "example": 240
+                },
+                "uptime_seconds": {
+                    "type": "integer",
+                    "example": 3600
+                },
+                "window_started_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.NFRScalabilityBenchmarkDTO": {
+            "type": "object",
+            "properties": {
+                "executed_at": {
+                    "type": "string"
+                },
+                "levels": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.NFRScalabilityLevelDTO"
+                    }
+                },
+                "mode": {
+                    "description": "in_app_probe | cli_benchmark",
+                    "type": "string",
+                    "example": "in_app_probe"
+                },
+                "preset": {
+                    "type": "string",
+                    "example": "standard"
+                },
+                "target_endpoints": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "dto.NFRScalabilityLevelDTO": {
+            "type": "object",
+            "properties": {
+                "concurrency": {
+                    "type": "integer",
+                    "example": 10
+                },
+                "duration_ms": {
+                    "type": "number",
+                    "example": 320
+                },
+                "error_count": {
+                    "type": "integer",
+                    "example": 0
+                },
+                "error_rate_pct": {
+                    "type": "number",
+                    "example": 0
+                },
+                "max_ms": {
+                    "type": "number",
+                    "example": 84
+                },
+                "mean_ms": {
+                    "type": "number",
+                    "example": 28.4
+                },
+                "p50_ms": {
+                    "type": "number",
+                    "example": 24
+                },
+                "p95_ms": {
+                    "type": "number",
+                    "example": 55.2
+                },
+                "p99_ms": {
+                    "type": "number",
+                    "example": 78.1
+                },
+                "success_count": {
+                    "type": "integer",
+                    "example": 100
+                },
+                "throughput_rps": {
+                    "type": "number",
+                    "example": 312.5
+                },
+                "total_requests": {
+                    "type": "integer",
+                    "example": 100
+                }
+            }
+        },
+        "dto.NFRSummaryDTO": {
+            "type": "object",
+            "properties": {
+                "fail_count": {
+                    "type": "integer",
+                    "example": 0
+                },
+                "measured_pass_rate": {
+                    "type": "number",
+                    "example": 87.5
+                },
+                "not_measured_count": {
+                    "type": "integer",
+                    "example": 2
+                },
+                "overall_status": {
+                    "description": "all_passed | pass_with_warnings | partial_pending | fail",
+                    "type": "string",
+                    "example": "partial_pending"
+                },
+                "passed_count": {
+                    "type": "integer",
+                    "example": 7
+                },
+                "total_dimensions": {
+                    "type": "integer",
+                    "example": 10
+                },
+                "warn_count": {
+                    "type": "integer",
+                    "example": 1
+                }
+            }
+        },
+        "dto.NFRThresholdsDTO": {
+            "type": "object",
+            "properties": {
+                "availability_target_pct": {
+                    "type": "number",
+                    "example": 99
+                },
+                "availability_warn_pct": {
+                    "type": "number",
+                    "example": 95
+                },
+                "coverage_target_pct": {
+                    "type": "number",
+                    "example": 60
+                },
+                "coverage_warn_pct": {
+                    "type": "number",
+                    "example": 40
+                },
+                "csuq_target_mean": {
+                    "type": "number",
+                    "example": 5
+                },
+                "csuq_warn_mean": {
+                    "type": "number",
+                    "example": 4
+                },
+                "db_ping_target_ms": {
+                    "type": "number",
+                    "example": 50
+                },
+                "db_ping_warn_ms": {
+                    "type": "number",
+                    "example": 150
+                },
+                "llm_p95_target_ms": {
+                    "type": "number",
+                    "example": 20000
+                },
+                "llm_p95_warn_ms": {
+                    "type": "number",
+                    "example": 45000
+                },
+                "non_llm_p95_target_ms": {
+                    "type": "number",
+                    "example": 300
+                },
+                "non_llm_p95_warn_ms": {
+                    "type": "number",
+                    "example": 500
+                },
+                "non_llm_p99_target_ms": {
+                    "type": "number",
+                    "example": 800
+                },
+                "non_llm_p99_warn_ms": {
+                    "type": "number",
+                    "example": 1200
+                },
+                "rubric_version": {
+                    "type": "string",
+                    "example": "nfr-rubric-v1"
+                },
+                "scalability_error_target_pct": {
+                    "type": "number",
+                    "example": 1
+                },
+                "scalability_error_warn_pct": {
+                    "type": "number",
+                    "example": 5
+                },
+                "scalability_p95_target_ms": {
+                    "type": "number",
+                    "example": 500
+                },
+                "scalability_p95_warn_ms": {
+                    "type": "number",
+                    "example": 1000
+                },
+                "tlx_target_max": {
+                    "type": "number",
+                    "example": 55
+                },
+                "tlx_warn_max": {
+                    "type": "number",
+                    "example": 70
+                }
+            }
+        },
         "dto.PairedTTestDTO": {
             "type": "object",
             "properties": {
@@ -3537,6 +4770,47 @@
                 "total_elapsed_sec": {
                     "type": "integer",
                     "example": 720
+                }
+            }
+        },
+        "dto.RunScalabilityProbeRequest": {
+            "type": "object",
+            "properties": {
+                "concurrency": {
+                    "type": "integer",
+                    "example": 10
+                },
+                "environment": {
+                    "type": "string",
+                    "example": "local"
+                },
+                "preset": {
+                    "description": "light | standard | burst",
+                    "type": "string",
+                    "example": "standard"
+                },
+                "run_label": {
+                    "type": "string",
+                    "example": "In-App Safe Concurrency Probe"
+                },
+                "save_run": {
+                    "type": "boolean",
+                    "example": false
+                },
+                "total_requests": {
+                    "type": "integer",
+                    "example": 100
+                }
+            }
+        },
+        "dto.ScalabilityProbeResponse": {
+            "type": "object",
+            "properties": {
+                "benchmark": {
+                    "$ref": "#/definitions/dto.NFRScalabilityBenchmarkDTO"
+                },
+                "saved_run": {
+                    "$ref": "#/definitions/dto.NFRRunListItemDTO"
                 }
             }
         },
@@ -4039,6 +5313,22 @@
                     "example": false
                 },
                 "result": {}
+            }
+        },
+        "dto.TelemetryResetResponse": {
+            "type": "object",
+            "properties": {
+                "message": {
+                    "type": "string",
+                    "example": "In-memory HTTP and LLM telemetry window reset."
+                },
+                "reset": {
+                    "type": "boolean",
+                    "example": true
+                },
+                "window_started_at": {
+                    "type": "string"
+                }
             }
         },
         "dto.TheoryDomainDTO": {

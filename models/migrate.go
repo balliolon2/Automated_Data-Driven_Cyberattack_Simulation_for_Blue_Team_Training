@@ -219,6 +219,27 @@ func RunMigrations(db *gorm.DB) error {
 		`CREATE INDEX IF NOT EXISTS idx_user_theory_sample_q_user ON user_theory_sample_questions(user_id)`,
 		`ALTER TABLE user_notifications ADD COLUMN IF NOT EXISTS template_key VARCHAR(64)`,
 		`ALTER TABLE user_notifications ADD COLUMN IF NOT EXISTS template_params JSONB NOT NULL DEFAULT '{}'::jsonb`,
+		`CREATE TABLE IF NOT EXISTS nfr_evaluation_runs (
+			run_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+			triggered_by UUID REFERENCES users(user_id) ON DELETE SET NULL,
+			run_label VARCHAR(120) NOT NULL DEFAULT 'Live NFR Snapshot',
+			environment VARCHAR(64) NOT NULL DEFAULT 'local',
+			source VARCHAR(32) NOT NULL CHECK (source IN ('live_snapshot', 'in_app_probe', 'cli_benchmark', 'imported_json')),
+			rubric_version VARCHAR(32) NOT NULL DEFAULT 'nfr-rubric-v1',
+			overall_status VARCHAR(32) NOT NULL CHECK (overall_status IN ('all_passed', 'pass_with_warnings', 'partial_pending', 'fail')),
+			passed_count INT NOT NULL DEFAULT 0,
+			warn_count INT NOT NULL DEFAULT 0,
+			fail_count INT NOT NULL DEFAULT 0,
+			not_measured_count INT NOT NULL DEFAULT 0,
+			measured_pass_rate FLOAT NOT NULL DEFAULT 0,
+			non_llm_p95_ms FLOAT,
+			availability_pct FLOAT,
+			report_payload JSONB NOT NULL,
+			notes TEXT,
+			created_at TIMESTAMP DEFAULT now()
+		)`,
+		`CREATE INDEX IF NOT EXISTS idx_nfr_evaluation_runs_created_at ON nfr_evaluation_runs(created_at DESC)`,
+		`CREATE INDEX IF NOT EXISTS idx_nfr_evaluation_runs_source ON nfr_evaluation_runs(source)`,
 	}
 
 	for _, stmt := range ddl {

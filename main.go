@@ -92,6 +92,7 @@ func main() {
 		ExposeHeaders:    []string{"Content-Length"},
 		AllowCredentials: true,
 	}))
+	r.Use(middlewares.TelemetryMiddleware(services.GlobalNFRTelemetry()))
 
 	// Controllers
 	authController := controllers.NewAuthController(db)
@@ -105,6 +106,7 @@ func main() {
 	upvoteController := controllers.NewUpvoteController(db)
 	notificationController := controllers.NewNotificationController(db)
 	evaluationController := controllers.NewEvaluationController(db)
+	nfrController := controllers.NewNFRController(db, r)
 
 	// Routes
 	api := r.Group("/api")
@@ -185,6 +187,14 @@ func main() {
 			admin.GET("/evaluations", evaluationController.GetAdminEvaluations)
 			admin.GET("/evaluations/statistics", evaluationController.GetAdminStatistics)
 			admin.GET("/evaluations/export", evaluationController.ExportAdminEvaluations)
+			admin.GET("/nfr/live", nfrController.GetLiveNFR)
+			admin.POST("/nfr/telemetry/reset", nfrController.ResetTelemetryWindow)
+			admin.POST("/nfr/runs", nfrController.CreateNFRRun)
+			admin.GET("/nfr/runs", nfrController.ListNFRRuns)
+			admin.GET("/nfr/runs/:runId", nfrController.GetNFRRun)
+			admin.DELETE("/nfr/runs/:runId", nfrController.DeleteNFRRun)
+			admin.POST("/nfr/probe/scalability", nfrController.RunScalabilityProbe)
+			admin.GET("/nfr/export", nfrController.ExportNFRReport)
 		}
 
 		// Protected exam routes
@@ -236,12 +246,7 @@ func main() {
 		}
 
 		// Health Check Endpoint
-		api.GET("/health", func(c *gin.Context) {
-			c.JSON(200, gin.H{
-				"status":  "healthy",
-				"service": "soc-trainer-api",
-			})
-		})
+		api.GET("/health", nfrController.HealthCheck)
 
 		// Swagger Documentation
 		if os.Getenv("ENABLE_SWAGGER") == "true" {

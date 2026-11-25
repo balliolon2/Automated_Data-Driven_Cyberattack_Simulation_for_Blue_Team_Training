@@ -574,13 +574,38 @@ Output ONLY valid JSON matching this exact structure:
 		{Role: "user", Content: userPrompt},
 	}
 
-	rawJSON, err := callChatCompletion(ctx, url, cleanKey, model, messages, 0.3)
+	llmStart := time.Now()
+	totalAttempts := 0
+	recordOutcome := func(outcome string, err error) {
+		reason := ""
+		if err != nil {
+			reason = strings.ReplaceAll(err.Error(), cleanKey, "[REDACTED]")
+		}
+		retries := 0
+		if totalAttempts > 1 {
+			retries = totalAttempts - 1
+		}
+		GlobalNFRTelemetry().RecordLLMCall(LLMCallRecord{
+			DurationMs:     float64(time.Since(llmStart).Microseconds()) / 1000.0,
+			Attempts:       totalAttempts,
+			Retries:        retries,
+			Outcome:        outcome,
+			FallbackReason: reason,
+			Provider:       url,
+			Model:          model,
+		})
+	}
+
+	rawJSON, attempts, err := callChatCompletionTracked(ctx, url, cleanKey, model, messages, 0.3)
+	totalAttempts += attempts
 	if err != nil {
+		recordOutcome("error", err)
 		return nil, err
 	}
 
 	micro, err := parseAIMicroScenario(rawJSON)
 	if err != nil {
+		recordOutcome("fallback", err)
 		return nil, err
 	}
 
@@ -594,7 +619,8 @@ Output ONLY valid JSON matching this exact structure:
 			Content: buildEvidenceRetryPrompt(validationErrors, availableMessages),
 		})
 
-		retryRaw, retryErr := callChatCompletion(ctx, url, cleanKey, model, retryMessages, 0.1)
+		retryRaw, retryAttempts, retryErr := callChatCompletionTracked(ctx, url, cleanKey, model, retryMessages, 0.1)
+		totalAttempts += retryAttempts
 		if retryErr != nil {
 			return aiMicroScenario{}, retryErr
 		}
@@ -610,15 +636,23 @@ Output ONLY valid JSON matching this exact structure:
 
 	// Validate candidate scenario against schema & referential contracts
 	if valErr := ValidateScenarioCandidate(scenario); valErr != nil {
-		return nil, fmt.Errorf("scenario_validation_failed: %w", valErr)
+		valWrap := fmt.Errorf("scenario_validation_failed: %w", valErr)
+		recordOutcome("fallback", valWrap)
+		return nil, valWrap
 	}
 
+	recordOutcome("ai_success", nil)
 	return scenario, nil
 }
 
 // callChatCompletion performs one OpenAI-compatible chat completion with network
 // retries and returns the raw message content.
 func callChatCompletion(ctx context.Context, url string, apiKey string, model string, messages []chatMessage, temperature float64) (string, error) {
+	raw, _, err := callChatCompletionTracked(ctx, url, apiKey, model, messages, temperature)
+	return raw, err
+}
+
+func callChatCompletionTracked(ctx context.Context, url string, apiKey string, model string, messages []chatMessage, temperature float64) (string, int, error) {
 	reqBody := chatCompletionRequest{
 		Model:       model,
 		Messages:    messages,
@@ -627,18 +661,20 @@ func callChatCompletion(ctx context.Context, url string, apiKey string, model st
 
 	jsonBytes, err := json.Marshal(reqBody)
 	if err != nil {
-		return "", fmt.Errorf("failed to marshal LLM request: %w", err)
+		return "", 0, fmt.Errorf("failed to marshal LLM request: %w", err)
 	}
 
 	client := &http.Client{Timeout: 145 * time.Second}
 
 	var resp *http.Response
 	maxRetries := 2
+	attempts := 0
 	for attempt := 1; attempt <= maxRetries; attempt++ {
+		attempts = attempt
 		// Rebuild request for each attempt (body is consumed after first read)
 		retryReq, reqErr := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewBuffer(jsonBytes))
 		if reqErr != nil {
-			return "", fmt.Errorf("failed to create HTTP request (attempt %d): %w", attempt, reqErr)
+			return "", attempts, fmt.Errorf("failed to create HTTP request (attempt %d): %w", attempt, reqErr)
 		}
 		retryReq.Header.Set("Content-Type", "application/json")
 		retryReq.Header.Set("Authorization", fmt.Sprintf("Bearer %s", apiKey))
@@ -654,31 +690,31 @@ func callChatCompletion(ctx context.Context, url string, apiKey string, model st
 		if attempt < maxRetries {
 			select {
 			case <-ctx.Done():
-				return "", fmt.Errorf("LLM request failed after %d attempt(s): %w", attempt, ctx.Err())
+				return "", attempts, fmt.Errorf("LLM request failed after %d attempt(s): %w", attempt, ctx.Err())
 			case <-time.After(3 * time.Second):
 			}
 		}
 	}
 	if err != nil {
-		return "", fmt.Errorf("LLM request failed after %d attempts: %w", maxRetries, err)
+		return "", attempts, fmt.Errorf("LLM request failed after %d attempts: %w", maxRetries, err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
 		bodyBytes, _ := io.ReadAll(resp.Body)
 		log.Printf("[LLM Error Details] URL: %s, Status: %d, Response: %s", url, resp.StatusCode, string(bodyBytes))
-		return "", fmt.Errorf("LLM API error (status %d): %s", resp.StatusCode, string(bodyBytes))
+		return "", attempts, fmt.Errorf("LLM API error (status %d): %s", resp.StatusCode, string(bodyBytes))
 	}
 
 	var chatResp chatCompletionResponse
 	if err := json.NewDecoder(resp.Body).Decode(&chatResp); err != nil {
-		return "", fmt.Errorf("failed to decode LLM response: %w", err)
+		return "", attempts, fmt.Errorf("failed to decode LLM response: %w", err)
 	}
 	if len(chatResp.Choices) == 0 {
-		return "", fmt.Errorf("LLM returned empty choices")
+		return "", attempts, fmt.Errorf("LLM returned empty choices")
 	}
 
-	return stripJSONFences(strings.TrimSpace(chatResp.Choices[0].Message.Content)), nil
+	return stripJSONFences(strings.TrimSpace(chatResp.Choices[0].Message.Content)), attempts, nil
 }
 
 func stripJSONFences(raw string) string {

@@ -8,6 +8,7 @@ import ProfilePage from "./pages/ProfilePage"
 import AdminSpecialistsPage from "./pages/AdminSpecialistsPage"
 import AdminEvaluationsPage from "./pages/AdminEvaluationsPage"
 import AdminStatisticsPage from "./pages/AdminStatisticsPage"
+import AdminNfrPage from "./pages/AdminNfrPage"
 import ExamPage from "./pages/ExamPage"
 import ExamRedirectPage from "./pages/ExamRedirectPage"
 import ExamReviewPage from "./pages/ExamReviewPage"
@@ -35,6 +36,7 @@ function App() {
             <Route path="admin/specialists" element={<AdminSpecialistsPage />} />
             <Route path="admin/evaluations" element={<AdminEvaluationsPage />} />
             <Route path="admin/evaluations/statistics" element={<AdminStatisticsPage />} />
+            <Route path="admin/nfr" element={<AdminNfrPage />} />
             <Route path="specialist/reviews" element={<SpecialistReviewPage />} />
             <Route path="discussions" element={<DiscussionsFeedPage />} />
             <Route path="discussions/new" element={<ThreadEditorPage />} />

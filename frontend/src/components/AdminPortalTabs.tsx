@@ -1,10 +1,10 @@
 import { Link } from "react-router-dom";
-import { BarChart3, FileSpreadsheet, ShieldCheck } from "lucide-react";
+import { Activity, BarChart3, FileSpreadsheet, ShieldCheck } from "lucide-react";
 import { useI18n } from "../i18n/index.tsx";
 import { cn } from "../lib/utils";
 
 interface AdminPortalTabsProps {
-  active: "specialists" | "evaluations" | "statistics";
+  active: "specialists" | "evaluations" | "statistics" | "nfr";
 }
 
 export default function AdminPortalTabs({ active }: AdminPortalTabsProps) {
@@ -28,6 +28,12 @@ export default function AdminPortalTabs({ active }: AdminPortalTabsProps) {
       to: "/admin/evaluations/statistics",
       icon: BarChart3,
       label: t("admin.portalTabs.statistics"),
+    },
+    {
+      key: "nfr" as const,
+      to: "/admin/nfr",
+      icon: Activity,
+      label: t("admin.portalTabs.nfr"),
     },
   ];
 

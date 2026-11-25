@@ -154,6 +154,11 @@ test("canonical M1 error codes and bilingual domain names are present", () => {
     "QUESTIONNAIRE_INVALID_TLX",
     "QUESTIONNAIRE_FEEDBACK_TOO_LONG",
     "EVALUATION_INVALID_EXPORT_FORMAT",
+    "NFR_PROBE_ALREADY_RUNNING",
+    "NFR_INVALID_PROBE_PARAMS",
+    "NFR_INVALID_BENCHMARK_PAYLOAD",
+    "NFR_PAYLOAD_TOO_LARGE",
+    "NFR_RUN_NOT_FOUND",
   ] as const;
 
   for (const code of requiredCodes) {

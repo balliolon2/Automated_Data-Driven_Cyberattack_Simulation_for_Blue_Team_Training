@@ -422,4 +422,30 @@
     - Verified via Go unit tests (including SciPy/textbook-checked math), Node frontend tests (questionnaire, paper generators, i18n parity, typography guard), OpenAPI Swagger sync, `scripts/test_integration.py`, and 1 Push-Right Visual Review Checkpoint (EN & TH screenshots) before closing Issue #13.
     - See `workflows/post_test_questionnaire.md`.
 
+## Canonical Terms (Issue #15: System-Level NFR Evaluation Portal)
+
+- **NFR Evaluation Workbench (`/admin/nfr`)**: The Admin-only 4th tab inside `AdminPortalTabs` evaluating the platform across all **10 ISO/IEC 25010 (`[R10]`) dimensions** (`Performance`, `Availability`, `Scalability`, `Reliability`, `Security`, `Data Integrity`, `Reproducibility`, `Usability`, `Maintainability`, `Safety`), strictly separated from Learner subjective surveys (Issue #13) while bridging live CSUQ/NASA-TLX scores into `Usability`.
+- **3-Layer Hybrid NFR Measurement (การวัดผล NFR จริง 3 ชั้น)**: Combines (1) Passive Runtime Telemetry (bounded in-memory ring buffer + LLM attempt/latency recorder + DB-backed `/api/health`), (2) Live DB/Security/Safety/Usability Audit Probes, and (3) Reproducible Concurrency & CI Benchmarks (Safe In-App Probe + `scripts/run_nfr_benchmark.py` / UI JSON Import).
+- **NFR Rubric (`nfr-rubric-v1`)**: The canonical numeric `Pass` / `Warn` / `Fail` cutoff ruleset with explicit `not_measured` and `insufficient_data` states (never masquerading as fake pass or fail) and Transparent Separate Rollup (`overall_status`: `fail` → `partial_pending` → `pass_with_warnings` → `all_passed`, `measured_pass_rate = passed / measured`).
+- **NFR Evaluation Run (`nfr_evaluation_runs`)**: An immutable PostgreSQL snapshot storing a complete `NFRReportResponse` JSONB payload (`live_snapshot`, `in_app_probe`, `cli_benchmark`, or `imported_json`) for Run History selection, side-by-side Baseline Delta Comparison, and reproducible Paper/Thesis exports across server restarts.
+- **Internal Probe Telemetry Isolation (การแยกทราฟฟิกทดสอบออกจาก Telemetry จริง)**: Per-process secret header (`X-SOC-Internal-NFR-Probe`) injected exclusively by in-process `httptest` Security and Safe Concurrency Probes so synthetic admin audit traffic never pollutes real user HTTP latency/availability metrics.
+
+## Settled Decisions (Issue #15: System-Level NFR Evaluation — `/loop-me` Q1–Q16)
+
+59. **10-Dimension ISO/IEC 25010 Matrix, 3-Layer Measurement & Single-Table Persistence**:
+    - Evaluates all 10 advisor/ISO/IEC 25010 dimensions (`Performance`, `Availability`, `Scalability`, `Reliability`, `Security`, `Data Integrity`, `Reproducibility`, `Usability`, `Maintainability`, `Safety`) and registers ISO/IEC 25010:2023/2011 as permanent reference **`[R10]`** in `docs/REFERENCES.md` & `docs/references.bib`.
+    - Passive HTTP telemetry (`10,000`-sample bounded ring buffer, `c.FullPath()` route normalization, separating `non_llm_api` vs `POST /api/simulation/start`, zero PII) + LLM call recorder run in memory with zero per-request DB write overhead (Render/Neon free-tier friendly); `GET /api/health` upgraded to run a real 2s PostgreSQL `SELECT 1` ping (`200 healthy` / `503 degraded`).
+    - Adds 1 PostgreSQL table `nfr_evaluation_runs` (`init.sql` + idempotent `models/migrate.go`) to store immutable evaluation snapshots (`live_snapshot`, `in_app_probe`, `cli_benchmark`, `imported_json`), enabling Run History, Baseline Delta Comparison, per-run export, and test-run deletion (`DELETE /api/admin/nfr/runs/:runId`).
+
+60. **Dual-Mode Benchmarks, Probe Safety, Telemetry Isolation & Strict Admin RBAC**:
+    - Mounted exclusively as the 4th tab in `AdminPortalTabs` (`/admin/nfr`, zero Top Navbar changes) and under `/api/admin/nfr/*` protected by `AuthMiddleware() + RequireAdmin()` (`403` for `learner`/`specialist`), enforcing a strict **Zero-Secret Exposure Rule** (boolean posture checks only, never leaking secrets/DSNs/keys).
+    - **Scalability** supports both a Safe In-App Concurrency Probe (`POST /api/admin/nfr/probe/scalability`, presets `5/50`, `10/100`, `20/200`, hard-capped at `20` workers / `200` read-only requests / `15s` + mutex `409`) and external CLI `scripts/run_nfr_benchmark.py` (`10/25/50` concurrent users + optional CI/test/coverage & security scan collector supporting `--push` and `--out` + UI `"Import Benchmark / CI JSON"` upload `<= 1 MB`).
+    - **Security** runs a read-only in-process `httptest` Auth/RBAC/Input probe (6 checks) + 6 runtime posture checks; **Safety** runs live DB checks (English-only invariant, zero secret leaks in snapshots, zero banned boilerplate, evidence `<= 50%`); **Usability** bridges live `#13` CSUQ/NASA-TLX scores + objective completion metrics; all in-process probes are excluded from live passive telemetry via an internal per-process secret header, and Admins can cleanly reset the in-memory telemetry window (`POST /api/admin/nfr/telemetry/reset`).
+
+61. **Bilingual Single-Page Report, Recharts Visualizations, Paper Export Suite & Checkpoint**:
+    - `/admin/nfr` uses a 6-section print-friendly single-page layout (`rem`-only typography, `EN`/`TH` chrome with English technical identifiers): Control & Run Bar → Executive KPI Strip (+ Baseline Delta) → 10-Dimension ISO/IEC 25010 Scorecard Grid → 3 Recharts Charts (Endpoint Latency `p50/p95/p99`, Scalability Curve, AI vs Static Fallback Reliability) → Run History Table → Paper-Ready Export & `[R10]` Methodology Panel (`Copy LaTeX IEEEtran`, `Copy Markdown`, UTF-8 BOM CSV / JSON download, EN/TH Auto-Generated NFR Paragraph, `@media print` PDF).
+    - Verified via Go unit tests, OpenAPI Swagger sync (`dto/nfr.go`), Node frontend tests (`nfrReport.test.ts`, `i18n.test.ts`, `typography.test.ts`), `scripts/test_integration.py`, `scripts/run_nfr_benchmark.py`, and 1 Push-Right Visual Review Checkpoint (EN & TH screenshots) before closing Issue #15.
+    - See `workflows/nfr_evaluation.md`.
+
+
 
