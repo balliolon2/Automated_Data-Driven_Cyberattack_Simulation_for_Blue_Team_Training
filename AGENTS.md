@@ -144,13 +144,13 @@ When querying questions for a `post` test, you must query all questions previous
 
 ### Issue tracker
 
-GitHub issues (`balliolon2/Automated_Data-Driven_Cyberattack_Simulation_for_Blue_Team_Training`). See [issue-tracker.md](file:///c:/Users/bond/Documents/Automated_Data-Driven_Cyberattack_Simulation_for_Blue_Team_Training/docs/agents/issue-tracker.md).
+GitHub issues (`balliolon2/Automated_Data-Driven_Cyberattack_Simulation_for_Blue_Team_Training`). See `docs/agents/issue-tracker.md`.
 
 ### Triage labels
 
-Canonical roles mapped 1:1. See [triage-labels.md](file:///c:/Users/bond/Documents/Automated_Data-Driven_Cyberattack_Simulation_for_Blue_Team_Training/docs/agents/triage-labels.md).
+Canonical roles mapped 1:1 (`needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`). See `docs/agents/triage-labels.md`.
 
 ### Domain docs
 
-Single-context repo (`CONTEXT.md` + `docs/adr/` at root). See [domain.md](file:///c:/Users/bond/Documents/Automated_Data-Driven_Cyberattack_Simulation_for_Blue_Team_Training/docs/agents/domain.md).
+Single-context repo (`GLOSSARY.md` + `docs/adr/` at root). See `docs/agents/domain.md`.
 
