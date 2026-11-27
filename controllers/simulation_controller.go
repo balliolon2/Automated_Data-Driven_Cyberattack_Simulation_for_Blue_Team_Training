@@ -29,10 +29,7 @@ import (
 // Configuration constants
 const (
 	ProficiencyThreshold = 70.0 // Uniform threshold across all domains
-	MaxScenarios         = 10   // Maximum scenarios per training session (configurable cap)
 	MinScenarios         = 1    // Minimum scenarios before allowing completion
-	WeightOld            = 0.4  // Weight for existing proficiency score
-	WeightNew            = 0.6  // Weight for new scenario score
 	ScoreWeightTPFP      = 0.20 // 20% of scenario score
 	ScoreWeightFindings  = 0.40 // 40% of scenario score
 	ScoreWeightResponse  = 0.40 // 40% of scenario score
@@ -550,8 +547,9 @@ func (sc *SimulationController) GetStatus(c *gin.Context) {
 
 	completedTheoryDomains, completedSubtopics, theoryCompleted, _ := sc.getUserTheoryProgressSummary(userID)
 
+	maxScenarios := services.ResolveMaxScenariosCap()
 	needsTraining := !allPassed || int(completedCount) < MinScenarios
-	if int(completedCount) >= MaxScenarios {
+	if int(completedCount) >= maxScenarios {
 		needsTraining = false
 	}
 
@@ -559,7 +557,7 @@ func (sc *SimulationController) GetStatus(c *gin.Context) {
 		NeedsTraining:          needsTraining,
 		Domains:                domains,
 		CompletedScenarios:     int(completedCount),
-		MaxScenarios:           MaxScenarios,
+		MaxScenarios:           maxScenarios,
 		AllDomainsPassed:       allPassed,
 		TheoryCompleted:        theoryCompleted,
 		CompletedTheoryDomains: completedTheoryDomains,
@@ -627,7 +625,7 @@ func (sc *SimulationController) StartScenario(c *gin.Context) {
 		return
 	}
 
-	// Stage 2 Theory Gate: Learners must complete all 28 Theory Sub-topics before
+	// Stage 2 Theory Gate: Learners must complete all 5 Domain Essentials before
 	// starting new simulation scenarios (unless BYPASS_THEORY_GATE=true or Staff).
 	if gateErr := evaluateStage2TheoryGate(os.Getenv("BYPASS_THEORY_GATE"), c.GetString("role"), func() ([]string, []string) {
 		completedTheoryDomains, completedSubtopics, _, _ := sc.getUserTheoryProgressSummary(userID)
@@ -642,8 +640,9 @@ func (sc *SimulationController) StartScenario(c *gin.Context) {
 		Where("user_id = ? AND status = 'completed'", userID).
 		Count(&completedCount)
 
+	maxScenarios := services.ResolveMaxScenariosCap()
 	// Check max cap
-	if int(completedCount) >= MaxScenarios {
+	if int(completedCount) >= maxScenarios {
 		c.JSON(http.StatusOK, gin.H{
 			"message":     "Maximum scenario limit reached",
 			"completed":   true,
@@ -780,7 +779,7 @@ func (sc *SimulationController) StartScenario(c *gin.Context) {
 
 	if err != nil && scenario.ScenarioID == "" {
 		// Scenario pool exhausted for static scenarios and fallback failed
-		if allPassed || int(completedCount) >= MaxScenarios {
+		if allPassed || int(completedCount) >= maxScenarios {
 			c.JSON(http.StatusOK, gin.H{
 				"message":        "All required scenarios completed",
 				"completed":      true,
@@ -810,7 +809,7 @@ func (sc *SimulationController) StartScenario(c *gin.Context) {
 		FallbackReason:     fallbackReason,
 		SelectionReason:    selectionReason,
 		ThresholdValue:     ProficiencyThreshold,
-		MaxScenarios:       MaxScenarios,
+		MaxScenarios:       maxScenarios,
 		TimeLimitSeconds:   7200,
 		CalculationVersion: services.CalculationVersion,
 		RubricVersion:      services.RubricVersion,
@@ -1340,9 +1339,10 @@ func (sc *SimulationController) SubmitScenario(c *gin.Context) {
 	// Add current session (which is about to be saved as completed)
 	totalCompletedCount++
 
+	maxScenarios := services.ResolveMaxScenariosCap()
 	if allDomainsAboveThreshold {
 		session.CompletionReason = "all_domains_passed"
-	} else if int(totalCompletedCount) >= MaxScenarios {
+	} else if int(totalCompletedCount) >= maxScenarios {
 		session.CompletionReason = "max_scenarios_reached"
 	} else if session.ElapsedSeconds >= session.TimeLimitSeconds {
 		session.CompletionReason = "time_limit_reached"
@@ -1737,7 +1737,7 @@ func (sc *SimulationController) GetResearchSummary(c *gin.Context) {
 		CompletedTheoryDomains:   completedTheoryDomains,
 		TheoryCompletedAt:        theoryCompletedAt,
 		CompletedScenarios:       len(completedSessions),
-		MaxScenarios:             MaxScenarios,
+		MaxScenarios:             services.ResolveMaxScenariosCap(),
 		TotalActions:             totalActions,
 		TotalElapsedSec:          totalSimElapsed,
 		AverageProficiency:       avgProficiency,
@@ -1845,13 +1845,13 @@ func (sc *SimulationController) getUserTheoryProgressSummary(userID any) ([]stri
 	if err := sc.DB.Where("user_id = ?", userID).Find(&subProgress).Error; err != nil {
 		return []string{}, []string{}, false, nil
 	}
-	completedSubtopics, bySub := buildOrderedCompletedSubtopics(subProgress)
-	completedDomains, _ := buildEffectiveCompletedDomains(domProgress, completedSubtopics)
-	theoryCompleted := services.IsTheorySubtopicGateSatisfied(completedSubtopics)
+	completedSubtopics, _ := buildOrderedCompletedSubtopics(subProgress)
+	completedDomains, byDom := buildEffectiveCompletedDomains(domProgress)
+	theoryCompleted := services.IsTheoryGateSatisfied(completedDomains)
 	var completedAt *time.Time
 	if theoryCompleted {
 		var latest time.Time
-		for _, p := range bySub {
+		for _, p := range byDom {
 			if p.CompletedAt.After(latest) {
 				latest = p.CompletedAt
 			}
@@ -1864,14 +1864,14 @@ func (sc *SimulationController) getUserTheoryProgressSummary(userID any) ([]stri
 }
 
 // evaluateStage2TheoryGate returns a structured 403 TheoryGateErrorResponse when
-// Stage 2 (28/28 theory sub-topics completed) is not yet satisfied, bypassEnv is not
+// Stage 2 (5/5 Domain Essentials completed) is not yet satisfied, bypassEnv is not
 // "true", and the caller is not Staff (specialist/admin).
 func evaluateStage2TheoryGate(bypassEnv, role string, loadProgress func() ([]string, []string)) *dto.TheoryGateErrorResponse {
 	if bypassEnv == "true" || role == "specialist" || role == "admin" {
 		return nil
 	}
 	completedSubtopics, completedDomains := loadProgress()
-	if services.IsTheorySubtopicGateSatisfied(completedSubtopics) {
+	if services.IsTheoryGateSatisfied(completedDomains) {
 		return nil
 	}
 	doneDomCount := len(completedDomains)
@@ -1879,9 +1879,9 @@ func evaluateStage2TheoryGate(bypassEnv, role string, loadProgress func() ([]str
 	doneSubCount := len(completedSubtopics)
 	totalSubtopics := len(services.OrderedTheorySubtopics)
 	return &dto.TheoryGateErrorResponse{
-		Error:                  "Please complete all 28 Learning Theory Sub-topics before starting simulation scenarios.",
+		Error:                  "Please complete all 5 Domain Essentials in the Learning Theory Hub before starting simulation scenarios.",
 		Code:                   "SIM_THEORY_INCOMPLETE",
-		Params:                 map[string]any{"completed_subtopics": doneSubCount, "total_subtopics": totalSubtopics},
+		Params:                 map[string]any{"completed_count": doneDomCount, "total_domains": totalDomains},
 		Reason:                 "theory_incomplete",
 		CompletedCount:         &doneDomCount,
 		TotalDomains:           &totalDomains,

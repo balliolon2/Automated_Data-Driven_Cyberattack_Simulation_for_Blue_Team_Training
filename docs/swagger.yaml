@@ -353,6 +353,9 @@ definitions:
       is_completed:
         example: true
         type: boolean
+      preview_mode:
+        example: false
+        type: boolean
       theory_completed:
         example: false
         type: boolean
@@ -1752,7 +1755,7 @@ definitions:
       learn_subtopic_telemetry:
         $ref: '#/definitions/dto.LearnSubtopicTelemetryDTO'
       max_scenarios:
-        example: 10
+        example: 15
         type: integer
       nasa_tlx_overall:
         example: 34.17
@@ -1900,7 +1903,7 @@ definitions:
         example: No skill profile found. Please complete the pre-test first.
         type: string
       max_scenarios:
-        example: 10
+        example: 15
         type: integer
       needs_training:
         example: true
@@ -3244,10 +3247,9 @@ paths:
     post:
       consumes:
       - application/json
-      description: Idempotently records that the authenticated user finished studying
-        the specified domain Theory Module without altering Proficiency Score. For
-        Learners, rejects with 403 subtopics_incomplete unless all child Sub-topics
-        are completed.
+      description: Idempotently records that the authenticated Learner finished studying
+        the specified Domain Essential without altering Proficiency Score. Specialists
+        and Admins receive preview_mode=true with zero database writes.
       parameters:
       - description: Domain ID (domain1..domain5)
         in: path
@@ -3279,7 +3281,7 @@ paths:
             $ref: '#/definitions/dto.ErrorResponse'
       security:
       - BearerAuth: []
-      summary: Mark a domain Theory Module as completed
+      summary: Mark a domain Essential Theory Module as completed
       tags:
       - Learn
   /learn/subtopics/{subTopicId}:

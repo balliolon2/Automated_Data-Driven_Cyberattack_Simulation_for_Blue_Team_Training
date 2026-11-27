@@ -488,7 +488,7 @@ func (s *gormLearnStore) CompleteSubtopic(userID, role, subTopicID, domainID str
 		if err := tx.Where("user_id = ?", userID).Find(&domProg).Error; err != nil {
 			return err
 		}
-		completedDomains, _ := buildEffectiveCompletedDomains(domProg, completedSubtopics)
+		completedDomains, _ := buildEffectiveCompletedDomains(domProg)
 
 		resp = dto.CompleteSubtopicResponse{
 			SubTopicID:                 subTopicID,
@@ -503,7 +503,7 @@ func (s *gormLearnStore) CompleteSubtopic(userID, role, subTopicID, domainID str
 			CompletedDomains:           completedDomains,
 			CompletedCount:             len(completedDomains),
 			TotalDomains:               len(services.OrderedTheoryDomains),
-			TheoryCompleted:            services.IsTheorySubtopicGateSatisfied(completedSubtopics),
+			TheoryCompleted:            services.IsTheoryGateSatisfied(completedDomains),
 			PreviewMode:                false,
 		}
 		return nil
@@ -525,10 +525,10 @@ func NewLearnControllerWithStore(store LearnStore) *LearnController {
 	return &LearnController{Store: store}
 }
 
-// buildEffectiveCompletedDomains intersects domain progress records with canonical
-// child sub-topic completion so pre-existing Spec 8 rows do not mark a domain
-// completed until every SY0-701 sub-topic in that domain is finished.
-func buildEffectiveCompletedDomains(progress []models.UserTheoryProgress, completedSubtopics []string) ([]string, map[string]models.UserTheoryProgress) {
+// buildEffectiveCompletedDomains returns canonical domain IDs persisted in
+// user_theory_progress (whether marked directly via Domain Essentials or
+// auto-completed via Optional Deep Dive Sub-topics).
+func buildEffectiveCompletedDomains(progress []models.UserTheoryProgress) ([]string, map[string]models.UserTheoryProgress) {
 	byDomain := make(map[string]models.UserTheoryProgress, len(progress))
 	for _, item := range progress {
 		byDomain[item.DomainID] = item
@@ -537,7 +537,7 @@ func buildEffectiveCompletedDomains(progress []models.UserTheoryProgress, comple
 	effective := make(map[string]models.UserTheoryProgress, len(services.OrderedTheoryDomains))
 	for _, spec := range services.OrderedTheoryDomains {
 		row, ok := byDomain[spec.DomainID]
-		if !ok || len(services.MissingSubtopicsForDomain(spec.DomainID, completedSubtopics)) > 0 {
+		if !ok {
 			continue
 		}
 		ordered = append(ordered, spec.DomainID)
@@ -656,7 +656,7 @@ func (lc *LearnController) GetDomains(c *gin.Context) {
 	}
 
 	completedSubtopics, subCompletedByID := buildOrderedCompletedSubtopics(subProgress)
-	completedDomains, completedByDomain := buildEffectiveCompletedDomains(progress, completedSubtopics)
+	completedDomains, completedByDomain := buildEffectiveCompletedDomains(progress)
 
 	subDTOsByDomain := make(map[string][]dto.TheorySubtopicSummaryDTO, len(services.OrderedTheoryDomains))
 	completedSubCountByDomain := make(map[string]int, len(services.OrderedTheoryDomains))
@@ -726,7 +726,7 @@ func (lc *LearnController) GetDomains(c *gin.Context) {
 
 	c.JSON(http.StatusOK, dto.LearnDomainsResponse{
 		Unlocked:               true,
-		TheoryCompleted:        services.IsTheorySubtopicGateSatisfied(completedSubtopics),
+		TheoryCompleted:        services.IsTheoryGateSatisfied(completedDomains),
 		CompletedCount:         completedCount,
 		TotalDomains:           totalDomains,
 		CompletedSubtopicCount: len(completedSubtopics),
@@ -738,8 +738,8 @@ func (lc *LearnController) GetDomains(c *gin.Context) {
 }
 
 // CompleteDomain godoc
-// @Summary Mark a domain Theory Module as completed
-// @Description Idempotently records that the authenticated user finished studying the specified domain Theory Module without altering Proficiency Score. For Learners, rejects with 403 subtopics_incomplete unless all child Sub-topics are completed.
+// @Summary Mark a domain Essential Theory Module as completed
+// @Description Idempotently records that the authenticated Learner finished studying the specified Domain Essential without altering Proficiency Score. Specialists and Admins receive preview_mode=true with zero database writes.
 // @Tags Learn
 // @Accept json
 // @Produce json
@@ -764,33 +764,7 @@ func (lc *LearnController) CompleteDomain(c *gin.Context) {
 	}
 	role := c.GetString("role")
 
-	subProgress, err := lc.Store.GetSubtopicProgress(userID)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Error: "Failed to verify sub-topic progress", Code: "INTERNAL_SERVER_ERROR"})
-		return
-	}
-	completedSubtopics, _ := buildOrderedCompletedSubtopics(subProgress)
-
-	if !isStaffRole(role) {
-		if missing := services.MissingSubtopicsForDomain(domainID, completedSubtopics); len(missing) > 0 {
-			doneSubCount := len(completedSubtopics)
-			totalSub := len(services.OrderedTheorySubtopics)
-			c.JSON(http.StatusForbidden, dto.TheoryGateErrorResponse{
-				Error:                  "Complete all Sub-topics in this domain before marking the domain complete.",
-				Code:                   "LEARN_SUBTOPICS_INCOMPLETE",
-				Reason:                 "subtopics_incomplete",
-				CompletedSubtopicCount: &doneSubCount,
-				TotalSubtopics:         &totalSub,
-				CompletedSubtopics:     completedSubtopics,
-				MissingSubtopics:       missing,
-			})
-			return
-		}
-		if err := lc.Store.MarkTheoryCompleted(userID, domainID); err != nil {
-			c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Error: "Failed to record domain completion", Code: "INTERNAL_SERVER_ERROR"})
-			return
-		}
-	} else {
+	if isStaffRole(role) {
 		c.JSON(http.StatusOK, dto.CompleteTheoryDomainResponse{
 			DomainID:         domainID,
 			IsCompleted:      true,
@@ -798,7 +772,13 @@ func (lc *LearnController) CompleteDomain(c *gin.Context) {
 			CompletedCount:   1,
 			TotalDomains:     len(services.OrderedTheoryDomains),
 			TheoryCompleted:  false,
+			PreviewMode:      true,
 		})
+		return
+	}
+
+	if err := lc.Store.MarkTheoryCompleted(userID, domainID); err != nil {
+		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{Error: "Failed to record domain completion", Code: "INTERNAL_SERVER_ERROR"})
 		return
 	}
 
@@ -808,7 +788,7 @@ func (lc *LearnController) CompleteDomain(c *gin.Context) {
 		return
 	}
 
-	completedDomains, _ := buildEffectiveCompletedDomains(progress, completedSubtopics)
+	completedDomains, _ := buildEffectiveCompletedDomains(progress)
 
 	c.JSON(http.StatusOK, dto.CompleteTheoryDomainResponse{
 		DomainID:         domainID,
@@ -816,7 +796,8 @@ func (lc *LearnController) CompleteDomain(c *gin.Context) {
 		CompletedDomains: completedDomains,
 		CompletedCount:   len(completedDomains),
 		TotalDomains:     len(services.OrderedTheoryDomains),
-		TheoryCompleted:  services.IsTheorySubtopicGateSatisfied(completedSubtopics),
+		TheoryCompleted:  services.IsTheoryGateSatisfied(completedDomains),
+		PreviewMode:      false,
 	})
 }
 

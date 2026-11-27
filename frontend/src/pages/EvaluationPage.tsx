@@ -27,6 +27,7 @@ export default function EvaluationPage() {
   const [loading, setLoading] = useState(true);
   const [domains, setDomains] = useState<DomainStatus[]>([]);
   const [completedScenarios, setCompletedScenarios] = useState(0);
+  const [maxScenarios, setMaxScenarios] = useState(15);
   const [needsTraining, setNeedsTraining] = useState(false);
   const [theoryCompleted, setTheoryCompleted] = useState(false);
   const [completedTheoryDomains, setCompletedTheoryDomains] = useState<string[]>([]);
@@ -84,6 +85,7 @@ export default function EvaluationPage() {
 
         setDomains(res.data.domains || []);
         setCompletedScenarios(res.data.completed_scenarios || 0);
+        setMaxScenarios(res.data.max_scenarios || 15);
         setNeedsTraining(res.data.needs_training);
         setTheoryCompleted(Boolean(res.data.theory_completed));
         setCompletedTheoryDomains(Array.isArray(res.data.completed_theory_domains) ? res.data.completed_theory_domains : []);
@@ -251,7 +253,10 @@ export default function EvaluationPage() {
                 className="px-5 py-2.5 bg-white text-black font-semibold text-sm rounded-md hover:bg-white/90 transition-all duration-200 flex items-center gap-2 cursor-pointer"
               >
                 <PlayCircle className="w-4 h-4" />
-                {t("evaluation.startRecommendedScenarios", { completed: completedScenarios })}
+                {t("evaluation.startRecommendedScenarios", {
+                  completed: completedScenarios,
+                  max: maxScenarios,
+                })}
               </button>
             )
           ) : (

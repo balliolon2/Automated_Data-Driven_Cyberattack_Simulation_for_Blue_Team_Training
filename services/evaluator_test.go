@@ -642,3 +642,50 @@ func TestCalculateUpdatedProficiency(t *testing.T) {
 		t.Fatalf("expected updated proficiency 68.0, got %f", updated2)
 	}
 }
+
+func TestResolveMaxScenariosCap(t *testing.T) {
+	t.Run("defaults to 15 when unset", func(t *testing.T) {
+		t.Setenv("MAX_SCENARIOS_CAP", "")
+		if got := ResolveMaxScenariosCap(); got != 15 {
+			t.Fatalf("expected 15, got %d", got)
+		}
+		if DefaultMaxScenarios != 15 || MaxScenarios != 15 {
+			t.Fatalf("expected DefaultMaxScenarios and MaxScenarios == 15, got %d / %d", DefaultMaxScenarios, MaxScenarios)
+		}
+	})
+
+	t.Run("accepts valid bounds 1..50", func(t *testing.T) {
+		for _, tc := range []struct {
+			raw  string
+			want int
+		}{
+			{"1", 1},
+			{"20", 20},
+			{" 25 ", 25},
+			{"50", 50},
+		} {
+			t.Setenv("MAX_SCENARIOS_CAP", tc.raw)
+			if got := ResolveMaxScenariosCap(); got != tc.want {
+				t.Fatalf("MAX_SCENARIOS_CAP=%q -> expected %d, got %d", tc.raw, tc.want, got)
+			}
+		}
+	})
+
+	t.Run("rejects invalid or out-of-range values with default 15", func(t *testing.T) {
+		for _, raw := range []string{"0", "-5", "51", "abc"} {
+			t.Setenv("MAX_SCENARIOS_CAP", raw)
+			if got := ResolveMaxScenariosCap(); got != 15 {
+				t.Fatalf("MAX_SCENARIOS_CAP=%q -> expected fallback 15, got %d", raw, got)
+			}
+		}
+	})
+}
+
+func TestEvaluationWeightsPreserved(t *testing.T) {
+	if WeightOld != 0.7 || WeightNew != 0.3 {
+		t.Fatalf("expected canonical ADR-0004 weights 0.70/0.30, got %.2f/%.2f", WeightOld, WeightNew)
+	}
+	if ProficiencyThreshold != 70.0 || MinScenarios != 1 {
+		t.Fatalf("unexpected threshold/min_scenarios: %.1f / %d", ProficiencyThreshold, MinScenarios)
+	}
+}

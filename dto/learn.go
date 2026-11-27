@@ -54,6 +54,7 @@ type CompleteTheoryDomainResponse struct {
 	CompletedCount   int      `json:"completed_count" example:"1"`
 	TotalDomains     int      `json:"total_domains" example:"5"`
 	TheoryCompleted  bool     `json:"theory_completed" example:"false"`
+	PreviewMode      bool     `json:"preview_mode" example:"false"`
 }
 
 // TheoryGateErrorResponse describes a blocked Theory Gate response.

@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
-import { Award, ChevronRight, Loader2 } from "lucide-react";
+import { AlertTriangle, Award, ChevronRight, Loader2 } from "lucide-react";
 import DomainBreakdown from "../components/DomainBreakdown";
 import { useI18n } from "../i18n";
 
@@ -16,8 +16,11 @@ interface DomainStatus {
 export default function SimulationCompletePage() {
   const { t } = useI18n();
   const [loading, setLoading] = useState(true);
+  const [statusError, setStatusError] = useState(false);
   const [domainProficiencies, setDomainProficiencies] = useState<DomainStatus[]>([]);
   const [completedScenarios, setCompletedScenarios] = useState(0);
+  const [maxScenarios, setMaxScenarios] = useState(15);
+  const [needsTraining, setNeedsTraining] = useState(false);
   const [allPassed, setAllPassed] = useState(false);
 
   const navigate = useNavigate();
@@ -37,9 +40,13 @@ export default function SimulationCompletePage() {
 
         setDomainProficiencies(res.data.domains || []);
         setCompletedScenarios(res.data.completed_scenarios || 0);
+        setMaxScenarios(res.data.max_scenarios || 15);
+        setNeedsTraining(Boolean(res.data.needs_training));
         setAllPassed(res.data.all_domains_passed || false);
+        setStatusError(false);
       } catch (err) {
         console.error("Failed to load simulation status:", err);
+        setStatusError(true);
       } finally {
         setLoading(false);
       }
@@ -73,6 +80,23 @@ export default function SimulationCompletePage() {
     );
   }
 
+  if (statusError) {
+    return (
+      <div className="max-w-lg mx-auto mt-12 bg-graphite-900 p-8 rounded-lg border border-graphite-800 text-center space-y-4">
+        <AlertTriangle className="w-8 h-8 text-amber-400 mx-auto" />
+        <p className="text-sm font-mono text-graphite-200">{t("simComplete.loadError")}</p>
+        <button
+          onClick={() => navigate("/evaluation")}
+          className="px-4 py-2 bg-white text-black font-semibold text-sm rounded-md hover:bg-white/90 transition-all cursor-pointer"
+        >
+          {t("simComplete.backToEvaluation")}
+        </button>
+      </div>
+    );
+  }
+
+  const capReached = !allPassed && (!needsTraining || completedScenarios >= maxScenarios);
+
   return (
     <div className="max-w-3xl mx-auto space-y-8 animate-fade-in">
       <div className="text-center space-y-3 max-w-xl mx-auto">
@@ -98,7 +122,9 @@ export default function SimulationCompletePage() {
             <div className="space-y-3 font-mono text-sm">
               <div className="flex justify-between py-1.5 border-b border-graphite-800/60">
                 <span className="text-graphite-400">{t("simComplete.scenariosCompleted")}</span>
-                <span className="text-white font-semibold">{completedScenarios}</span>
+                <span className="text-white font-semibold">
+                  {completedScenarios} / {maxScenarios}
+                </span>
               </div>
               <div className="flex justify-between py-1.5 border-b border-graphite-800/60">
                 <span className="text-graphite-400">{t("simComplete.averageProficiency")}</span>
@@ -109,7 +135,11 @@ export default function SimulationCompletePage() {
               <div className="flex justify-between py-1.5 border-b border-graphite-800/60">
                 <span className="text-graphite-400">{t("simComplete.statusLabel")}</span>
                 <span className={allPassed ? "text-emerald-400 font-semibold" : "text-amber-400 font-semibold"}>
-                  {allPassed ? t("simComplete.readyForExam") : t("simComplete.trainingInProgress")}
+                  {allPassed
+                    ? t("simComplete.readyForExam")
+                    : capReached
+                    ? t("simComplete.scenarioCapReachedStatus")
+                    : t("simComplete.trainingInProgress")}
                 </span>
               </div>
             </div>
@@ -118,12 +148,29 @@ export default function SimulationCompletePage() {
           <div className="space-y-2.5">
             {!allPassed ? (
               <>
-                <button
-                  onClick={() => navigate("/simulation")}
-                  className="w-full py-2.5 bg-emerald-500 hover:bg-emerald-600 text-black font-semibold text-sm rounded-md transition-all duration-200 shadow-sm cursor-pointer"
-                >
-                  {t("simComplete.continueSimulation")}
-                </button>
+                {capReached ? (
+                  <>
+                    <div className="p-3.5 rounded border border-indigo-500/30 bg-indigo-950/20 text-indigo-200 text-xs sm:text-sm leading-relaxed">
+                      {t("simComplete.capReachedNotice", {
+                        completed: completedScenarios,
+                        max: maxScenarios,
+                      })}
+                    </div>
+                    <button
+                      onClick={() => navigate("/evaluation")}
+                      className="w-full py-2.5 bg-white hover:bg-white/90 text-black font-semibold text-sm rounded-md transition-all duration-200 shadow-sm cursor-pointer"
+                    >
+                      {t("simComplete.backToEvaluation")}
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    onClick={() => navigate("/simulation")}
+                    className="w-full py-2.5 bg-emerald-500 hover:bg-emerald-600 text-black font-semibold text-sm rounded-md transition-all duration-200 shadow-sm cursor-pointer"
+                  >
+                    {t("simComplete.continueSimulation")}
+                  </button>
+                )}
                 <div className="p-3.5 rounded border border-amber-900/50 bg-amber-950/20 text-amber-300/90 text-xs sm:text-sm leading-relaxed">
                   {t("simComplete.postTestLockedNotice")}
                 </div>

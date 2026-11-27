@@ -16,7 +16,7 @@ type SimulationStatusResponse struct {
 	NeedsTraining          bool              `json:"needs_training" example:"true"`
 	Domains                []DomainStatusDTO `json:"domains,omitempty"`
 	CompletedScenarios     int               `json:"completed_scenarios" example:"2"`
-	MaxScenarios           int               `json:"max_scenarios" example:"10"`
+	MaxScenarios           int               `json:"max_scenarios" example:"15"`
 	AllDomainsPassed       bool              `json:"all_domains_passed" example:"false"`
 	TheoryCompleted        bool              `json:"theory_completed" example:"true"`
 	CompletedTheoryDomains []string          `json:"completed_theory_domains"`
@@ -125,7 +125,7 @@ type ResearchSummaryResponse struct {
 	CompletedTheoryDomains []string                   `json:"completed_theory_domains"`
 	TheoryCompletedAt      *time.Time                 `json:"theory_completed_at,omitempty"`
 	CompletedScenarios     int                        `json:"completed_scenarios" example:"3"`
-	MaxScenarios           int                        `json:"max_scenarios" example:"10"`
+	MaxScenarios           int                        `json:"max_scenarios" example:"15"`
 	TotalActions           int                        `json:"total_actions" example:"18"`
 	TotalElapsedSec        int                        `json:"total_elapsed_sec" example:"720"`
 	AverageProficiency     float64                    `json:"average_proficiency" example:"78.5"`

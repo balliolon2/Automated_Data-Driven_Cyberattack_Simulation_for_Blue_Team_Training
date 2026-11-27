@@ -25,6 +25,36 @@ class TheorySeedingValidationTests(unittest.TestCase):
             self.assertIn("](https://", mod["content"])
             self.assertIn("https://en.wikipedia.org/", mod["content"])
 
+    def test_all_domain_essentials_meet_three_minute_budget(self):
+        repo_theory_dir = os.path.join(SCRIPT_DIR, "..", "theory")
+        modules = {m["domain_id"]: m for m in load_theory_to_db.load_and_validate_modules(repo_theory_dir)}
+        th_modules, _ = load_theory_to_db.load_and_validate_thai_translations(
+            repo_theory_dir, locale="th", require_all=True, require_pilot=True
+        )
+        th_by_id = {m["entity_id"]: m for m in th_modules}
+
+        for domain_id in ("domain1", "domain2", "domain3", "domain4", "domain5"):
+            en_words = len(modules[domain_id]["content"].split())
+            th_chars = len(th_by_id[domain_id]["content"])
+            self.assertLessEqual(
+                en_words,
+                load_theory_to_db.MAX_ESSENTIAL_EN_WORDS,
+                f"{domain_id} EN essential too long ({en_words} words)",
+            )
+            self.assertLessEqual(
+                th_chars,
+                load_theory_to_db.MAX_ESSENTIAL_TH_CHARS,
+                f"{domain_id} TH essential too long ({th_chars} chars)",
+            )
+
+    def test_validate_domain_essential_length_rejects_oversized(self):
+        long_en = "word " * (load_theory_to_db.MAX_ESSENTIAL_EN_WORDS + 1)
+        long_th = "ก" * (load_theory_to_db.MAX_ESSENTIAL_TH_CHARS + 1)
+        self.assertTrue(load_theory_to_db.validate_domain_essential_length("domain2", long_en, locale="en"))
+        self.assertTrue(load_theory_to_db.validate_domain_essential_length("domain2", long_th, locale="th"))
+        self.assertEqual([], load_theory_to_db.validate_domain_essential_length("domain2", "short text", locale="en"))
+        self.assertEqual([], load_theory_to_db.validate_domain_essential_length("domain2", "ข้อความสั้น", locale="th"))
+
     def test_rejects_missing_required_section(self):
         broken = """# Domain 1: Broken
 ## 1. Core Security+ Theory & Exam Concepts

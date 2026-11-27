@@ -342,8 +342,8 @@ export default function SimulationPage() {
               err,
               tRef.current,
               tRef.current("errors.SIM_THEORY_INCOMPLETE", {
-                completed_subtopics: err.response.data.completed_subtopic_count ?? 0,
-                total_subtopics: err.response.data.total_subtopics ?? 28,
+                completed_count: err.response.data.completed_count ?? 0,
+                total_domains: err.response.data.total_domains ?? 5,
               }),
             ),
           );
@@ -493,23 +493,16 @@ export default function SimulationPage() {
           <div className="space-y-2">
             <h3 className="text-lg font-bold text-white tracking-tight">{t("simulation.theoryRequiredTitle")}</h3>
             <p className="text-sm text-graphite-300 font-mono leading-relaxed">
-              {typeof theoryGateInfo.completedSubtopics === "number"
-                ? t("errors.SIM_THEORY_INCOMPLETE", {
-                    completed_subtopics: theoryGateInfo.completedSubtopics,
-                    total_subtopics: theoryGateInfo.totalSubtopics ?? 28,
-                  })
-                : errorMessage}
+              {t("errors.SIM_THEORY_INCOMPLETE", {
+                completed_count: theoryGateInfo.completedCount,
+                total_domains: theoryGateInfo.totalDomains,
+              }) || errorMessage}
             </p>
             <p className="text-sm font-mono text-graphite-200">
-              {typeof theoryGateInfo.completedSubtopics === "number"
-                ? t("simulation.completedSubtopicsSummary", {
-                    completed: theoryGateInfo.completedSubtopics,
-                    total: theoryGateInfo.totalSubtopics ?? 28,
-                  })
-                : t("simulation.completedDomainsSummary", {
-                    completed: theoryGateInfo.completedCount,
-                    total: theoryGateInfo.totalDomains,
-                  })}
+              {t("simulation.completedDomainsSummary", {
+                completed: theoryGateInfo.completedCount,
+                total: theoryGateInfo.totalDomains,
+              })}
             </p>
           </div>
           <div className="flex flex-col gap-2">

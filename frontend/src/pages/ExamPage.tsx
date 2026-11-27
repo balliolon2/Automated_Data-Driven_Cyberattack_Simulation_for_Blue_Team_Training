@@ -357,13 +357,18 @@ export default function ExamPage({ mode }: { mode: "pre" | "post" }) {
       {/* Main Content: Question (strictly English-only content) */}
       <div className="lg:col-span-3 bg-graphite-900 border border-graphite-800 rounded-lg p-6 sm:p-8 flex flex-col justify-between">
         <div>
-          <div className="flex justify-between items-center border-b border-graphite-800 pb-4 mb-6">
+          <div className="flex flex-wrap justify-between items-center gap-3 border-b border-graphite-800 pb-4 mb-6">
             <h2 className="text-lg font-semibold text-white">
               {t("exam.questionOf", { current: currentQuestionIdx + 1, total: totalQuestions })}
             </h2>
-            <div className="flex items-center gap-2 text-white font-mono text-sm bg-graphite-950 px-3 py-1.5 rounded border border-graphite-800 select-none">
-              <Clock className="w-4 h-4 text-graphite-400" />
-              {formatTime(timeLeft)}
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-xs font-mono text-indigo-300 bg-indigo-500/10 px-2.5 py-1.5 rounded border border-indigo-500/30 select-none">
+                {t("exam.targetPaceBadge")}
+              </span>
+              <div className="flex items-center gap-2 text-white font-mono text-sm bg-graphite-950 px-3 py-1.5 rounded border border-graphite-800 select-none">
+                <Clock className="w-4 h-4 text-graphite-400" />
+                {formatTime(timeLeft)}
+              </div>
             </div>
           </div>
 

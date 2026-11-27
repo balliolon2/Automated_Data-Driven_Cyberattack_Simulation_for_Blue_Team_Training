@@ -15,50 +15,52 @@ import (
 )
 
 func TestEvaluateStage2TheoryGate(t *testing.T) {
-	allTwentyEight := make([]string, 0, len(services.OrderedTheorySubtopics))
-	for _, s := range services.OrderedTheorySubtopics {
-		allTwentyEight = append(allTwentyEight, s.SubTopicID)
-	}
-	twentySeven := allTwentyEight[:len(allTwentyEight)-1]
+	allFive := []string{"domain1", "domain2", "domain3", "domain4", "domain5"}
+	fourOfFive := []string{"domain1", "domain2", "domain3", "domain4"}
 
 	tests := []struct {
-		name                   string
-		bypassEnv              string
-		role                   string
-		completedSubtopics     []string
-		wantBlocked            bool
-		wantCompletedSubtopics int
-		wantTotalSubtopics     int
+		name               string
+		bypassEnv          string
+		role               string
+		completedDomains   []string
+		completedSubtopics []string
+		wantBlocked        bool
+		wantCompletedCount int
+		wantTotalDomains   int
 	}{
 		{
-			name:                   "blocks learner with 0 completed subtopics",
-			bypassEnv:              "",
-			role:                   "learner",
-			completedSubtopics:     []string{},
-			wantBlocked:            true,
-			wantCompletedSubtopics: 0,
-			wantTotalSubtopics:     28,
-		},
-		{
-			name:                   "blocks learner with 27 of 28 subtopics (legacy 5/5 domains insufficient)",
-			bypassEnv:              "false",
-			role:                   "learner",
-			completedSubtopics:     twentySeven,
-			wantBlocked:            true,
-			wantCompletedSubtopics: 27,
-			wantTotalSubtopics:     28,
-		},
-		{
-			name:               "allows learner when all 28 subtopics are completed",
+			name:               "blocks learner with 0 completed domains",
 			bypassEnv:          "",
 			role:               "learner",
-			completedSubtopics: allTwentyEight,
+			completedDomains:   []string{},
+			completedSubtopics: []string{},
+			wantBlocked:        true,
+			wantCompletedCount: 0,
+			wantTotalDomains:   5,
+		},
+		{
+			name:               "blocks learner with 4 of 5 completed domains",
+			bypassEnv:          "false",
+			role:               "learner",
+			completedDomains:   fourOfFive,
+			completedSubtopics: []string{"1.1", "1.2"},
+			wantBlocked:        true,
+			wantCompletedCount: 4,
+			wantTotalDomains:   5,
+		},
+		{
+			name:               "allows learner when all 5 domain essentials are completed even with 0 subtopics",
+			bypassEnv:          "",
+			role:               "learner",
+			completedDomains:   allFive,
+			completedSubtopics: []string{},
 			wantBlocked:        false,
 		},
 		{
-			name:               "allows specialist exemption even with 0 completed subtopics",
+			name:               "allows specialist exemption even with 0 completed domains",
 			bypassEnv:          "",
 			role:               "specialist",
+			completedDomains:   []string{},
 			completedSubtopics: []string{},
 			wantBlocked:        false,
 		},
@@ -66,6 +68,7 @@ func TestEvaluateStage2TheoryGate(t *testing.T) {
 			name:               "allows bypass when BYPASS_THEORY_GATE is true",
 			bypassEnv:          "true",
 			role:               "learner",
+			completedDomains:   []string{},
 			completedSubtopics: []string{},
 			wantBlocked:        false,
 		},
@@ -74,7 +77,7 @@ func TestEvaluateStage2TheoryGate(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			gateErr := evaluateStage2TheoryGate(tt.bypassEnv, tt.role, func() ([]string, []string) {
-				return tt.completedSubtopics, []string{}
+				return tt.completedSubtopics, tt.completedDomains
 			})
 
 			if !tt.wantBlocked {
@@ -102,14 +105,14 @@ func TestEvaluateStage2TheoryGate(t *testing.T) {
 			if err := json.Unmarshal(rec.Body.Bytes(), &decoded); err != nil {
 				t.Fatalf("failed to decode error JSON: %v", err)
 			}
-			if decoded.Reason != "theory_incomplete" {
-				t.Fatalf("expected reason=theory_incomplete, got %q", decoded.Reason)
+			if decoded.Reason != "theory_incomplete" || decoded.Code != "SIM_THEORY_INCOMPLETE" {
+				t.Fatalf("expected reason=theory_incomplete code=SIM_THEORY_INCOMPLETE, got %+v", decoded)
 			}
-			if decoded.CompletedSubtopicCount == nil || *decoded.CompletedSubtopicCount != tt.wantCompletedSubtopics {
-				t.Fatalf("expected completed_subtopic_count=%d, got %v", tt.wantCompletedSubtopics, decoded.CompletedSubtopicCount)
+			if decoded.CompletedCount == nil || *decoded.CompletedCount != tt.wantCompletedCount {
+				t.Fatalf("expected completed_count=%d, got %v", tt.wantCompletedCount, decoded.CompletedCount)
 			}
-			if decoded.TotalSubtopics == nil || *decoded.TotalSubtopics != tt.wantTotalSubtopics {
-				t.Fatalf("expected total_subtopics=%d, got %v", tt.wantTotalSubtopics, decoded.TotalSubtopics)
+			if decoded.TotalDomains == nil || *decoded.TotalDomains != tt.wantTotalDomains {
+				t.Fatalf("expected total_domains=%d, got %v", tt.wantTotalDomains, decoded.TotalDomains)
 			}
 		})
 	}
@@ -149,43 +152,32 @@ func TestBuildLearnSubtopicTelemetry(t *testing.T) {
 	}
 }
 
-func TestBuildEffectiveCompletedDomains_ExcludesLegacyWithoutSubtopics(t *testing.T) {
+func TestBuildEffectiveCompletedDomains_HonorsDirectAndAutoCompletions(t *testing.T) {
 	now := time.Now().Add(-24 * time.Hour)
-	allLegacyRows := make([]models.UserTheoryProgress, 0, len(services.OrderedTheoryDomains))
+	allRows := make([]models.UserTheoryProgress, 0, len(services.OrderedTheoryDomains))
 	for _, dom := range services.OrderedTheoryDomains {
-		allLegacyRows = append(allLegacyRows, models.UserTheoryProgress{
-			UserID:      "legacy-t4",
+		allRows = append(allRows, models.UserTheoryProgress{
+			UserID:      "learner-essentials",
 			DomainID:    dom.DomainID,
 			CompletedAt: now,
 		})
 	}
 
-	noneDone, byNone := buildEffectiveCompletedDomains(allLegacyRows, []string{})
-	if len(noneDone) != 0 || len(byNone) != 0 {
-		t.Fatalf("expected 0 effective completed domains with 0 subtopics, got %v (map len %d)", noneDone, len(byNone))
+	allFive, byFive := buildEffectiveCompletedDomains(allRows)
+	if len(allFive) != len(services.OrderedTheoryDomains) || len(byFive) != len(services.OrderedTheoryDomains) {
+		t.Fatalf("expected all %d domains honored directly without subtopics, got %v (map len %d)",
+			len(services.OrderedTheoryDomains), allFive, len(byFive))
 	}
 
-	partialPlusDom2 := []string{"1.1", "1.2", "1.3"}
-	for _, s := range services.SubtopicsForDomain("domain2") {
-		partialPlusDom2 = append(partialPlusDom2, s.SubTopicID)
+	partialRows := []models.UserTheoryProgress{
+		{UserID: "learner-essentials", DomainID: "domain4", CompletedAt: now},
+		{UserID: "learner-essentials", DomainID: "domain1", CompletedAt: now},
 	}
-	onlyDom2, byDom2 := buildEffectiveCompletedDomains(allLegacyRows, partialPlusDom2)
-	if len(onlyDom2) != 1 || onlyDom2[0] != "domain2" {
-		t.Fatalf("expected only [domain2] when domain1 is 3/4 and domain2 is 7/7, got %v", onlyDom2)
+	ordered, byPartial := buildEffectiveCompletedDomains(partialRows)
+	if len(ordered) != 2 || ordered[0] != "domain1" || ordered[1] != "domain4" {
+		t.Fatalf("expected canonical order [domain1 domain4], got %v", ordered)
 	}
-	if _, ok := byDom2["domain1"]; ok {
-		t.Fatalf("incomplete domain1 should not be present in effective domain map")
-	}
-	if _, ok := byDom2["domain2"]; !ok {
-		t.Fatalf("completed domain2 missing from effective domain map")
-	}
-
-	allTwentyEight := make([]string, 0, len(services.OrderedTheorySubtopics))
-	for _, s := range services.OrderedTheorySubtopics {
-		allTwentyEight = append(allTwentyEight, s.SubTopicID)
-	}
-	allFive, _ := buildEffectiveCompletedDomains(allLegacyRows, allTwentyEight)
-	if len(allFive) != len(services.OrderedTheoryDomains) {
-		t.Fatalf("expected all %d domains when all 28 subtopics are complete, got %v", len(services.OrderedTheoryDomains), allFive)
+	if _, ok := byPartial["domain2"]; ok {
+		t.Fatalf("uncompleted domain2 should not appear in effective domain map")
 	}
 }

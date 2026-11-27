@@ -386,7 +386,7 @@ func TestSanitizeScenario_SanitizesTranslationsWithoutLeaks(t *testing.T) {
 
 func TestEvaluateStage2TheoryGate_IncludesCanonicalCode(t *testing.T) {
 	gateErr := evaluateStage2TheoryGate("", "learner", func() ([]string, []string) {
-		return []string{"1.1"}, []string{}
+		return []string{}, []string{"domain1"}
 	})
 	if gateErr == nil {
 		t.Fatal("expected TheoryGateErrorResponse")
@@ -394,7 +394,7 @@ func TestEvaluateStage2TheoryGate_IncludesCanonicalCode(t *testing.T) {
 	if gateErr.Code != "SIM_THEORY_INCOMPLETE" {
 		t.Fatalf("expected Code SIM_THEORY_INCOMPLETE, got %q", gateErr.Code)
 	}
-	if gateErr.Params["completed_subtopics"] != 1 || gateErr.Params["total_subtopics"] != 28 {
+	if gateErr.Params["completed_count"] != 1 || gateErr.Params["total_domains"] != 5 {
 		t.Fatalf("unexpected Params: %+v", gateErr.Params)
 	}
 }

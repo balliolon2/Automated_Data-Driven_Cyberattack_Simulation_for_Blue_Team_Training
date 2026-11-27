@@ -4,7 +4,10 @@ import (
 	"encoding/json"
 	"log"
 	"math"
+	"os"
 	"sort"
+	"strconv"
+	"strings"
 
 	"cybersim/models"
 )
@@ -12,7 +15,8 @@ import (
 // Configuration constants for scoring
 const (
 	ProficiencyThreshold = 70.0 // Uniform threshold across all domains
-	MaxScenarios         = 10   // Maximum scenarios per training session
+	DefaultMaxScenarios  = 15   // Default maximum scenarios per Scenario Loop
+	MaxScenarios         = DefaultMaxScenarios
 	MinScenarios         = 1    // Minimum scenarios before allowing completion
 	WeightOld            = 0.7  // 1 - alpha: Weight for existing proficiency score (0.70)
 	WeightNew            = 0.3  // alpha: Weight for new scenario score (0.30)
@@ -28,6 +32,21 @@ const (
 	// DefaultFindingPoints is used when a Key Finding omits its points value.
 	DefaultFindingPoints = 10
 )
+
+// ResolveMaxScenariosCap returns the configured scenario cap from MAX_SCENARIOS_CAP,
+// accepting values in [1, 50] and defaulting to DefaultMaxScenarios (15) when unset,
+// non-integer, or out of range.
+func ResolveMaxScenariosCap() int {
+	raw := strings.TrimSpace(os.Getenv("MAX_SCENARIOS_CAP"))
+	if raw == "" {
+		return DefaultMaxScenarios
+	}
+	v, err := strconv.Atoi(raw)
+	if err != nil || v < 1 || v > 50 {
+		return DefaultMaxScenarios
+	}
+	return v
+}
 
 // ScoreSubmission evaluates learner inputs against scenario criteria and computes the complete Evaluation Result.
 //

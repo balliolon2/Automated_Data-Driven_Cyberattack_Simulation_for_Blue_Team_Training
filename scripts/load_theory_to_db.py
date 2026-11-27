@@ -8,6 +8,8 @@ MARKDOWN_HTTPS_LINK_RE = re.compile(r"\]\((https://[^)\s]+)\)")
 CODE_BLOCK_RE = re.compile(r"```.*?```", flags=re.DOTALL)
 PILOT_DOMAIN_IDS = {"domain1"}
 PILOT_SUBTOPIC_IDS = {"1.1", "1.2", "1.3", "1.4"}
+MAX_ESSENTIAL_EN_WORDS = 620
+MAX_ESSENTIAL_TH_CHARS = 4000
 
 
 DOMAIN_SPECS = [
@@ -106,6 +108,23 @@ def validate_theory_content(domain_id, title, content):
     return errors
 
 
+def validate_domain_essential_length(domain_id, content, locale="en"):
+    errors = []
+    if locale == "th":
+        char_count = len(content or "")
+        if char_count > MAX_ESSENTIAL_TH_CHARS:
+            errors.append(
+                f"{domain_id}: TH Domain Essential exceeds 3-minute budget ({char_count} > {MAX_ESSENTIAL_TH_CHARS} chars)"
+            )
+    else:
+        word_count = len((content or "").split())
+        if word_count > MAX_ESSENTIAL_EN_WORDS:
+            errors.append(
+                f"{domain_id}: EN Domain Essential exceeds 3-minute budget ({word_count} > {MAX_ESSENTIAL_EN_WORDS} words)"
+            )
+    return errors
+
+
 def load_and_validate_modules(theory_dir=None):
     resolved_dir = resolve_theory_dir(theory_dir)
     modules = []
@@ -121,6 +140,7 @@ def load_and_validate_modules(theory_dir=None):
             content = f.read().replace("\r\n", "\n")
 
         errs = validate_theory_content(domain_id, title, content)
+        errs.extend(validate_domain_essential_length(domain_id, content, locale="en"))
         all_errors.extend(errs)
         modules.append(
             {
@@ -281,6 +301,7 @@ def load_and_validate_thai_translations(theory_dir=None, locale="th", require_al
             th_content = f.read().replace("\r\n", "\n")
         en_content = en_modules[domain_id]["content"]
         all_errors.extend(validate_thai_theory_content(domain_id, title, en_content, th_content))
+        all_errors.extend(validate_domain_essential_length(domain_id, th_content, locale="th"))
         thai_modules.append(
             {
                 "entity_type": "domain_overview",

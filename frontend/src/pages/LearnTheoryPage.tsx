@@ -9,6 +9,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Circle,
+  Clock,
   ExternalLink,
   Eye,
   FileText,
@@ -127,9 +128,20 @@ interface CompleteSubtopicResponse {
   preview_mode: boolean;
 }
 
+interface CompleteDomainResponse {
+  domain_id: string;
+  is_completed: boolean;
+  completed_domains: string[];
+  completed_count: number;
+  total_domains: number;
+  theory_completed: boolean;
+  preview_mode?: boolean;
+}
+
 type UnlockNoticeState =
   | { kind: "staff_preview" }
   | { kind: "all_complete" }
+  | { kind: "domain_complete"; domainId: string }
   | { kind: "domain_auto"; domainId: string }
   | null;
 
@@ -150,6 +162,8 @@ export default function LearnTheoryPage() {
     searchParams.get("topic") === "overview" ? null : searchParams.get("topic")
   );
   const [expandedDomains, setExpandedDomains] = useState<Record<string, boolean>>({});
+  const [expandedDeepDiveDomains, setExpandedDeepDiveDomains] = useState<Record<string, boolean>>({});
+  const [overviewDeepDiveOpen, setOverviewDeepDiveOpen] = useState<boolean>(false);
 
   const [subDetail, setSubDetail] = useState<LearnSubtopicDetail | null>(null);
   const [subLoading, setSubLoading] = useState(false);
@@ -158,6 +172,7 @@ export default function LearnTheoryPage() {
   // Local radio choice per question before clicking Submit
   const [draftAnswers, setDraftAnswers] = useState<Record<string, string>>({});
   const [submittingQuestionId, setSubmittingQuestionId] = useState<string | null>(null);
+  const [completingDomainId, setCompletingDomainId] = useState<string | null>(null);
   const [completingSubtopicId, setCompletingSubtopicId] = useState<string | null>(null);
   const [actionErrorObj, setActionErrorObj] = useState<unknown>(null);
   const [unlockNotice, setUnlockNotice] = useState<UnlockNoticeState>(null);
@@ -281,6 +296,7 @@ export default function LearnTheoryPage() {
           setExpandedDomains({ [targetDomainId]: true });
 
           if (targetTopicId) {
+            setExpandedDeepDiveDomains({ [targetDomainId]: true });
             loadSubtopicDetail(targetTopicId, locale);
           }
         } else if (activeTopicRef.current) {
@@ -322,6 +338,7 @@ export default function LearnTheoryPage() {
     setSubErrorObj(null);
     setActionErrorObj(null);
     setUnlockNotice(null);
+    setOverviewDeepDiveOpen(false);
     setExpandedDomains((prev) => ({ ...prev, [domainId]: true }));
     setSearchParams({ domain: domainId, topic: "overview" }, { replace: true });
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -337,6 +354,7 @@ export default function LearnTheoryPage() {
     setSelectedDomainId(resolvedDomain);
     setSelectedTopicId(subTopicId);
     setExpandedDomains((prev) => ({ ...prev, [resolvedDomain]: true }));
+    setExpandedDeepDiveDomains((prev) => ({ ...prev, [resolvedDomain]: true }));
     setUnlockNotice(null);
     setSearchParams({ domain: resolvedDomain, topic: subTopicId }, { replace: true });
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -345,6 +363,64 @@ export default function LearnTheoryPage() {
 
   const toggleDomainExpand = (domainId: string) => {
     setExpandedDomains((prev) => ({ ...prev, [domainId]: !prev[domainId] }));
+  };
+
+  const toggleDeepDiveExpand = (domainId: string) => {
+    setExpandedDeepDiveDomains((prev) => ({ ...prev, [domainId]: !prev[domainId] }));
+  };
+
+  const handleCompleteDomain = async (domainId: string) => {
+    const token = localStorage.getItem("token");
+    if (!token || !data) return;
+
+    setCompletingDomainId(domainId);
+    setActionErrorObj(null);
+    setUnlockNotice(null);
+    try {
+      const res = await axios.post<CompleteDomainResponse>(
+        `/api/learn/domains/${encodeURIComponent(domainId)}/complete`,
+        {},
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      const payload = res.data;
+
+      if (payload.preview_mode) {
+        setUnlockNotice({ kind: "staff_preview" });
+        return;
+      }
+
+      const nowIso = new Date().toISOString();
+      const doneDomSet = new Set(payload.completed_domains || []);
+
+      setData((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          theory_completed: Boolean(payload.theory_completed),
+          completed_count: payload.completed_count ?? doneDomSet.size,
+          completed_domains: payload.completed_domains || prev.completed_domains,
+          domains: prev.domains.map((dom) => {
+            const domDone = doneDomSet.has(dom.domain_id);
+            return {
+              ...dom,
+              is_completed: domDone,
+              completed_at: domDone ? dom.completed_at || nowIso : dom.completed_at,
+            };
+          }),
+        };
+      });
+
+      if (payload.theory_completed) {
+        setUnlockNotice({ kind: "all_complete" });
+      } else {
+        setUnlockNotice({ kind: "domain_complete", domainId: payload.domain_id });
+      }
+    } catch (err: unknown) {
+      console.error("Failed to complete domain essential:", err);
+      setActionErrorObj(err);
+    } finally {
+      setCompletingDomainId(null);
+    }
   };
 
   const handleSubmitSampleAnswer = async (questionId: string) => {
@@ -569,16 +645,71 @@ export default function LearnTheoryPage() {
   const prevDomain = activeIdx > 0 ? data.domains[activeIdx - 1] : null;
   const nextDomain =
     activeIdx < data.domains.length - 1 ? data.domains[activeIdx + 1] : null;
+  const nextActionDomain =
+    nextDomain ||
+    data.domains.find((d) => !d.is_completed && d.domain_id !== activeDomain.domain_id) ||
+    null;
 
+  const totalDomains = Math.max(1, data.total_domains || 5);
+  const completedDomainsCount = data.completed_count || 0;
+  const progressPct = Math.round((completedDomainsCount / totalDomains) * 100);
   const totalSubtopics = Math.max(1, data.total_subtopics || 28);
   const completedSubtopicsCount = data.completed_subtopic_count || 0;
-  const progressPct = Math.round((completedSubtopicsCount / totalSubtopics) * 100);
   const showProficiencyMetrics =
     userRole === "learner" || data.domains.some((d) => d.proficiency_score > 0);
 
   const subError = subErrorObj ? resolveApiError(subErrorObj, t, t("learn.subtopicLoadError")) : null;
   const actionError = actionErrorObj ? resolveApiError(actionErrorObj, t, t("learn.completeError")) : null;
   const activeDomainDisplayName = resolveDomainName(activeDomain.domain_id, activeDomain.domain_name, locale);
+
+  const actionErrorBanner = actionError ? (
+    <p className="text-sm font-mono text-red-400 bg-red-950/30 border border-red-500/30 rounded px-3.5 py-2">
+      {actionError}
+    </p>
+  ) : null;
+
+  const unlockNoticeBanner = unlockNotice ? (
+    <div className="p-4 rounded-lg bg-emerald-950/40 border border-emerald-500/40 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <div className="space-y-1">
+        <p className="text-sm font-bold text-emerald-300">
+          {unlockNotice.kind === "staff_preview"
+            ? t("learn.staffPreviewNoticeTitle")
+            : unlockNotice.kind === "all_complete"
+            ? t("learn.allCompleteNoticeTitle")
+            : unlockNotice.kind === "domain_complete"
+            ? t("learn.domainEssentialCompleteNoticeTitle", {
+                domainUpper: unlockNotice.domainId.toUpperCase(),
+              })
+            : t("learn.domainAutoCompleteNoticeTitle", {
+                domainUpper: unlockNotice.domainId.toUpperCase(),
+              })}
+        </p>
+        <p className="text-sm text-graphite-200">
+          {unlockNotice.kind === "staff_preview"
+            ? t("learn.staffPreviewNoticeDetail")
+            : unlockNotice.kind === "all_complete"
+            ? t("learn.allCompleteNoticeDetail")
+            : unlockNotice.kind === "domain_complete"
+            ? t("learn.domainEssentialCompleteNoticeDetail", {
+                domainName: resolveDomainName(unlockNotice.domainId, unlockNotice.domainId, locale),
+              })
+            : t("learn.domainAutoCompleteNoticeDetail", {
+                domainName: resolveDomainName(unlockNotice.domainId, unlockNotice.domainId, locale),
+              })}
+        </p>
+      </div>
+      {unlockNotice.kind === "all_complete" && (
+        <button
+          type="button"
+          onClick={() => navigate("/simulation")}
+          className="px-4 py-2 rounded-md bg-white text-black font-semibold text-sm hover:bg-white/90 flex items-center gap-1.5 shrink-0 cursor-pointer"
+        >
+          <PlayCircle className="w-4 h-4" />
+          {t("learn.enterSimulation")}
+        </button>
+      )}
+    </div>
+  ) : null;
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -599,16 +730,16 @@ export default function LearnTheoryPage() {
           </p>
         </div>
 
-        <div className="w-full lg:w-80 space-y-3 bg-graphite-950/70 border border-graphite-800 rounded-lg p-4 shrink-0">
-          <div className="flex items-center justify-between text-xs sm:text-sm font-mono">
+        <div className="w-full lg:w-96 space-y-3 bg-graphite-950/70 border border-graphite-800 rounded-lg p-4 shrink-0">
+          <div className="flex items-center justify-between gap-3 text-xs sm:text-sm font-mono">
             <span className="text-graphite-300">{t("learn.studyProgress")}</span>
             <span
               className={cn(
-                "font-bold",
+                "font-bold shrink-0",
                 data.theory_completed ? "text-emerald-400" : "text-white"
               )}
             >
-              {t("learn.subtopicsRatio", { completed: completedSubtopicsCount, total: totalSubtopics })}
+              {t("learn.domainsRatio", { completed: completedDomainsCount, total: totalDomains })}
             </span>
           </div>
           <div className="h-2 w-full bg-graphite-900 rounded overflow-hidden border border-graphite-800">
@@ -620,11 +751,11 @@ export default function LearnTheoryPage() {
               style={{ width: `${progressPct}%` }}
             />
           </div>
-          <div className="flex items-center justify-between text-xs font-mono text-graphite-400">
+          <div className="flex items-center justify-between gap-3 text-xs font-mono text-graphite-400">
             <span>
-              {t("learn.domainsAutoCompleted", { completed: data.completed_count, total: data.total_domains })}
+              {t("learn.deepDiveProgressSummary", { completed: completedSubtopicsCount, total: totalSubtopics })}
             </span>
-            <span>{progressPct}%</span>
+            <span className="shrink-0">{progressPct}%</span>
           </div>
 
           {data.theory_completed ? (
@@ -637,7 +768,7 @@ export default function LearnTheoryPage() {
             </button>
           ) : (
             <p className="text-xs font-mono text-graphite-400 leading-relaxed">
-              {t("learn.unlockRequirementHint", { total: totalSubtopics })}
+              {t("learn.unlockRequirementHint", { total: totalDomains })}
             </p>
           )}
         </div>
@@ -695,7 +826,7 @@ export default function LearnTheoryPage() {
                             : "bg-graphite-950 text-graphite-300 border-graphite-800"
                         )}
                       >
-                        {domain.completed_subtopics_in_domain}/{domain.total_subtopics_in_domain}
+                        {domain.is_completed ? t("learn.doneBadge") : t("learn.roadmapBadge")}
                       </span>
                       {domain.is_completed ? (
                         <CheckCircle2 className="w-4 h-4 text-emerald-400" />
@@ -728,7 +859,7 @@ export default function LearnTheoryPage() {
                   </div>
                 </div>
 
-                {/* Expanded Child Tree: Overview + Sub-topics */}
+                {/* Expanded Child Tree: Domain Essential + Collapsible Optional Deep Dive */}
                 {isExpanded && (
                   <div className="border-t border-graphite-800/80 bg-graphite-950/40 px-2.5 py-2 space-y-1">
                     <button
@@ -750,44 +881,74 @@ export default function LearnTheoryPage() {
                       </span>
                     </button>
 
-                    {(domain.subtopics || []).map((sub) => {
-                      const isSubActive = effectiveTopicId === sub.sub_topic_id;
-                      return (
+                    {(domain.subtopics || []).length > 0 && (
+                      <>
                         <button
-                          key={sub.sub_topic_id}
                           type="button"
-                          onClick={() => handleSelectSubtopic(sub.sub_topic_id, domain.domain_id)}
-                          className={cn(
-                            "w-full text-left px-2.5 py-2 rounded text-sm flex items-center justify-between gap-2 transition-colors cursor-pointer",
-                            isSubActive
-                              ? "bg-indigo-500/20 border border-indigo-500/40 text-white font-semibold"
-                              : "text-graphite-200 hover:bg-graphite-800/60 hover:text-white border border-transparent"
-                          )}
+                          onClick={() => toggleDeepDiveExpand(domain.domain_id)}
+                          aria-expanded={Boolean(expandedDeepDiveDomains[domain.domain_id])}
+                          className="w-full text-left px-2.5 py-1.5 rounded text-xs font-mono text-graphite-400 hover:text-graphite-200 hover:bg-graphite-800/40 flex items-center justify-between gap-2 transition-colors cursor-pointer"
                         >
-                          <span className="flex items-center gap-2 min-w-0">
-                            {sub.is_completed ? (
-                              <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                            ) : (
-                              <FileText className="w-4 h-4 text-graphite-400 shrink-0" />
-                            )}
-                            <span className="font-mono text-xs text-indigo-300 shrink-0">
-                              {sub.sub_topic_id}
+                          <span className="flex items-center gap-1.5 min-w-0">
+                            <ChevronDown
+                              className={cn(
+                                "w-3.5 h-3.5 shrink-0 transition-transform duration-150",
+                                !expandedDeepDiveDomains[domain.domain_id] && "-rotate-90"
+                              )}
+                            />
+                            <span className="truncate">
+                              {t("learn.optionalDeepDiveLabel", { count: domain.subtopics.length })}
                             </span>
-                            <span className="truncate text-sm">{sub.title}</span>
                           </span>
-                          <span
-                            className={cn(
-                              "text-xs font-mono shrink-0 px-1.5 py-0.5 rounded",
-                              sub.sample_attempted_count >= sub.sample_total_count
-                                ? "text-emerald-400 bg-emerald-500/10"
-                                : "text-graphite-400 bg-graphite-900"
-                            )}
-                          >
-                            {sub.sample_attempted_count}/{sub.sample_total_count}
+                          <span className="shrink-0">
+                            {domain.completed_subtopics_in_domain}/{domain.total_subtopics_in_domain}
                           </span>
                         </button>
-                      );
-                    })}
+
+                        {expandedDeepDiveDomains[domain.domain_id] && (
+                          <div className="pl-2 space-y-1">
+                            {(domain.subtopics || []).map((sub) => {
+                              const isSubActive = effectiveTopicId === sub.sub_topic_id;
+                              return (
+                                <button
+                                  key={sub.sub_topic_id}
+                                  type="button"
+                                  onClick={() => handleSelectSubtopic(sub.sub_topic_id, domain.domain_id)}
+                                  className={cn(
+                                    "w-full text-left px-2.5 py-2 rounded text-sm flex items-center justify-between gap-2 transition-colors cursor-pointer",
+                                    isSubActive
+                                      ? "bg-indigo-500/20 border border-indigo-500/40 text-white font-semibold"
+                                      : "text-graphite-200 hover:bg-graphite-800/60 hover:text-white border border-transparent"
+                                  )}
+                                >
+                                  <span className="flex items-center gap-2 min-w-0">
+                                    {sub.is_completed ? (
+                                      <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                                    ) : (
+                                      <FileText className="w-4 h-4 text-graphite-400 shrink-0" />
+                                    )}
+                                    <span className="font-mono text-xs text-indigo-300 shrink-0">
+                                      {sub.sub_topic_id}
+                                    </span>
+                                    <span className="truncate text-sm">{sub.title}</span>
+                                  </span>
+                                  <span
+                                    className={cn(
+                                      "text-xs font-mono shrink-0 px-1.5 py-0.5 rounded",
+                                      sub.sample_attempted_count >= sub.sample_total_count
+                                        ? "text-emerald-400 bg-emerald-500/10"
+                                        : "text-graphite-400 bg-graphite-900"
+                                    )}
+                                  >
+                                    {sub.sample_attempted_count}/{sub.sample_total_count}
+                                  </span>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </>
+                    )}
                   </div>
                 )}
               </div>
@@ -804,6 +965,10 @@ export default function LearnTheoryPage() {
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="px-2.5 py-0.5 rounded bg-graphite-900 border border-graphite-800 text-xs font-mono text-graphite-200 uppercase">
                     {t("learn.overviewPill", { domainId: activeDomain.domain_id })}
+                  </span>
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded bg-graphite-900 border border-graphite-800 text-xs font-mono text-graphite-300">
+                    <Clock className="w-3.5 h-3.5 text-indigo-400" />
+                    {t("learn.estimatedReadTimeBadge")}
                   </span>
                   {activeDomain.recommended_focus && (
                     <span className="px-2.5 py-0.5 rounded bg-indigo-500/15 border border-indigo-500/30 text-xs font-mono text-indigo-300 font-semibold">
@@ -846,15 +1011,78 @@ export default function LearnTheoryPage() {
                 </div>
               </div>
 
-              <div className="p-6 sm:p-8 space-y-8">
+              <div className="p-6 sm:p-8 space-y-6">
                 <MarkdownView content={activeDomain.content} />
 
-                {/* Sub-topic Checklist Roadmap Grid */}
-                <div className="pt-6 border-t border-graphite-800 space-y-4">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
+                {actionErrorBanner}
+
+                {unlockNoticeBanner}
+
+                {/* Direct Domain Essential Completion Checkpoint */}
+                <div className="p-4 rounded-lg bg-graphite-950/70 border border-graphite-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div className="space-y-1">
+                    <p className="text-sm font-semibold text-white">
+                      {activeDomain.is_completed
+                        ? t("learn.domainEssentialDoneTitle")
+                        : activeDomainDisplayName}
+                    </p>
+                    <p className="text-sm text-graphite-300">
+                      {t("learn.domainEssentialCompletedHint")}
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+                    {!activeDomain.is_completed ? (
+                      <button
+                        type="button"
+                        disabled={completingDomainId === activeDomain.domain_id}
+                        onClick={() => handleCompleteDomain(activeDomain.domain_id)}
+                        className="px-4 py-2 rounded-md bg-emerald-500 hover:bg-emerald-400 text-black font-semibold text-sm transition-all flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                      >
+                        {completingDomainId === activeDomain.domain_id ? (
+                          <>
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                            {t("learn.saving")}
+                          </>
+                        ) : (
+                          <>
+                            <CheckCircle2 className="w-4 h-4" />
+                            {t("learn.markDomainCompleted")}
+                          </>
+                        )}
+                      </button>
+                    ) : data.theory_completed ? (
+                      <button
+                        type="button"
+                        onClick={() => navigate("/simulation")}
+                        className="px-4 py-2 rounded-md bg-white hover:bg-white/90 text-black font-semibold text-sm transition-all flex items-center justify-center gap-2 cursor-pointer"
+                      >
+                        <PlayCircle className="w-4 h-4" />
+                        {t("learn.enterSimulation")}
+                      </button>
+                    ) : nextActionDomain ? (
+                      <button
+                        type="button"
+                        onClick={() => handleSelectOverview(nextActionDomain.domain_id)}
+                        className="px-4 py-2 rounded-md bg-white hover:bg-white/90 text-black font-semibold text-sm transition-all flex items-center justify-center gap-2 cursor-pointer"
+                      >
+                        {t("learn.nextOverview")}
+                        <ChevronRight className="w-4 h-4" />
+                      </button>
+                    ) : null}
+                  </div>
+                </div>
+
+                {/* Collapsible Optional Deep Dive (Sub-topic Checklist Roadmap Grid) */}
+                <div className="pt-4 border-t border-graphite-800 space-y-4">
+                  <button
+                    type="button"
+                    onClick={() => setOverviewDeepDiveOpen((prev) => !prev)}
+                    aria-expanded={overviewDeepDiveOpen}
+                    className="w-full p-4 rounded-lg bg-graphite-950/60 border border-graphite-800 hover:border-graphite-700 text-left flex items-center justify-between gap-3 transition-colors cursor-pointer"
+                  >
                     <div>
-                      <h3 className="text-lg font-bold text-white tracking-tight">
-                        {t("learn.subtopicsSectionTitle", {
+                      <h3 className="text-base font-bold text-white tracking-tight">
+                        {t("learn.optionalDeepDiveTitle", {
                           completed: activeDomain.completed_subtopics_in_domain,
                           total: activeDomain.total_subtopics_in_domain,
                         })}
@@ -863,73 +1091,86 @@ export default function LearnTheoryPage() {
                         {t("learn.subtopicsSectionDesc", { domainName: activeDomainDisplayName })}
                       </p>
                     </div>
-                    {activeDomain.subtopics?.[0] && (
-                      <button
-                        type="button"
-                        onClick={() =>
-                          handleSelectSubtopic(
-                            activeDomain.subtopics[0].sub_topic_id,
-                            activeDomain.domain_id
-                          )
-                        }
-                        className="px-3.5 py-2 rounded-md bg-white text-black font-semibold text-sm hover:bg-white/90 transition-colors flex items-center gap-1.5 cursor-pointer"
-                      >
-                        {t("learn.startSubtopicButton", { subTopicId: activeDomain.subtopics[0].sub_topic_id })}
-                        <ChevronRight className="w-4 h-4" />
-                      </button>
-                    )}
-                  </div>
+                    <ChevronDown
+                      className={cn(
+                        "w-5 h-5 text-graphite-400 shrink-0 transition-transform duration-150",
+                        !overviewDeepDiveOpen && "-rotate-90"
+                      )}
+                    />
+                  </button>
 
-                  <div className="grid sm:grid-cols-2 gap-3">
-                    {(activeDomain.subtopics || []).map((sub) => (
-                      <button
-                        key={sub.sub_topic_id}
-                        type="button"
-                        onClick={() => handleSelectSubtopic(sub.sub_topic_id, activeDomain.domain_id)}
-                        className={cn(
-                          "text-left p-4 rounded-lg border transition-all flex flex-col justify-between gap-3 cursor-pointer",
-                          sub.is_completed
-                            ? "bg-emerald-950/20 border-emerald-500/30 hover:border-emerald-400/50"
-                            : "bg-graphite-950/60 border-graphite-800 hover:border-indigo-500/40 hover:bg-graphite-950"
-                        )}
-                      >
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="space-y-1.5">
-                            <span className="inline-block px-2 py-0.5 rounded bg-indigo-500/15 border border-indigo-500/30 text-xs font-mono text-indigo-300 font-semibold">
-                              {t("learn.objectiveLabel", { subTopicId: sub.sub_topic_id })}
-                            </span>
-                            <h4 className="text-sm font-semibold text-white leading-snug">
-                              {sub.title}
-                            </h4>
-                          </div>
-                          {sub.is_completed ? (
-                            <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                          ) : (
-                            <Circle className="w-4 h-4 text-graphite-600 shrink-0" />
-                          )}
-                        </div>
-
-                        <div className="flex items-center justify-between text-xs font-mono pt-1.5 border-t border-graphite-800/60">
-                          <span
-                            className={
-                              sub.sample_attempted_count >= sub.sample_total_count
-                                ? "text-emerald-400"
-                                : "text-graphite-400"
+                  {overviewDeepDiveOpen && (
+                    <div className="space-y-4">
+                      {activeDomain.subtopics?.[0] && (
+                        <div className="flex justify-end">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              handleSelectSubtopic(
+                                activeDomain.subtopics[0].sub_topic_id,
+                                activeDomain.domain_id
+                              )
                             }
+                            className="px-3.5 py-2 rounded-md bg-white text-black font-semibold text-sm hover:bg-white/90 transition-colors flex items-center gap-1.5 cursor-pointer"
                           >
-                            {t("learn.questionsRatio", {
-                              attempted: sub.sample_attempted_count,
-                              total: sub.sample_total_count,
-                            })}
-                          </span>
-                          <span className="text-indigo-300 flex items-center gap-1">
-                            {sub.is_completed ? t("learn.reviewAction") : t("learn.studyAction")}
-                            <ChevronRight className="w-3.5 h-3.5" />
-                          </span>
+                            {t("learn.startSubtopicButton", { subTopicId: activeDomain.subtopics[0].sub_topic_id })}
+                            <ChevronRight className="w-4 h-4" />
+                          </button>
                         </div>
-                      </button>
-                    ))}
-                  </div>
+                      )}
+
+                      <div className="grid sm:grid-cols-2 gap-3">
+                        {(activeDomain.subtopics || []).map((sub) => (
+                          <button
+                            key={sub.sub_topic_id}
+                            type="button"
+                            onClick={() => handleSelectSubtopic(sub.sub_topic_id, activeDomain.domain_id)}
+                            className={cn(
+                              "text-left p-4 rounded-lg border transition-all flex flex-col justify-between gap-3 cursor-pointer",
+                              sub.is_completed
+                                ? "bg-emerald-950/20 border-emerald-500/30 hover:border-emerald-400/50"
+                                : "bg-graphite-950/60 border-graphite-800 hover:border-indigo-500/40 hover:bg-graphite-950"
+                            )}
+                          >
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="space-y-1.5">
+                                <span className="inline-block px-2 py-0.5 rounded bg-indigo-500/15 border border-indigo-500/30 text-xs font-mono text-indigo-300 font-semibold">
+                                  {t("learn.objectiveLabel", { subTopicId: sub.sub_topic_id })}
+                                </span>
+                                <h4 className="text-sm font-semibold text-white leading-snug">
+                                  {sub.title}
+                                </h4>
+                              </div>
+                              {sub.is_completed ? (
+                                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                              ) : (
+                                <Circle className="w-4 h-4 text-graphite-600 shrink-0" />
+                              )}
+                            </div>
+
+                            <div className="flex items-center justify-between text-xs font-mono pt-1.5 border-t border-graphite-800/60">
+                              <span
+                                className={
+                                  sub.sample_attempted_count >= sub.sample_total_count
+                                    ? "text-emerald-400"
+                                    : "text-graphite-400"
+                                }
+                              >
+                                {t("learn.questionsRatio", {
+                                  attempted: sub.sample_attempted_count,
+                                  total: sub.sample_total_count,
+                                })}
+                              </span>
+                              <span className="text-indigo-300 flex items-center gap-1">
+                                {sub.is_completed ? t("learn.reviewAction") : t("learn.studyAction")}
+                                <ChevronRight className="w-3.5 h-3.5" />
+                              </span>
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -1205,46 +1446,9 @@ export default function LearnTheoryPage() {
 
               {/* Bottom Checkpoint & Navigation Bar */}
               <div className="px-6 py-5 border-t border-graphite-800 bg-graphite-950/60 space-y-4">
-                {actionError && (
-                  <p className="text-sm font-mono text-red-400 bg-red-950/30 border border-red-500/30 rounded px-3.5 py-2">
-                    {actionError}
-                  </p>
-                )}
+                {actionErrorBanner}
 
-                {unlockNotice && (
-                  <div className="p-4 rounded-lg bg-emerald-950/40 border border-emerald-500/40 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                    <div className="space-y-1">
-                      <p className="text-sm font-bold text-emerald-300">
-                        {unlockNotice.kind === "staff_preview"
-                          ? t("learn.staffPreviewNoticeTitle")
-                          : unlockNotice.kind === "all_complete"
-                          ? t("learn.allCompleteNoticeTitle")
-                          : t("learn.domainAutoCompleteNoticeTitle", {
-                              domainUpper: unlockNotice.domainId.toUpperCase(),
-                            })}
-                      </p>
-                      <p className="text-sm text-graphite-200">
-                        {unlockNotice.kind === "staff_preview"
-                          ? t("learn.staffPreviewNoticeDetail")
-                          : unlockNotice.kind === "all_complete"
-                          ? t("learn.allCompleteNoticeDetail")
-                          : t("learn.domainAutoCompleteNoticeDetail", {
-                              domainName: resolveDomainName(unlockNotice.domainId, unlockNotice.domainId, locale),
-                            })}
-                      </p>
-                    </div>
-                    {unlockNotice.kind === "all_complete" && (
-                      <button
-                        type="button"
-                        onClick={() => navigate("/simulation")}
-                        className="px-4 py-2 rounded-md bg-white text-black font-semibold text-sm hover:bg-white/90 flex items-center gap-1.5 shrink-0 cursor-pointer"
-                      >
-                        <PlayCircle className="w-4 h-4" />
-                        {t("learn.enterSimulation")}
-                      </button>
-                    )}
-                  </div>
-                )}
+                {unlockNoticeBanner}
 
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
                   <div className="flex items-center gap-2">

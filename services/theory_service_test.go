@@ -3,6 +3,12 @@ package services
 import (
 	"strings"
 	"testing"
+	"unicode/utf8"
+)
+
+const (
+	maxEssentialENWords = 620
+	maxEssentialTHChars = 4000
 )
 
 func TestLoadTheoryModules_AllFiveDomainsPassStructure(t *testing.T) {
@@ -30,6 +36,9 @@ func TestLoadTheoryModules_AllFiveDomainsPassStructure(t *testing.T) {
 		}
 		if err := ValidateTheoryModuleContent(mod.DomainID, mod.Content); err != nil {
 			t.Errorf("module %s failed structural validation: %v", mod.DomainID, err)
+		}
+		if wc := len(strings.Fields(mod.Content)); wc > maxEssentialENWords {
+			t.Errorf("module %s EN essential exceeds 3-min budget (%d > %d words)", mod.DomainID, wc, maxEssentialENWords)
 		}
 	}
 }
@@ -211,6 +220,9 @@ func TestTheoryLocalization_AllThirtyThreeDocsAndGracefulFallback(t *testing.T) 
 		}
 		if err := ValidateThaiTheoryModuleContent(modules[i].DomainID, enModules[i].Content, modules[i].Content); err != nil {
 			t.Errorf("%s Thai validation failed: %v", modules[i].DomainID, err)
+		}
+		if rc := utf8.RuneCountInString(modules[i].Content); rc > maxEssentialTHChars {
+			t.Errorf("module %s TH essential exceeds 3-min budget (%d > %d chars)", modules[i].DomainID, rc, maxEssentialTHChars)
 		}
 	}
 

@@ -1220,7 +1220,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Idempotently records that the authenticated user finished studying the specified domain Theory Module without altering Proficiency Score. For Learners, rejects with 403 subtopics_incomplete unless all child Sub-topics are completed.",
+                "description": "Idempotently records that the authenticated Learner finished studying the specified Domain Essential without altering Proficiency Score. Specialists and Admins receive preview_mode=true with zero database writes.",
                 "consumes": [
                     "application/json"
                 ],
@@ -1230,7 +1230,7 @@ const docTemplate = `{
                 "tags": [
                     "Learn"
                 ],
-                "summary": "Mark a domain Theory Module as completed",
+                "summary": "Mark a domain Essential Theory Module as completed",
                 "parameters": [
                     {
                         "type": "string",
@@ -2765,6 +2765,10 @@ const docTemplate = `{
                 "is_completed": {
                     "type": "boolean",
                     "example": true
+                },
+                "preview_mode": {
+                    "type": "boolean",
+                    "example": false
                 },
                 "theory_completed": {
                     "type": "boolean",
@@ -4732,7 +4736,7 @@ const docTemplate = `{
                 },
                 "max_scenarios": {
                     "type": "integer",
-                    "example": 10
+                    "example": 15
                 },
                 "nasa_tlx_overall": {
                     "type": "number",
@@ -4934,7 +4938,7 @@ const docTemplate = `{
                 },
                 "max_scenarios": {
                     "type": "integer",
-                    "example": 10
+                    "example": 15
                 },
                 "needs_training": {
                     "type": "boolean",
