@@ -474,3 +474,47 @@
 
 
 
+
+## Canonical Terms (Issues #70–#74: 2-Hour High School Pilot Readiness — Dec 1)
+
+- **3-Minute Domain Essential (บทสรุปแก่นสาระรายโดเมน 3 นาที)**: The condensed, novice-friendly curriculum cheat sheet stored in each of the 5 `theory/domain{1..5}_*.md` (`EN`) and `theory/th/domain{1..5}_*.md` (`TH`) files (`~1,800–2,600` Thai chars / `~350–500` English words each) serving as the streamlined Stage 2 **Theory Gate** (`5/5` domains in ~15–20 min).
+- **Optional Deep Dive (เนื้อหาเจาะลึกเสริม 28 หัวข้อย่อย)**: The 28 existing CompTIA SY0-701 Sub-topics (`1.1`–`5.6`) and their formative sample questions, retained intact in PostgreSQL and `/learn` as collapsible non-blocking reference material beneath each Domain Essential.
+- **Bilingual Exam Translation Payload (`questions.translations.th`)**: The versioned JSONB translation map stored alongside canonical English `questions` columns (`question_text`, `options`, `explanation`) for all 540 questions, seeded from `scripts/question_translations_th.json`, sanitized pre-submission (omitting `explanation`), and toggleable per question via **"ดูต้นฉบับ EN / Show EN"**.
+- **30-Second Cyber Detective Mini-Case (มินิเคสสืบสวนไซเบอร์ 30 วินาที)**: The zero-login interactive beginner teaser on `LandingPage.tsx` replacing jargon-heavy developer tabs so high school novices experience TP/FP log investigation immediately on arrival.
+- **First-Scenario Quick-Guide & SOC Glossary (`SimulationBeginnerGuide`)**: The collapsible, spoiler-free 30-second play guide and 10-term bilingual SOC glossary on `SimulationPage.tsx` that auto-expands only on a learner's first Scenario (`completed_scenarios === 0`).
+- **LLM Concurrency Shedding (`llm_concurrency_shed`)**: Non-blocking semaphore protection (`SIMULATION_LLM_MAX_CONCURRENCY`, default `8`) that instantaneously routes excess concurrent `POST /api/simulation/start` callers during 60-student surges to the 15 bilingual static scenarios without queueing or `429` cascades.
+
+## Settled Decisions (Issues #70–#74: High School 2-Hour Pilot Sprint — `/loop-me` Q1–Q15)
+
+65. **Sprint Execution Priority & Target Deadline (`Q1`, `Q6`, `Q13`)**:
+    - Hard deadline: **Tuesday, Dec 1, 2026 afternoon** on **Azure Cloud VM + Caddy Auto-HTTPS** supporting **≤ 60 concurrent high school learners** with `LLM_API_KEY` active.
+    - Execution order: `#70` (Compact Learning & 2-Hour Budget) + `#71` (540 Bilingual Thai Exam Questions) → `#73` (3-Surface Questionnaire Visualizations) → `#72` (Beginner Onboarding UX + Runbook; user builds their own slides) → `#74` (Azure 60-User Hardening & Timed Dry-Run).
+    - Uses 2 Push-Right Checkpoints: (1) Domain 1 Essentials EN+TH + 10 sample Thai exam questions tone check; (2) Pre-Flight EN/TH visual, test suite, concurrency, and timed dry-run sign-off.
+
+66. **Stage 2 Theory Gate Condensing & 2-Hour Budget Calibration (Amends Decision #38 — `Q2`, `Q3`, `Q7`, `Q8`, `Q14`)**:
+    - Condenses the 5 Domain Overviews (`theory/domain{1..5}_*.md` & `theory/th/domain{1..5}_*.md`) into 3-Minute Domain Essentials (~15–20 min total); re-enables direct Learner completion on `POST /api/learn/domains/:domainId/complete` with 0 mandatory quiz gate on `/learn`; switches Stage 2 Theory Gate to `5/5` Domain Essentials while retaining all 28 Sub-topics as Optional Deep Dive (Zero-DDL, NFR `Sub>=28, TH>=33` stays green).
+    - Keeps Pre-Test & Post-Test at 30 questions (`4/7/5/8/6`, 30-min hard auto-submit timer + `~20 min` recommended pacing pill) and preserves `WeightOld = 0.70`, `WeightNew = 0.30`, `ProficiencyThreshold = 70.0%` (deleting unused stale `0.4/0.6` constants in `controllers/simulation_controller.go`).
+    - Wires existing `.env.example` key `MAX_SCENARIOS_CAP` with new default **`15`** across `docker-compose.yml`, `services/evaluator.go`, and `controllers/simulation_controller.go` (matching observed ~1–2 min/Scenario pace so novices can close all 5 domains inside ~30–40 min).
+    - See `workflows/compact_learning_and_two_hour_budget.md`.
+
+67. **All-540 Bilingual Hybrid Thai Exam Localization (Amends Decision #46 — `Q4=B`, `Q9`, `Q10`)**:
+    - Narrows the English-Only Realism Invariant strictly to canonical English exam columns (`questions.question_text`, `options`, `explanation`) and SIEM `initial_logs`, KQL syntax, IOCs, and MITRE ATT&CK IDs (updating `services/nfr_evaluator.go` target label cleanly).
+    - Adds `questions.translations JSONB NOT NULL DEFAULT '{}'::jsonb` (`init.sql` + `models/migrate.go`), seeded idempotently from committed `scripts/question_translations_th.json` (all 540/540 questions, validated via `scripts/translate_questions_th.py --validate-only`), preserving UUIDs and uniform 540-question random sampling (no `EXAM_MAX_DIFFICULTY` filter).
+    - Delivers Thai across all 4 surfaces (Pre/Post Exam, Exam Q&A Review, Learn Sample Questions, Landing Sample Quiz) with strict pre-submission `explanation` sanitization, per-question 1-click **"ดูต้นฉบับ EN / Show EN"** toggle, and bilingual EN+TH Distractor Breakdown parsing in `examReview.ts`.
+    - See `workflows/bilingual_exam_questions_th.md`.
+
+68. **High School Beginner Onboarding, Interactive Hook & Presenter Runbook (`Q6`, `Q11`, `Q15`)**:
+    - Configures guest default locale via `VITE_DEFAULT_LOCALE` (default `th` in `frontend/Dockerfile` & `docker-compose.yml`), keeping `EN | TH` toggle and DB user preference intact.
+    - Upgrades `LandingPage.tsx` with a 30-Second Interactive Cyber Detective Mini-Case default tab and 4-stage 2-hour Mission Roadmap; adds Pre-Test anxiety-free reassurance banner on `ExamPage.tsx`; adds collapsible spoiler-free `SimulationBeginnerGuide` (30s How-to-Play + 10-term SOC Glossary, auto-expanded only when `completed_scenarios === 0`) on `SimulationPage.tsx`.
+    - Authors concise Thai `docs/HIGHSCHOOL_2HR_SESSION_RUNBOOK.md` (10-min opening hook ideas for user's own slides, minute-by-minute 120-min schedule, Azure pre-flight & classroom troubleshooting; no HTML slide deck built).
+    - See `workflows/highschool_beginner_onboarding_hook.md`.
+
+69. **3-Surface Recharts Questionnaire Visualizations & SVG Export (`Q5`, `Q12`)**:
+    - Adds additive pseudonymized `participant_points` (`P-XXXXXXXX`, zero PII, Zero-DDL) to `GET /api/admin/evaluations/statistics`.
+    - Upgrades `/admin/evaluations` with 4 Recharts charts (Cohort Funnel, CSUQ Stacked Likert `1–7` + `N/A` with Subscales/16-Item toggle, NASA-TLX 6-Axis Radar, Pre→Post Paired Learning Gain), `/admin/evaluations/statistics` with Pre→Post Paired Comparison + 3 Spearman Correlation Scatter Plots, and Learner `/questionnaire` Submitted View with Personal Pre→Post Bar + Usability/Workload Visuals — plus reusable `ChartExportCard` with 1-click **Download SVG** and `@media print` styling.
+    - See `workflows/questionnaire_visualizations.md`.
+
+70. **Azure 60-Concurrent-User Hardening & Dec 1 Release Readiness (`Q6`, `Q14`, `Q15`)**:
+    - Configures Go `sql.DB` pooling in `main.go` (`DB_MAX_OPEN_CONNS=50`, `DB_MAX_IDLE_CONNS=20`), adds non-blocking LLM concurrency shedding (`SIMULATION_LLM_MAX_CONCURRENCY=8` → `fallback_reason = "llm_concurrency_shed"` into static pool), and wires overridable Compose resource limits (`BACKEND_CPU_LIMIT=2.0`, `BACKEND_MEM_LIMIT=1g`, `DB_CPU_LIMIT=2.0`, `DB_MEM_LIMIT=2g`).
+    - Verified via 60-user burst smoke check, full CI/integration test harness, and timed ≤ 120-min novice dry-run before Tuesday Dec 1 afternoon.
+    - See `workflows/azure_two_hour_live_run_readiness.md`.
