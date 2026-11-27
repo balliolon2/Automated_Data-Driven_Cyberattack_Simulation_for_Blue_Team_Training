@@ -156,6 +156,7 @@ func (f *fakeExamStore) GetSessionQuestions(sessionID string) ([]QuestionRespons
 			Type:         q.Type,
 			QuestionText: q.QuestionText,
 			Options:      q.Options,
+			Translations: services.SanitizeQuestionTranslations(q.Translations, false),
 			OrderIndex:   esq.OrderIndex,
 			UserAnswer:   esq.UserAnswer,
 		}
@@ -238,6 +239,7 @@ func (f *fakeExamStore) buildOrderedResults(sessionID string) []dto.DetailedExam
 			Options:       q.Options,
 			CorrectAnswer: q.CorrectAnswer,
 			Explanation:   q.Explanation,
+			Translations:  services.SanitizeQuestionTranslations(q.Translations, true),
 			MitreRef:      q.MitreRef,
 			OrderIndex:    esq.OrderIndex,
 			UserAnswer:    esq.UserAnswer,
@@ -609,6 +611,112 @@ func TestExamController_StrictEnglishOnlyInvariantUnderThaiLocale(t *testing.T) 
 	wPost := doJSONReq(t, r, http.MethodPost, "/api/exams/post-test", nil, headers)
 	if wPost.Code != http.StatusCreated || containsThaiRune(wPost.Body.String()) {
 		t.Fatalf("post-test start must be 201 and strictly English, got %d: %s", wPost.Code, wPost.Body.String())
+	}
+}
+
+func TestExamController_PreSubmissionSanitizationAndPostSubmissionTranslations(t *testing.T) {
+	t.Setenv("JWT_SECRET", "exam-test-secret")
+	store := newFakeExamStore()
+	store.seedExamPool("bi", map[string]int{"domain1": 8, "domain2": 14, "domain3": 10, "domain4": 16, "domain5": 12})
+	for qid, q := range store.questions {
+		q.Translations = map[string]any{
+			"th": map[string]any{
+				"question_text": "คำถามภาษาไทยสำหรับ " + qid,
+				"options": map[string]any{
+					"A": "ตัวเลือก ก",
+					"B": "ตัวเลือก ข",
+					"C": "ตัวเลือก ค",
+					"D": "ตัวเลือก ง",
+				},
+				"explanation": "คำตอบที่ถูกต้อง: A. เหตุผลภาษาไทย ตัวเลือก B ไม่ถูกต้อง ผิด ตัวเลือก C ไม่ถูกต้อง ผิด ตัวเลือก D ไม่ถูกต้อง ผิด",
+			},
+		}
+		store.questions[qid] = q
+	}
+
+	ec := NewExamControllerWithStore(store)
+	r := makeExamRouter(ec)
+	tok := signExamJWT(t, "u-bilingual-1")
+	headers := map[string]string{
+		"Authorization":   "Bearer " + tok,
+		"Accept-Language": "th",
+	}
+
+	// 1. Sample endpoint includes full translation including explanation
+	wSample := doJSONReq(t, r, http.MethodGet, "/api/exams/sample", nil, headers)
+	if wSample.Code != http.StatusOK {
+		t.Fatalf("sample failed: %d", wSample.Code)
+	}
+	var sampleBody map[string]any
+	_ = json.Unmarshal(wSample.Body.Bytes(), &sampleBody)
+	sampleTh := sampleBody["translations"].(map[string]any)["th"].(map[string]any)
+	sampleExp, hasSampleExp := sampleTh["explanation"].(string)
+	if !hasSampleExp || sampleExp == "" || containsThaiRune(sampleBody["question_text"].(string)) {
+		t.Fatalf("sample should keep canonical EN stem and include th explanation: %+v", sampleBody)
+	}
+	if _, hasActive := sampleBody["is_active"]; hasActive {
+		t.Fatalf("sample DTO must not leak internal is_active column: %+v", sampleBody)
+	}
+
+	// 2. Start Pre-Test & Session Recovery keep canonical EN and strip th.explanation
+	wPre := doJSONReq(t, r, http.MethodPost, "/api/exams/pre-test", nil, headers)
+	if wPre.Code != http.StatusCreated {
+		t.Fatalf("pre-test start failed: %d", wPre.Code)
+	}
+	var preBody struct {
+		Session   models.ExamSession `json:"session"`
+		Questions []map[string]any   `json:"questions"`
+	}
+	_ = json.Unmarshal(wPre.Body.Bytes(), &preBody)
+	for _, q := range preBody.Questions {
+		if containsThaiRune(q["question_text"].(string)) {
+			t.Fatalf("canonical question_text must stay English: %v", q["question_text"])
+		}
+		thMap := q["translations"].(map[string]any)["th"].(map[string]any)
+		if thStem, ok := thMap["question_text"].(string); !ok || thStem == "" || thMap["options"] == nil {
+			t.Fatalf("expected th stem and options in active exam, got %+v", thMap)
+		}
+		if _, leaked := thMap["explanation"]; leaked {
+			t.Fatalf("active pre-test leaked translations.th.explanation: %+v", thMap)
+		}
+	}
+
+	wSess := doJSONReq(t, r, http.MethodGet, "/api/exams/session", nil, headers)
+	if wSess.Code != http.StatusOK {
+		t.Fatalf("session recovery failed: %d", wSess.Code)
+	}
+	var sessBody struct {
+		Questions []map[string]any `json:"questions"`
+	}
+	_ = json.Unmarshal(wSess.Body.Bytes(), &sessBody)
+	thRec := sessBody.Questions[0]["translations"].(map[string]any)["th"].(map[string]any)
+	if _, leaked := thRec["explanation"]; leaked {
+		t.Fatalf("session recovery leaked translations.th.explanation")
+	}
+
+	// 3. Answer all 30 and check Review exposes full th.explanation
+	for _, q := range preBody.Questions {
+		wSub := doJSONReq(t, r, http.MethodPost, "/api/exams/submit-answer", map[string]any{
+			"session_id":  preBody.Session.SessionID,
+			"question_id": q["question_id"],
+			"user_answer": "A",
+		}, headers)
+		if wSub.Code != http.StatusOK {
+			t.Fatalf("submit failed: %d", wSub.Code)
+		}
+	}
+
+	wRev := doJSONReq(t, r, http.MethodGet, "/api/exams/sessions/"+preBody.Session.SessionID+"/review", nil, headers)
+	if wRev.Code != http.StatusOK {
+		t.Fatalf("review failed: %d", wRev.Code)
+	}
+	var revBody struct {
+		Results []map[string]any `json:"results"`
+	}
+	_ = json.Unmarshal(wRev.Body.Bytes(), &revBody)
+	thRev := revBody.Results[0]["translations"].(map[string]any)["th"].(map[string]any)
+	if thRev["explanation"] == nil || thRev["explanation"] == "" {
+		t.Fatalf("expected th.explanation in exam review, got %+v", thRev)
 	}
 }
 

@@ -98,6 +98,7 @@ type LearnSubtopicSampleQuestionDTO struct {
 	OrderIndex      int        `json:"order_index" example:"1"`
 	QuestionText    string     `json:"question_text"`
 	Options         any        `json:"options"`
+	Translations    any        `json:"translations,omitempty"`
 	IsFallback      bool       `json:"is_fallback" example:"false"`
 	SubmittedAnswer *string    `json:"submitted_answer,omitempty"`
 	IsCorrect       *bool      `json:"is_correct,omitempty"`
@@ -138,6 +139,7 @@ type AttemptSampleQuestionResponse struct {
 	IsCorrect        bool   `json:"is_correct" example:"true"`
 	CorrectAnswer    string `json:"correct_answer" example:"B"`
 	Explanation      string `json:"explanation"`
+	Translations     any    `json:"translations,omitempty"`
 	AttemptedCount   int    `json:"attempted_count" example:"2"`
 	RequiredCount    int    `json:"required_count" example:"2"`
 	ReadyToComplete  bool   `json:"ready_to_complete" example:"true"`

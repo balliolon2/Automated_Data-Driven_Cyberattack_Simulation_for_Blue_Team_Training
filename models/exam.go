@@ -13,6 +13,7 @@ type Question struct {
 	Options       any       `gorm:"type:jsonb;serializer:json" json:"options"`
 	CorrectAnswer string    `gorm:"type:varchar;not null" json:"correct_answer"`
 	Explanation   string    `gorm:"type:text" json:"explanation"`
+	Translations  any       `gorm:"type:jsonb;serializer:json;not null;default:'{}'" json:"translations,omitempty"`
 	Difficulty    int       `gorm:"default:3" json:"difficulty"`
 	MitreRef      *string   `gorm:"type:varchar" json:"mitre_ref"`
 	IsActive      bool      `gorm:"default:true" json:"is_active"`

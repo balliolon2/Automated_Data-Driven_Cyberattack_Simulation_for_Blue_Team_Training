@@ -1,6 +1,7 @@
 package services
 
 import (
+	"encoding/json"
 	"testing"
 
 	"cybersim/dto"
@@ -49,5 +50,62 @@ func TestExamReviewService_SummarizeClampAndPreComparison(t *testing.T) {
 	comp := BuildPreComparison("pre-1", &preScore, 30, preRev, &postScore, 30, postRev)
 	if comp == nil || comp.ScoreDelta != 30 || len(comp.DomainDeltas) != 1 || comp.DomainDeltas[0].Delta != 50 {
 		t.Fatalf("unexpected BuildPreComparison: %+v", comp)
+	}
+}
+
+func TestSanitizeQuestionTranslations(t *testing.T) {
+	if got := SanitizeQuestionTranslations(nil, false); got != nil {
+		t.Fatalf("expected nil for nil input, got %+v", got)
+	}
+	if got := SanitizeQuestionTranslations(map[string]any{}, true); got != nil {
+		t.Fatalf("expected nil for empty map, got %+v", got)
+	}
+	marshaledEmpty, err := json.Marshal(struct {
+		Translations any `json:"translations,omitempty"`
+	}{Translations: SanitizeQuestionTranslations(nil, false)})
+	if err != nil {
+		t.Fatalf("marshal failed: %v", err)
+	}
+	if string(marshaledEmpty) != "{}" {
+		t.Fatalf("expected untyped nil to be omitted by omitempty, got %s", string(marshaledEmpty))
+	}
+
+	raw := map[string]any{
+		"th": map[string]any{
+			"question_text":  "คำถามทดสอบ",
+			"options":        map[string]any{"A": "ก", "B": "ข"},
+			"explanation":    "คำตอบที่ถูกต้อง: A. เพราะเหตุผล",
+			"correct_answer": "A",
+		},
+	}
+
+	// Pre-submission: must strip explanation (and any correct_answer), preserving stem + options
+	pre, ok := SanitizeQuestionTranslations(raw, false).(map[string]any)
+	if !ok || pre == nil {
+		t.Fatal("expected sanitized map for active exam")
+	}
+	thPre, ok := pre["th"].(map[string]any)
+	if !ok {
+		t.Fatalf("expected nested th map, got %+v", pre)
+	}
+	if thPre["question_text"] != "คำถามทดสอบ" || thPre["options"] == nil {
+		t.Fatalf("expected th question_text and options preserved, got %+v", thPre)
+	}
+	if _, leaked := thPre["explanation"]; leaked {
+		t.Fatalf("pre-submission payload leaked explanation: %+v", thPre)
+	}
+	if _, leaked := thPre["correct_answer"]; leaked {
+		t.Fatalf("pre-submission payload leaked correct_answer: %+v", thPre)
+	}
+
+	// Post-submission: preserves explanation alongside stem and options from JSON string too
+	rawJSON := `{"th":{"question_text":"คำถามจาก JSON","options":{"A":"ก"},"explanation":"คำตอบที่ถูกต้อง: A. ดีมาก"}}`
+	post, ok := SanitizeQuestionTranslations(rawJSON, true).(map[string]any)
+	if !ok || post == nil {
+		t.Fatal("expected decoded map from JSON string")
+	}
+	thPost := post["th"].(map[string]any)
+	if thPost["explanation"] != "คำตอบที่ถูกต้อง: A. ดีมาก" || thPost["question_text"] != "คำถามจาก JSON" {
+		t.Fatalf("expected post-submission th fields preserved, got %+v", thPost)
 	}
 }

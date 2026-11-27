@@ -4,8 +4,28 @@ import sys
 
 import psycopg2
 
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+if SCRIPT_DIR not in sys.path:
+    sys.path.insert(0, SCRIPT_DIR)
 
-def load_json_to_db(json_file_path, db_connection_string):
+import translate_questions_th
+
+
+def load_optional_question_translations(questions, translations_path=None):
+    target = translations_path or os.path.join(SCRIPT_DIR, "question_translations_th.json")
+    if not os.path.isfile(target):
+        return {}
+    with open(target, "r", encoding="utf-8") as f:
+        translations = json.load(f)
+    errs, _ = translate_questions_th.validate_translations_dataset(
+        questions, translations, require_full=False
+    )
+    if errs:
+        raise ValueError("Invalid question_translations_th.json:\n- " + "\n- ".join(errs[:15]))
+    return translations
+
+
+def load_json_to_db(json_file_path, db_connection_string, translations_path=None):
     with open(json_file_path, "r", encoding="utf-8") as f:
         questions = json.load(f)
 
@@ -19,11 +39,14 @@ def load_json_to_db(json_file_path, db_connection_string):
                 f"Question #{q.get('source_question_no')} ({q['domain_id']}) has missing or mismatched sub_topic_id: {sub_topic_id!r}"
             )
 
+    translations_map = load_optional_question_translations(questions, translations_path=translations_path)
+
     conn = psycopg2.connect(db_connection_string)
     cursor = conn.cursor()
 
     try:
         cursor.execute("ALTER TABLE questions ADD COLUMN IF NOT EXISTS sub_topic_id VARCHAR(16)")
+        cursor.execute("ALTER TABLE questions ADD COLUMN IF NOT EXISTS translations JSONB NOT NULL DEFAULT '{}'::jsonb")
         domains = [
             ("domain1", "Security Concepts", "Core security concepts, principles, and control types", 1.0, "Security+ Domain 1"),
             ("domain2", "Threats, Vulnerabilities, and Mitigations", "Analyzing threat actors, vectors, vulnerabilities, and applying mitigations", 1.0, "Security+ Domain 2"),
@@ -44,8 +67,17 @@ def load_json_to_db(json_file_path, db_connection_string):
 
         inserted_count = 0
         updated_count = 0
+        translated_count = 0
 
         for q in questions:
+            q_key = translate_questions_th.question_key(q) if q.get("source_question_no") is not None else ""
+            t_entry = translations_map.get(q_key)
+            has_translation = bool(t_entry)
+            translations_payload = {"th": t_entry["th"]} if has_translation else {}
+            if has_translation:
+                translated_count += 1
+            translations_json = json.dumps(translations_payload, ensure_ascii=False)
+
             cursor.execute(
                 """
                 SELECT question_id
@@ -67,6 +99,7 @@ def load_json_to_db(json_file_path, db_connection_string):
                         options = %s,
                         correct_answer = %s,
                         explanation = %s,
+                        translations = CASE WHEN %s THEN %s::jsonb ELSE translations END,
                         difficulty = %s,
                         is_active = true
                     WHERE question_id = %s
@@ -78,6 +111,8 @@ def load_json_to_db(json_file_path, db_connection_string):
                         json.dumps(q["options"]),
                         q["correct_answer"],
                         q["explanation"],
+                        has_translation,
+                        translations_json,
                         q["difficulty"],
                         existing[0],
                     ),
@@ -87,8 +122,8 @@ def load_json_to_db(json_file_path, db_connection_string):
                 cursor.execute(
                     """
                     INSERT INTO questions
-                    (domain_id, sub_topic_id, type, question_text, options, correct_answer, explanation, difficulty)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                    (domain_id, sub_topic_id, type, question_text, options, correct_answer, explanation, translations, difficulty)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
                     """,
                     (
                         q["domain_id"],
@@ -98,13 +133,14 @@ def load_json_to_db(json_file_path, db_connection_string):
                         json.dumps(q["options"]),
                         q["correct_answer"],
                         q["explanation"],
+                        translations_json,
                         q["difficulty"],
                     ),
                 )
                 inserted_count += 1
 
         conn.commit()
-        print(f"Safe question seed completed: {inserted_count} inserted, {updated_count} updated.")
+        print(f"Safe question seed completed: {inserted_count} inserted, {updated_count} updated ({translated_count} with Thai translations).")
     except Exception:
         conn.rollback()
         raise

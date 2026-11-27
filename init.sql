@@ -66,6 +66,7 @@ CREATE TABLE questions (
   options JSONB,
   correct_answer VARCHAR NOT NULL,
   explanation TEXT,
+  translations JSONB NOT NULL DEFAULT '{}'::jsonb,
   difficulty INT DEFAULT 3,
   mitre_ref VARCHAR REFERENCES mitre_techniques(technique_id),
   is_active BOOLEAN DEFAULT true,

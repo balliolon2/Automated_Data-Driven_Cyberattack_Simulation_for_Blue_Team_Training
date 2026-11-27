@@ -1,6 +1,7 @@
 package services
 
 import (
+	"encoding/json"
 	"math"
 	"strings"
 
@@ -185,4 +186,85 @@ func BuildPreComparison(
 		PostCorrectCount: postReview.CorrectCount,
 		DomainDeltas:     deltas,
 	}
+}
+
+// SanitizeQuestionTranslations decodes stored per-locale question translations and
+// omits nested explanation/correct_answer fields unless includeExplanation is true.
+// Returns untyped nil when absent/empty so json:"translations,omitempty" omits the field.
+func SanitizeQuestionTranslations(raw any, includeExplanation bool) any {
+	if raw == nil {
+		return nil
+	}
+
+	var decoded map[string]any
+	switch v := raw.(type) {
+	case map[string]any:
+		decoded = v
+	case string:
+		trimmed := strings.TrimSpace(v)
+		if trimmed == "" || trimmed == "{}" || trimmed == "null" {
+			return nil
+		}
+		if err := json.Unmarshal([]byte(trimmed), &decoded); err != nil {
+			return nil
+		}
+	case []byte:
+		trimmed := strings.TrimSpace(string(v))
+		if trimmed == "" || trimmed == "{}" || trimmed == "null" {
+			return nil
+		}
+		if err := json.Unmarshal([]byte(trimmed), &decoded); err != nil {
+			return nil
+		}
+	default:
+		b, err := json.Marshal(v)
+		if err != nil {
+			return nil
+		}
+		if err := json.Unmarshal(b, &decoded); err != nil {
+			return nil
+		}
+	}
+
+	if len(decoded) == 0 {
+		return nil
+	}
+
+	sanitized := make(map[string]any)
+	for localeKey, localeVal := range decoded {
+		locMap, ok := localeVal.(map[string]any)
+		if !ok || len(locMap) == 0 {
+			continue
+		}
+		cleanLocale := make(map[string]any)
+		if qText, ok := locMap["question_text"].(string); ok && strings.TrimSpace(qText) != "" {
+			cleanLocale["question_text"] = qText
+		}
+		if opts, ok := locMap["options"].(map[string]any); ok && len(opts) > 0 {
+			cleanOpts := make(map[string]any, len(opts))
+			for k, optVal := range opts {
+				cleanOpts[k] = optVal
+			}
+			cleanLocale["options"] = cleanOpts
+		} else if optsStr, ok := locMap["options"].(map[string]string); ok && len(optsStr) > 0 {
+			cleanOpts := make(map[string]any, len(optsStr))
+			for k, optVal := range optsStr {
+				cleanOpts[k] = optVal
+			}
+			cleanLocale["options"] = cleanOpts
+		}
+		if includeExplanation {
+			if exp, ok := locMap["explanation"].(string); ok && strings.TrimSpace(exp) != "" {
+				cleanLocale["explanation"] = exp
+			}
+		}
+		if len(cleanLocale) > 0 {
+			sanitized[localeKey] = cleanLocale
+		}
+	}
+
+	if len(sanitized) == 0 {
+		return nil
+	}
+	return sanitized
 }

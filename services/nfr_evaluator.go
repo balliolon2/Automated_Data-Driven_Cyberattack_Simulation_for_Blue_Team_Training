@@ -1069,7 +1069,7 @@ func evalSafety(facts NFRRawDatabaseFacts) dto.NFRDimensionResultDTO {
 			Key:      "english_only_invariant",
 			Measured: fmt.Sprintf("%d", thaiTotal),
 			Unit:     "violations",
-			Target:   "0 Thai chars in Exams & initial_logs",
+			Target:   "0 Thai chars in canonical EN Exams & SIEM initial_logs",
 			Status:   thaiSt,
 		},
 		{

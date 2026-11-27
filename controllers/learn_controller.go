@@ -329,6 +329,7 @@ func (s *gormLearnStore) SubmitSampleQuestionAttempt(userID, role, subTopicID, q
 			IsCorrect:        strings.EqualFold(answer, q.CorrectAnswer),
 			CorrectAnswer:    q.CorrectAnswer,
 			Explanation:      q.Explanation,
+			Translations:     services.SanitizeQuestionTranslations(q.Translations, true),
 			AttemptedCount:   2,
 			RequiredCount:    2,
 			ReadyToComplete:  true,
@@ -389,6 +390,7 @@ func (s *gormLearnStore) SubmitSampleQuestionAttempt(userID, role, subTopicID, q
 			IsCorrect:        isCorrect,
 			CorrectAnswer:    q.CorrectAnswer,
 			Explanation:      q.Explanation,
+			Translations:     services.SanitizeQuestionTranslations(q.Translations, true),
 			AttemptedCount:   attemptedCount,
 			RequiredCount:    requiredCount,
 			ReadyToComplete:  requiredCount > 0 && attemptedCount >= requiredCount,
@@ -877,17 +879,19 @@ func (lc *LearnController) GetSubTopic(c *gin.Context) {
 	sampleDTOs := make([]dto.LearnSubtopicSampleQuestionDTO, 0, len(samples))
 	attemptedCount := 0
 	for _, s := range samples {
+		answered := isSampleAnswered(s.Assignment.SubmittedAnswer)
 		item := dto.LearnSubtopicSampleQuestionDTO{
 			QuestionID:      s.Assignment.QuestionID,
 			OrderIndex:      s.Assignment.OrderIndex,
 			QuestionText:    s.Question.QuestionText,
 			Options:         s.Question.Options,
+			Translations:    services.SanitizeQuestionTranslations(s.Question.Translations, answered),
 			IsFallback:      s.Assignment.IsFallback,
 			SubmittedAnswer: s.Assignment.SubmittedAnswer,
 			IsCorrect:       s.Assignment.IsCorrect,
 			AnsweredAt:      s.Assignment.AnsweredAt,
 		}
-		if isSampleAnswered(s.Assignment.SubmittedAnswer) {
+		if answered {
 			attemptedCount++
 			ans := s.Question.CorrectAnswer
 			exp := s.Question.Explanation

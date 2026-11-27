@@ -9,6 +9,7 @@ type QuestionDTO struct {
 	Type         string `json:"type" example:"multiple_choice"`
 	QuestionText string `json:"question_text" example:"Which security control provides non-repudiation?"`
 	Options      any    `json:"options"`
+	Translations any    `json:"translations,omitempty"`
 	OrderIndex   int    `json:"order_index,omitempty" example:"1"`
 	UserAnswer   string `json:"user_answer,omitempty" example:"A"`
 }
@@ -64,6 +65,7 @@ type DetailedExamResultDTO struct {
 	Options       any     `json:"options"`
 	CorrectAnswer string  `json:"correct_answer" example:"A"`
 	Explanation   string  `json:"explanation" example:"Correct Answer: A. Digital signatures ensure non-repudiation."`
+	Translations  any     `json:"translations,omitempty"`
 	MitreRef      *string `json:"mitre_ref,omitempty" example:"T1078"`
 	OrderIndex    int     `json:"order_index" example:"0"`
 	UserAnswer    string  `json:"user_answer" example:"A"`
@@ -155,4 +157,19 @@ type ExamReviewResponse struct {
 	DomainScores  []DomainScoreDTO        `json:"domain_scores"`
 	PreComparison *ExamPreComparisonDTO   `json:"pre_comparison"`
 	Results       []DetailedExamResultDTO `json:"results"`
+}
+
+// SampleQuestionDTO represents a single public sample exam question previewed on the landing workbench.
+type SampleQuestionDTO struct {
+	QuestionID    string  `json:"question_id" example:"d1-q01"`
+	DomainID      string  `json:"domain_id" example:"domain1"`
+	SubTopicID    *string `json:"sub_topic_id,omitempty" example:"1.1"`
+	Type          string  `json:"type" example:"multiple_choice"`
+	QuestionText  string  `json:"question_text" example:"Which security control provides non-repudiation?"`
+	Options       any     `json:"options"`
+	CorrectAnswer string  `json:"correct_answer" example:"B"`
+	Explanation   string  `json:"explanation" example:"Correct Answer: B..."`
+	Translations  any     `json:"translations,omitempty"`
+	Difficulty    int     `json:"difficulty" example:"3"`
+	MitreRef      *string `json:"mitre_ref,omitempty" example:"T1566"`
 }

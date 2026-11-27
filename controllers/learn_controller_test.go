@@ -302,6 +302,7 @@ func (f *fakeLearnStore) SubmitSampleQuestionAttempt(userID, role, subTopicID, q
 						IsCorrect:       strings.EqualFold(answer, item.CorrectAnswer),
 						CorrectAnswer:   item.CorrectAnswer,
 						Explanation:     item.Explanation,
+						Translations:    services.SanitizeQuestionTranslations(item.Translations, true),
 						AttemptedCount:  2,
 						RequiredCount:   2,
 						ReadyToComplete: true,
@@ -351,6 +352,7 @@ func (f *fakeLearnStore) SubmitSampleQuestionAttempt(userID, role, subTopicID, q
 		IsCorrect:        isCorrVal,
 		CorrectAnswer:    item.Question.CorrectAnswer,
 		Explanation:      item.Question.Explanation,
+		Translations:     services.SanitizeQuestionTranslations(item.Question.Translations, true),
 		AttemptedCount:   attempted,
 		RequiredCount:    reqCount,
 		ReadyToComplete:  reqCount > 0 && attempted >= reqCount,
@@ -936,5 +938,94 @@ func TestLearnController_LocalizationPrecedenceErrorCodesAndEnglishOnlySamples(t
 	_ = json.Unmarshal(wPreGate.Body.Bytes(), &preBody)
 	if wPreGate.Code != http.StatusForbidden || preBody["code"] != "LEARN_PRETEST_REQUIRED" {
 		t.Fatalf("expected 403 LEARN_PRETEST_REQUIRED, got %d %+v", wPreGate.Code, preBody)
+	}
+}
+
+func TestLearnController_SampleQuestionTranslationsPreAndPostAttempt(t *testing.T) {
+	store := newFakeLearnStore()
+	userID := "learn-bi-user"
+	store.profiles[userID] = []models.UserSkillProfile{{UserID: userID, DomainID: "domain1", ProficiencyScore: 60.0}}
+	store.seedSamplePool("domain1", "1.1", []models.Question{
+		{
+			QuestionID:    "q-th-11-a",
+			DomainID:      "domain1",
+			Type:          "multiple_choice",
+			QuestionText:  "Canonical EN question A?",
+			Options:       map[string]any{"A": "One", "B": "Two"},
+			CorrectAnswer: "A",
+			Explanation:   "Correct Answer: A. Right. Option B is incorrect. Wrong.",
+			Translations: map[string]any{
+				"th": map[string]any{
+					"question_text": "คำถามไทย A?",
+					"options":       map[string]any{"A": "หนึ่ง", "B": "สอง"},
+					"explanation":   "คำตอบที่ถูกต้อง: A. ถูก ตัวเลือก B ไม่ถูกต้อง ผิด",
+				},
+			},
+			IsActive: true,
+		},
+		{
+			QuestionID:    "q-th-11-b",
+			DomainID:      "domain1",
+			Type:          "multiple_choice",
+			QuestionText:  "Canonical EN question B?",
+			Options:       map[string]any{"A": "Yes", "B": "No"},
+			CorrectAnswer: "B",
+			Explanation:   "Correct Answer: B. Right. Option A is incorrect. Wrong.",
+			Translations: map[string]any{
+				"th": map[string]any{
+					"question_text": "คำถามไทย B?",
+					"options":       map[string]any{"A": "ใช่", "B": "ไม่ใช่"},
+					"explanation":   "คำตอบที่ถูกต้อง: B. ถูก ตัวเลือก A ไม่ถูกต้อง ผิด",
+				},
+			},
+			IsActive: true,
+		},
+	})
+
+	lc := NewLearnControllerWithStore(store)
+	r := setupLearnRouter(lc, userID, "learner")
+
+	wPre := httptest.NewRecorder()
+	reqPre, _ := http.NewRequest("GET", "/api/learn/subtopics/1.1?lang=th", nil)
+	r.ServeHTTP(wPre, reqPre)
+	if wPre.Code != http.StatusOK {
+		t.Fatalf("GET subtopic failed: %d", wPre.Code)
+	}
+	var preResp dto.LearnSubtopicDetailResponse
+	_ = json.Unmarshal(wPre.Body.Bytes(), &preResp)
+	firstTh := preResp.SampleQuestions[0].Translations.(map[string]any)["th"].(map[string]any)
+	if firstTh["question_text"] != "คำถามไทย A?" || firstTh["options"] == nil {
+		t.Fatalf("expected th question_text and options pre-attempt, got %+v", firstTh)
+	}
+	if _, leaked := firstTh["explanation"]; leaked {
+		t.Fatalf("unattempted sample leaked translations.th.explanation: %+v", firstTh)
+	}
+
+	attemptBody, _ := json.Marshal(dto.AttemptSampleQuestionRequest{Answer: "A"})
+	wAtt := httptest.NewRecorder()
+	reqAtt, _ := http.NewRequest("POST", "/api/learn/subtopics/1.1/sample-questions/q-th-11-a/attempt", bytes.NewReader(attemptBody))
+	reqAtt.Header.Set("Content-Type", "application/json")
+	r.ServeHTTP(wAtt, reqAtt)
+	if wAtt.Code != http.StatusOK {
+		t.Fatalf("attempt failed: %d %s", wAtt.Code, wAtt.Body.String())
+	}
+	var attResp dto.AttemptSampleQuestionResponse
+	_ = json.Unmarshal(wAtt.Body.Bytes(), &attResp)
+	attTh := attResp.Translations.(map[string]any)["th"].(map[string]any)
+	if attExp, ok := attTh["explanation"].(string); !ok || attExp == "" {
+		t.Fatalf("expected th.explanation in attempt response, got %+v", attTh)
+	}
+
+	wPost := httptest.NewRecorder()
+	reqPost, _ := http.NewRequest("GET", "/api/learn/subtopics/1.1?lang=th", nil)
+	r.ServeHTTP(wPost, reqPost)
+	var postResp dto.LearnSubtopicDetailResponse
+	_ = json.Unmarshal(wPost.Body.Bytes(), &postResp)
+	post0 := postResp.SampleQuestions[0].Translations.(map[string]any)["th"].(map[string]any)
+	post1 := postResp.SampleQuestions[1].Translations.(map[string]any)["th"].(map[string]any)
+	post0Exp, hasPost0Exp := post0["explanation"].(string)
+	_, hasPost1Exp := post1["explanation"]
+	if !hasPost0Exp || post0Exp == "" || hasPost1Exp {
+		t.Fatalf("expected answered sample 0 to expose th.explanation and unanswered sample 1 to omit it: 0=%+v 1=%+v", post0, post1)
 	}
 }

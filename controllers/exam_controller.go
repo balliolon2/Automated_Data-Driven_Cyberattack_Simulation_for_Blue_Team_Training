@@ -163,6 +163,7 @@ func (s *gormExamStore) GetSessionQuestions(sessionID string) ([]QuestionRespons
 			Type:         r.Type,
 			QuestionText: r.QuestionText,
 			Options:      r.Options,
+			Translations: services.SanitizeQuestionTranslations(r.Translations, false),
 			OrderIndex:   r.OrderIndex,
 			UserAnswer:   r.UserAnswer,
 		}
@@ -256,6 +257,7 @@ func (s *gormExamStore) queryDetailedResults(db *gorm.DB, sessionID string) ([]d
 			Options:       r.Options,
 			CorrectAnswer: r.CorrectAnswer,
 			Explanation:   r.Explanation,
+			Translations:  services.SanitizeQuestionTranslations(r.Translations, true),
 			MitreRef:      r.MitreRef,
 			OrderIndex:    r.OrderIndex,
 			UserAnswer:    r.UserAnswer,
@@ -1117,7 +1119,7 @@ func (ec *ExamController) GetExamReview(c *gin.Context) {
 // @Tags Exams
 // @Accept json
 // @Produce json
-// @Success 200 {object} dto.QuestionDTO
+// @Success 200 {object} dto.SampleQuestionDTO
 // @Failure 500 {object} dto.ErrorResponse
 // @Router /exams/sample [get]
 func (ec *ExamController) GetSampleQuestion(c *gin.Context) {
@@ -1126,7 +1128,19 @@ func (ec *ExamController) GetSampleQuestion(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve sample question", "code": "INTERNAL_SERVER_ERROR"})
 		return
 	}
-	c.JSON(http.StatusOK, question)
+	c.JSON(http.StatusOK, dto.SampleQuestionDTO{
+		QuestionID:    question.QuestionID,
+		DomainID:      question.DomainID,
+		SubTopicID:    question.SubTopicID,
+		Type:          question.Type,
+		QuestionText:  question.QuestionText,
+		Options:       question.Options,
+		CorrectAnswer: question.CorrectAnswer,
+		Explanation:   question.Explanation,
+		Translations:  services.SanitizeQuestionTranslations(question.Translations, true),
+		Difficulty:    question.Difficulty,
+		MitreRef:      question.MitreRef,
+	})
 }
 
 // BuildPostTestExclusionQuery returns a subquery of all question_ids already seen
