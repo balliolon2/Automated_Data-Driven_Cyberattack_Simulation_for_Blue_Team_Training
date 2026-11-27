@@ -203,6 +203,7 @@ definitions:
       submitted_answer:
         example: B
         type: string
+      translations: {}
     type: object
   dto.AuthResponse:
     properties:
@@ -505,6 +506,7 @@ definitions:
       sub_topic_title:
         example: Compare and contrast various types of security controls
         type: string
+      translations: {}
       type:
         example: multiple_choice
         type: string
@@ -983,6 +985,7 @@ definitions:
         type: string
       submitted_answer:
         type: string
+      translations: {}
     type: object
   dto.LearnSubtopicTelemetryDTO:
     properties:
@@ -1689,6 +1692,7 @@ definitions:
       question_text:
         example: Which security control provides non-repudiation?
         type: string
+      translations: {}
       type:
         example: multiple_choice
         type: string
@@ -1811,6 +1815,38 @@ definitions:
       total_requests:
         example: 100
         type: integer
+    type: object
+  dto.SampleQuestionDTO:
+    properties:
+      correct_answer:
+        example: B
+        type: string
+      difficulty:
+        example: 3
+        type: integer
+      domain_id:
+        example: domain1
+        type: string
+      explanation:
+        example: 'Correct Answer: B...'
+        type: string
+      mitre_ref:
+        example: T1566
+        type: string
+      options: {}
+      question_id:
+        example: d1-q01
+        type: string
+      question_text:
+        example: Which security control provides non-repudiation?
+        type: string
+      sub_topic_id:
+        example: "1.1"
+        type: string
+      translations: {}
+      type:
+        example: multiple_choice
+        type: string
     type: object
   dto.ScalabilityProbeResponse:
     properties:
@@ -3019,7 +3055,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/dto.QuestionDTO'
+            $ref: '#/definitions/dto.SampleQuestionDTO'
         "500":
           description: Internal Server Error
           schema:

@@ -876,7 +876,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.QuestionDTO"
+                            "$ref": "#/definitions/dto.SampleQuestionDTO"
                         }
                     },
                     "500": {
@@ -2554,7 +2554,8 @@ const docTemplate = `{
                 "submitted_answer": {
                     "type": "string",
                     "example": "B"
-                }
+                },
+                "translations": {}
             }
         },
         "dto.AuthResponse": {
@@ -2974,6 +2975,7 @@ const docTemplate = `{
                     "type": "string",
                     "example": "Compare and contrast various types of security controls"
                 },
+                "translations": {},
                 "type": {
                     "type": "string",
                     "example": "multiple_choice"
@@ -3654,7 +3656,8 @@ const docTemplate = `{
                 },
                 "submitted_answer": {
                     "type": "string"
-                }
+                },
+                "translations": {}
             }
         },
         "dto.LearnSubtopicTelemetryDTO": {
@@ -4644,6 +4647,7 @@ const docTemplate = `{
                     "type": "string",
                     "example": "Which security control provides non-repudiation?"
                 },
+                "translations": {},
                 "type": {
                     "type": "string",
                     "example": "multiple_choice"
@@ -4810,6 +4814,49 @@ const docTemplate = `{
                 "total_requests": {
                     "type": "integer",
                     "example": 100
+                }
+            }
+        },
+        "dto.SampleQuestionDTO": {
+            "type": "object",
+            "properties": {
+                "correct_answer": {
+                    "type": "string",
+                    "example": "B"
+                },
+                "difficulty": {
+                    "type": "integer",
+                    "example": 3
+                },
+                "domain_id": {
+                    "type": "string",
+                    "example": "domain1"
+                },
+                "explanation": {
+                    "type": "string",
+                    "example": "Correct Answer: B..."
+                },
+                "mitre_ref": {
+                    "type": "string",
+                    "example": "T1566"
+                },
+                "options": {},
+                "question_id": {
+                    "type": "string",
+                    "example": "d1-q01"
+                },
+                "question_text": {
+                    "type": "string",
+                    "example": "Which security control provides non-repudiation?"
+                },
+                "sub_topic_id": {
+                    "type": "string",
+                    "example": "1.1"
+                },
+                "translations": {},
+                "type": {
+                    "type": "string",
+                    "example": "multiple_choice"
                 }
             }
         },

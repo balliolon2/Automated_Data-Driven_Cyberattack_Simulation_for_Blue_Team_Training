@@ -7,6 +7,35 @@ import uuid
 BASE_URL = "http://localhost:8080/api"
 
 
+def has_thai_chars(text):
+    return any("\u0E00" <= ch <= "\u0E7F" for ch in (text or ""))
+
+
+def assert_bilingual_question_shape(item, label, expect_explanation):
+    th = (item.get("translations") or {}).get("th")
+    if not isinstance(th, dict):
+        print(f"Error: [{label}] missing translations.th on question {item.get('question_id')}: {item}")
+        sys.exit(1)
+    q_text = th.get("question_text") or ""
+    if not has_thai_chars(q_text):
+        print(f"Error: [{label}] translations.th.question_text missing Thai text on {item.get('question_id')}")
+        sys.exit(1)
+    th_opts = th.get("options") or {}
+    if set(th_opts.keys()) != {"A", "B", "C", "D"} or any(not str(v).strip() for v in th_opts.values()):
+        print(f"Error: [{label}] invalid translations.th.options on {item.get('question_id')}: {th_opts}")
+        sys.exit(1)
+
+    if expect_explanation:
+        exp = th.get("explanation") or ""
+        if not has_thai_chars(exp) or "คำตอบที่ถูกต้อง:" not in exp or "ตัวเลือก" not in exp:
+            print(f"Error: [{label}] translations.th.explanation missing structured Thai explanation on {item.get('question_id')}")
+            sys.exit(1)
+    else:
+        if "explanation" in th or "correct_answer" in th or "explanation" in item or "correct_answer" in item:
+            print(f"Error: [{label}] pre-submission answer/explanation leakage on {item.get('question_id')}!")
+            sys.exit(1)
+
+
 def assert_review_payload(review_data, expected_exam_type, expected_unanswered=0):
     sess = review_data.get("session") or {}
     if sess.get("exam_type") != expected_exam_type or sess.get("status") != "completed":
@@ -36,6 +65,7 @@ def assert_review_payload(review_data, expected_exam_type, expected_unanswered=0
         if not item.get("sub_topic_id") or not item.get("sub_topic_title"):
             print(f"Error: Missing sub_topic metadata on review item {idx}: {item.get('sub_topic_id')}")
             sys.exit(1)
+        assert_bilingual_question_shape(item, f"{expected_exam_type} review #{idx}", expect_explanation=True)
 
 
 def verify_partial_exam_finalize():
@@ -84,6 +114,10 @@ def verify_partial_exam_finalize():
     ):
         print(f"Error: Unexpected partial finalize payload: {fin_data}")
         sys.exit(1)
+
+    if fin_data.get("results"):
+        for r_idx, r_item in enumerate(fin_data["results"]):
+            assert_bilingual_question_shape(r_item, f"Partial finalize result #{r_idx}", expect_explanation=True)
 
     rev = requests.get(f"{BASE_URL}/exams/sessions/{sid}/review", headers=hdrs)
     if rev.status_code != 200:
@@ -167,6 +201,12 @@ def verify_nfr_portal(learner_headers):
         if dim_map.get(key, {}).get("status") == "fail":
             print(f"Error: Live NFR dimension {key} failed unexpectedly: {dim_map[key]}")
             sys.exit(1)
+    safety_dim = dim_map.get("safety") or {}
+    safety_checks = {c.get("key"): c for c in (safety_dim.get("checks") or [])}
+    en_check_target = (safety_checks.get("english_only_invariant") or {}).get("target") or ""
+    if safety_dim.get("status") != "pass" or "canonical EN Exams" not in en_check_target:
+        print(f"Error: Expected NFR safety PASS with updated bilingual-safe EN target, got: {safety_dim}")
+        sys.exit(1)
 
     for env_key in ["JWT_SECRET", "LLM_API_KEY", "POSTGRES_PASSWORD"]:
         sec_val = os.environ.get(env_key, "").strip()
@@ -283,6 +323,15 @@ def run_tests():
         if domain_counts.get(d, 0) != expected:
             print(f"Error: Expected {expected} questions for {d}, got {domain_counts.get(d, 0)}")
             sys.exit(1)
+    for idx, q in enumerate(questions):
+        assert_bilingual_question_shape(q, f"Pre-Test #{idx}", expect_explanation=False)
+
+    # 3b. Verify public sample question endpoint returns complete bilingual translations
+    sample_res = requests.get(f"{BASE_URL}/exams/sample")
+    if sample_res.status_code != 200:
+        print(f"Error: GET /exams/sample failed: {sample_res.status_code}")
+        sys.exit(1)
+    assert_bilingual_question_shape(sample_res.json(), "Public /exams/sample", expect_explanation=True)
             
     # 4. Test Reconnect (fetch session)
     print("Testing Session Recovery...")
@@ -290,7 +339,10 @@ def run_tests():
     if session_res.status_code != 200:
         print("Session recovery failed", session_res.json())
         sys.exit(1)
-    print("Session recovery successful. Recovered questions:", len(session_res.json()["questions"]))
+    recovered_qs = session_res.json()["questions"]
+    for idx, q in enumerate(recovered_qs):
+        assert_bilingual_question_shape(q, f"Session Recovery #{idx}", expect_explanation=False)
+    print("Session recovery successful. Recovered questions:", len(recovered_qs))
 
     # 4b. Verify Review Completion Guard while Pre-Test is still in_progress
     print("Verifying 403 EXAM_NOT_COMPLETED while Pre-Test is in_progress...")
@@ -324,6 +376,8 @@ def run_tests():
         data = ans_res.json()
         if data.get("completed"):
             print("Pre-test completed! Final Score:", data.get("score"))
+            for r_idx, r_item in enumerate(data.get("results") or []):
+                assert_bilingual_question_shape(r_item, f"Pre-test final submit result #{r_idx}", expect_explanation=True)
             pre_questions_used = [qu["question_id"] for qu in data.get("results", [])]
             break
 
@@ -402,6 +456,27 @@ def run_tests():
             sys.exit(1)
         for sq in s_res.json().get("sample_questions", []):
             learn_sample_ids.add(sq["question_id"])
+            if not sq.get("submitted_answer"):
+                assert_bilingual_question_shape(sq, f"Learn {sub_id} unattempted sample", expect_explanation=False)
+    first_sub_samples = requests.get(f"{BASE_URL}/learn/subtopics/1.1", headers=headers).json().get("sample_questions", [])
+    if first_sub_samples and not first_sub_samples[0].get("submitted_answer"):
+        sq0 = first_sub_samples[0]
+        att_res = requests.post(
+            f"{BASE_URL}/learn/subtopics/1.1/sample-questions/{sq0['question_id']}/attempt",
+            headers=headers,
+            json={"answer": "A"},
+        )
+        if att_res.status_code != 200:
+            print(f"Error: Learn sample attempt failed: {att_res.status_code} {att_res.text}")
+            sys.exit(1)
+        assert_bilingual_question_shape(att_res.json(), "Learn 1.1 attempted sample", expect_explanation=True)
+        post_sub_samples = requests.get(f"{BASE_URL}/learn/subtopics/1.1", headers=headers).json().get("sample_questions", [])
+        for s_item in post_sub_samples:
+            assert_bilingual_question_shape(
+                s_item,
+                f"Learn 1.1 post-attempt sample {s_item.get('question_id')}",
+                expect_explanation=bool(s_item.get("submitted_answer")),
+            )
     pre_set = set(pre_questions_used)
     if pre_set.intersection(learn_sample_ids):
         print("Error: Learn sample questions overlapped Pre-Test:", pre_set.intersection(learn_sample_ids))
@@ -432,6 +507,8 @@ def run_tests():
     post_questions = post_data["questions"]
     
     print(f"Post-Test started. Session ID: {post_session_id}. Questions count: {len(post_questions)}")
+    for idx, q in enumerate(post_questions):
+        assert_bilingual_question_shape(q, f"Post-Test #{idx}", expect_explanation=False)
     
     # Verify no overlap against Pre-Test OR Learn sample questions
     post_set = set([q["question_id"] for q in post_questions])
