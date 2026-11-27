@@ -22,9 +22,12 @@ import {
   XCircle,
 } from "lucide-react";
 import MarkdownView from "../components/MarkdownView";
+import QuestionTranslationToggle from "../components/QuestionTranslationToggle";
 import { cn } from "../lib/utils";
 import { useI18n } from "../i18n/index.tsx";
 import { resolveApiError, resolveDomainName } from "../i18n/format.ts";
+import { getSortedOptionEntries } from "../lib/examReview";
+import { resolveLocalizedQuestion, type QuestionTranslationsMap } from "../lib/questionLocale.ts";
 
 interface TheorySubtopicSummary {
   sub_topic_id: string;
@@ -77,6 +80,7 @@ interface LearnSampleQuestion {
   answered_at?: string;
   correct_answer?: string;
   explanation?: string;
+  translations?: QuestionTranslationsMap | null;
 }
 
 interface LearnSubtopicDetail {
@@ -104,6 +108,7 @@ interface AttemptSampleResponse {
   is_correct: boolean;
   correct_answer: string;
   explanation: string;
+  translations?: QuestionTranslationsMap | null;
   attempted_count: number;
   required_count: number;
   ready_to_complete: boolean;
@@ -171,6 +176,7 @@ export default function LearnTheoryPage() {
 
   // Local radio choice per question before clicking Submit
   const [draftAnswers, setDraftAnswers] = useState<Record<string, string>>({});
+  const [originalEnSampleIds, setOriginalEnSampleIds] = useState<Record<string, boolean>>({});
   const [submittingQuestionId, setSubmittingQuestionId] = useState<string | null>(null);
   const [completingDomainId, setCompletingDomainId] = useState<string | null>(null);
   const [completingSubtopicId, setCompletingSubtopicId] = useState<string | null>(null);
@@ -460,6 +466,7 @@ export default function LearnTheoryPage() {
                   is_correct: result.is_correct,
                   correct_answer: result.correct_answer,
                   explanation: result.explanation,
+                  translations: result.translations ?? q.translations,
                   answered_at: q.answered_at || new Date().toISOString(),
                 }
               : q
@@ -1267,7 +1274,7 @@ export default function LearnTheoryPage() {
               <div className="p-6 sm:p-8 space-y-8">
                 <MarkdownView content={subDetail.content} />
 
-                {/* Interactive Formative Sample Questions (Strictly English-only content) */}
+                {/* Interactive Formative Sample Questions */}
                 <div className="pt-6 border-t border-graphite-800 space-y-4">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div className="space-y-1">
@@ -1298,7 +1305,9 @@ export default function LearnTheoryPage() {
 
                   {locale === "th" && (
                     <div className="px-3.5 py-2.5 rounded bg-graphite-900/70 border border-graphite-800 text-graphite-300 text-xs">
-                      {t("learn.sampleEnglishOnlyNotice")}
+                      {subDetail.sample_questions.some((q) => Boolean(q.translations?.th?.question_text?.trim()))
+                        ? t("learn.sampleToggleHint")
+                        : t("learn.sampleEnglishOnlyNotice")}
                     </div>
                   )}
 
@@ -1306,9 +1315,12 @@ export default function LearnTheoryPage() {
                     {subDetail.sample_questions.map((q, qIdx) => {
                       const isSubmitted = Boolean(q.submitted_answer);
                       const chosenOption = q.submitted_answer || draftAnswers[q.question_id] || "";
-                      const optionEntries = Object.entries(q.options || {}).sort(([a], [b]) =>
-                        a.localeCompare(b)
+                      const localizedSample = resolveLocalizedQuestion(
+                        q,
+                        locale,
+                        Boolean(originalEnSampleIds[q.question_id])
                       );
+                      const optionEntries = getSortedOptionEntries(localizedSample.options);
 
                       return (
                         <div
@@ -1319,7 +1331,17 @@ export default function LearnTheoryPage() {
                             <span className="text-xs font-mono font-semibold text-graphite-300">
                               {t("learn.sampleQuestionNumber", { index: qIdx + 1 })}
                             </span>
-                            <div className="flex items-center gap-2">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <QuestionTranslationToggle
+                                visible={locale === "th" && localizedSample.hasThaiTranslation}
+                                showingOriginalEn={localizedSample.showingOriginalEn}
+                                onToggle={() =>
+                                  setOriginalEnSampleIds((prev) => ({
+                                    ...prev,
+                                    [q.question_id]: !prev[q.question_id],
+                                  }))
+                                }
+                              />
                               {q.is_fallback ? (
                                 <span className="px-2 py-0.5 rounded bg-amber-500/15 border border-amber-500/30 text-xs font-mono text-amber-300">
                                   {t("learn.domainFallbackBadge")}
@@ -1358,7 +1380,7 @@ export default function LearnTheoryPage() {
                             </div>
                           </div>
 
-                          <p className="text-base text-white leading-relaxed">{q.question_text}</p>
+                          <p className="text-base text-white leading-relaxed">{localizedSample.questionText}</p>
 
                           <div className="space-y-2.5">
                             {optionEntries.map(([optKey, optText]) => {
@@ -1426,13 +1448,13 @@ export default function LearnTheoryPage() {
                               </button>
                             </div>
                           ) : (
-                            q.explanation && (
+                            localizedSample.explanation && (
                               <div className="p-4 rounded-md bg-graphite-900 border border-graphite-800 space-y-1.5">
                                 <span className="text-xs font-mono uppercase tracking-wider text-indigo-300 font-semibold">
                                   {t("learn.explanationLabel")}
                                 </span>
                                 <p className="text-base text-graphite-200 leading-relaxed">
-                                  {q.explanation}
+                                  {localizedSample.explanation}
                                 </p>
                               </div>
                             )

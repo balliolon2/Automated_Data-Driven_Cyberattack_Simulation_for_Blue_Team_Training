@@ -12,6 +12,9 @@ import {
 } from "lucide-react";
 import { useI18n } from "../i18n/index.tsx";
 import { resolveDomainName } from "../i18n/format.ts";
+import QuestionTranslationToggle from "../components/QuestionTranslationToggle";
+import { getSortedOptionEntries } from "../lib/examReview";
+import { resolveLocalizedQuestion, type QuestionTranslationsMap } from "../lib/questionLocale.ts";
 
 interface Question {
   question_id: string;
@@ -20,6 +23,7 @@ interface Question {
   options: Record<string, string>;
   correct_answer: string;
   explanation: string;
+  translations?: QuestionTranslationsMap | null;
   difficulty: number;
 }
 
@@ -34,6 +38,7 @@ export default function LandingPage() {
   const [question, setQuestion] = useState<Question | null>(null);
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [showOriginalEn, setShowOriginalEn] = useState(false);
 
   useEffect(() => {
     fetchSampleQuestion();
@@ -93,6 +98,7 @@ export default function LandingPage() {
       setSampleLoading(true);
       setSelectedAnswer(null);
       setIsSubmitted(false);
+      setShowOriginalEn(false);
       const res = await axios.get("/api/exams/sample");
       setQuestion(res.data);
     } catch (err) {
@@ -124,6 +130,10 @@ export default function LandingPage() {
     if (!selectedAnswer) return;
     setIsSubmitted(true);
   };
+
+  const localizedQuestion = question
+    ? resolveLocalizedQuestion(question, locale, showOriginalEn)
+    : null;
 
   return (
     <div className="flex flex-col w-full max-w-6xl mx-auto pb-24 space-y-24 animate-slide-up">
@@ -220,17 +230,24 @@ export default function LandingPage() {
                   <Loader2 className="w-6 h-6 text-white animate-spin" />
                   <p className="text-sm font-mono text-graphite-400">{t("landing.workbench.fetchingSample")}</p>
                 </div>
-              ) : question ? (
+              ) : question && localizedQuestion ? (
                 <div className="space-y-4">
-                  <div className="flex justify-between items-center text-xs font-mono text-graphite-400 border-b border-graphite-800 pb-2.5">
+                  <div className="flex flex-wrap justify-between items-center gap-2 text-xs font-mono text-graphite-400 border-b border-graphite-800 pb-2.5">
                     <span>{t("landing.workbench.questionSource")}</span>
-                    <span>{t("landing.workbench.difficulty", { difficulty: question.difficulty })}</span>
+                    <div className="flex items-center gap-2.5">
+                      <QuestionTranslationToggle
+                        visible={locale === "th" && localizedQuestion.hasThaiTranslation}
+                        showingOriginalEn={localizedQuestion.showingOriginalEn}
+                        onToggle={() => setShowOriginalEn((prev) => !prev)}
+                      />
+                      <span>{t("landing.workbench.difficulty", { difficulty: question.difficulty })}</span>
+                    </div>
                   </div>
                   <div className="text-base text-graphite-100 font-normal leading-relaxed">
-                    {question.question_text}
+                    {localizedQuestion.questionText}
                   </div>
                   <div className="space-y-2.5 pt-2">
-                    {Object.entries(question.options).map(([key, value]) => {
+                    {getSortedOptionEntries(localizedQuestion.options).map(([key, value]) => {
                       const isSelected = selectedAnswer === key;
                       const isCorrectAnswer = question.correct_answer === key;
                       
@@ -275,7 +292,7 @@ export default function LandingPage() {
                         </div>
                       )}
                       <p className="text-graphite-300">
-                        <strong className="text-white font-semibold">{t("landing.workbench.explanationLabel")}</strong> {question.explanation}
+                        <strong className="text-white font-semibold">{t("landing.workbench.explanationLabel")}</strong> {localizedQuestion.explanation}
                       </p>
                     </div>
                   )}

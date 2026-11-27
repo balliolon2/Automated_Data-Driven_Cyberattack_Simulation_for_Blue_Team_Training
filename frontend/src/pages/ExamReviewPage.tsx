@@ -20,10 +20,12 @@ import {
   AlertCircle,
 } from "lucide-react";
 import DomainBreakdown from "../components/DomainBreakdown";
+import QuestionTranslationToggle from "../components/QuestionTranslationToggle";
 import QuestionnairePromptBanner from "../components/QuestionnairePromptBanner";
 import type { QuestionnaireStatusResponse } from "../lib/questionnaire";
 import { useI18n } from "../i18n/index.tsx";
 import { resolveApiError, resolveDomainName } from "../i18n/format.ts";
+import { resolveLocalizedQuestion } from "../lib/questionLocale.ts";
 import { cn } from "../lib/utils";
 import {
   createInitialExpandedIds,
@@ -249,6 +251,17 @@ function ReviewQuestionCard({
   cardRef: (el: HTMLDivElement | null) => void;
 }) {
   const { locale, t } = useI18n();
+  const [showOriginalEn, setShowOriginalEn] = useState(false);
+  const localized = resolveLocalizedQuestion(
+    {
+      question_text: item.question_text,
+      options: item.options,
+      explanation: item.explanation,
+      translations: item.translations,
+    },
+    locale,
+    showOriginalEn,
+  );
   const outcome = getReviewItemOutcome(item);
   const unanswered = outcome === "unanswered";
   const questionNum = (item.order_index + 1).toString().padStart(2, "0");
@@ -302,7 +315,7 @@ function ReviewQuestionCard({
                 {item.sub_topic_id}
               </span>
             )}
-            <span className="text-sm text-graphite-200 truncate">{item.question_text}</span>
+            <span className="text-sm text-graphite-200 truncate">{localized.questionText}</span>
           </div>
           <span className="inline-flex items-center gap-1 text-sm font-medium text-graphite-400 hover:text-white shrink-0">
             {t("examReview.showExplanation")}
@@ -313,7 +326,7 @@ function ReviewQuestionCard({
     );
   }
 
-  const sortedOptions = getSortedOptionEntries(item.options);
+  const sortedOptions = getSortedOptionEntries(localized.options);
   const pickedKey = (item.user_answer ?? "").trim().toUpperCase();
   const correctKey = (item.correct_answer ?? "").trim().toUpperCase();
 
@@ -355,19 +368,26 @@ function ReviewQuestionCard({
           )}
         </div>
 
-        <button
-          type="button"
-          onClick={onToggleExpand}
-          aria-expanded={true}
-          className="inline-flex items-center gap-1 text-sm font-medium text-graphite-400 hover:text-white transition-colors cursor-pointer"
-        >
-          {t("examReview.hideExplanation")}
-          <ChevronUp className="w-4 h-4" />
-        </button>
+        <div className="flex items-center gap-2 shrink-0">
+          <QuestionTranslationToggle
+            visible={locale === "th" && localized.hasThaiTranslation}
+            showingOriginalEn={localized.showingOriginalEn}
+            onToggle={() => setShowOriginalEn((prev) => !prev)}
+          />
+          <button
+            type="button"
+            onClick={onToggleExpand}
+            aria-expanded={true}
+            className="inline-flex items-center gap-1 text-sm font-medium text-graphite-400 hover:text-white transition-colors cursor-pointer"
+          >
+            {t("examReview.hideExplanation")}
+            <ChevronUp className="w-4 h-4" />
+          </button>
+        </div>
       </div>
 
       <p className="text-base text-graphite-100 leading-relaxed font-normal">
-        {item.question_text}
+        {localized.questionText}
       </p>
 
       {unanswered && (
@@ -429,7 +449,7 @@ function ReviewQuestionCard({
       </div>
 
       <StructuredExplanationView
-        explanation={item.explanation}
+        explanation={localized.explanation}
         correctAnswer={item.correct_answer}
         userAnswer={item.user_answer}
       />
@@ -774,7 +794,9 @@ export default function ExamReviewPage() {
 
         {locale === "th" && (
           <div className="px-3.5 py-2.5 rounded bg-graphite-950/80 border border-graphite-800 text-graphite-300 text-xs">
-            {t("exam.englishOnlyNotice")}
+            {(review.results ?? []).some((item) => Boolean(item.translations?.th?.question_text?.trim()))
+              ? t("exam.bilingualToggleHint")
+              : t("exam.englishOnlyNotice")}
           </div>
         )}
       </div>

@@ -2,9 +2,11 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { Clock, Flag, ChevronLeft, ChevronRight, CheckCircle2 } from "lucide-react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
+import QuestionTranslationToggle from "../components/QuestionTranslationToggle";
 import { useI18n } from "../i18n/index.tsx";
 import { resolveApiError } from "../i18n/format.ts";
-import { EXAM_MAX_DURATION_SECONDS } from "../lib/examReview";
+import { EXAM_MAX_DURATION_SECONDS, getSortedOptionEntries } from "../lib/examReview";
+import { resolveLocalizedQuestion, type QuestionTranslationsMap } from "../lib/questionLocale.ts";
 
 const EXAM_DURATION_SECONDS = 30 * 60;
 
@@ -14,6 +16,7 @@ interface Question {
   type: string;
   question_text: string;
   options: Record<string, string>;
+  translations?: QuestionTranslationsMap;
   order_index: number;
   user_answer?: string;
 }
@@ -37,7 +40,13 @@ export default function ExamPage({ mode }: { mode: "pre" | "post" }) {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [autoSubmitting, setAutoSubmitting] = useState(false);
+  const [showOriginalEn, setShowOriginalEn] = useState(false);
   const navigate = useNavigate();
+
+  const goToQuestion = useCallback((nextIdx: number) => {
+    setCurrentQuestionIdx(nextIdx);
+    setShowOriginalEn(false);
+  }, []);
 
   const hasTickedRef = useRef(false);
   const autoFinalizeTriggeredRef = useRef(false);
@@ -282,6 +291,10 @@ export default function ExamPage({ mode }: { mode: "pre" | "post" }) {
   }
 
   const currentQ = questions[currentQuestionIdx];
+  if (!currentQ) {
+    return null;
+  }
+  const localizedQ = resolveLocalizedQuestion(currentQ, locale, showOriginalEn);
   const totalQuestions = questions.length;
   const answeredCount = questions.filter(q => !!answers[q.question_id]).length;
   const progressPercent = totalQuestions > 0 ? Math.round((answeredCount / totalQuestions) * 100) : 0;
@@ -332,7 +345,7 @@ export default function ExamPage({ mode }: { mode: "pre" | "post" }) {
                 return (
                   <button
                     key={q.question_id}
-                    onClick={() => setCurrentQuestionIdx(i)}
+                    onClick={() => goToQuestion(i)}
                     className={`w-10 h-10 rounded text-xs font-mono border transition-colors flex items-center justify-center ${btnStyles}`}
                   >
                     {(i + 1).toString().padStart(2, '0')}
@@ -354,13 +367,20 @@ export default function ExamPage({ mode }: { mode: "pre" | "post" }) {
         </div>
       </div>
 
-      {/* Main Content: Question (strictly English-only content) */}
+      {/* Main Content: Question (Hybrid Bilingual Thai when locale=th with per-question Show EN toggle) */}
       <div className="lg:col-span-3 bg-graphite-900 border border-graphite-800 rounded-lg p-6 sm:p-8 flex flex-col justify-between">
         <div>
           <div className="flex flex-wrap justify-between items-center gap-3 border-b border-graphite-800 pb-4 mb-6">
-            <h2 className="text-lg font-semibold text-white">
-              {t("exam.questionOf", { current: currentQuestionIdx + 1, total: totalQuestions })}
-            </h2>
+            <div className="flex flex-wrap items-center gap-2.5">
+              <h2 className="text-lg font-semibold text-white">
+                {t("exam.questionOf", { current: currentQuestionIdx + 1, total: totalQuestions })}
+              </h2>
+              <QuestionTranslationToggle
+                visible={locale === "th" && localizedQ.hasThaiTranslation}
+                showingOriginalEn={localizedQ.showingOriginalEn}
+                onToggle={() => setShowOriginalEn((prev) => !prev)}
+              />
+            </div>
             <div className="flex flex-wrap items-center gap-2">
               <span className="text-xs font-mono text-indigo-300 bg-indigo-500/10 px-2.5 py-1.5 rounded border border-indigo-500/30 select-none">
                 {t("exam.targetPaceBadge")}
@@ -374,7 +394,7 @@ export default function ExamPage({ mode }: { mode: "pre" | "post" }) {
 
           {locale === "th" && (
             <div className="mb-4 px-3.5 py-2.5 rounded bg-graphite-900/70 border border-graphite-800 text-graphite-300 text-xs">
-              {t("exam.englishOnlyNotice")}
+              {localizedQ.hasThaiTranslation ? t("exam.bilingualToggleHint") : t("exam.englishOnlyNotice")}
             </div>
           )}
 
@@ -388,10 +408,10 @@ export default function ExamPage({ mode }: { mode: "pre" | "post" }) {
 
           <div className="space-y-6">
             <div className="text-base sm:text-lg text-graphite-100 font-normal leading-relaxed">
-              {currentQ.question_text}
+              {localizedQ.questionText}
             </div>
             <div className="space-y-3">
-              {Object.entries(currentQ.options || {}).map(([key, optText]) => {
+              {getSortedOptionEntries(localizedQ.options).map(([key, optText]) => {
                 const isChecked = answers[currentQ.question_id] === key;
                 return (
                   <label 
@@ -429,14 +449,14 @@ export default function ExamPage({ mode }: { mode: "pre" | "post" }) {
           </button>
           <div className="flex gap-3">
             <button 
-              onClick={() => setCurrentQuestionIdx(p => Math.max(0, p - 1))}
+              onClick={() => goToQuestion(Math.max(0, currentQuestionIdx - 1))}
               className="px-4 py-2 rounded-md border border-graphite-800 text-sm text-graphite-200 hover:bg-graphite-900 hover:text-white flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
               disabled={currentQuestionIdx === 0}
             >
               <ChevronLeft className="w-4 h-4" /> {t("exam.previous")}
             </button>
             <button 
-              onClick={() => setCurrentQuestionIdx(p => Math.min(totalQuestions - 1, p + 1))}
+              onClick={() => goToQuestion(Math.min(totalQuestions - 1, currentQuestionIdx + 1))}
               className="px-4 py-2 rounded-md bg-white text-black text-sm font-semibold hover:bg-white/90 flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
               disabled={currentQuestionIdx === totalQuestions - 1}
             >

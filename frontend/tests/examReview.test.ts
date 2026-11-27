@@ -80,6 +80,69 @@ test("parseExamExplanation falls back gracefully on unstructured or empty text",
   assert.deepEqual(rawRes, { structured: false, raw: unstructured });
 });
 
+test("parseExamExplanation parses Hybrid Bilingual Thai explanations and distractor markers cleanly", () => {
+  const thExp =
+    "คำตอบที่ถูกต้อง: B. $100,000 เนื่องจาก Annualized Loss Expectancy (ALE) คำนวณจาก ARO × SLE ได้ $100,000 " +
+    "ตัวเลือก A ไม่ถูกต้อง เนื่องจากไม่ได้นำสูตร ALE มาใช้อย่างถูกต้อง " +
+    "ตัวเลือก C ไม่ถูกต้อง เนื่องจากเท่ากับครึ่งหนึ่งของ SLE เท่านั้น " +
+    "ตัวเลือก D ไม่ถูกต้อง เนื่องจากสูงกว่าค่าที่คำนวณได้อย่างมาก";
+
+  const parsed = parseExamExplanation(thExp, "B");
+  assert.equal(parsed.structured, true);
+  if (parsed.structured) {
+    assert.equal(parsed.correctOption, "B");
+    assert.ok(parsed.correctRationale.includes("$100,000"));
+    assert.deepEqual(
+      parsed.distractors.map((d) => d.option),
+      ["A", "C", "D"],
+    );
+    const ordered = orderDistractorsForLearner(parsed.distractors, "C");
+    assert.deepEqual(
+      ordered.map((d) => d.option),
+      ["C", "A", "D"],
+    );
+  }
+
+  const thUnstructured = "ลายเซ็นดิจิทัลช่วยยืนยันตัวตนผู้ส่งและป้องกันการปฏิเสธความรับผิดชอบ";
+  assert.deepEqual(parseExamExplanation(thUnstructured, "A"), {
+    structured: false,
+    raw: thUnstructured,
+  });
+});
+
+test("parseExamExplanation parses all 540 real Thai translations in question_translations_th.json cleanly", () => {
+  const parsedPath = path.join(repoRoot, "parsed_questions.json");
+  const thPath = path.join(repoRoot, "scripts", "question_translations_th.json");
+  const questions = JSON.parse(fs.readFileSync(parsedPath, "utf8")) as Array<{
+    domain_id: string;
+    source_question_no: number;
+    correct_answer: string;
+  }>;
+  const translations = JSON.parse(fs.readFileSync(thPath, "utf8")) as Record<
+    string,
+    { th: { explanation: string } }
+  >;
+
+  assert.equal(questions.length, 540);
+  assert.equal(Object.keys(translations).length, 540);
+
+  for (const q of questions) {
+    const key = `${q.domain_id}:${q.source_question_no}`;
+    const entry = translations[key];
+    assert.ok(entry, `Missing Thai translation entry for ${key}`);
+    const parsed = parseExamExplanation(entry.th.explanation, q.correct_answer);
+    assert.equal(parsed.structured, true, `Thai explanation failed structured parsing for ${key}`);
+    if (parsed.structured) {
+      assert.equal(parsed.correctOption, q.correct_answer.toUpperCase(), `Wrong correctOption for ${key}`);
+      assert.ok(parsed.correctRationale.length > 0, `Empty Thai correctRationale for ${key}`);
+      assert.equal(parsed.distractors.length, 3, `Expected 3 Thai distractors for ${key}`);
+      for (const d of parsed.distractors) {
+        assert.ok(d.rationale.length > 0, `Empty Thai distractor ${d.option} for ${key}`);
+      }
+    }
+  }
+});
+
 test("orderDistractorsForLearner pins wrong user pick first and sorts remaining alphabetically", () => {
   const distractors = [
     { option: "D", rationale: "D wrong" },

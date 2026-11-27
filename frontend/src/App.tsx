@@ -43,8 +43,8 @@ function App() {
             <Route path="discussions/:id" element={<ThreadDetailPage />} />
             <Route path="discussions/:id/edit" element={<ThreadEditorPage />} />
             <Route path="exam" element={<ExamRedirectPage />} />
-            <Route path="pre-test" element={<ExamPage mode="pre" />} />
-            <Route path="post-test" element={<ExamPage mode="post" />} />
+            <Route path="pre-test" element={<ExamPage key="pre" mode="pre" />} />
+            <Route path="post-test" element={<ExamPage key="post" mode="post" />} />
             <Route path="exams/review/:sessionId" element={<ExamReviewPage />} />
             <Route path="learn" element={<LearnTheoryPage />} />
             <Route path="evaluation" element={<EvaluationPage />} />

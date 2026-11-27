@@ -1,3 +1,5 @@
+import type { QuestionTranslationsMap } from "./questionLocale";
+
 export type ReviewStatusFilter = "all" | "incorrect" | "unanswered" | "correct";
 export type ReviewGroupMode = "domain" | "order";
 
@@ -12,6 +14,7 @@ export interface ExamReviewItem {
   options: Record<string, string>;
   correct_answer: string;
   explanation: string;
+  translations?: QuestionTranslationsMap | null;
   mitre_ref?: string | null;
   order_index: number;
   user_answer: string;
@@ -166,12 +169,14 @@ export function parseExamExplanation(
     return { structured: false, raw: "" };
   }
 
-  const markerRegex = /\bOption\s+([A-D])\s+is\s+incorrect\.?\s*/gi;
+  const markerRegex =
+    /(?:\bOption\s+([A-D])\s+is\s+incorrect\.?\s*|ตัวเลือก\s*([A-D])\s*ไม่ถูกต้อง[.:：]?\s*)/gi;
   const matches: Array<{ option: string; start: number; bodyStart: number }> = [];
   for (const m of trimmed.matchAll(markerRegex)) {
-    if (typeof m.index === "number") {
+    const matchedOpt = (m[1] ?? m[2] ?? "").toUpperCase();
+    if (typeof m.index === "number" && matchedOpt) {
       matches.push({
-        option: m[1].toUpperCase(),
+        option: matchedOpt,
         start: m.index,
         bodyStart: m.index + m[0].length,
       });
@@ -183,9 +188,12 @@ export function parseExamExplanation(
   }
 
   const rawPrefix = trimmed.slice(0, matches[0].start).trim();
-  const correctHeader = rawPrefix.match(/^Correct\s+Answer:\s*([A-D])\.?\s*/i);
-  const correctOption = correctHeader
-    ? correctHeader[1].toUpperCase()
+  const correctHeader = rawPrefix.match(
+    /^(?:Correct\s+Answer:\s*([A-D])\.?\s*|คำตอบที่ถูกต้อง\s*[:：]?\s*([A-D])[.:：]?\s*)/i,
+  );
+  const headerOption = (correctHeader?.[1] ?? correctHeader?.[2] ?? "").toUpperCase();
+  const correctOption = headerOption
+    ? headerOption
     : (fallbackCorrectAnswer ?? "").trim().toUpperCase();
   const correctRationale = correctHeader
     ? rawPrefix.slice(correctHeader[0].length).trim()
