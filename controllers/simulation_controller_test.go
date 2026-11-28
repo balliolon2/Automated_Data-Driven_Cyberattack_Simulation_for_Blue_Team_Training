@@ -492,3 +492,120 @@ func TestEnsureScenarioStoryAndTranslation(t *testing.T) {
 		}
 	})
 }
+
+func TestAttemptDynamicScenarioGeneration_ConcurrencyShedding(t *testing.T) {
+	t.Setenv("LLM_API_KEY", "sk-test-dummy-key")
+	lim := services.NewLLMLimiter(1)
+	holdRelease, acquired := lim.TryAcquire()
+	if !acquired {
+		t.Fatalf("expected initial permit acquisition to succeed")
+	}
+
+	var llmCalls atomic.Int32
+	sc := &SimulationController{
+		tryAcquireLLMSlotFn: lim.TryAcquire,
+		generateLLMScenarioFn: func(context.Context, string, string, float64, []models.UserSkillProfile, services.ScenarioDiversityContext) (*models.Scenario, error) {
+			llmCalls.Add(1)
+			return nil, fmt.Errorf("upstream simulated failure")
+		},
+	}
+
+	// While permit is saturated, controller must shed immediately without calling upstream LLM.
+	genType, reason, _, scen := sc.attemptDynamicScenarioGeneration(
+		"domain4",
+		"Security Operations",
+		40.0,
+		nil,
+		services.ScenarioDiversityContext{},
+	)
+	if llmCalls.Load() != 0 {
+		t.Fatalf("expected 0 upstream LLM calls during saturation, got %d", llmCalls.Load())
+	}
+	if genType != "static_fallback" || reason != "llm_concurrency_shed" || scen != nil {
+		t.Fatalf("got type=%q reason=%q scen=%v, want static_fallback / llm_concurrency_shed / nil", genType, reason, scen)
+	}
+
+	// Once released, controller acquires permit, calls upstream LLM once, and releases cleanly.
+	holdRelease()
+	genType, reason, _, _ = sc.attemptDynamicScenarioGeneration(
+		"domain4",
+		"Security Operations",
+		40.0,
+		nil,
+		services.ScenarioDiversityContext{},
+	)
+	if llmCalls.Load() != 1 {
+		t.Fatalf("expected 1 LLM call after permit release, got %d", llmCalls.Load())
+	}
+	if genType != "static_fallback" || !strings.Contains(reason, "upstream simulated failure") {
+		t.Fatalf("unexpected fallback after upstream error: type=%q reason=%q", genType, reason)
+	}
+	// Verify permit was cleanly released even on upstream error.
+	relAfter, okAfter := lim.TryAcquire()
+	if !okAfter {
+		t.Fatalf("expected LLM permit to be released after failed generation")
+	}
+	relAfter()
+}
+
+func TestAttemptDynamicScenarioGeneration_EmptyKeyAndSuccessPaths(t *testing.T) {
+	t.Run("whitespace_api_key_skips_limiter_without_consuming_slot", func(t *testing.T) {
+		t.Setenv("LLM_API_KEY", "   ")
+		var acquireCalls atomic.Int32
+		sc := &SimulationController{
+			tryAcquireLLMSlotFn: func() (func(), bool) {
+				acquireCalls.Add(1)
+				return func() {}, true
+			},
+		}
+		genType, reason, _, scen := sc.attemptDynamicScenarioGeneration(
+			"domain4",
+			"Security Operations",
+			40.0,
+			nil,
+			services.ScenarioDiversityContext{},
+		)
+		if acquireCalls.Load() != 0 {
+			t.Fatalf("expected 0 limiter acquisitions when LLM_API_KEY is blank, got %d", acquireCalls.Load())
+		}
+		if genType != "static_fallback" || !strings.Contains(reason, "not configured") || scen != nil {
+			t.Fatalf("unexpected result for blank API key: type=%q reason=%q scen=%v", genType, reason, scen)
+		}
+	})
+
+	t.Run("ai_generated_success_formats_reason_and_releases_permit", func(t *testing.T) {
+		t.Setenv("LLM_API_KEY", "sk-test-dummy-key")
+		lim := services.NewLLMLimiter(1)
+		sc := &SimulationController{
+			tryAcquireLLMSlotFn: lim.TryAcquire,
+			generateLLMScenarioFn: func(context.Context, string, string, float64, []models.UserSkillProfile, services.ScenarioDiversityContext) (*models.Scenario, error) {
+				return &models.Scenario{
+					ScenarioID: "sc-ai-1",
+					Title:      "Synthetic DNS Exfil",
+				}, nil
+			},
+		}
+		genType, reason, selReason, scen := sc.attemptDynamicScenarioGeneration(
+			"domain4",
+			"Security Operations",
+			42.5,
+			nil,
+			services.ScenarioDiversityContext{
+				TargetSubTopicID:    "4.1",
+				TargetArchetype:     "dns_tunneling",
+				TargetBriefingStyle: "urgent_escalation",
+			},
+		)
+		if genType != "ai_generated" || reason != "" || scen == nil || scen.ScenarioID != "sc-ai-1" {
+			t.Fatalf("unexpected ai_generated result: type=%q reason=%q scen=%v", genType, reason, scen)
+		}
+		if !strings.Contains(selReason, "subtopic: 4.1") || !strings.Contains(selReason, "archetype: dns_tunneling") {
+			t.Fatalf("expected diversity metadata in selection reason, got %q", selReason)
+		}
+		rel, ok := lim.TryAcquire()
+		if !ok {
+			t.Fatalf("expected permit to be released after ai_generated success")
+		}
+		rel()
+	})
+}

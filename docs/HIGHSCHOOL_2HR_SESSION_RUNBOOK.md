@@ -76,6 +76,68 @@
    - ตรวจสอบผล `seed` ว่ามีข้อสอบ CompTIA Security+ (EN + TH 540 ข้อ), เนื้อหา 5 โดเมน (EN + TH) และ Static Scenario Pool พร้อมใช้งานครบถ้วน
 4. **เปิดหน้า Admin เตรียมไว้ในแท็บส่วนตัวของวิทยากร:** ล็อกอิน Admin ล่วงหน้าที่ `/admin/evaluations` และ `/admin/evaluations/statistics` เพื่อให้กด รีเฟรช โชว์กราฟช่วง **`1:58`** ได้ทันที
 
+### 3.1.5 Azure Cloud VM Sizing, HTTPS Deployment & Clean-Slate DB Checklist (รองรับ 60 ผู้เรียนพร้อมกัน)
+
+- **สเปก Azure VM ที่แนะนำ:** อย่างน้อย **2 vCPU / 4 GB RAM** (เช่น `Standard_B2ms` หรือ `Standard_D2s_v5`) และกำหนด **Azure NSG Inbound Rules**:
+  - เปิด **TCP `80`** (HTTP / ACME redirect) และ **TCP `443`** (Auto-HTTPS ผ่าน Caddy) สำหรับสาธารณะ/ห้องเรียน
+  - จำกัด **TCP `22`** (SSH) เฉพาะ IP ของวิทยากร/ผู้ดูแลระบบเท่านั้น
+- **คำสั่งติดตั้งบน Azure VM (Cloud Auto-HTTPS):**
+  ```bash
+  ./install.sh install --mode cloud --domain <your-azure-domain> --acme-email <your-email>
+  ```
+- **ตรวจสอบ Compose Configuration (Local & Cloud TLS Overlay):**
+  ```bash
+  docker compose config -q
+  docker compose -f docker-compose.yml -f docker-compose.cloud.yml config -q
+  ```
+- **ค่าป้องกันพีคโหลด 60 คนพร้อมกัน (ตั้งค่าเริ่มต้นไว้ใน `.env.example` และ Compose แล้ว):**
+  - `DB_MAX_OPEN_CONNS=50`, `DB_MAX_IDLE_CONNS=20` (ป้องกันการเต็ม 100 connections ของ PostgreSQL)
+  - `SIMULATION_LLM_MAX_CONCURRENCY=8` (เมื่อผู้เรียนกดเริ่ม Scenario พร้อมกันเกิน 8 ช่อง ระบบสลับไปใช้ Static Pool ทันทีโดยบันทึก `fallback_reason="llm_concurrency_shed"` ไม่ค้างรอ)
+  - Resource caps ที่ปรับ override ได้: `DB_CPU_LIMIT=2.0`, `DB_MEM_LIMIT=2g`, `BACKEND_CPU_LIMIT=2.0`, `BACKEND_MEM_LIMIT=1g`
+- **Clean-Slate Pre-Class Database Verification (เช็กก่อนเปิดห้องเรียน 15 นาที):**
+  ```bash
+  # 1) ตรวจสอบจำนวนตารางหลักสูตรด้วย script มาตรฐาน (ใช้ได้ทั้ง Local และ Cloud):
+  ./install.sh check-seed
+
+  # 2) ตรวจสอบสถานะ Clean-Slate (โหลด .env เพื่อให้ตรงกับ POSTGRES_USER/POSTGRES_DB ที่ตั้งไว้):
+  set -a; [ -f .env ] && . ./.env; set +a
+  docker exec cyber_sim_db psql -U "${POSTGRES_USER:-admin}" -d "${POSTGRES_DB:-cyber_sim}" -c "
+    SELECT
+      (SELECT count(*) FROM users WHERE role = 'learner') AS learner_accounts,
+      (SELECT count(*) FROM evaluation_metrics) AS evaluation_rows,
+      (SELECT count(*) FROM exam_sessions) AS exam_sessions,
+      (SELECT count(*) FROM simulation_sessions) AS sim_sessions,
+      (SELECT count(*) FROM security_domains) AS domains,
+      (SELECT count(*) FROM questions) AS questions,
+      (SELECT count(*) FROM theory_subtopics) AS subtopics,
+      (SELECT count(*) FROM theory_translations WHERE locale = 'th') AS th_theory_docs,
+      (SELECT count(*) FROM scenarios WHERE status = 'active') AS active_scenarios;
+  "
+
+  # 3) กรณี Local Testing ใช้คำสั่งนี้เพื่อล้างข้อมูลฝึก/ผลทดสอบโดยคงหลักสูตรไว้ครบ:
+  # ./install.sh reset-dev-data
+  #
+  # หมายเหตุสำหรับ Azure Cloud (--mode cloud): ./install.sh reset-dev-data ถูกบล็อกเพื่อความปลอดภัย;
+  # แนะนำให้เปิดใช้งานจาก VM/Volume ใหม่ในวันจริง หรือหากเคยสร้างบัญชีทดสอบ dryrun_* บนเครื่อง staging ก่อนเปิดห้อง
+  # ให้ลบตามลำดับ Foreign Key ใน transaction ดังนี้ (copy-paste ได้ทันที):
+  # docker exec cyber_sim_db psql -U "${POSTGRES_USER:-admin}" -d "${POSTGRES_DB:-cyber_sim}" -v ON_ERROR_STOP=1 -c "
+  #   BEGIN;
+  #   CREATE TEMP TABLE _tu ON COMMIT DROP AS SELECT user_id FROM users WHERE role = 'learner' AND email LIKE 'dryrun\_%' ESCAPE '\';
+  #   DELETE FROM feedback_logs WHERE session_id IN (SELECT session_id FROM simulation_sessions WHERE user_id IN (SELECT user_id FROM _tu));
+  #   DELETE FROM session_actions WHERE session_id IN (SELECT session_id FROM simulation_sessions WHERE user_id IN (SELECT user_id FROM _tu));
+  #   DELETE FROM scenario_snapshots WHERE session_id IN (SELECT session_id FROM simulation_sessions WHERE user_id IN (SELECT user_id FROM _tu));
+  #   DELETE FROM help_click_analytics WHERE user_id IN (SELECT user_id FROM _tu) OR session_id IN (SELECT session_id FROM simulation_sessions WHERE user_id IN (SELECT user_id FROM _tu));
+  #   DELETE FROM simulation_sessions WHERE user_id IN (SELECT user_id FROM _tu);
+  #   DELETE FROM exam_session_questions WHERE session_id IN (SELECT session_id FROM exam_sessions WHERE user_id IN (SELECT user_id FROM _tu));
+  #   DELETE FROM exam_sessions WHERE user_id IN (SELECT user_id FROM _tu);
+  #   DELETE FROM user_skill_profiles WHERE user_id IN (SELECT user_id FROM _tu);
+  #   DELETE FROM evaluation_metrics WHERE user_id IN (SELECT user_id FROM _tu);
+  #   DELETE FROM users WHERE user_id IN (SELECT user_id FROM _tu);
+  #   COMMIT;
+  # "
+  ```
+  *เกณฑ์พร้อมเปิดห้อง:* `learner_accounts = 0`, `evaluation_rows = 0`, `exam_sessions = 0`, `sim_sessions = 0` ขณะที่ `domains = 5`, `questions = 540`, `subtopics = 28`, `th_theory_docs >= 33`, `active_scenarios >= 15`
+
 ---
 
 ### 3.2 ปัญหาหน้างานที่พบบ่อยและวิธีแก้ทันที

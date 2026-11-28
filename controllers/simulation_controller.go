@@ -41,12 +41,14 @@ type userLockEntry struct {
 }
 
 type SimulationController struct {
-	DB                 *gorm.DB
-	startMu            sync.Mutex
-	userStartLocks     map[string]*userLockEntry
-	transMu            sync.Mutex
-	scenarioTransLocks map[string]*userLockEntry
-	upgradeStoryFn     func(context.Context, *models.Scenario) (string, map[string]any, error)
+	DB                    *gorm.DB
+	startMu               sync.Mutex
+	userStartLocks        map[string]*userLockEntry
+	transMu               sync.Mutex
+	scenarioTransLocks    map[string]*userLockEntry
+	upgradeStoryFn        func(context.Context, *models.Scenario) (string, map[string]any, error)
+	tryAcquireLLMSlotFn   func() (func(), bool)
+	generateLLMScenarioFn func(context.Context, string, string, float64, []models.UserSkillProfile, services.ScenarioDiversityContext) (*models.Scenario, error)
 }
 
 func NewSimulationController(db *gorm.DB) *SimulationController {
@@ -567,6 +569,70 @@ func (sc *SimulationController) GetStatus(c *gin.Context) {
 	})
 }
 
+func (sc *SimulationController) attemptDynamicScenarioGeneration(
+	weakestDomain string,
+	domainName string,
+	weakestScore float64,
+	profiles []models.UserSkillProfile,
+	divCtx services.ScenarioDiversityContext,
+) (generationType string, fallbackReason string, selectionReason string, saved *models.Scenario) {
+	selectionReason = fmt.Sprintf(
+		"lowest_proficiency: %s (score: %.1f%%, threshold: %.1f%%)",
+		weakestDomain, weakestScore, ProficiencyThreshold,
+	)
+
+	if strings.TrimSpace(os.Getenv("LLM_API_KEY")) == "" {
+		return "static_fallback", "LLM_API_KEY environment variable is not configured", selectionReason, nil
+	}
+
+	acquire := sc.tryAcquireLLMSlotFn
+	if acquire == nil {
+		acquire = services.TryAcquireLLMSlot
+	}
+	release, ok := acquire()
+	if !ok {
+		log.Printf("[LLM] Concurrency cap reached; shedding non-blockingly to static scenario pool.")
+		return "static_fallback", "llm_concurrency_shed", selectionReason, nil
+	}
+	defer func() {
+		if release != nil {
+			release()
+		}
+	}()
+
+	generate := sc.generateLLMScenarioFn
+	if generate == nil {
+		generate = services.GenerateLLMScenarioWithContext
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
+	defer cancel()
+
+	aiScenario, llmErr := generate(ctx, weakestDomain, domainName, weakestScore, profiles, divCtx)
+	if llmErr == nil && aiScenario != nil {
+		if sc.DB != nil {
+			if err := sc.DB.Create(aiScenario).Error; err != nil {
+				reason := fmt.Sprintf("Failed to save AI scenario to database: %v", err)
+				log.Printf("[LLM] %s. Falling back to static scenario pool.", reason)
+				return "static_fallback", reason, selectionReason, nil
+			}
+		}
+		aiSelectionReason := fmt.Sprintf(
+			"lowest_proficiency: %s (score: %.1f%%, threshold: %.1f%%) | subtopic: %s | archetype: %s | style: %s",
+			weakestDomain, weakestScore, ProficiencyThreshold,
+			divCtx.TargetSubTopicID, divCtx.TargetArchetype, divCtx.TargetBriefingStyle,
+		)
+		log.Printf("[LLM] Successfully generated dynamic AI scenario: %s (ID: %s)", aiScenario.Title, aiScenario.ScenarioID)
+		return "ai_generated", "", aiSelectionReason, aiScenario
+	}
+
+	reason := "LLM service returned empty scenario"
+	if llmErr != nil {
+		reason = llmErr.Error()
+	}
+	log.Printf("[LLM] Dynamic scenario generation fallback: %s", reason)
+	return "static_fallback", reason, selectionReason, nil
+}
+
 // StartScenario godoc
 // @Summary Start next adaptive simulation scenario
 // @Description Synthesizes or retrieves the next scenario focused on the learner's weakest domain. If an active simulation exists, resumes it.
@@ -683,42 +749,15 @@ func (sc *SimulationController) StartScenario(c *gin.Context) {
 	divCtx := services.BuildScenarioDiversityContext(weakestDomain, history)
 
 	var scenario models.Scenario
-	generationType := "static_fallback"
-	fallbackReason := ""
-	selectionReason := fmt.Sprintf("lowest_proficiency: %s (score: %.1f%%, threshold: %.1f%%)", weakestDomain, weakestScore, ProficiencyThreshold)
-
-	// Attempt AI Dynamic Scenario Generation if LLM_API_KEY is configured
-	if os.Getenv("LLM_API_KEY") != "" {
-		domainName := domainNames[weakestDomain]
-		ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
-		defer cancel()
-
-		aiScenario, llmErr := services.GenerateLLMScenarioWithContext(ctx, weakestDomain, domainName, weakestScore, profiles, divCtx)
-		if llmErr == nil && aiScenario != nil {
-			if err := sc.DB.Create(aiScenario).Error; err == nil {
-				scenario = *aiScenario
-				generationType = "ai_generated"
-				selectionReason = fmt.Sprintf(
-					"lowest_proficiency: %s (score: %.1f%%, threshold: %.1f%%) | subtopic: %s | archetype: %s | style: %s",
-					weakestDomain, weakestScore, ProficiencyThreshold,
-					divCtx.TargetSubTopicID, divCtx.TargetArchetype, divCtx.TargetBriefingStyle,
-				)
-				fallbackReason = ""
-				log.Printf("[LLM] Successfully generated dynamic AI scenario: %s (ID: %s)", scenario.Title, scenario.ScenarioID)
-			} else {
-				fallbackReason = fmt.Sprintf("Failed to save AI scenario to database: %v", err)
-				log.Printf("[LLM] %s. Falling back to static scenario pool.", fallbackReason)
-			}
-		} else {
-			if llmErr != nil {
-				fallbackReason = llmErr.Error()
-			} else {
-				fallbackReason = "LLM service returned empty scenario"
-			}
-			log.Printf("[LLM] Dynamic scenario generation fallback: %s", fallbackReason)
-		}
-	} else {
-		fallbackReason = "LLM_API_KEY environment variable is not configured"
+	generationType, fallbackReason, selectionReason, aiScenario := sc.attemptDynamicScenarioGeneration(
+		weakestDomain,
+		domainNames[weakestDomain],
+		weakestScore,
+		profiles,
+		divCtx,
+	)
+	if aiScenario != nil {
+		scenario = *aiScenario
 	}
 
 	// Fallback to static scenario pool if LLM was skipped or failed

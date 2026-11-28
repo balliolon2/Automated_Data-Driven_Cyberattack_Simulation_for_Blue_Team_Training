@@ -23,6 +23,7 @@ import (
 	"errors"
 	"log"
 	"os"
+	"time"
 
 	"cybersim/controllers"
 	_ "cybersim/docs"
@@ -49,6 +50,48 @@ var scenarioSeedJSON []byte
 //go:embed theory
 var theoryMarkdownFS embed.FS
 
+type dbPoolConfig struct {
+	MaxOpenConns    int
+	MaxIdleConns    int
+	ConnMaxLifetime time.Duration
+	ConnMaxIdleTime time.Duration
+}
+
+func resolveDBPoolConfig() dbPoolConfig {
+	maxOpen := services.ResolveBoundedIntEnv("DB_MAX_OPEN_CONNS", 50, 1, 90)
+	defaultIdle := 20
+	if defaultIdle > maxOpen {
+		defaultIdle = maxOpen
+	}
+	maxIdle := services.ResolveBoundedIntEnv("DB_MAX_IDLE_CONNS", defaultIdle, 1, maxOpen)
+	return dbPoolConfig{
+		MaxOpenConns:    maxOpen,
+		MaxIdleConns:    maxIdle,
+		ConnMaxLifetime: 5 * time.Minute,
+		ConnMaxIdleTime: 2 * time.Minute,
+	}
+}
+
+func configureDatabasePool(db *gorm.DB) error {
+	sqlDB, err := db.DB()
+	if err != nil {
+		return err
+	}
+	cfg := resolveDBPoolConfig()
+	sqlDB.SetMaxOpenConns(cfg.MaxOpenConns)
+	sqlDB.SetMaxIdleConns(cfg.MaxIdleConns)
+	sqlDB.SetConnMaxLifetime(cfg.ConnMaxLifetime)
+	sqlDB.SetConnMaxIdleTime(cfg.ConnMaxIdleTime)
+	log.Printf(
+		"Configured PostgreSQL pool: max_open=%d max_idle=%d conn_max_lifetime=%s conn_max_idle_time=%s",
+		cfg.MaxOpenConns,
+		cfg.MaxIdleConns,
+		cfg.ConnMaxLifetime,
+		cfg.ConnMaxIdleTime,
+	)
+	return nil
+}
+
 func main() {
 	services.RegisterEmbeddedTheoryFS(theoryMarkdownFS)
 	dsn := os.Getenv("DATABASE_URL")
@@ -59,6 +102,10 @@ func main() {
 	if err != nil {
 		log.Fatalf("failed to connect database: %v", err)
 	}
+	if err := configureDatabasePool(db); err != nil {
+		log.Fatalf("failed to configure database pool: %v", err)
+	}
+	log.Printf("Configured LLM scenario concurrency cap: max_concurrency=%d", services.ResolveLLMMaxConcurrency())
 
 	log.Println("Successfully connected to the database!")
 

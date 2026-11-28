@@ -7,8 +7,10 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"testing"
+	"time"
 
 	"cybersim/models"
 	"gorm.io/driver/postgres"
@@ -956,4 +958,116 @@ func TestUpgradeScenarioStoryBilingual_Unit(t *testing.T) {
 			t.Fatalf("expected complete story and preserved Thai translations")
 		}
 	})
+}
+
+func TestResolveLLMMaxConcurrencyBounds(t *testing.T) {
+	cases := []struct {
+		raw  string
+		want int
+	}{
+		{"", 8},
+		{"   ", 8},
+		{"invalid", 8},
+		{"-2", 8},
+		{"0", 0},
+		{"8", 8},
+		{"16", 16},
+		{"200", 64},
+	}
+
+	for _, tc := range cases {
+		t.Run("raw_"+tc.raw, func(t *testing.T) {
+			t.Setenv("SIMULATION_LLM_MAX_CONCURRENCY", tc.raw)
+			if got := ResolveLLMMaxConcurrency(); got != tc.want {
+				t.Fatalf("ResolveLLMMaxConcurrency(%q) = %d, want %d", tc.raw, got, tc.want)
+			}
+		})
+	}
+}
+
+func TestLLMLimiterNonBlockingSaturationAndRaceSafety(t *testing.T) {
+	disabled := NewLLMLimiter(0)
+	if rel, ok := disabled.TryAcquire(); ok || rel != nil {
+		t.Fatalf("expected capacity 0 limiter to deny acquisition immediately")
+	}
+
+	lim := NewLLMLimiter(2)
+	rel1, ok1 := lim.TryAcquire()
+	rel2, ok2 := lim.TryAcquire()
+	if !ok1 || !ok2 {
+		t.Fatalf("expected first 2 acquisitions to succeed: ok1=%v ok2=%v", ok1, ok2)
+	}
+	if rel3, ok3 := lim.TryAcquire(); ok3 || rel3 != nil {
+		t.Fatalf("expected 3rd concurrent acquisition to shed non-blockingly")
+	}
+
+	// Idempotent double release must not inflate capacity above 2.
+	rel1()
+	rel1()
+	rel2()
+
+	rA, okA := lim.TryAcquire()
+	rB, okB := lim.TryAcquire()
+	_, okC := lim.TryAcquire()
+	if !okA || !okB || okC {
+		t.Fatalf("unexpected slot state after double release: okA=%v okB=%v okC=%v", okA, okB, okC)
+	}
+	rA()
+	rB()
+
+	// Concurrent burst test under -race
+	burstLim := NewLLMLimiter(4)
+	var active atomic.Int32
+	var maxSeen atomic.Int32
+	var shedCount atomic.Int32
+	var wg sync.WaitGroup
+
+	for range 40 {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			rel, ok := burstLim.TryAcquire()
+			if !ok {
+				shedCount.Add(1)
+				return
+			}
+			defer rel()
+			cur := active.Add(1)
+			for {
+				prev := maxSeen.Load()
+				if cur <= prev || maxSeen.CompareAndSwap(prev, cur) {
+					break
+				}
+			}
+			time.Sleep(5 * time.Millisecond)
+			active.Add(-1)
+		}()
+	}
+	wg.Wait()
+
+	if maxSeen.Load() > 4 {
+		t.Fatalf("concurrency cap exceeded: maxSeen=%d > 4", maxSeen.Load())
+	}
+	if shedCount.Load() == 0 {
+		t.Fatalf("expected some concurrent burst callers to shed when limit=4")
+	}
+	for i := range 4 {
+		if _, ok := burstLim.TryAcquire(); !ok {
+			t.Fatalf("expected slot %d to remain available after goroutines released", i)
+		}
+	}
+
+	var nilLim *LLMLimiter
+	if rel, ok := nilLim.TryAcquire(); ok || rel != nil {
+		t.Fatalf("expected nil LLMLimiter to deny acquisition cleanly")
+	}
+	if rel, ok := NewLLMLimiter(-1).TryAcquire(); ok || rel != nil {
+		t.Fatalf("expected negative-capacity LLMLimiter to deny acquisition cleanly")
+	}
+	if rel, ok := TryAcquireLLMSlot(); ok {
+		if rel == nil {
+			t.Fatalf("expected non-nil release func when TryAcquireLLMSlot succeeds")
+		}
+		rel()
+	}
 }

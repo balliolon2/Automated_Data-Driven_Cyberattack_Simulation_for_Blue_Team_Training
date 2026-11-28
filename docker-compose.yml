@@ -32,8 +32,8 @@ services:
     deploy:
       resources:
         limits:
-          cpus: "1.0"
-          memory: 1g
+          cpus: "${DB_CPU_LIMIT:-2.0}"
+          memory: "${DB_MEM_LIMIT:-2g}"
 
   seed:
     build:
@@ -132,6 +132,9 @@ services:
       FRONTEND_URL: ${FRONTEND_URL:-http://localhost}
       PROFICIENCY_THRESHOLD: ${PROFICIENCY_THRESHOLD:-70.0}
       MAX_SCENARIOS_CAP: ${MAX_SCENARIOS_CAP:-15}
+      SIMULATION_LLM_MAX_CONCURRENCY: ${SIMULATION_LLM_MAX_CONCURRENCY:-8}
+      DB_MAX_OPEN_CONNS: ${DB_MAX_OPEN_CONNS:-50}
+      DB_MAX_IDLE_CONNS: ${DB_MAX_IDLE_CONNS:-20}
       PORT: "8080"
       BYPASS_POST_TEST_THRESHOLD: ${BYPASS_POST_TEST_THRESHOLD:-false}
       BYPASS_THEORY_GATE: ${BYPASS_THEORY_GATE:-false}
@@ -171,8 +174,8 @@ services:
     deploy:
       resources:
         limits:
-          cpus: "1.0"
-          memory: 512m
+          cpus: "${BACKEND_CPU_LIMIT:-2.0}"
+          memory: "${BACKEND_MEM_LIMIT:-1g}"
 
   frontend:
     build:
