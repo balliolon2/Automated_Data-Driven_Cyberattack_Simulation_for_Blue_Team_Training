@@ -12,8 +12,35 @@ import type {
 
 const DICTIONARIES: Record<Locale, TranslationDictionary> = { en, th };
 
+function parseLocaleToken(raw: unknown): Locale | null {
+  const cleaned = typeof raw === "string" ? raw.trim().toLowerCase() : "";
+  if (cleaned === "en" || cleaned === "th") {
+    return cleaned;
+  }
+  return null;
+}
+
 export function normalizeLocale(raw: unknown): Locale {
   return raw === "th" ? "th" : "en";
+}
+
+/** Resolves initial guest locale from storage, falling back to normalized configuredDefault ("th" when unset). */
+export function resolveGuestDefaultLocale(
+  stored: unknown,
+  configuredDefault?: unknown,
+): Locale {
+  const explicitStored = parseLocaleToken(stored);
+  if (explicitStored !== null) {
+    return explicitStored;
+  }
+  const hasConfigured =
+    configuredDefault !== undefined &&
+    configuredDefault !== null &&
+    String(configuredDefault).trim().length > 0;
+  if (!hasConfigured) {
+    return "th";
+  }
+  return normalizeLocale(String(configuredDefault).trim().toLowerCase());
 }
 
 function lookupPath(dict: Record<string, unknown>, path: string): string | undefined {

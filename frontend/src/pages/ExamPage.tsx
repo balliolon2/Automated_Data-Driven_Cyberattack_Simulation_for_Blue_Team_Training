@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Clock, Flag, ChevronLeft, ChevronRight, CheckCircle2 } from "lucide-react";
+import { Clock, Flag, ChevronLeft, ChevronRight, CheckCircle2, Sparkles, X } from "lucide-react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import QuestionTranslationToggle from "../components/QuestionTranslationToggle";
@@ -41,6 +41,7 @@ export default function ExamPage({ mode }: { mode: "pre" | "post" }) {
   const [submitting, setSubmitting] = useState(false);
   const [autoSubmitting, setAutoSubmitting] = useState(false);
   const [showOriginalEn, setShowOriginalEn] = useState(false);
+  const [warmupDismissed, setWarmupDismissed] = useState(false);
   const navigate = useNavigate();
 
   const goToQuestion = useCallback((nextIdx: number) => {
@@ -253,7 +254,16 @@ export default function ExamPage({ mode }: { mode: "pre" | "post" }) {
               <strong className="text-white">{t("exam.preTest.questionCountText")}</strong>
               {t("exam.preTest.descAfterCount")}
             </p>
-            <div className="pt-4">
+            <div className="rounded-md border border-emerald-500/30 bg-emerald-500/10 p-4 text-left space-y-1.5">
+              <div className="flex items-center gap-2 text-sm font-semibold text-emerald-300">
+                <Sparkles className="w-4 h-4 shrink-0" />
+                <span>{t("exam.preTest.warmupTitle")}</span>
+              </div>
+              <p className="text-sm text-graphite-200 leading-relaxed">
+                {t("exam.preTest.warmupBody")}
+              </p>
+            </div>
+            <div className="pt-2">
               <button 
                 onClick={() => startExam("pre")}
                 className="w-full py-3 bg-white hover:bg-white/90 text-black font-semibold text-sm sm:text-base rounded-md transition-all duration-200 cursor-pointer"
@@ -391,6 +401,23 @@ export default function ExamPage({ mode }: { mode: "pre" | "post" }) {
               </div>
             </div>
           </div>
+
+          {mode === "pre" && !warmupDismissed && (
+            <div className="mb-4 px-3.5 py-2.5 rounded-md bg-emerald-500/10 border border-emerald-500/30 text-emerald-200 text-sm flex items-start justify-between gap-3">
+              <div className="flex items-start gap-2 leading-relaxed">
+                <Sparkles className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                <span>{t("exam.preTest.warmupCompactStrip")}</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setWarmupDismissed(true)}
+                aria-label={t("exam.preTest.dismissWarmupAria")}
+                className="text-emerald-300 hover:text-white p-0.5 rounded transition-colors cursor-pointer shrink-0"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          )}
 
           {locale === "th" && (
             <div className="mb-4 px-3.5 py-2.5 rounded bg-graphite-900/70 border border-graphite-800 text-graphite-300 text-xs">

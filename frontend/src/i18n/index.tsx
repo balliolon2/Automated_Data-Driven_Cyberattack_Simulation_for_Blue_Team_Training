@@ -1,19 +1,28 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import axios from "axios";
-import { formatDate as formatGregorianDate, normalizeLocale, translate } from "./format.ts";
+import {
+  formatDate as formatGregorianDate,
+  normalizeLocale,
+  resolveGuestDefaultLocale,
+  translate,
+} from "./format.ts";
 import type { Locale, TranslationKey, TranslationParams } from "./types.ts";
 
 const STORAGE_KEY = "cybersim_lang";
+const CONFIGURED_DEFAULT_LOCALE = import.meta.env.VITE_DEFAULT_LOCALE;
 
 function readStoredLocale(): Locale {
   if (typeof window === "undefined") {
-    return "en";
+    return resolveGuestDefaultLocale(null, CONFIGURED_DEFAULT_LOCALE);
   }
   try {
-    return normalizeLocale(window.localStorage.getItem(STORAGE_KEY));
+    return resolveGuestDefaultLocale(
+      window.localStorage.getItem(STORAGE_KEY),
+      CONFIGURED_DEFAULT_LOCALE,
+    );
   } catch {
-    return "en";
+    return resolveGuestDefaultLocale(null, CONFIGURED_DEFAULT_LOCALE);
   }
 }
 

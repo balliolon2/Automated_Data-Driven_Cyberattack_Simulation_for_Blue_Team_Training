@@ -11,6 +11,9 @@ RUN npm install
 # Copy source code
 COPY . .
 
+ARG VITE_DEFAULT_LOCALE=th
+ENV VITE_DEFAULT_LOCALE=$VITE_DEFAULT_LOCALE
+
 # Build the application
 RUN npm run build
 

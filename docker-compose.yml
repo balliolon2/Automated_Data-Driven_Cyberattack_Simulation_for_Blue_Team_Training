@@ -178,6 +178,8 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+      args:
+        VITE_DEFAULT_LOCALE: ${VITE_DEFAULT_LOCALE:-th}
     image: ${SOC_IMAGE_PREFIX:-soc-trainer}-frontend:${IMAGE_TAG:-latest}
     container_name: cyber_sim_frontend
     ports:

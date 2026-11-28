@@ -6,6 +6,7 @@ import KqlSearchBar from "../components/KqlSearchBar";
 import LogTable from "../components/LogTable";
 import ResponsePanel from "../components/ResponsePanel";
 import ScenarioLoadingState from "../components/ScenarioLoadingState";
+import SimulationBeginnerGuide from "../components/SimulationBeginnerGuide";
 import { buildInvestigationShortcuts } from "../lib/siemShortcuts";
 import { useI18n } from "../i18n";
 import { resolveApiError, resolveScenarioLocale } from "../i18n/format";
@@ -93,6 +94,7 @@ export default function SimulationPage() {
   // Navigation and UI state
   const [activeTab, setActiveTab] = useState<"scenario" | "detect" | "response">("scenario");
   const [siemQuery, setSiemQuery] = useState("");
+  const [completedScenarios, setCompletedScenarios] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
@@ -271,6 +273,17 @@ export default function SimulationPage() {
             setFilteredLogs(hydratedLogs);
             setSelectedLogIndices(restoredSelection);
             setLoading(false);
+            // Hydrate completed_scenarios fail-open so Scenario 1 browser refreshes keep beginner guide state accurate
+            axios
+              .get("/api/simulation/status", {
+                headers: { Authorization: `Bearer ${token}` },
+              })
+              .then((statusRes) => {
+                if (!cancelled && typeof statusRes.data?.completed_scenarios === "number") {
+                  setCompletedScenarios(statusRes.data.completed_scenarios);
+                }
+              })
+              .catch(() => undefined);
             return;
           }
         } catch (sessionErr) {
@@ -289,6 +302,9 @@ export default function SimulationPage() {
           return;
         }
         preTestVerified = true;
+        if (typeof statusRes.data.completed_scenarios === "number") {
+          setCompletedScenarios(statusRes.data.completed_scenarios);
+        }
 
         if (!statusRes.data.needs_training) {
           navigate("/simulation/complete");
@@ -622,8 +638,16 @@ export default function SimulationPage() {
             {localizedScenario.title}
           </h1>
         </div>
+      </div>
 
-        {/* Tab Navigation */}
+      {/* First-Scenario Beginner Quick-Guide & 10-Term SOC Glossary above Simulation Tabs (Static & Zero Spoilers) */}
+      <SimulationBeginnerGuide
+        completedScenarios={completedScenarios}
+        userId={session.user_id}
+      />
+
+      {/* Tab Navigation */}
+      <div className="flex justify-start">
         <div className="flex bg-graphite-900/50 p-1 rounded-lg border border-graphite-800/80 font-mono text-sm w-full md:w-auto shrink-0">
           <button
             onClick={() => setActiveTab("scenario")}

@@ -8,6 +8,7 @@ import {
   formatDate,
   resolveApiError,
   resolveDomainName,
+  resolveGuestDefaultLocale,
   resolveNotificationLocale,
   resolveScenarioLocale,
 } from "../src/i18n/format.ts";
@@ -321,4 +322,14 @@ test("resolveScenarioLocale selects Thai display fields while preserving initial
   assert.equal(resolvedSanitized.playbookLabel("c1", "Revoke tokens"), "เพิกถอน tokens");
   assert.equal(resolvedSanitized.tp_fp_explanation, "");
   assert.equal(resolvedSanitized.findingDescription("f1", "Fallback finding"), "Fallback finding");
+});
+
+test("resolveGuestDefaultLocale falls back to configured default only when explicit choice is absent", () => {
+  assert.equal(resolveGuestDefaultLocale(null, "th"), "th");
+  assert.equal(resolveGuestDefaultLocale(null, "TH"), "th");
+  assert.equal(resolveGuestDefaultLocale("", "th"), "th");
+  assert.equal(resolveGuestDefaultLocale(undefined, undefined), "th");
+  assert.equal(resolveGuestDefaultLocale(null, "en"), "en");
+  assert.equal(resolveGuestDefaultLocale("en", "th"), "en");
+  assert.equal(resolveGuestDefaultLocale("th", "en"), "th");
 });

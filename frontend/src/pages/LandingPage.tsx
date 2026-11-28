@@ -8,12 +8,18 @@ import {
   CheckCircle, 
   XCircle, 
   RefreshCw,
-  Activity
+  ShieldAlert,
+  ShieldCheck,
 } from "lucide-react";
 import { useI18n } from "../i18n/index.tsx";
 import { resolveDomainName } from "../i18n/format.ts";
 import QuestionTranslationToggle from "../components/QuestionTranslationToggle";
 import { getSortedOptionEntries } from "../lib/examReview";
+import {
+  evaluateLandingMiniCase,
+  getLandingMiniCases,
+  type MiniCaseVerdict,
+} from "../lib/landingMiniCase";
 import { resolveLocalizedQuestion, type QuestionTranslationsMap } from "../lib/questionLocale.ts";
 
 interface Question {
@@ -32,8 +38,10 @@ export default function LandingPage() {
   const { locale, t } = useI18n();
   const [redirectLoading, setRedirectLoading] = useState(false);
   
-  // Sample Question State
-  const [activeWorkbenchTab, setActiveWorkbenchTab] = useState<"quiz" | "logs">("quiz");
+  // Interactive Workbench State (default to zero-login 30s Detective Mini-Case)
+  const [activeWorkbenchTab, setActiveWorkbenchTab] = useState<"detective" | "quiz">("detective");
+  const [miniCaseIndex, setMiniCaseIndex] = useState(0);
+  const [miniCasePick, setMiniCasePick] = useState<MiniCaseVerdict | null>(null);
   const [sampleLoading, setSampleLoading] = useState(false);
   const [question, setQuestion] = useState<Question | null>(null);
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
@@ -108,17 +116,25 @@ export default function LandingPage() {
     }
   };
 
-  const handleViewSampleExam = () => {
-    setActiveWorkbenchTab("quiz");
-    if (!question) {
-      fetchSampleQuestion();
-    }
-    // Scroll smoothly to section on mobile
+  const handleFocusDetectiveHook = () => {
+    setActiveWorkbenchTab("detective");
     if (window.innerWidth < 1024) {
       setTimeout(() => {
         document.getElementById("analyst-workbench")?.scrollIntoView({ behavior: "smooth" });
       }, 100);
     }
+  };
+
+  const miniCases = getLandingMiniCases(locale);
+  const currentMiniCase = miniCases[miniCaseIndex % miniCases.length];
+  const miniCaseResult =
+    currentMiniCase && miniCasePick
+      ? evaluateLandingMiniCase(currentMiniCase.id, miniCasePick, locale)
+      : null;
+
+  const handleNextMiniCase = () => {
+    setMiniCaseIndex((prev) => (prev + 1) % miniCases.length);
+    setMiniCasePick(null);
   };
 
   const handleAnswerSelect = (optionKey: string) => {
@@ -176,11 +192,11 @@ export default function LandingPage() {
             </button>
             
             <button 
-              onClick={handleViewSampleExam}
+              onClick={handleFocusDetectiveHook}
               className="flex items-center justify-center gap-2 px-6 py-3 rounded-md border border-graphite-800 bg-transparent text-graphite-200 font-semibold text-sm sm:text-base hover:bg-graphite-900 hover:text-white transition-all duration-200 cursor-pointer"
             >
-              <Terminal className="w-4 h-4" />
-              {t("landing.hero.viewSampleExam")}
+              <ShieldAlert className="w-4 h-4 text-emerald-400" />
+              {t("landing.hero.tryDetectiveCase")}
             </button>
           </div>
         </div>
@@ -191,28 +207,31 @@ export default function LandingPage() {
           {/* Header Tab Bar */}
           <div className="flex bg-graphite-950 border-b border-graphite-800 px-4 h-12 items-center justify-between select-none">
             <div className="flex gap-2">
-              <button
-                onClick={() => setActiveWorkbenchTab("quiz")}
-                className={`flex items-center gap-2 px-3 py-2 text-sm font-mono transition-all border-b-2 h-12 cursor-pointer ${
-                  activeWorkbenchTab === "quiz"
-                    ? "border-white text-white font-medium"
-                    : "border-transparent text-graphite-400 hover:text-graphite-200"
-                }`}
-              >
-                <Terminal className="w-4 h-4" />
-                triage-quiz.md
-              </button>
-              <button
-                onClick={() => setActiveWorkbenchTab("logs")}
-                className={`flex items-center gap-2 px-3 py-2 text-sm font-mono transition-all border-b-2 h-12 cursor-pointer ${
-                  activeWorkbenchTab === "logs"
-                    ? "border-white text-white font-medium"
-                    : "border-transparent text-graphite-400 hover:text-graphite-200"
-                }`}
-              >
-                <Activity className="w-4 h-4" />
-                live-siem-logs.sh
-              </button>
+              {([
+                {
+                  id: "detective" as const,
+                  label: t("landing.workbench.detectiveTab"),
+                  icon: <ShieldAlert className="w-4 h-4 text-emerald-400" />,
+                },
+                {
+                  id: "quiz" as const,
+                  label: t("landing.workbench.sampleQuizTab"),
+                  icon: <Terminal className="w-4 h-4" />,
+                },
+              ]).map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveWorkbenchTab(tab.id)}
+                  className={`flex items-center gap-2 px-3 py-2 text-sm font-mono transition-all border-b-2 h-12 cursor-pointer ${
+                    activeWorkbenchTab === tab.id
+                      ? "border-white text-white font-medium"
+                      : "border-transparent text-graphite-400 hover:text-graphite-200"
+                  }`}
+                >
+                  {tab.icon}
+                  {tab.label}
+                </button>
+              ))}
             </div>
             <div className="flex items-center gap-1.5">
               <span className="w-2.5 h-2.5 rounded-full bg-graphite-800 border border-graphite-700" />
@@ -223,9 +242,98 @@ export default function LandingPage() {
 
           {/* Workbench Body */}
           <div className="flex-1 p-6 overflow-y-auto">
-            {activeWorkbenchTab === "quiz" ? (
-              // Quiz content
-              sampleLoading ? (
+            {activeWorkbenchTab === "detective" && currentMiniCase ? (
+              <div className="space-y-4">
+                <div className="flex flex-wrap justify-between items-center gap-2 border-b border-graphite-800 pb-2.5">
+                  <span className="text-sm text-emerald-400 font-semibold font-mono">{currentMiniCase.title}</span>
+                  <span className="text-xs font-mono text-graphite-400">
+                    {t("landing.workbench.caseProgress", {
+                      current: (miniCaseIndex % miniCases.length) + 1,
+                      total: miniCases.length,
+                    })}
+                  </span>
+                </div>
+
+                <p className="text-base text-graphite-100 leading-relaxed">{currentMiniCase.briefing}</p>
+
+                {/* Authentic English SIEM Telemetry Lines */}
+                <div className="rounded-md border border-graphite-800 bg-graphite-950 p-3.5 space-y-2 font-mono text-log">
+                  {currentMiniCase.logs.map((log, idx) => (
+                    <div key={`${currentMiniCase.id}-${idx}`} className="flex items-start gap-2.5 leading-relaxed">
+                      <span className="text-graphite-400 shrink-0">{log.timestamp}</span>
+                      <span
+                        className={`px-1.5 py-0.5 rounded text-xs font-bold shrink-0 ${
+                          log.severity === "ALERT"
+                            ? "bg-red-500/15 text-red-400 border border-red-500/30"
+                            : log.severity === "WARN"
+                              ? "bg-amber-500/15 text-amber-300 border border-amber-500/30"
+                              : "bg-graphite-800 text-graphite-300 border border-graphite-700"
+                        }`}
+                      >
+                        {log.severity}
+                      </span>
+                      <span className="text-graphite-200 break-words min-w-0">
+                        <span className="text-emerald-400">[{log.source}]</span> {log.message}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="space-y-2.5 pt-1">
+                  <p className="text-sm font-medium text-graphite-300">
+                    {t("landing.workbench.pickVerdictPrompt")}
+                  </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setMiniCasePick("tp")}
+                      className={`p-3 rounded-md border text-sm font-semibold flex items-center justify-center gap-2 transition-all cursor-pointer ${
+                        miniCasePick === "tp"
+                          ? "border-red-400 bg-red-500/15 text-red-300"
+                          : "border-graphite-800 bg-graphite-950/50 text-graphite-200 hover:border-graphite-600 hover:text-white"
+                      }`}
+                    >
+                      <ShieldAlert className="w-4 h-4 shrink-0 text-red-400" />
+                      <span>{t("landing.workbench.realAttackBtn")}</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setMiniCasePick("fp")}
+                      className={`p-3 rounded-md border text-sm font-semibold flex items-center justify-center gap-2 transition-all cursor-pointer ${
+                        miniCasePick === "fp"
+                          ? "border-emerald-400 bg-emerald-500/15 text-emerald-300"
+                          : "border-graphite-800 bg-graphite-950/50 text-graphite-200 hover:border-graphite-600 hover:text-white"
+                      }`}
+                    >
+                      <ShieldCheck className="w-4 h-4 shrink-0 text-emerald-400" />
+                      <span>{t("landing.workbench.safeRoutineBtn")}</span>
+                    </button>
+                  </div>
+                </div>
+
+                {miniCaseResult && (
+                  <div className="rounded border p-4 space-y-2 animate-fade-in bg-graphite-950 border-graphite-800 text-base leading-relaxed">
+                    {miniCaseResult.isCorrect ? (
+                      <div className="flex items-center gap-2 text-emerald-400 font-semibold">
+                        <CheckCircle className="w-4 h-4 shrink-0" />
+                        <span>{t("landing.workbench.verdictCorrectTitle")}</span>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2 text-amber-300 font-semibold">
+                        <XCircle className="w-4 h-4 shrink-0" />
+                        <span>{t("landing.workbench.verdictIncorrectTitle")}</span>
+                      </div>
+                    )}
+                    <p className="text-graphite-300">
+                      <strong className="text-white font-semibold">
+                        {t("landing.workbench.verdictExplanationLabel")}
+                      </strong>{" "}
+                      {miniCaseResult.rationale}
+                    </p>
+                  </div>
+                )}
+              </div>
+            ) : sampleLoading ? (
                 <div className="h-full min-h-[260px] flex flex-col items-center justify-center gap-3">
                   <Loader2 className="w-6 h-6 text-white animate-spin" />
                   <p className="text-sm font-mono text-graphite-400">{t("landing.workbench.fetchingSample")}</p>
@@ -301,56 +409,44 @@ export default function LandingPage() {
                 <div className="h-full flex items-center justify-center text-graphite-400 font-mono text-sm">
                   {t("landing.workbench.noQuestion")}
                 </div>
-              )
-            ) : (
-              // Live logs content (strictly English SIEM telemetry)
-              <div className="h-full min-h-[260px] flex flex-col justify-between font-mono text-log text-graphite-200">
-                <div className="space-y-2.5 select-none">
-                  <div className="text-graphite-400 border-b border-graphite-800 pb-2 mb-2 flex justify-between text-xs">
-                    <span>active-sim-triage.log</span>
-                    <span className="text-emerald-400 flex items-center gap-1.5">
-                      <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" /> {t("landing.workbench.liveStream")}
-                    </span>
-                  </div>
-                  <div className="text-red-400 font-semibold">[ALERT] Port Scan T1046 detected from 192.0.2.14</div>
-                  <div className="text-graphite-400">[INFO] Executing KQL filter: SecurityAlert | where ProviderName == "MDATP"</div>
-                  <div className="text-graphite-400">SrcIP: 198.51.100.45 -{"->"} DstIP: 10.0.2.15</div>
-                  <div className="text-graphite-300">&gt; T1110.001 Brute Force target identified</div>
-                  <div className="text-emerald-400">&gt; Playbook Containment: Isolation rule dispatched to firewall.</div>
-                  <div className="text-graphite-400">[STATUS] Host isolation status: COMPLETED</div>
-                </div>
-                <div className="border-t border-graphite-800 pt-4 flex justify-between items-center">
-                  <span className="text-xs text-graphite-400">{t("landing.workbench.threatMitigationActive")}</span>
-                  <span className="text-white bg-graphite-800 px-2.5 py-0.5 rounded border border-graphite-700 text-xs">MITRE T1046</span>
-                </div>
-              </div>
-            )}
+              )}
           </div>
 
           {/* Workbench Footer Actions */}
-          {activeWorkbenchTab === "quiz" && question && (
-            <div className="bg-graphite-950 border-t border-graphite-800 px-6 py-3.5 flex justify-between items-center select-none">
+          {activeWorkbenchTab === "detective" ? (
+            <div className="bg-graphite-950 border-t border-graphite-800 px-6 py-3.5 flex justify-end items-center select-none">
               <button
-                onClick={fetchSampleQuestion}
-                className="flex items-center gap-2 px-3.5 py-2 rounded border border-graphite-800 bg-transparent text-graphite-300 text-sm font-medium hover:bg-graphite-900 hover:text-white transition-colors cursor-pointer"
+                type="button"
+                onClick={handleNextMiniCase}
+                className="flex items-center gap-2 px-4 py-2 rounded border border-graphite-700 bg-transparent text-graphite-200 text-sm font-medium hover:bg-graphite-900 hover:text-white transition-colors cursor-pointer"
               >
                 <RefreshCw className="w-4 h-4" />
-                {t("landing.workbench.tryAnother")}
+                {t("landing.workbench.nextCaseBtn")}
               </button>
-
-              {!isSubmitted ? (
-                <button
-                  onClick={handleSubmitAnswer}
-                  disabled={!selectedAnswer}
-                  className="px-4 py-2 rounded bg-white text-black text-sm font-semibold hover:bg-white/90 disabled:bg-graphite-800 disabled:text-graphite-400 transition-all duration-200 cursor-pointer"
-                >
-                  {t("landing.workbench.submitAnswer")}
-                </button>
-              ) : (
-                <span className="text-xs text-graphite-400 font-mono">{t("landing.workbench.submitted")}</span>
-              )}
             </div>
-          )}
+          ) : activeWorkbenchTab === "quiz" && question ? (
+              <div className="bg-graphite-950 border-t border-graphite-800 px-6 py-3.5 flex justify-between items-center select-none">
+                <button
+                  onClick={fetchSampleQuestion}
+                  className="flex items-center gap-2 px-3.5 py-2 rounded border border-graphite-800 bg-transparent text-graphite-300 text-sm font-medium hover:bg-graphite-900 hover:text-white transition-colors cursor-pointer"
+                >
+                  <RefreshCw className="w-4 h-4" />
+                  {t("landing.workbench.tryAnother")}
+                </button>
+
+                {!isSubmitted ? (
+                  <button
+                    onClick={handleSubmitAnswer}
+                    disabled={!selectedAnswer}
+                    className="px-4 py-2 rounded bg-white text-black text-sm font-semibold hover:bg-white/90 disabled:bg-graphite-800 disabled:text-graphite-400 transition-all duration-200 cursor-pointer"
+                  >
+                    {t("landing.workbench.submitAnswer")}
+                  </button>
+                ) : (
+                  <span className="text-xs text-graphite-400 font-mono">{t("landing.workbench.submitted")}</span>
+                )}
+              </div>
+          ) : null}
         </div>
       </div>
 
@@ -373,21 +469,26 @@ export default function LandingPage() {
               </p>
             </div>
             
-            {/* Visual Loop diagram */}
-            <div className="mt-8 pt-4 border-t border-graphite-800 flex flex-col gap-3 font-mono text-xs text-graphite-300 select-none">
+            {/* 4-Stage 2-Hour Mission Roadmap */}
+            <div className="mt-6 pt-4 border-t border-graphite-800 flex flex-col gap-2.5 font-mono text-xs text-graphite-300 select-none">
               <div className="flex items-center gap-2.5">
                 <span className="w-6 h-6 rounded border border-graphite-800 bg-graphite-950 flex items-center justify-center text-white font-medium shrink-0">01</span>
                 <span>{t("landing.bento.cell1.step1")}</span>
               </div>
-              <div className="w-px h-3 bg-graphite-800 ml-3" />
+              <div className="w-px h-2.5 bg-graphite-800 ml-3" />
               <div className="flex items-center gap-2.5">
                 <span className="w-6 h-6 rounded border border-graphite-800 bg-graphite-950 flex items-center justify-center text-white font-medium shrink-0">02</span>
-                <span className="text-white font-medium">{t("landing.bento.cell1.step2")}</span>
+                <span>{t("landing.bento.cell1.step2")}</span>
               </div>
-              <div className="w-px h-3 bg-graphite-800 ml-3" />
+              <div className="w-px h-2.5 bg-graphite-800 ml-3" />
               <div className="flex items-center gap-2.5">
-                <span className="w-6 h-6 rounded border border-graphite-800 bg-graphite-950 flex items-center justify-center text-white font-medium shrink-0">03</span>
-                <span>{t("landing.bento.cell1.step3")}</span>
+                <span className="w-6 h-6 rounded border border-graphite-800 bg-graphite-950 flex items-center justify-center text-emerald-400 font-medium shrink-0">03</span>
+                <span className="text-white font-medium">{t("landing.bento.cell1.step3")}</span>
+              </div>
+              <div className="w-px h-2.5 bg-graphite-800 ml-3" />
+              <div className="flex items-center gap-2.5">
+                <span className="w-6 h-6 rounded border border-graphite-800 bg-graphite-950 flex items-center justify-center text-white font-medium shrink-0">04</span>
+                <span>{t("landing.bento.cell1.step4")}</span>
               </div>
             </div>
           </div>
