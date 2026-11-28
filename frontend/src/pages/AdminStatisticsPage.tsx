@@ -13,7 +13,25 @@ import {
   Printer,
   ShieldAlert,
 } from "lucide-react";
+import {
+  CartesianGrid,
+  ResponsiveContainer,
+  Scatter,
+  ScatterChart,
+  Tooltip,
+  XAxis,
+  YAxis,
+  ZAxis,
+} from "recharts";
 import AdminPortalTabs from "../components/AdminPortalTabs";
+import ChartExportCard from "../components/ChartExportCard";
+import PairedPrePostChartCard from "../components/PairedPrePostChartCard";
+import {
+  DARK_CHART_TOOLTIP_PROPS,
+  buildPrePostPairedData,
+  buildSpearmanScatterSeries,
+  isCorrelationChartUnlocked,
+} from "../lib/evaluationCharts";
 import { useI18n } from "../i18n/index.tsx";
 import { resolveApiError } from "../i18n/format.ts";
 import { CSUQ_ITEMS, NASA_TLX_DIMENSIONS } from "../lib/questionnaire";
@@ -118,6 +136,20 @@ export default function AdminStatisticsPage() {
       cancelled = true;
     };
   }, [token, userRole, t]);
+
+  const pairedFigureSeries = useMemo(
+    () =>
+      buildPrePostPairedData(data?.participant_points ?? [], {
+        preMean: data?.learning_gain.pre.mean,
+        postMean: data?.learning_gain.post.mean,
+      }),
+    [data],
+  );
+
+  const scatterSeries = useMemo(
+    () => buildSpearmanScatterSeries(data?.participant_points ?? []),
+    [data],
+  );
 
   const alphaByKey = useMemo(() => {
     const m = new Map<string, CronbachAlphaStat>();
@@ -529,6 +561,139 @@ export default function AdminStatisticsPage() {
                   )}
                 </tbody>
               </table>
+            </div>
+          </section>
+
+          {/* Visual Figures Section (Paired Pre->Post + 3 Spearman Correlation Scatter Plots) */}
+          <section className="paper-report-section bg-graphite-900 border border-graphite-800 rounded-lg p-6 space-y-6">
+            <div className="border-b border-graphite-800 pb-4 space-y-1">
+              <h2 className="text-xl font-semibold text-white flex items-center gap-2">
+                <BarChart3 className="w-5 h-5 text-emerald-400" />
+                {t("admin.statistics.figures.sectionTitle")}
+              </h2>
+              <p className="text-sm text-graphite-400">
+                {t("admin.statistics.figures.sectionSubtitle")}
+              </p>
+            </div>
+
+            <PairedPrePostChartCard
+              className="paper-report-card"
+              headingLevel="h3"
+              title={t("admin.statistics.figures.fig1Title")}
+              subtitle={t("admin.statistics.figures.fig1Subtitle")}
+              exportFilename="paper_figure1_pre_post_paired.svg"
+              emptyMessage={t("admin.statistics.emptyDesc")}
+              series={pairedFigureSeries}
+            />
+
+            <div className="space-y-3">
+              <h3 className="text-lg font-semibold text-white">
+                {t("admin.statistics.figures.fig2Title")}
+              </h3>
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+                {[
+                  {
+                    corrKey: "learning_gain_vs_csuq_overall",
+                    title: t("admin.statistics.figures.scatterGainCsuqTitle"),
+                    xLabel: t("admin.statistics.figures.axisGainPct"),
+                    yLabel: t("admin.statistics.figures.axisCsuqOverall"),
+                    yDomain: [1, 7] as [number, number],
+                    points: scatterSeries.gainVsCsuq,
+                    color: "#10b981",
+                    file: "paper_figure2a_gain_vs_csuq.svg",
+                  },
+                  {
+                    corrKey: "learning_gain_vs_nasa_tlx_overall",
+                    title: t("admin.statistics.figures.scatterGainTlxTitle"),
+                    xLabel: t("admin.statistics.figures.axisGainPct"),
+                    yLabel: t("admin.statistics.figures.axisTlxWorkload"),
+                    yDomain: [0, 100] as [number, number],
+                    points: scatterSeries.gainVsTlx,
+                    color: "#f59e0b",
+                    file: "paper_figure2b_gain_vs_tlx.svg",
+                  },
+                  {
+                    corrKey: "csuq_overall_vs_nasa_tlx_overall",
+                    title: t("admin.statistics.figures.scatterCsuqTlxTitle"),
+                    xLabel: t("admin.statistics.figures.axisCsuqOverall"),
+                    yLabel: t("admin.statistics.figures.axisTlxWorkload"),
+                    yDomain: [0, 100] as [number, number],
+                    points: scatterSeries.csuqVsTlx,
+                    color: "#38bdf8",
+                    file: "paper_figure2c_csuq_vs_tlx.svg",
+                  },
+                ].map((panel) => {
+                  const corr = data.correlations.find((c) => c.key === panel.corrKey);
+                  const rawP = corr ? fmtPValue(corr.p_value) : "—";
+                  const pDisplay = rawP.startsWith("<") ? rawP : `= ${rawP}`;
+                  const unlocked = isCorrelationChartUnlocked(panel.points.length);
+                  const corrBadgeText =
+                    corr && corr.status === "ok" && isFiniteStat(corr.rho)
+                      ? t("admin.statistics.figures.rhoBadge", {
+                          rho: corr.rho.toFixed(3),
+                          p: pDisplay,
+                        })
+                      : statusGateLabel(corr?.status ?? "insufficient_n", 3, t);
+
+                  return (
+                    <ChartExportCard
+                      key={panel.corrKey}
+                      className="paper-report-card"
+                      headingLevel="h3"
+                      title={panel.title}
+                      exportFilename={panel.file}
+                      chartHeightClass="h-64"
+                      isEmpty={!unlocked}
+                      emptyMessage={t("admin.statistics.figures.smallNScatterGuard", {
+                        n: panel.points.length,
+                      })}
+                      badge={
+                        <span
+                          className={cn(
+                            "inline-block whitespace-nowrap px-2.5 py-0.5 rounded text-xs font-mono font-semibold border",
+                            corr?.status === "ok"
+                              ? "bg-emerald-500/15 text-emerald-300 border-emerald-500/30"
+                              : "bg-amber-500/10 text-amber-300 border-amber-500/30",
+                          )}
+                        >
+                          {corrBadgeText}
+                        </span>
+                      }
+                    >
+                      <ResponsiveContainer width="100%" height="100%">
+                        <ScatterChart margin={{ top: 12, right: 16, left: -12, bottom: 16 }}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="#27272a" />
+                          <XAxis
+                            type="number"
+                            dataKey="x"
+                            name={panel.xLabel}
+                            domain={panel.corrKey === "csuq_overall_vs_nasa_tlx_overall" ? [1, 7] : ["auto", "auto"]}
+                            tick={{ fill: "#d4d4d8", fontSize: 12 }}
+                          />
+                          <YAxis
+                            type="number"
+                            dataKey="y"
+                            name={panel.yLabel}
+                            domain={panel.yDomain}
+                            tick={{ fill: "#a1a1aa", fontSize: 12 }}
+                          />
+                          <ZAxis
+                            dataKey="participantCode"
+                            name={t("admin.evaluations.table.colParticipant")}
+                            range={[64, 64]}
+                          />
+                          <Tooltip {...DARK_CHART_TOOLTIP_PROPS} />
+                          <Scatter
+                            name={t("admin.statistics.figures.participantsLegend")}
+                            data={panel.points}
+                            fill={panel.color}
+                          />
+                        </ScatterChart>
+                      </ResponsiveContainer>
+                    </ChartExportCard>
+                  );
+                })}
+              </div>
             </div>
           </section>
 

@@ -17,16 +17,27 @@ import {
   Bar,
   BarChart,
   CartesianGrid,
-  ReferenceLine,
+  Legend,
   ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
 } from "recharts";
 import AdminPortalTabs from "../components/AdminPortalTabs";
+import ChartExportCard from "../components/ChartExportCard";
+import PairedPrePostChartCard from "../components/PairedPrePostChartCard";
 import QualitativeFeedbackList from "../components/QualitativeFeedbackList";
+import TLXWorkloadRadarCard from "../components/TLXWorkloadRadarCard";
 import { useI18n } from "../i18n/index.tsx";
 import { resolveApiError } from "../i18n/format.ts";
+import {
+  DARK_CHART_TOOLTIP_PROPS,
+  buildCSUQDistributionData,
+  buildCohortFunnelData,
+  buildPrePostPairedData,
+  buildTLXRadarData,
+  type CSUQDistributionMode,
+} from "../lib/evaluationCharts";
 import type {
   CSUQScoresPayload,
   NASATLXScoresPayload,
@@ -98,6 +109,7 @@ export default function AdminEvaluationsPage() {
 
   const [searchQuery, setSearchQuery] = useState("");
   const [localeFilter, setLocaleFilter] = useState<"all" | "en" | "th">("all");
+  const [csuqDistMode, setCsuqDistMode] = useState<CSUQDistributionMode>("subscales");
   const [expandedEvalIds, setExpandedEvalIds] = useState<Set<string>>(() => new Set());
 
   const token = localStorage.getItem("token");
@@ -196,21 +208,52 @@ export default function AdminEvaluationsPage() {
     });
   }, [data, searchQuery, localeFilter]);
 
-  const csuqChartData = useMemo(() => {
-    const items = data?.summary.csuq_subscales ?? [];
-    return items.map((s) => ({
-      name: t(`admin.evaluations.chartLabels.csuq.${s.key}`),
-      mean: s.mean ?? 0,
-    }));
+  const funnelChartData = useMemo(() => {
+    if (!data) return [];
+    return buildCohortFunnelData(data.cohort, {
+      totalLearners: t("admin.evaluations.charts.funnelStageTotal"),
+      preCompleted: t("admin.evaluations.charts.funnelStagePre"),
+      postCompleted: t("admin.evaluations.charts.funnelStagePost"),
+      respondents: t("admin.evaluations.charts.funnelStageSurvey"),
+    });
   }, [data, t]);
 
-  const tlxChartData = useMemo(() => {
-    const items = data?.summary.nasa_tlx_dimensions ?? [];
-    return items.map((d) => ({
-      name: t(`admin.evaluations.chartLabels.tlx.${d.key}`),
-      mean: d.mean ?? 0,
-    }));
+  const csuqDistData = useMemo(() => {
+    const labels: Record<string, string> = {
+      sysuse: t("admin.evaluations.chartLabels.csuq.sysuse"),
+      infoqual: t("admin.evaluations.chartLabels.csuq.infoqual"),
+      interqual: t("admin.evaluations.chartLabels.csuq.interqual"),
+      overall: t("admin.evaluations.chartLabels.csuq.overall"),
+    };
+    for (let i = 1; i <= 16; i++) {
+      labels[`q${i}`] = `Q${i}`;
+    }
+    return buildCSUQDistributionData(data?.responses ?? [], csuqDistMode, labels);
+  }, [data, csuqDistMode, t]);
+
+  const tlxRadarData = useMemo(() => {
+    const dims: Record<string, number | null> = {};
+    for (const d of data?.summary.nasa_tlx_dimensions ?? []) {
+      dims[d.key] = d.mean;
+    }
+    return buildTLXRadarData(dims, {
+      mental_demand: t("admin.evaluations.chartLabels.tlx.mental_demand"),
+      physical_demand: t("admin.evaluations.chartLabels.tlx.physical_demand"),
+      temporal_demand: t("admin.evaluations.chartLabels.tlx.temporal_demand"),
+      performance_workload: t("admin.evaluations.chartLabels.tlx.performance_workload"),
+      effort: t("admin.evaluations.chartLabels.tlx.effort"),
+      frustration: t("admin.evaluations.chartLabels.tlx.frustration"),
+    });
   }, [data, t]);
+
+  const pairedGainSeries = useMemo(
+    () =>
+      buildPrePostPairedData(data?.responses ?? [], {
+        preMean: data?.summary.learning_gain.pre_mean,
+        postMean: data?.summary.learning_gain.post_mean,
+      }),
+    [data],
+  );
 
   if (userRole !== "admin") {
     return (
@@ -359,69 +402,120 @@ export default function AdminEvaluationsPage() {
             </div>
           </div>
 
-          {/* Charts Row */}
-          {data.responses.length > 0 && (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <div className="bg-graphite-900 border border-graphite-800 rounded-lg p-6 space-y-4">
-                <div className="space-y-1">
-                  <h2 className="text-lg font-semibold text-white">
-                    {t("admin.evaluations.charts.csuqTitle")}
-                  </h2>
-                  <p className="text-xs font-mono text-graphite-400">
-                    {t("admin.evaluations.charts.csuqSubtitle")}
-                  </p>
-                </div>
-                <div className="h-64 w-full">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={csuqChartData} margin={{ top: 10, right: 12, left: -12, bottom: 8 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#27272a" />
-                      <XAxis dataKey="name" tick={{ fill: "#d4d4d8", fontSize: 12 }} />
-                      <YAxis domain={[0, 7]} ticks={[1, 2, 3, 4, 5, 6, 7]} tick={{ fill: "#a1a1aa", fontSize: 12 }} />
-                      <Tooltip
-                        contentStyle={{
-                          backgroundColor: "#09090b",
-                          borderColor: "#3f3f46",
-                          color: "#f4f4f5",
-                          fontSize: 12,
-                        }}
-                      />
-                      <ReferenceLine y={4} stroke="#f59e0b" strokeDasharray="4 4" />
-                      <Bar dataKey="mean" fill="#10b981" radius={[4, 4, 0, 0]} />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-              </div>
+          {/* 2x2 Recharts Visualization Suite */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* 1. Cohort Participation Funnel */}
+            <ChartExportCard
+              title={t("admin.evaluations.charts.funnelTitle")}
+              subtitle={t("admin.evaluations.charts.funnelSubtitle")}
+              exportFilename="cohort_participation_funnel.svg"
+              isEmpty={data.cohort.total_learners === 0}
+              emptyMessage={t("admin.evaluations.charts.funnelEmpty")}
+              chartHeightClass="h-72"
+            >
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart
+                  data={funnelChartData}
+                  layout="vertical"
+                  margin={{ top: 8, right: 20, left: 8, bottom: 8 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" stroke="#27272a" />
+                  <XAxis type="number" allowDecimals={false} tick={{ fill: "#a1a1aa", fontSize: 12 }} />
+                  <YAxis
+                    type="category"
+                    dataKey="stage"
+                    width={126}
+                    tick={{ fill: "#d4d4d8", fontSize: 12 }}
+                  />
+                  <Tooltip {...DARK_CHART_TOOLTIP_PROPS} />
+                  <Bar
+                    dataKey="count"
+                    name={t("admin.evaluations.charts.funnelSeriesCount")}
+                    fill="#38bdf8"
+                    radius={[0, 4, 4, 0]}
+                    barSize={26}
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            </ChartExportCard>
 
-              <div className="bg-graphite-900 border border-graphite-800 rounded-lg p-6 space-y-4">
-                <div className="space-y-1">
-                  <h2 className="text-lg font-semibold text-white">
-                    {t("admin.evaluations.charts.tlxTitle")}
-                  </h2>
-                  <p className="text-xs font-mono text-graphite-400">
-                    {t("admin.evaluations.charts.tlxSubtitle")}
-                  </p>
+            {/* 2. CSUQ Stacked Likert Distribution */}
+            <ChartExportCard
+              title={t("admin.evaluations.charts.csuqStackedTitle")}
+              subtitle={t("admin.evaluations.charts.csuqStackedSubtitle")}
+              exportFilename={`csuq_likert_${csuqDistMode}.svg`}
+              isEmpty={data.responses.length === 0}
+              emptyMessage={t("admin.evaluations.table.emptyDesc")}
+              chartHeightClass={csuqDistMode === "items" ? "h-[30rem]" : "h-72"}
+              headerExtra={
+                <div className="inline-flex rounded-md border border-graphite-800 bg-graphite-950 p-0.5">
+                  {(["subscales", "items"] as const).map((m) => (
+                    <button
+                      key={m}
+                      type="button"
+                      onClick={() => setCsuqDistMode(m)}
+                      className={cn(
+                        "px-2.5 py-1 rounded text-xs font-mono font-semibold transition-colors cursor-pointer",
+                        csuqDistMode === m
+                          ? "bg-white text-black"
+                          : "text-graphite-400 hover:text-white",
+                      )}
+                    >
+                      {m === "subscales"
+                        ? t("admin.evaluations.charts.csuqModeSubscales")
+                        : t("admin.evaluations.charts.csuqModeItems")}
+                    </button>
+                  ))}
                 </div>
-                <div className="h-64 w-full">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={tlxChartData} margin={{ top: 10, right: 12, left: -12, bottom: 8 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#27272a" />
-                      <XAxis dataKey="name" tick={{ fill: "#d4d4d8", fontSize: 12 }} />
-                      <YAxis domain={[0, 100]} tick={{ fill: "#a1a1aa", fontSize: 12 }} />
-                      <Tooltip
-                        contentStyle={{
-                          backgroundColor: "#09090b",
-                          borderColor: "#3f3f46",
-                          color: "#f4f4f5",
-                          fontSize: 12,
-                        }}
-                      />
-                      <Bar dataKey="mean" fill="#f59e0b" radius={[4, 4, 0, 0]} />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-              </div>
-            </div>
-          )}
+              }
+            >
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart
+                  data={csuqDistData}
+                  layout="vertical"
+                  margin={{ top: 8, right: 16, left: 4, bottom: 8 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" stroke="#27272a" />
+                  <XAxis type="number" domain={[0, 100]} unit="%" tick={{ fill: "#a1a1aa", fontSize: 12 }} />
+                  <YAxis
+                    type="category"
+                    dataKey="label"
+                    width={96}
+                    tick={{ fill: "#d4d4d8", fontSize: 12 }}
+                  />
+                  <Tooltip {...DARK_CHART_TOOLTIP_PROPS} />
+                  <Legend wrapperStyle={{ fontSize: 12 }} />
+                  <Bar dataKey="lowPct" stackId="likert" name={t("admin.evaluations.charts.csuqLow")} fill="#ef4444" />
+                  <Bar dataKey="neutralPct" stackId="likert" name={t("admin.evaluations.charts.csuqNeutral")} fill="#f59e0b" />
+                  <Bar dataKey="positivePct" stackId="likert" name={t("admin.evaluations.charts.csuqPositive")} fill="#38bdf8" />
+                  <Bar dataKey="strongPct" stackId="likert" name={t("admin.evaluations.charts.csuqStrong")} fill="#10b981" />
+                  <Bar dataKey="naPct" stackId="likert" name={t("admin.evaluations.charts.csuqNA")} fill="#52525b" />
+                </BarChart>
+              </ResponsiveContainer>
+            </ChartExportCard>
+
+            {/* 3. Raw NASA-TLX 6-Axis Radar */}
+            <TLXWorkloadRadarCard
+              title={t("admin.evaluations.charts.tlxRadarTitle")}
+              subtitle={t("admin.evaluations.charts.tlxRadarSubtitle")}
+              exportFilename="nasa_tlx_cohort_radar.svg"
+              data={tlxRadarData}
+              seriesName={t("admin.evaluations.charts.tlxCohortMean")}
+              midpointName={t("admin.evaluations.charts.tlxMidpoint")}
+              isEmpty={data.responses.length === 0}
+              emptyMessage={t("admin.evaluations.table.emptyDesc")}
+              chartHeightClass="h-72"
+            />
+
+            {/* 4. Pre-Test vs. Post-Test Chronological Paired Comparison */}
+            <PairedPrePostChartCard
+              title={t("admin.evaluations.charts.pairedGainTitle")}
+              subtitle={t("admin.evaluations.charts.pairedGainSubtitle")}
+              exportFilename="cohort_pre_post_paired.svg"
+              emptyMessage={t("admin.evaluations.table.emptyDesc")}
+              series={pairedGainSeries}
+            />
+          </div>
 
           {/* Pseudonymized Response Table */}
           <div className="bg-graphite-900 border border-graphite-800 rounded-lg p-6 space-y-5">

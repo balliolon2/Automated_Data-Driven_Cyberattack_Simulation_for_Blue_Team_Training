@@ -782,12 +782,49 @@ func collectCohortMetricSeries(records []AdminLearnerEvaluationRecord) cohortMet
 	return series
 }
 
+func finiteOrZero2(val float64) float64 {
+	if math.IsNaN(val) || math.IsInf(val, 0) {
+		return 0
+	}
+	return roundEval2(val)
+}
+
 // BuildPaperStatisticsReport computes the full IEEE/thesis statistical suite from learner evaluations.
 func BuildPaperStatisticsReport(
 	records []AdminLearnerEvaluationRecord,
 	cohort dto.EvaluationCohortFunnelDTO,
 ) dto.AdminPaperStatisticsResponse {
-	series := collectCohortMetricSeries(records)
+	orderedRecords := make([]AdminLearnerEvaluationRecord, len(records))
+	copy(orderedRecords, records)
+	sort.SliceStable(orderedRecords, func(i, j int) bool {
+		ti, tj := orderedRecords[i].Metric.EvalDate, orderedRecords[j].Metric.EvalDate
+		if !ti.Equal(tj) {
+			return ti.Before(tj)
+		}
+		return orderedRecords[i].UserID < orderedRecords[j].UserID
+	})
+
+	series := collectCohortMetricSeries(orderedRecords)
+	participantPoints := make([]dto.ParticipantPlotPointDTO, 0, len(orderedRecords))
+	for i, rec := range orderedRecords {
+		s := series.summaries[i]
+		var csuqOverall *float64
+		if s.CSUQScores.Subscales.Overall != nil {
+			csuqOverall = safePtr2(*s.CSUQScores.Subscales.Overall)
+		}
+		var tlxOverall *float64
+		if s.NASATLXScores.SchemaVersion != "" {
+			tlxOverall = safePtr2(s.NASATLXScores.OverallWorkload)
+		}
+		participantPoints = append(participantPoints, dto.ParticipantPlotPointDTO{
+			ParticipantCode: PseudonymizedParticipantCode(rec.UserID),
+			PreScore:        finiteOrZero2(s.PreScore),
+			PostScore:       finiteOrZero2(s.PostScore),
+			ImprovementPct:  finiteOrZero2(s.ImprovementPct),
+			CSUQOverall:     csuqOverall,
+			NASATLXOverall:  tlxOverall,
+		})
+	}
 
 	csuqSubscales := []dto.DescriptiveStatDTO{
 		ComputeDescriptiveStat("sysuse", "CSUQ", series.sysuseVals, bandCSUQ),
@@ -849,5 +886,6 @@ func BuildPaperStatisticsReport(
 		Reliability:          reliability,
 		LearningGain:         learningGain,
 		Correlations:         correlations,
+		ParticipantPoints:    participantPoints,
 	}
 }

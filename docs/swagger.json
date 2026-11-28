@@ -2480,6 +2480,12 @@
                     "type": "string",
                     "example": "nasa-tlx-rtlx-v1"
                 },
+                "participant_points": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.ParticipantPlotPointDTO"
+                    }
+                },
                 "protocol_version": {
                     "type": "string",
                     "example": "protocol-v1"
@@ -4601,6 +4607,35 @@
                 "t_stat": {
                     "type": "number",
                     "example": 10.57
+                }
+            }
+        },
+        "dto.ParticipantPlotPointDTO": {
+            "type": "object",
+            "properties": {
+                "csuq_overall": {
+                    "type": "number",
+                    "example": 6.25
+                },
+                "improvement_pct": {
+                    "type": "number",
+                    "example": 30
+                },
+                "nasa_tlx_overall": {
+                    "type": "number",
+                    "example": 35
+                },
+                "participant_code": {
+                    "type": "string",
+                    "example": "P-A1B2C3D4"
+                },
+                "post_score": {
+                    "type": "number",
+                    "example": 76.7
+                },
+                "pre_score": {
+                    "type": "number",
+                    "example": 46.7
                 }
             }
         },

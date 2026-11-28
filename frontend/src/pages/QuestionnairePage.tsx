@@ -14,8 +14,26 @@ import {
   SlidersHorizontal,
 } from "lucide-react";
 import QualitativeFeedbackList from "../components/QualitativeFeedbackList";
+import ChartExportCard from "../components/ChartExportCard";
+import TLXWorkloadRadarCard from "../components/TLXWorkloadRadarCard";
 import { useI18n } from "../i18n/index.tsx";
 import { resolveApiError } from "../i18n/format.ts";
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
+import {
+  DARK_CHART_TOOLTIP_PROPS,
+  buildPersonalCSUQData,
+  buildPersonalProgressData,
+  buildTLXRadarData,
+} from "../lib/evaluationCharts";
 import {
   CSUQ_ITEMS,
   MAX_QUALITATIVE_CHARS,
@@ -360,9 +378,28 @@ export default function QuestionnairePage() {
     const sub = status.submission;
     const subscales = sub.csuq_scores?.subscales;
     const tlx = sub.nasa_tlx_scores;
+    const gainDelta = sub.improvement_pct;
+    const progressChartData = buildPersonalProgressData(sub.pre_score, sub.post_score, {
+      pre: t("questionnaire.submittedView.preStageLabel"),
+      post: t("questionnaire.submittedView.postStageLabel"),
+    });
+    const radarChartData = buildTLXRadarData(tlx?.dimensions, {
+      mental_demand: t("questionnaire.submittedView.tlxAxes.mental_demand"),
+      physical_demand: t("questionnaire.submittedView.tlxAxes.physical_demand"),
+      temporal_demand: t("questionnaire.submittedView.tlxAxes.temporal_demand"),
+      performance_workload: t("questionnaire.submittedView.tlxAxes.performance_workload"),
+      effort: t("questionnaire.submittedView.tlxAxes.effort"),
+      frustration: t("questionnaire.submittedView.tlxAxes.frustration"),
+    });
+    const personalCsuqData = buildPersonalCSUQData(subscales, {
+      sysuse: t("questionnaire.submittedView.csuqAxes.sysuse"),
+      infoqual: t("questionnaire.submittedView.csuqAxes.infoqual"),
+      interqual: t("questionnaire.submittedView.csuqAxes.interqual"),
+      overall: t("questionnaire.submittedView.csuqAxes.overall"),
+    });
 
     return (
-      <div className="max-w-4xl mx-auto space-y-8 animate-fade-in">
+      <div className="max-w-5xl mx-auto space-y-8 animate-fade-in">
         <div className="bg-graphite-900 border border-emerald-500/30 rounded-lg p-6 sm:p-8 space-y-5">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <span className="inline-flex items-center gap-2 px-3 py-1 rounded text-xs font-mono font-semibold bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
@@ -407,28 +444,88 @@ export default function QuestionnairePage() {
           </div>
         </div>
 
+        {/* Personal Visual Summary Charts */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <ChartExportCard
+            title={t("questionnaire.submittedView.progressChartTitle")}
+            subtitle={t("questionnaire.submittedView.progressChartSubtitle")}
+            exportFilename={`my_learning_progress_${sub.eval_id.slice(0, 8)}.svg`}
+            chartHeightClass="h-64"
+            badge={
+              <span
+                className={cn(
+                  "px-2 py-0.5 rounded text-xs font-mono font-semibold border",
+                  gainDelta >= 0
+                    ? "bg-emerald-500/15 text-emerald-300 border-emerald-500/30"
+                    : "bg-red-500/15 text-red-300 border-red-500/30",
+                )}
+              >
+                {gainDelta >= 0 ? `+${gainDelta.toFixed(1)}%` : `${gainDelta.toFixed(1)}%`}
+              </span>
+            }
+          >
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={progressChartData} margin={{ top: 10, right: 16, left: -12, bottom: 8 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#27272a" />
+                <XAxis dataKey="stage" tick={{ fill: "#d4d4d8", fontSize: 12 }} />
+                <YAxis domain={[0, 100]} ticks={[0, 25, 50, 75, 100]} tick={{ fill: "#a1a1aa", fontSize: 12 }} />
+                <Tooltip {...DARK_CHART_TOOLTIP_PROPS} />
+                <Bar
+                  dataKey="score"
+                  name={t("questionnaire.submittedView.scoreLegendLabel")}
+                  radius={[4, 4, 0, 0]}
+                  barSize={64}
+                >
+                  {progressChartData.map((entry) => (
+                    <Cell
+                      key={entry.key}
+                      fill={entry.key === "post" ? "#10b981" : "#64748b"}
+                    />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </ChartExportCard>
+
+          <TLXWorkloadRadarCard
+            title={t("questionnaire.submittedView.radarChartTitle")}
+            subtitle={t("questionnaire.submittedView.radarChartSubtitle")}
+            exportFilename={`my_nasa_tlx_radar_${sub.eval_id.slice(0, 8)}.svg`}
+            data={radarChartData}
+            seriesName={t("questionnaire.submittedView.yourWorkloadLegend")}
+            midpointName={t("questionnaire.submittedView.midpointBenchmarkLegend")}
+            chartHeightClass="h-64"
+          />
+        </div>
+
         {/* Subscale + Workload Summary */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="bg-graphite-900 border border-graphite-800 rounded-lg p-6 space-y-4">
-            <h2 className="text-lg font-semibold text-white border-b border-graphite-800 pb-3">
-              {t("questionnaire.submittedView.csuqCardTitle")}
-            </h2>
-            <div className="space-y-3 text-sm font-mono">
-              {[
-                { label: t("questionnaire.step1.groups.SYSUSE"), value: subscales?.sysuse },
-                { label: t("questionnaire.step1.groups.INFOQUAL"), value: subscales?.infoqual },
-                { label: t("questionnaire.step1.groups.INTERQUAL"), value: subscales?.interqual },
-                { label: t("questionnaire.step1.groups.OVERALL"), value: subscales?.overall },
-              ].map((row) => (
-                <div key={row.label} className="flex items-center justify-between py-1.5 border-b border-graphite-800/60">
-                  <span className="text-graphite-300 font-sans">{row.label}</span>
-                  <span className="text-white font-semibold">
-                    {row.value !== null && row.value !== undefined ? `${row.value.toFixed(2)} / 7.00` : "N/A"}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
+          <ChartExportCard
+            title={t("questionnaire.submittedView.csuqChartTitle")}
+            subtitle={t("questionnaire.submittedView.csuqChartSubtitle")}
+            exportFilename={`my_csuq_subscales_${sub.eval_id.slice(0, 8)}.svg`}
+            chartHeightClass="h-64"
+          >
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart
+                data={personalCsuqData}
+                layout="vertical"
+                margin={{ top: 8, right: 20, left: 8, bottom: 8 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" stroke="#27272a" />
+                <XAxis type="number" domain={[0, 7]} ticks={[1, 2, 3, 4, 5, 6, 7]} tick={{ fill: "#a1a1aa", fontSize: 12 }} />
+                <YAxis type="category" dataKey="subscale" width={132} tick={{ fill: "#d4d4d8", fontSize: 12 }} />
+                <Tooltip {...DARK_CHART_TOOLTIP_PROPS} />
+                <Bar
+                  dataKey="score"
+                  name={t("questionnaire.submittedView.csuqLegendLabel")}
+                  fill="#10b981"
+                  radius={[0, 4, 4, 0]}
+                  barSize={24}
+                />
+              </BarChart>
+            </ResponsiveContainer>
+          </ChartExportCard>
 
           <div className="bg-graphite-900 border border-graphite-800 rounded-lg p-6 space-y-4">
             <h2 className="text-lg font-semibold text-white border-b border-graphite-800 pb-3">

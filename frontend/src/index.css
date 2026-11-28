@@ -53,9 +53,25 @@
     box-shadow: none !important;
   }
 
-  .paper-report-section * {
+  .paper-report-section :not(svg):not(svg *) {
     color: #111827 !important;
     border-color: #d1d5db !important;
+  }
+
+  .paper-report-section svg text,
+  .paper-report-section svg tspan {
+    fill: #111827 !important;
+  }
+
+  .paper-report-section .recharts-cartesian-grid line,
+  .paper-report-section .recharts-polar-grid path,
+  .paper-report-section .recharts-polar-grid line {
+    stroke: #cbd5e1 !important;
+  }
+
+  .paper-report-section .recharts-cartesian-axis-line,
+  .paper-report-section .recharts-cartesian-axis-tick-line {
+    stroke: #475569 !important;
   }
 
   .paper-report-card {

@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"sync"
 	"testing"
 	"time"
@@ -503,6 +505,74 @@ func TestAdminStatistics_RBACAndSmallNGuardrails(t *testing.T) {
 	}
 	if report.LearningGain.PairedTTest.Status != "insufficient_n" || report.LearningGain.Wilcoxon.Status != "insufficient_n" {
 		t.Fatalf("expected insufficient_n gates on n=1: t=%s w=%s", report.LearningGain.PairedTTest.Status, report.LearningGain.Wilcoxon.Status)
+	}
+	if len(report.ParticipantPoints) != 1 || report.ParticipantPoints[0].ParticipantCode != "P-LEARNER1" {
+		t.Fatalf("expected 1 pseudonymized ParticipantPoint P-LEARNER1, got %+v", report.ParticipantPoints)
+	}
+	if report.ParticipantPoints[0].PreScore != 50.0 || report.ParticipantPoints[0].PostScore != 80.0 || report.ParticipantPoints[0].ImprovementPct != 30.0 {
+		t.Fatalf("unexpected ParticipantPoint scores: %+v", report.ParticipantPoints[0])
+	}
+}
+
+func TestGetAdminPaperStatisticsEmptyCohort(t *testing.T) {
+	store := newFakeEvalStore()
+	ec := NewEvaluationControllerWithStore(store)
+	rAdmin := setupEvalTestRouter(ec, "admin-1", "admin")
+
+	w := httptest.NewRecorder()
+	rAdmin.ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/api/admin/evaluations/statistics", nil))
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200 on empty cohort, got %d: %s", w.Code, w.Body.String())
+	}
+
+	raw := w.Body.String()
+	if bytes.Contains([]byte(raw), []byte("NaN")) || bytes.Contains([]byte(raw), []byte("Inf")) {
+		t.Fatalf("unexpected non-finite float marker in response: %s", raw)
+	}
+
+	var report dto.AdminPaperStatisticsResponse
+	if err := json.Unmarshal(w.Body.Bytes(), &report); err != nil {
+		t.Fatalf("unmarshal empty statistics: %v", err)
+	}
+	if len(report.ParticipantPoints) != 0 {
+		t.Fatalf("expected 0 ParticipantPoints on empty cohort, got %d", len(report.ParticipantPoints))
+	}
+	if report.LearningGain.PairedTTest.Status != "insufficient_n" {
+		t.Fatalf("expected insufficient_n gate on n=0, got %s", report.LearningGain.PairedTTest.Status)
+	}
+}
+
+func TestSwaggerSpecDefinesParticipantPlotPoints(t *testing.T) {
+	raw, err := os.ReadFile(filepath.Join("..", "docs", "swagger.json"))
+	if err != nil {
+		t.Fatalf("read swagger.json: %v", err)
+	}
+
+	var spec struct {
+		Definitions map[string]struct {
+			Properties map[string]json.RawMessage `json:"properties"`
+		} `json:"definitions"`
+	}
+	if err := json.Unmarshal(raw, &spec); err != nil {
+		t.Fatalf("parse swagger.json: %v", err)
+	}
+
+	statsDef, ok := spec.Definitions["dto.AdminPaperStatisticsResponse"]
+	if !ok {
+		t.Fatalf("missing dto.AdminPaperStatisticsResponse in swagger.json")
+	}
+	if _, ok := statsDef.Properties["participant_points"]; !ok {
+		t.Fatalf("expected participant_points property in dto.AdminPaperStatisticsResponse")
+	}
+
+	pointDef, ok := spec.Definitions["dto.ParticipantPlotPointDTO"]
+	if !ok {
+		t.Fatalf("missing dto.ParticipantPlotPointDTO in swagger.json")
+	}
+	for _, field := range []string{"participant_code", "pre_score", "post_score", "improvement_pct", "csuq_overall", "nasa_tlx_overall"} {
+		if _, ok := pointDef.Properties[field]; !ok {
+			t.Fatalf("expected %s property in dto.ParticipantPlotPointDTO", field)
+		}
 	}
 }
 

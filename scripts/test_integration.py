@@ -650,9 +650,20 @@ def run_tests():
     if adm_stats.status_code != 200 or "NaN" in adm_stats.text or "Infinity" in adm_stats.text:
         print(f"Error: GET /admin/evaluations/statistics invalid: {adm_stats.status_code} {adm_stats.text}")
         sys.exit(1)
-    if (adm_stats.json().get("cohort") or {}).get("questionnaire_respondents", 0) < 1:
-        print(f"Error: Expected >= 1 questionnaire respondent in statistics: {adm_stats.json()}")
+    stats_body = adm_stats.json()
+    resp_count = (stats_body.get("cohort") or {}).get("questionnaire_respondents", 0)
+    if resp_count < 1:
+        print(f"Error: Expected >= 1 questionnaire respondent in statistics: {stats_body}")
         sys.exit(1)
+    pts = stats_body.get("participant_points") or []
+    if len(pts) != resp_count:
+        print(f"Error: Expected {resp_count} participant_points, got {len(pts)}: {pts}")
+        sys.exit(1)
+    for pt in pts:
+        code = pt.get("participant_code") or ""
+        if not code.startswith("P-") or "email" in pt or "user_id" in pt:
+            print(f"Error: Invalid or leaky participant_point entry: {pt}")
+            sys.exit(1)
 
     adm_csv = requests.get(f"{BASE_URL}/admin/evaluations/export?format=csv", headers=admin_hdrs)
     if (

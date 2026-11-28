@@ -270,6 +270,16 @@ type SpearmanCorrelationDTO struct {
 	Status string   `json:"status" example:"ok"`
 }
 
+// ParticipantPlotPointDTO holds a pseudonymized respondent's plotted metrics for statistical figures (zero PII).
+type ParticipantPlotPointDTO struct {
+	ParticipantCode string   `json:"participant_code" example:"P-A1B2C3D4"`
+	PreScore        float64  `json:"pre_score" example:"46.7"`
+	PostScore       float64  `json:"post_score" example:"76.7"`
+	ImprovementPct  float64  `json:"improvement_pct" example:"30.0"`
+	CSUQOverall     *float64 `json:"csuq_overall,omitempty" example:"6.25"`
+	NASATLXOverall  *float64 `json:"nasa_tlx_overall,omitempty" example:"35.0"`
+}
+
 // AdminPaperStatisticsResponse powers the Admin-only Paper-Ready Statistics workbench.
 type AdminPaperStatisticsResponse struct {
 	GeneratedAt          time.Time                   `json:"generated_at"`
@@ -284,6 +294,7 @@ type AdminPaperStatisticsResponse struct {
 	Reliability          []CronbachAlphaDTO          `json:"reliability"`
 	LearningGain         LearningGainStatisticsDTO   `json:"learning_gain"`
 	Correlations         []SpearmanCorrelationDTO    `json:"correlations"`
+	ParticipantPoints    []ParticipantPlotPointDTO   `json:"participant_points"`
 }
 
 

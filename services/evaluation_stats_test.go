@@ -5,6 +5,7 @@ import (
 	"math"
 	"strings"
 	"testing"
+	"time"
 
 	"cybersim/dto"
 )
@@ -195,8 +196,44 @@ func TestBuildPaperStatisticsReport_FullPipelineAndJSONSafety(t *testing.T) {
 		t.Fatalf("unexpected reliability/correlation counts: rel=%d corr=%d", len(report.Reliability), len(report.Correlations))
 	}
 
-	// Verify clean JSON serialization (zero NaN / Inf) even on n=0 empty dataset
+	// Verify ParticipantPoints chronological order, pseudonymization, nil handling & JSON safety
+	if len(report.ParticipantPoints) != 5 {
+		t.Fatalf("expected 5 ParticipantPoints, got %d", len(report.ParticipantPoints))
+	}
+
+	// Out-of-order DESC timestamps must sort ASC deterministically without PII leakage
+	rLate := makeAdminLearnerRecord("bbbb2222-uuid", "late_nick", 60, 88, 7, 90, "")
+	rLate.Metric.EvalDate = time.Date(2026, 11, 28, 12, 0, 0, 0, time.UTC)
+	rEarly := makeAdminLearnerRecord("aaaa1111-uuid", "early_nick", 45, 75, 6, 80, "")
+	rEarly.Metric.EvalDate = time.Date(2026, 11, 28, 9, 0, 0, 0, time.UTC)
+	rNilCsuq := makeAdminLearnerRecord("cccc3333-uuid", "nil_csuq_nick", 50, 70, 6, 75, "")
+	rNilCsuq.Metric.EvalDate = time.Date(2026, 11, 28, 15, 0, 0, 0, time.UTC)
+	csuqCopy := rNilCsuq.Metric.CSUQScores.(dto.CSUQScoresPayloadDTO)
+	csuqCopy.Subscales.Overall = nil
+	rNilCsuq.Metric.CSUQScores = csuqCopy
+
+	orderedReport := BuildPaperStatisticsReport([]AdminLearnerEvaluationRecord{rNilCsuq, rLate, rEarly}, cohort)
+	if len(orderedReport.ParticipantPoints) != 3 {
+		t.Fatalf("expected 3 ParticipantPoints, got %d", len(orderedReport.ParticipantPoints))
+	}
+	if orderedReport.ParticipantPoints[0].ParticipantCode != "P-AAAA1111" ||
+		orderedReport.ParticipantPoints[1].ParticipantCode != "P-BBBB2222" ||
+		orderedReport.ParticipantPoints[2].ParticipantCode != "P-CCCC3333" {
+		t.Fatalf("expected chronological ASC order P-AAAA1111, P-BBBB2222, P-CCCC3333, got %+v", orderedReport.ParticipantPoints)
+	}
+	if orderedReport.ParticipantPoints[0].CSUQOverall == nil || orderedReport.ParticipantPoints[2].CSUQOverall != nil {
+		t.Fatalf("expected nil CSUQOverall preserved safely for null respondent: %+v", orderedReport.ParticipantPoints[2])
+	}
+	rawOrdered, _ := json.Marshal(orderedReport)
+	if strings.Contains(string(rawOrdered), "early_nick") || strings.Contains(string(rawOrdered), "aaaa1111-uuid") {
+		t.Fatalf("ParticipantPoints leaked nickname or raw userID: %s", string(rawOrdered))
+	}
+
+	// Verify clean JSON serialization (zero NaN / Inf) and non-null empty array even on n=0 empty dataset
 	emptyReport := BuildPaperStatisticsReport(nil, dto.EvaluationCohortFunnelDTO{})
+	if emptyReport.ParticipantPoints == nil || len(emptyReport.ParticipantPoints) != 0 {
+		t.Fatalf("expected initialized non-nil empty ParticipantPoints slice on n=0, got %+v", emptyReport.ParticipantPoints)
+	}
 	for _, payload := range []any{report, emptyReport} {
 		raw, err := json.Marshal(payload)
 		if err != nil {

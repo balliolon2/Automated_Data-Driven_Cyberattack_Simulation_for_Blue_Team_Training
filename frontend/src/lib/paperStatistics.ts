@@ -63,6 +63,15 @@ export interface SpearmanCorrelationStat {
   status: string;
 }
 
+export interface ParticipantPlotPoint {
+  participant_code: string;
+  pre_score: number;
+  post_score: number;
+  improvement_pct: number;
+  csuq_overall?: number | null;
+  nasa_tlx_overall?: number | null;
+}
+
 export interface AdminPaperStatisticsResponse {
   generated_at: string;
   protocol_version: string;
@@ -88,6 +97,7 @@ export interface AdminPaperStatisticsResponse {
     wilcoxon: WilcoxonTestStat;
   };
   correlations: SpearmanCorrelationStat[];
+  participant_points?: ParticipantPlotPoint[];
 }
 
 export interface MethodologyPillar {

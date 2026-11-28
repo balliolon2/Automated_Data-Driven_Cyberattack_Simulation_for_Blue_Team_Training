@@ -154,6 +154,10 @@ definitions:
       nasa_tlx_schema_version:
         example: nasa-tlx-rtlx-v1
         type: string
+      participant_points:
+        items:
+          $ref: '#/definitions/dto.ParticipantPlotPointDTO'
+        type: array
       protocol_version:
         example: protocol-v1
         type: string
@@ -1663,6 +1667,27 @@ definitions:
         type: string
       t_stat:
         example: 10.57
+        type: number
+    type: object
+  dto.ParticipantPlotPointDTO:
+    properties:
+      csuq_overall:
+        example: 6.25
+        type: number
+      improvement_pct:
+        example: 30
+        type: number
+      nasa_tlx_overall:
+        example: 35
+        type: number
+      participant_code:
+        example: P-A1B2C3D4
+        type: string
+      post_score:
+        example: 76.7
+        type: number
+      pre_score:
+        example: 46.7
         type: number
     type: object
   dto.QualitativeFeedbackDTO:

@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "test": "node --test tests/i18n.test.ts tests/siemShortcuts.test.ts tests/typography.test.ts tests/examReview.test.ts tests/questionLocale.test.ts tests/questionnaire.test.ts tests/paperStatistics.test.ts tests/nfrReport.test.ts",
+    "test": "node --test tests/i18n.test.ts tests/siemShortcuts.test.ts tests/typography.test.ts tests/examReview.test.ts tests/questionLocale.test.ts tests/questionnaire.test.ts tests/paperStatistics.test.ts tests/evaluationCharts.test.ts tests/nfrReport.test.ts",
     "preview": "vite preview"
   },
   "dependencies": {
