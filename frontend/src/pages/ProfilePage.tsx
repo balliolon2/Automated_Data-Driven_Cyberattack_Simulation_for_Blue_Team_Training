@@ -37,6 +37,7 @@ interface UserProfile {
   role: "learner" | "specialist" | "admin";
   current_tier: number;
   preferred_language?: Locale;
+  email_verified?: boolean;
   latest_application?: SpecialistApplication;
 }
 

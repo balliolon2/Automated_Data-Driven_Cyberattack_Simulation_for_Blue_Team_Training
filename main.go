@@ -159,7 +159,10 @@ func main() {
 	api := r.Group("/api")
 	{
 		api.POST("/register", authController.Register)
+		api.POST("/register-specialist", specialistController.RegisterSpecialist)
 		api.POST("/login", authController.Login)
+		api.POST("/verify-email", authController.VerifyEmail)
+		api.POST("/resend-verification", authController.ResendVerification)
 		api.GET("/exams/sample", examController.GetSampleQuestion)
 
 		// Protected user profile routes

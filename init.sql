@@ -19,10 +19,16 @@ CREATE TABLE users (
   role role DEFAULT 'learner',
   current_tier INT DEFAULT 1,
   preferred_language VARCHAR(10) NOT NULL DEFAULT 'en',
+  email_verified BOOLEAN NOT NULL DEFAULT false,
+  email_verified_at TIMESTAMPTZ,
+  verification_token_hash VARCHAR(64),
+  verification_sent_at TIMESTAMPTZ,
+  verification_expires_at TIMESTAMPTZ,
   created_at TIMESTAMP DEFAULT now(),
   last_login TIMESTAMP,
   is_active BOOLEAN DEFAULT true
 );
+CREATE INDEX IF NOT EXISTS idx_users_verification_token_hash ON users(verification_token_hash) WHERE verification_token_hash IS NOT NULL;
 
 CREATE TABLE specialist_applications (
   application_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

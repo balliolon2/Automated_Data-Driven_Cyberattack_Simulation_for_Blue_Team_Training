@@ -3,8 +3,10 @@ package controllers
 import (
 	"crypto/rand"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
+	"mime/multipart"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -66,12 +68,80 @@ func generateUUID() string {
 	return fmt.Sprintf("%08x-%04x-%04x-%04x-%012x", b[0:4], b[4:6], b[6:8], b[8:10], b[10:])
 }
 
+// SpecialistRegStore persists atomic new-user + specialist-application registrations cleanly.
+type SpecialistRegStore interface {
+	FindUserByEmail(email string) (*models.User, error)
+	FindUserByNickname(nickname string) (*models.User, error)
+	CreateUserAndApplication(user *models.User, app *models.SpecialistApplication) error
+}
+
+// gormSpecialistRegStore embeds gormAuthStore to reuse FindUserByEmail/FindUserByNickname
+// without duplicating queries, while adding the atomic user + application transaction.
+type gormSpecialistRegStore struct {
+	*gormAuthStore
+}
+
+func (s *gormSpecialistRegStore) CreateUserAndApplication(user *models.User, app *models.SpecialistApplication) error {
+	return s.DB.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Create(user).Error; err != nil {
+			return err
+		}
+		app.UserID = user.UserID
+		if err := tx.Create(app).Error; err != nil {
+			return err
+		}
+		return nil
+	})
+}
+
 type SpecialistController struct {
-	DB *gorm.DB
+	DB         *gorm.DB
+	regStore   SpecialistRegStore
+	mailSender services.MailSender
+	uploadDir  string
 }
 
 func NewSpecialistController(db *gorm.DB) *SpecialistController {
-	return &SpecialistController{DB: db}
+	return &SpecialistController{
+		DB:         db,
+		regStore:   &gormSpecialistRegStore{gormAuthStore: &gormAuthStore{DB: db}},
+		mailSender: services.NewSMTPMailSenderFromEnv(),
+		uploadDir:  UploadBaseDir,
+	}
+}
+
+func NewSpecialistControllerWithDeps(
+	db *gorm.DB,
+	regStore SpecialistRegStore,
+	mailSender services.MailSender,
+	uploadDir string,
+) *SpecialistController {
+	if strings.TrimSpace(uploadDir) == "" {
+		uploadDir = UploadBaseDir
+	}
+	return &SpecialistController{
+		DB:         db,
+		regStore:   regStore,
+		mailSender: mailSender,
+		uploadDir:  uploadDir,
+	}
+}
+
+func (sc *SpecialistController) effectiveRegStore() SpecialistRegStore {
+	if sc.regStore != nil {
+		return sc.regStore
+	}
+	if sc.DB != nil {
+		return &gormSpecialistRegStore{gormAuthStore: &gormAuthStore{DB: sc.DB}}
+	}
+	return nil
+}
+
+func (sc *SpecialistController) effectiveUploadDir() string {
+	if strings.TrimSpace(sc.uploadDir) != "" {
+		return sc.uploadDir
+	}
+	return UploadBaseDir
 }
 
 const (
@@ -86,88 +156,229 @@ var allowedExtensions = map[string]bool{
 	".jpeg": true,
 }
 
-// Apply handles specialist application submission with multipart form and documents
-func (sc *SpecialistController) Apply(c *gin.Context) {
-	userID, exists := c.Get("user_id")
-	if !exists {
-		respondAPIError(c, http.StatusUnauthorized, "AUTH_UNAUTHORIZED", "Unauthorized")
-		return
+type validatedAppFiles struct {
+	bio             string
+	linkedinURL     string
+	portfolioURL    string
+	resumeHeader    *multipart.FileHeader
+	resumeExt       string
+	certHeader      *multipart.FileHeader
+	certExt         string
+}
+
+func validateApplicationFormFiles(c *gin.Context) (validatedAppFiles, bool) {
+	bio := strings.TrimSpace(c.PostForm("bio"))
+	if bio == "" {
+		respondAPIError(c, http.StatusBadRequest, "SPECIALIST_BIO_REQUIRED", "Bio is required")
+		return validatedAppFiles{}, false
 	}
 
-	// Parse multipart form
+	resumeHeader, err := c.FormFile("resume")
+	if err != nil {
+		respondAPIError(c, http.StatusBadRequest, "SPECIALIST_RESUME_REQUIRED", "Resume file is required")
+		return validatedAppFiles{}, false
+	}
+	if resumeHeader.Size > MaxFileSize {
+		respondAPIError(c, http.StatusBadRequest, "SPECIALIST_FILE_TOO_LARGE", "Resume file exceeds 10MB limit")
+		return validatedAppFiles{}, false
+	}
+	resumeExt := strings.ToLower(filepath.Ext(resumeHeader.Filename))
+	if !allowedExtensions[resumeExt] {
+		respondAPIError(c, http.StatusBadRequest, "SPECIALIST_INVALID_FILE_TYPE", "Invalid resume file type. Allowed: PDF, PNG, JPG, JPEG")
+		return validatedAppFiles{}, false
+	}
+
+	var certHeader *multipart.FileHeader
+	var certExt string
+	if ch, chErr := c.FormFile("certificate"); chErr == nil && ch != nil {
+		if ch.Size > MaxFileSize {
+			respondAPIError(c, http.StatusBadRequest, "SPECIALIST_FILE_TOO_LARGE", "Certificate file exceeds 10MB limit")
+			return validatedAppFiles{}, false
+		}
+		certExt = strings.ToLower(filepath.Ext(ch.Filename))
+		if !allowedExtensions[certExt] {
+			respondAPIError(c, http.StatusBadRequest, "SPECIALIST_INVALID_FILE_TYPE", "Invalid certificate file type. Allowed: PDF, PNG, JPG, JPEG")
+			return validatedAppFiles{}, false
+		}
+		certHeader = ch
+	}
+
+	return validatedAppFiles{
+		bio:          bio,
+		linkedinURL:  strings.TrimSpace(c.PostForm("linkedin_url")),
+		portfolioURL: strings.TrimSpace(c.PostForm("portfolio_url")),
+		resumeHeader: resumeHeader,
+		resumeExt:    resumeExt,
+		certHeader:   certHeader,
+		certExt:      certExt,
+	}, true
+}
+
+func saveApplicationFormFiles(c *gin.Context, baseDir, appID string, files validatedAppFiles) (appDir, resumePath, certPath string, ok bool) {
+	appDir = filepath.Join(baseDir, appID)
+	if err := os.MkdirAll(appDir, 0755); err != nil {
+		respondAPIError(c, http.StatusInternalServerError, "SPECIALIST_APPLICATION_FAILED", "Failed to create upload storage directory")
+		return "", "", "", false
+	}
+
+	resumePath = filepath.Join(appDir, fmt.Sprintf("resume_%s%s", generateUUID(), files.resumeExt))
+	if err := c.SaveUploadedFile(files.resumeHeader, resumePath); err != nil {
+		_ = os.RemoveAll(appDir)
+		respondAPIError(c, http.StatusInternalServerError, "SPECIALIST_APPLICATION_FAILED", "Failed to save resume file")
+		return "", "", "", false
+	}
+
+	if files.certHeader != nil {
+		certPath = filepath.Join(appDir, fmt.Sprintf("certificate_%s%s", generateUUID(), files.certExt))
+		if err := c.SaveUploadedFile(files.certHeader, certPath); err != nil {
+			_ = os.RemoveAll(appDir)
+			respondAPIError(c, http.StatusInternalServerError, "SPECIALIST_APPLICATION_FAILED", "Failed to save certificate file")
+			return "", "", "", false
+		}
+	}
+
+	return appDir, resumePath, certPath, true
+}
+
+// RegisterSpecialist godoc
+// @Summary Atomically register a new user and submit specialist application documents
+// @Description Creates a learner account (unverified when REQUIRE_EMAIL_VERIFICATION=true) and stores specialist application credentials atomically, cleaning up files on failure.
+// @Tags Auth
+// @Accept multipart/form-data
+// @Produce json
+// @Param email formData string true "Account Email"
+// @Param password formData string true "Account Password"
+// @Param nickname formData string false "Display Nickname"
+// @Param preferred_language formData string false "Preferred UI Language (en or th)"
+// @Param bio formData string true "Specialist Biography"
+// @Param linkedin_url formData string false "LinkedIn Profile URL"
+// @Param portfolio_url formData string false "Portfolio URL"
+// @Param resume formData file true "Resume/CV PDF"
+// @Param certificate formData file false "Optional Certificate Document"
+// @Success 201 {object} dto.RegisterSpecialistResponse
+// @Failure 400 {object} dto.ErrorResponse
+// @Failure 500 {object} dto.ErrorResponse
+// @Router /register-specialist [post]
+func (sc *SpecialistController) RegisterSpecialist(c *gin.Context) {
 	if err := c.Request.ParseMultipartForm(MaxFileSize * 2); err != nil {
 		respondAPIError(c, http.StatusBadRequest, "SPECIALIST_INVALID_PAYLOAD", "Payload too large or invalid multipart form")
 		return
 	}
 
-	bio := strings.TrimSpace(c.PostForm("bio"))
-	if bio == "" {
-		respondAPIError(c, http.StatusBadRequest, "SPECIALIST_BIO_REQUIRED", "Bio is required")
+	files, ok := validateApplicationFormFiles(c)
+	if !ok {
 		return
 	}
 
-	linkedinURL := strings.TrimSpace(c.PostForm("linkedin_url"))
-	portfolioURL := strings.TrimSpace(c.PostForm("portfolio_url"))
+	regStore := sc.effectiveRegStore()
+	if regStore == nil {
+		respondAPIError(c, http.StatusInternalServerError, "INTERNAL_SERVER_ERROR", "Registration store is unavailable")
+		return
+	}
 
-	// Validate resume file
-	resumeHeader, err := c.FormFile("resume")
+	prep, err := validateAndPrepareNewUser(
+		regStore,
+		c.PostForm("email"),
+		c.PostForm("password"),
+		c.PostForm("nickname"),
+		c.PostForm("preferred_language"),
+	)
 	if err != nil {
-		respondAPIError(c, http.StatusBadRequest, "SPECIALIST_RESUME_REQUIRED", "Resume file is required")
+		respondAPIError(c, http.StatusInternalServerError, "INTERNAL_SERVER_ERROR", err.Error())
+		return
+	}
+	if prep.ValidationErrCode != "" {
+		respondAPIError(c, prep.ValidationStatus, prep.ValidationErrCode, prep.ValidationErrMsg)
 		return
 	}
 
-	if resumeHeader.Size > MaxFileSize {
-		respondAPIError(c, http.StatusBadRequest, "SPECIALIST_FILE_TOO_LARGE", "Resume file exceeds 10MB limit")
-		return
-	}
-
-	resumeExt := strings.ToLower(filepath.Ext(resumeHeader.Filename))
-	if !allowedExtensions[resumeExt] {
-		respondAPIError(c, http.StatusBadRequest, "SPECIALIST_INVALID_FILE_TYPE", "Invalid resume file type. Allowed: PDF, PNG, JPG, JPEG")
-		return
-	}
-
-	// Prepare application directory
 	appID := generateUUID()
-	appDir := filepath.Join(UploadBaseDir, appID)
-	if err := os.MkdirAll(appDir, 0755); err != nil {
-		respondAPIError(c, http.StatusInternalServerError, "SPECIALIST_APPLICATION_FAILED", "Failed to create upload storage directory")
+	appDir, resumeSavePath, certSavePath, savedOK := saveApplicationFormFiles(c, sc.effectiveUploadDir(), appID, files)
+	if !savedOK {
 		return
 	}
 
-	// Save resume
-	resumeFilename := fmt.Sprintf("resume_%s%s", generateUUID(), resumeExt)
-	resumeSavePath := filepath.Join(appDir, resumeFilename)
-	if err := c.SaveUploadedFile(resumeHeader, resumeSavePath); err != nil {
-		respondAPIError(c, http.StatusInternalServerError, "SPECIALIST_APPLICATION_FAILED", "Failed to save resume file")
+	cleanupOnError := true
+	defer func() {
+		if cleanupOnError && appDir != "" {
+			_ = os.RemoveAll(appDir)
+		}
+	}()
+
+	now := time.Now().UTC()
+	application := models.SpecialistApplication{
+		ApplicationID:   appID,
+		Status:          models.ApplicationStatusPending,
+		Bio:             files.bio,
+		ResumePath:      resumeSavePath,
+		CertificatePath: certSavePath,
+		LinkedInURL:     files.linkedinURL,
+		PortfolioURL:    files.portfolioURL,
+		CreatedAt:       now,
+		UpdatedAt:       now,
+	}
+
+	if err := regStore.CreateUserAndApplication(&prep.User, &application); err != nil {
+		log.Printf("Atomic specialist registration failed: %v", err)
+		respondAPIError(c, http.StatusInternalServerError, "SPECIALIST_APPLICATION_FAILED", "Failed to create specialist registration")
 		return
 	}
 
-	// Optional certificate file
-	var certSavePath string
-	certHeader, err := c.FormFile("certificate")
-	if err == nil && certHeader != nil {
-		if certHeader.Size > MaxFileSize {
-			respondAPIError(c, http.StatusBadRequest, "SPECIALIST_FILE_TOO_LARGE", "Certificate file exceeds 10MB limit")
-			return
-		}
-		certExt := strings.ToLower(filepath.Ext(certHeader.Filename))
-		if !allowedExtensions[certExt] {
-			respondAPIError(c, http.StatusBadRequest, "SPECIALIST_INVALID_FILE_TYPE", "Invalid certificate file type. Allowed: PDF, PNG, JPG, JPEG")
-			return
-		}
-		certFilename := fmt.Sprintf("certificate_%s%s", generateUUID(), certExt)
-		certSavePath = filepath.Join(appDir, certFilename)
-		if err := c.SaveUploadedFile(certHeader, certSavePath); err != nil {
-			respondAPIError(c, http.StatusInternalServerError, "SPECIALIST_APPLICATION_FAILED", "Failed to save certificate file")
-			return
-		}
+	cleanupOnError = false
+
+	if prep.RequireVerify && prep.RawToken != "" {
+		services.DispatchVerificationEmailAsync(services.EffectiveMailSender(sc.mailSender), prep.User.Email, prep.User.Nickname, prep.RawToken)
 	}
 
-	// Check if applicant already has a previous application
+	msg := "Account created and specialist application submitted."
+	if prep.RequireVerify {
+		msg = "Account and specialist application created. Please verify your email before signing in."
+	}
+
+	c.JSON(http.StatusCreated, dto.RegisterSpecialistResponse{
+		Message:              msg,
+		Nickname:             prep.User.Nickname,
+		Email:                prep.User.Email,
+		PreferredLanguage:    prep.NormalizedLang,
+		RequiresVerification: prep.RequireVerify,
+		ApplicationID:        application.ApplicationID,
+		Status:               application.Status,
+	})
+}
+
+// Apply handles specialist application submission with multipart form and documents
+func (sc *SpecialistController) Apply(c *gin.Context) {
+	userID, exists := c.Get("user_id")
+	userIDStr, ok := userID.(string)
+	if !exists || !ok || strings.TrimSpace(userIDStr) == "" {
+		respondAPIError(c, http.StatusUnauthorized, "AUTH_UNAUTHORIZED", "Unauthorized")
+		return
+	}
+
+	if sc.DB == nil {
+		respondAPIError(c, http.StatusInternalServerError, "INTERNAL_SERVER_ERROR", "Database connection is unavailable")
+		return
+	}
+
+	if err := c.Request.ParseMultipartForm(MaxFileSize * 2); err != nil {
+		respondAPIError(c, http.StatusBadRequest, "SPECIALIST_INVALID_PAYLOAD", "Payload too large or invalid multipart form")
+		return
+	}
+
+	files, ok := validateApplicationFormFiles(c)
+	if !ok {
+		return
+	}
+
+	// Reject already-pending or already-approved applicants before writing any files to disk.
 	var existing models.SpecialistApplication
-	now := time.Now()
-	if err := sc.DB.Where("user_id = ?", userID).Order("created_at desc").First(&existing).Error; err == nil {
+	existingErr := sc.DB.Where("user_id = ?", userIDStr).Order("created_at desc").First(&existing).Error
+	if existingErr != nil && !errors.Is(existingErr, gorm.ErrRecordNotFound) {
+		respondAPIError(c, http.StatusInternalServerError, "SPECIALIST_APPLICATION_FAILED", "Failed to check existing application")
+		return
+	}
+	hasExisting := existingErr == nil
+	if hasExisting {
 		if existing.Status == models.ApplicationStatusPending {
 			respondAPIError(c, http.StatusBadRequest, "SPECIALIST_ALREADY_PENDING", "An application is already pending administrator review")
 			return
@@ -176,42 +387,68 @@ func (sc *SpecialistController) Apply(c *gin.Context) {
 			respondAPIError(c, http.StatusBadRequest, "SPECIALIST_ALREADY_APPROVED", "You are already an approved Specialist")
 			return
 		}
-		if existing.Status == models.ApplicationStatusRejected {
-			// Update rejected application to pending (re-application)
-			existing.Status = models.ApplicationStatusPending
-			existing.Bio = bio
-			existing.ResumePath = resumeSavePath
-			if certSavePath != "" {
-				existing.CertificatePath = certSavePath
-			}
-			existing.LinkedInURL = linkedinURL
-			existing.PortfolioURL = portfolioURL
-			existing.RejectionReason = ""
-			existing.ReviewedBy = nil
-			existing.ReviewedAt = nil
-			existing.UpdatedAt = now
-			if err := sc.DB.Save(&existing).Error; err != nil {
-				respondAPIError(c, http.StatusInternalServerError, "SPECIALIST_APPLICATION_FAILED", "Failed to update application")
-				return
-			}
-			c.JSON(http.StatusOK, gin.H{
-				"message":        "Application re-submitted successfully",
-				"application_id": existing.ApplicationID,
-				"status":         existing.Status,
-			})
+	}
+
+	appID := generateUUID()
+	appDir, resumeSavePath, certSavePath, savedOK := saveApplicationFormFiles(c, sc.effectiveUploadDir(), appID, files)
+	if !savedOK {
+		return
+	}
+	cleanupOnError := true
+	defer func() {
+		if cleanupOnError && appDir != "" {
+			_ = os.RemoveAll(appDir)
+		}
+	}()
+
+	now := time.Now()
+	if hasExisting && existing.Status == models.ApplicationStatusRejected {
+		oldResumeDir := ""
+		if strings.TrimSpace(existing.ResumePath) != "" {
+			oldResumeDir = filepath.Dir(existing.ResumePath)
+		}
+		// Update rejected application to pending (re-application)
+		existing.Status = models.ApplicationStatusPending
+		existing.Bio = files.bio
+		existing.ResumePath = resumeSavePath
+		if certSavePath != "" {
+			existing.CertificatePath = certSavePath
+		}
+		existing.LinkedInURL = files.linkedinURL
+		existing.PortfolioURL = files.portfolioURL
+		existing.RejectionReason = ""
+		existing.ReviewedBy = nil
+		existing.ReviewedAt = nil
+		existing.UpdatedAt = now
+		if err := sc.DB.Save(&existing).Error; err != nil {
+			respondAPIError(c, http.StatusInternalServerError, "SPECIALIST_APPLICATION_FAILED", "Failed to update application")
 			return
 		}
+		cleanupOnError = false
+		cleanBase := filepath.Clean(sc.effectiveUploadDir())
+		if oldResumeDir != "" {
+			cleanOld := filepath.Clean(oldResumeDir)
+			if cleanOld != filepath.Clean(appDir) && strings.HasPrefix(cleanOld, cleanBase+string(os.PathSeparator)) {
+				_ = os.RemoveAll(cleanOld)
+			}
+		}
+		c.JSON(http.StatusOK, gin.H{
+			"message":        "Application re-submitted successfully",
+			"application_id": existing.ApplicationID,
+			"status":         existing.Status,
+		})
+		return
 	}
 
 	application := models.SpecialistApplication{
 		ApplicationID:   appID,
-		UserID:          userID.(string),
+		UserID:          userIDStr,
 		Status:          models.ApplicationStatusPending,
-		Bio:             bio,
+		Bio:             files.bio,
 		ResumePath:      resumeSavePath,
 		CertificatePath: certSavePath,
-		LinkedInURL:     linkedinURL,
-		PortfolioURL:    portfolioURL,
+		LinkedInURL:     files.linkedinURL,
+		PortfolioURL:    files.portfolioURL,
 		CreatedAt:       now,
 		UpdatedAt:       now,
 	}
@@ -222,6 +459,7 @@ func (sc *SpecialistController) Apply(c *gin.Context) {
 		return
 	}
 
+	cleanupOnError = false
 	c.JSON(http.StatusCreated, gin.H{
 		"message":        "Specialist application submitted successfully",
 		"application_id": application.ApplicationID,

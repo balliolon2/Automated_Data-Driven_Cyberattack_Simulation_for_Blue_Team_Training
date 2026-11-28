@@ -1744,6 +1744,48 @@ definitions:
     - email
     - password
     type: object
+  dto.RegisterResponse:
+    properties:
+      email:
+        example: analyst@soc.local
+        type: string
+      message:
+        example: User registered successfully
+        type: string
+      nickname:
+        example: cyber_defender
+        type: string
+      preferred_language:
+        example: en
+        type: string
+      requires_verification:
+        example: true
+        type: boolean
+    type: object
+  dto.RegisterSpecialistResponse:
+    properties:
+      application_id:
+        example: a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11
+        type: string
+      email:
+        example: analyst@soc.local
+        type: string
+      message:
+        example: Account created and specialist application submitted.
+        type: string
+      nickname:
+        example: cyber_defender
+        type: string
+      preferred_language:
+        example: en
+        type: string
+      requires_verification:
+        example: true
+        type: boolean
+      status:
+        example: pending
+        type: string
+    type: object
   dto.ResearchSummaryResponse:
     properties:
       all_domains_passed:
@@ -1818,6 +1860,14 @@ definitions:
       total_elapsed_sec:
         example: 720
         type: integer
+    type: object
+  dto.ResendVerificationRequest:
+    properties:
+      email:
+        example: analyst@soc.local
+        type: string
+    required:
+    - email
     type: object
   dto.RunScalabilityProbeRequest:
     properties:
@@ -2370,6 +2420,23 @@ definitions:
         type: string
       preferred_language:
         example: th
+        type: string
+    type: object
+  dto.VerifyEmailRequest:
+    properties:
+      token:
+        example: AbCdEf123456
+        type: string
+    required:
+    - token
+    type: object
+  dto.VerifyEmailResponse:
+    properties:
+      email:
+        example: analyst@soc.local
+        type: string
+      message:
+        example: Email verified successfully
         type: string
     type: object
   dto.WilcoxonTestDTO:
@@ -3521,6 +3588,10 @@ paths:
           description: Unauthorized
           schema:
             $ref: '#/definitions/dto.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
@@ -3547,7 +3618,7 @@ paths:
         "201":
           description: Created
           schema:
-            $ref: '#/definitions/dto.MessageResponse'
+            $ref: '#/definitions/dto.RegisterResponse'
         "400":
           description: Bad Request
           schema:
@@ -3557,6 +3628,107 @@ paths:
           schema:
             $ref: '#/definitions/dto.ErrorResponse'
       summary: Register a new learner
+      tags:
+      - Auth
+  /register-specialist:
+    post:
+      consumes:
+      - multipart/form-data
+      description: Creates a learner account (unverified when REQUIRE_EMAIL_VERIFICATION=true)
+        and stores specialist application credentials atomically, cleaning up files
+        on failure.
+      parameters:
+      - description: Account Email
+        in: formData
+        name: email
+        required: true
+        type: string
+      - description: Account Password
+        in: formData
+        name: password
+        required: true
+        type: string
+      - description: Display Nickname
+        in: formData
+        name: nickname
+        type: string
+      - description: Preferred UI Language (en or th)
+        in: formData
+        name: preferred_language
+        type: string
+      - description: Specialist Biography
+        in: formData
+        name: bio
+        required: true
+        type: string
+      - description: LinkedIn Profile URL
+        in: formData
+        name: linkedin_url
+        type: string
+      - description: Portfolio URL
+        in: formData
+        name: portfolio_url
+        type: string
+      - description: Resume/CV PDF
+        in: formData
+        name: resume
+        required: true
+        type: file
+      - description: Optional Certificate Document
+        in: formData
+        name: certificate
+        type: file
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/dto.RegisterSpecialistResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      summary: Atomically register a new user and submit specialist application documents
+      tags:
+      - Auth
+  /resend-verification:
+    post:
+      consumes:
+      - application/json
+      description: Rotates verification token and sends a new dual-language verification
+        email (60s cooldown)
+      parameters:
+      - description: Target Email Payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.ResendVerificationRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.MessageResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "429":
+          description: Too Many Requests
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      summary: Resend account verification email
       tags:
       - Auth
   /simulation/log-query:
@@ -3990,6 +4162,37 @@ paths:
       summary: Update user language preference
       tags:
       - User
+  /verify-email:
+    post:
+      consumes:
+      - application/json
+      description: Confirms single-use SHA-256 hashed verification token issued on
+        registration
+      parameters:
+      - description: Verification Token Payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.VerifyEmailRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.VerifyEmailResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      summary: Verify user email address
+      tags:
+      - Auth
 securityDefinitions:
   BearerAuth:
     description: 'Type "Bearer" followed by a space and JWT token. Example: "Bearer

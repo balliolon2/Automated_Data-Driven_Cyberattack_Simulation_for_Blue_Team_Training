@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"time"
 
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
@@ -95,6 +96,24 @@ func RunMigrations(db *gorm.DB) error {
 	// 4. Ensure community and specialist tables exist (idempotent DDL from init.sql)
 	ddl := []string{
 		`ALTER TABLE users ADD COLUMN IF NOT EXISTS preferred_language VARCHAR(10) NOT NULL DEFAULT 'en'`,
+		`ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verified BOOLEAN NOT NULL DEFAULT true`,
+		`ALTER TABLE users ALTER COLUMN email_verified SET DEFAULT false`,
+		`ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verified_at TIMESTAMPTZ`,
+		`ALTER TABLE users ADD COLUMN IF NOT EXISTS verification_token_hash VARCHAR(64)`,
+		`ALTER TABLE users ADD COLUMN IF NOT EXISTS verification_sent_at TIMESTAMPTZ`,
+		`ALTER TABLE users ADD COLUMN IF NOT EXISTS verification_expires_at TIMESTAMPTZ`,
+		`DO $$ BEGIN
+			IF EXISTS (
+				SELECT 1 FROM information_schema.columns
+				WHERE table_name = 'users' AND column_name = 'verification_sent_at' AND data_type = 'timestamp without time zone'
+			) THEN
+				ALTER TABLE users
+					ALTER COLUMN email_verified_at TYPE TIMESTAMPTZ USING email_verified_at AT TIME ZONE 'UTC',
+					ALTER COLUMN verification_sent_at TYPE TIMESTAMPTZ USING verification_sent_at AT TIME ZONE 'UTC',
+					ALTER COLUMN verification_expires_at TYPE TIMESTAMPTZ USING verification_expires_at AT TIME ZONE 'UTC';
+			END IF;
+		END $$`,
+		`CREATE INDEX IF NOT EXISTS idx_users_verification_token_hash ON users(verification_token_hash) WHERE verification_token_hash IS NOT NULL`,
 		`ALTER TABLE scenarios ADD COLUMN IF NOT EXISTS translations JSONB NOT NULL DEFAULT '{}'::jsonb`,
 		`ALTER TABLE questions ADD COLUMN IF NOT EXISTS translations JSONB NOT NULL DEFAULT '{}'::jsonb`,
 		`CREATE TABLE IF NOT EXISTS specialist_applications (
@@ -278,6 +297,7 @@ func RunMigrations(db *gorm.DB) error {
 			// Admin does not exist, provision new admin user
 			hash, err := bcrypt.GenerateFromPassword([]byte(adminPassword), bcrypt.DefaultCost)
 			if err == nil {
+				verifiedAt := time.Now().UTC()
 				admin := User{
 					Email:             adminEmail,
 					Nickname:          adminNickname,
@@ -285,6 +305,8 @@ func RunMigrations(db *gorm.DB) error {
 					Role:              "admin",
 					CurrentTier:       1,
 					PreferredLanguage: "en",
+					EmailVerified:     true,
+					EmailVerifiedAt:   &verifiedAt,
 					IsActive:          true,
 				}
 				if err := db.Create(&admin).Error; err != nil {
@@ -296,6 +318,13 @@ func RunMigrations(db *gorm.DB) error {
 				log.Printf("Error hashing admin password: %v", err)
 			}
 		} else {
+			if !existingAdmin.EmailVerified {
+				verifiedAt := time.Now().UTC()
+				db.Model(&existingAdmin).Updates(map[string]any{
+					"email_verified":    true,
+					"email_verified_at": &verifiedAt,
+				})
+			}
 			// Admin account exists: verify or update password if changed in .env
 			if err := bcrypt.CompareHashAndPassword([]byte(existingAdmin.PasswordHash), []byte(adminPassword)); err != nil {
 				hash, err := bcrypt.GenerateFromPassword([]byte(adminPassword), bcrypt.DefaultCost)

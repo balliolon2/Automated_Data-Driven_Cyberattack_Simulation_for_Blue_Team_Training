@@ -138,6 +138,14 @@ services:
       PORT: "8080"
       BYPASS_POST_TEST_THRESHOLD: ${BYPASS_POST_TEST_THRESHOLD:-false}
       BYPASS_THEORY_GATE: ${BYPASS_THEORY_GATE:-false}
+      REQUIRE_EMAIL_VERIFICATION: ${REQUIRE_EMAIL_VERIFICATION:-true}
+      APP_BASE_URL: ${APP_BASE_URL:-${FRONTEND_URL:-http://localhost}}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_FROM: ${SMTP_FROM:-}
+      SMTP_TLS_MODE: ${SMTP_TLS_MODE:-starttls}
     user: "65534:65534"
     read_only: true
     tmpfs:
@@ -241,6 +249,30 @@ services:
         limits:
           cpus: "0.5"
           memory: 512m
+
+  mailpit:
+    image: axllent/mailpit
+    container_name: cyber_sim_mailpit
+    profiles:
+      - dev-email
+    ports:
+      - "127.0.0.1:8025:8025"
+      - "127.0.0.1:1025:1025"
+    networks:
+      - backend_net
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 256m
 
 networks:
   frontend_net:

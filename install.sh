@@ -860,11 +860,12 @@ setup_env_config() {
         fi
     fi
 
-    local gin_mode swg_flag b_post b_theory
+    local gin_mode swg_flag b_post b_theory req_email_verify
     gin_mode="$(resolve_existing_or_default "GIN_MODE" "release")"
     swg_flag="$(resolve_existing_or_default "ENABLE_SWAGGER" "false")"
     b_post="$(resolve_existing_or_default "BYPASS_POST_TEST_THRESHOLD" "false")"
     b_theory="$(resolve_existing_or_default "BYPASS_THEORY_GATE" "false")"
+    req_email_verify="$(resolve_existing_or_default "REQUIRE_EMAIL_VERIFICATION" "true")"
 
     write_merged_env <<EOF
 POSTGRES_USER=${pg_user}
@@ -879,6 +880,8 @@ GIN_MODE=${gin_mode}
 ENABLE_SWAGGER=${swg_flag}
 BYPASS_POST_TEST_THRESHOLD=${b_post}
 BYPASS_THEORY_GATE=${b_theory}
+REQUIRE_EMAIL_VERIFICATION=${req_email_verify}
+APP_BASE_URL=${frontend_url}
 FRONTEND_URL=${frontend_url}
 DOMAIN=${domain_val}
 ACME_EMAIL=${acme_val}

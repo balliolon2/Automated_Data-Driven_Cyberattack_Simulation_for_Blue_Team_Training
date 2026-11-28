@@ -60,7 +60,7 @@ def test_env_example_fail_closed_and_complete() -> None:
     assert env_example.exists(), ".env.example must exist"
     env_map = parse_env_lines(env_example)
 
-    for blank_secret in ("POSTGRES_PASSWORD", "JWT_SECRET", "ADMIN_PASSWORD", "PGADMIN_DEFAULT_PASSWORD"):
+    for blank_secret in ("POSTGRES_PASSWORD", "JWT_SECRET", "ADMIN_PASSWORD", "PGADMIN_DEFAULT_PASSWORD", "SMTP_PASSWORD"):
         assert blank_secret in env_map, f".env.example missing secret key: {blank_secret}"
         assert env_map[blank_secret] == "", f".env.example must leave {blank_secret} blank (fail-closed)"
 
@@ -79,6 +79,10 @@ def test_env_example_fail_closed_and_complete() -> None:
         "COMPOSE_PATH_SEPARATOR": ":",
         "COMPOSE_FILE": "docker-compose.yml",
         "FRONTEND_URL": "http://localhost",
+        "REQUIRE_EMAIL_VERIFICATION": "true",
+        "APP_BASE_URL": "http://localhost",
+        "SMTP_PORT": "587",
+        "SMTP_TLS_MODE": "starttls",
     }
     for key, expected in required_defaults.items():
         assert key in env_map, f".env.example missing key: {key}"
@@ -146,6 +150,21 @@ def test_compose_fail_closed_and_cloud_caddy_overlay() -> None:
         b_match = re.search(r"(?m)^  backend:\r?\n(.*?)(?=^  [a-zA-Z0-9_-]+:|^networks:)", cfg, re.DOTALL)
         assert b_match and "APP_ENVIRONMENT: cloud" in b_match.group(1) and "BYPASS_THEORY_GATE:" in b_match.group(1), (
             "backend service must forward APP_ENVIRONMENT and BYPASS_THEORY_GATE from .env"
+        )
+        assert "REQUIRE_EMAIL_VERIFICATION:" in b_match.group(1) and "APP_BASE_URL:" in b_match.group(1), (
+            "backend service must forward REQUIRE_EMAIL_VERIFICATION and APP_BASE_URL"
+        )
+
+        # Verify opt-in dev-email profile enables mailpit cleanly without launching in default runs
+        assert "mailpit:" not in cfg, "mailpit must stay opt-in behind dev-email profile"
+        res_mailpit = subprocess.run(
+            ["docker", "compose", "--env-file", str(ok_env_path), "-f", str(ROOT / "docker-compose.yml"), "--profile", "dev-email", "config"],
+            capture_output=True,
+            text=True,
+            cwd=str(ROOT),
+        )
+        assert res_mailpit.returncode == 0 and "mailpit:" in res_mailpit.stdout, (
+            f"dev-email profile must enable mailpit service cleanly:\n{res_mailpit.stderr}"
         )
     finally:
         ok_env_path.unlink(missing_ok=True)

@@ -1534,6 +1534,12 @@ const docTemplate = `{
                             "$ref": "#/definitions/dto.ErrorResponse"
                         }
                     },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
@@ -1571,11 +1577,158 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
+                            "$ref": "#/definitions/dto.RegisterResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/register-specialist": {
+            "post": {
+                "description": "Creates a learner account (unverified when REQUIRE_EMAIL_VERIFICATION=true) and stores specialist application credentials atomically, cleaning up files on failure.",
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Atomically register a new user and submit specialist application documents",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Account Email",
+                        "name": "email",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Account Password",
+                        "name": "password",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Display Nickname",
+                        "name": "nickname",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Preferred UI Language (en or th)",
+                        "name": "preferred_language",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Specialist Biography",
+                        "name": "bio",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "LinkedIn Profile URL",
+                        "name": "linkedin_url",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Portfolio URL",
+                        "name": "portfolio_url",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "file",
+                        "description": "Resume/CV PDF",
+                        "name": "resume",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "file",
+                        "description": "Optional Certificate Document",
+                        "name": "certificate",
+                        "in": "formData"
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/dto.RegisterSpecialistResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/resend-verification": {
+            "post": {
+                "description": "Rotates verification token and sends a new dual-language verification email (60s cooldown)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Resend account verification email",
+                "parameters": [
+                    {
+                        "description": "Target Email Payload",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.ResendVerificationRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
                             "$ref": "#/definitions/dto.MessageResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "429": {
+                        "description": "Too Many Requests",
                         "schema": {
                             "$ref": "#/definitions/dto.ErrorResponse"
                         }
@@ -2246,6 +2399,52 @@ const docTemplate = `{
                     },
                     "404": {
                         "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/verify-email": {
+            "post": {
+                "description": "Confirms single-use SHA-256 hashed verification token issued on registration",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Verify user email address",
+                "parameters": [
+                    {
+                        "description": "Verification Token Payload",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.VerifyEmailRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.VerifyEmailResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
                         "schema": {
                             "$ref": "#/definitions/dto.ErrorResponse"
                         }
@@ -4719,6 +4918,64 @@ const docTemplate = `{
                 }
             }
         },
+        "dto.RegisterResponse": {
+            "type": "object",
+            "properties": {
+                "email": {
+                    "type": "string",
+                    "example": "analyst@soc.local"
+                },
+                "message": {
+                    "type": "string",
+                    "example": "User registered successfully"
+                },
+                "nickname": {
+                    "type": "string",
+                    "example": "cyber_defender"
+                },
+                "preferred_language": {
+                    "type": "string",
+                    "example": "en"
+                },
+                "requires_verification": {
+                    "type": "boolean",
+                    "example": true
+                }
+            }
+        },
+        "dto.RegisterSpecialistResponse": {
+            "type": "object",
+            "properties": {
+                "application_id": {
+                    "type": "string",
+                    "example": "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11"
+                },
+                "email": {
+                    "type": "string",
+                    "example": "analyst@soc.local"
+                },
+                "message": {
+                    "type": "string",
+                    "example": "Account created and specialist application submitted."
+                },
+                "nickname": {
+                    "type": "string",
+                    "example": "cyber_defender"
+                },
+                "preferred_language": {
+                    "type": "string",
+                    "example": "en"
+                },
+                "requires_verification": {
+                    "type": "boolean",
+                    "example": true
+                },
+                "status": {
+                    "type": "string",
+                    "example": "pending"
+                }
+            }
+        },
         "dto.ResearchSummaryResponse": {
             "type": "object",
             "properties": {
@@ -4819,6 +5076,18 @@ const docTemplate = `{
                 "total_elapsed_sec": {
                     "type": "integer",
                     "example": 720
+                }
+            }
+        },
+        "dto.ResendVerificationRequest": {
+            "type": "object",
+            "required": [
+                "email"
+            ],
+            "properties": {
+                "email": {
+                    "type": "string",
+                    "example": "analyst@soc.local"
                 }
             }
         },
@@ -5601,6 +5870,31 @@ const docTemplate = `{
                 "preferred_language": {
                     "type": "string",
                     "example": "th"
+                }
+            }
+        },
+        "dto.VerifyEmailRequest": {
+            "type": "object",
+            "required": [
+                "token"
+            ],
+            "properties": {
+                "token": {
+                    "type": "string",
+                    "example": "AbCdEf123456"
+                }
+            }
+        },
+        "dto.VerifyEmailResponse": {
+            "type": "object",
+            "properties": {
+                "email": {
+                    "type": "string",
+                    "example": "analyst@soc.local"
+                },
+                "message": {
+                    "type": "string",
+                    "example": "Email verified successfully"
                 }
             }
         },

@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Shield, ArrowRight, Loader2, Award, BookOpen, Upload, CheckCircle2 } from "lucide-react";
+import { Shield, ArrowRight, Loader2, Award, BookOpen, Upload, CheckCircle2, MailCheck } from "lucide-react";
 import axios from "axios";
 import { useI18n } from "../i18n/index.tsx";
 import { resolveApiError } from "../i18n/format.ts";
+import ResendVerificationPanel from "../components/ResendVerificationPanel.tsx";
 
 type RegisterErrorState =
   | { kind: "key"; key: string }
@@ -28,6 +29,19 @@ export default function RegisterPage() {
   const [errorState, setErrorState] = useState<RegisterErrorState>(null);
   const [loading, setLoading] = useState(false);
   const [successKey, setSuccessKey] = useState<string | null>(null);
+  const [pendingVerifyInfo, setPendingVerifyInfo] = useState<{
+    email: string;
+    isSpecialist: boolean;
+  } | null>(null);
+  const navTimerRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (navTimerRef.current !== null) {
+        window.clearTimeout(navTimerRef.current);
+      }
+    };
+  }, []);
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -48,17 +62,31 @@ export default function RegisterPage() {
     }
 
     try {
-      // 1. Register account with current UI locale
-      await axios.post("/api/register", {
-        email,
-        password,
-        nickname: nickname.trim(),
-        preferred_language: locale,
-      });
-
-      // 2. If Specialist, log in and upload credentials
       if (accountType === "specialist") {
-        const loginRes = await axios.post("/api/login", { email, password });
+        const formData = new FormData();
+        formData.append("email", email.trim());
+        formData.append("password", password);
+        formData.append("nickname", nickname.trim());
+        formData.append("preferred_language", locale);
+        formData.append("bio", bio);
+        if (resumeFile) formData.append("resume", resumeFile);
+        if (certFile) formData.append("certificate", certFile);
+        if (linkedinUrl) formData.append("linkedin_url", linkedinUrl);
+        if (portfolioUrl) formData.append("portfolio_url", portfolioUrl);
+
+        const specRes = await axios.post("/api/register-specialist", formData, {
+          headers: { "Content-Type": "multipart/form-data" },
+        });
+
+        if (specRes.data?.requires_verification) {
+          setPendingVerifyInfo({
+            email: specRes.data?.email || email.trim(),
+            isSpecialist: true,
+          });
+          return;
+        }
+
+        const loginRes = await axios.post("/api/login", { email: email.trim(), password });
         const token = loginRes.data.token;
         localStorage.setItem("token", token);
         localStorage.setItem("userEmail", loginRes.data.email);
@@ -69,25 +97,27 @@ export default function RegisterPage() {
         }
         syncLocaleFromUser(loginRes.data.preferred_language);
 
-        const formData = new FormData();
-        formData.append("bio", bio);
-        if (resumeFile) formData.append("resume", resumeFile);
-        if (certFile) formData.append("certificate", certFile);
-        if (linkedinUrl) formData.append("linkedin_url", linkedinUrl);
-        if (portfolioUrl) formData.append("portfolio_url", portfolioUrl);
-
-        await axios.post("/api/specialist/apply", formData, {
-          headers: {
-            "Content-Type": "multipart/form-data",
-            Authorization: `Bearer ${token}`,
-          },
-        });
-
         setSuccessKey("auth.register.specialistSuccess");
-        setTimeout(() => navigate("/profile"), 1500);
+        navTimerRef.current = window.setTimeout(() => navigate("/profile"), 1500);
+        return;
+      }
+
+      // Learner registration with current UI locale
+      const regRes = await axios.post("/api/register", {
+        email: email.trim(),
+        password,
+        nickname: nickname.trim(),
+        preferred_language: locale,
+      });
+
+      if (regRes.data?.requires_verification) {
+        setPendingVerifyInfo({
+          email: regRes.data?.email || email.trim(),
+          isSpecialist: false,
+        });
       } else {
         setSuccessKey("auth.register.learnerSuccess");
-        setTimeout(() => navigate("/login"), 1000);
+        navTimerRef.current = window.setTimeout(() => navigate("/login"), 1000);
       }
     } catch (err: unknown) {
       setErrorState({ kind: "api", err });
@@ -102,6 +132,41 @@ export default function RegisterPage() {
       : resolveApiError(errorState.err, t, t("auth.register.fallbackError"))
     : "";
   const successMessage = successKey ? t(successKey) : "";
+
+  if (pendingVerifyInfo) {
+    return (
+      <div className="min-h-[80vh] flex items-center justify-center py-12">
+        <div className="w-full max-w-md bg-graphite-900 border border-graphite-800 rounded-lg p-8 shadow-xl space-y-5">
+          <div className="flex flex-col items-center text-center">
+            <div className="w-12 h-12 rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 mb-4">
+              <MailCheck size={24} />
+            </div>
+            <h2 className="text-xl font-bold text-white tracking-tight">
+              {t("auth.verification.pendingTitle")}
+            </h2>
+            <p className="text-graphite-200 text-sm mt-2 leading-relaxed">
+              {pendingVerifyInfo.isSpecialist
+                ? t("auth.verification.pendingSpecialistBody", { email: pendingVerifyInfo.email })
+                : t("auth.verification.pendingLearnerBody", { email: pendingVerifyInfo.email })}
+            </p>
+            <p className="text-xs sm:text-sm text-graphite-400 mt-2 leading-relaxed">
+              {t("auth.verification.expiryHint")}
+            </p>
+          </div>
+
+          <ResendVerificationPanel initialEmail={pendingVerifyInfo.email} />
+
+          <Link
+            to="/login"
+            className="w-full bg-white text-black font-semibold py-2.5 px-4 rounded text-sm hover:bg-white/90 transition-all flex items-center justify-center gap-2"
+          >
+            <span>{t("auth.verification.goToLogin")}</span>
+            <ArrowRight size={16} />
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-[80vh] flex items-center justify-center py-12">

@@ -2,10 +2,12 @@ package controllers
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -47,8 +49,9 @@ func (f *fakeAuthStore) FindUserByEmail(email string) (*models.User, error) {
 	if f.forceDBErr != nil {
 		return nil, f.forceDBErr
 	}
+	target := strings.TrimSpace(email)
 	for _, u := range f.usersByID {
-		if u.Email == email {
+		if strings.EqualFold(u.Email, target) {
 			c := *u
 			return &c, nil
 		}
@@ -147,12 +150,54 @@ func (f *fakeAuthStore) UpdateUserLanguage(userID, lang string) (int64, error) {
 	return 1, nil
 }
 
+func (f *fakeAuthStore) FindUserByVerificationTokenHash(tokenHash string) (*models.User, error) {
+	if f.forceDBErr != nil {
+		return nil, f.forceDBErr
+	}
+	for _, u := range f.usersByID {
+		if u.VerificationTokenHash != nil && *u.VerificationTokenHash == tokenHash {
+			c := *u
+			return &c, nil
+		}
+	}
+	return nil, gorm.ErrRecordNotFound
+}
+
+func (f *fakeAuthStore) MarkUserEmailVerified(userID string, verifiedAt time.Time) error {
+	if f.forceDBErr != nil {
+		return f.forceDBErr
+	}
+	if u, ok := f.usersByID[userID]; ok {
+		u.EmailVerified = true
+		u.EmailVerifiedAt = &verifiedAt
+		u.VerificationTokenHash = nil
+		u.VerificationSentAt = nil
+		u.VerificationExpiresAt = nil
+	}
+	return nil
+}
+
+func (f *fakeAuthStore) UpdateVerificationToken(userID, tokenHash string, sentAt, expiresAt time.Time) error {
+	if f.forceDBErr != nil {
+		return f.forceDBErr
+	}
+	if u, ok := f.usersByID[userID]; ok {
+		hashCopy := tokenHash
+		u.VerificationTokenHash = &hashCopy
+		u.VerificationSentAt = &sentAt
+		u.VerificationExpiresAt = &expiresAt
+	}
+	return nil
+}
+
 func makeAuthRouter(ac *AuthController) *gin.Engine {
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
 	api := r.Group("/api")
 	api.POST("/register", ac.Register)
 	api.POST("/login", ac.Login)
+	api.POST("/verify-email", ac.VerifyEmail)
+	api.POST("/resend-verification", ac.ResendVerification)
 	userGroup := api.Group("/user", middlewares.AuthMiddleware())
 	userGroup.GET("/profile", ac.GetProfile)
 	userGroup.PUT("/nickname", ac.UpdateNickname)
@@ -297,6 +342,7 @@ func TestAuthController_LoginProfileNicknameAndUpdateLanguage(t *testing.T) {
 		Role:              "learner",
 		CurrentTier:       2,
 		PreferredLanguage: "th",
+		EmailVerified:     true,
 		IsActive:          true,
 	})
 	store.seedUser(models.User{
@@ -307,6 +353,7 @@ func TestAuthController_LoginProfileNicknameAndUpdateLanguage(t *testing.T) {
 		Role:              "learner",
 		CurrentTier:       1,
 		PreferredLanguage: "",
+		EmailVerified:     true,
 		IsActive:          true,
 	})
 
@@ -476,4 +523,223 @@ func TestGormAuthStore_UpdateUserLanguageSQL(t *testing.T) {
 	if !strings.Contains(sql, `UPDATE "users"`) || !strings.Contains(sql, `"preferred_language"`) {
 		t.Fatalf("expected UPDATE users SET preferred_language in generated SQL, got: %s", sql)
 	}
+}
+
+type fakeMailRecord struct {
+	Recipient string
+	Nickname  string
+	URL       string
+}
+
+type fakeMailSender struct {
+	mu   sync.Mutex
+	sent []fakeMailRecord
+	ch   chan fakeMailRecord
+}
+
+func newFakeMailSender() *fakeMailSender {
+	return &fakeMailSender{
+		ch: make(chan fakeMailRecord, 16),
+	}
+}
+
+func (f *fakeMailSender) SendVerificationEmail(_ context.Context, recipientEmail, nickname, verificationURL string) error {
+	rec := fakeMailRecord{Recipient: recipientEmail, Nickname: nickname, URL: verificationURL}
+	f.mu.Lock()
+	f.sent = append(f.sent, rec)
+	f.mu.Unlock()
+	f.ch <- rec
+	return nil
+}
+
+func (f *fakeMailSender) waitForMail(t *testing.T) fakeMailRecord {
+	t.Helper()
+	select {
+	case rec := <-f.ch:
+		return rec
+	case <-time.After(2 * time.Second):
+		t.Fatalf("timed out waiting for async verification email dispatch")
+		return fakeMailRecord{}
+	}
+}
+
+func extractTokenFromVerifyURL(verifyURL string) string {
+	const prefix = "token="
+	idx := strings.Index(verifyURL, prefix)
+	if idx == -1 {
+		return ""
+	}
+	return verifyURL[idx+len(prefix):]
+}
+
+func TestAuthController_EmailVerificationLifecycle(t *testing.T) {
+	t.Setenv("JWT_SECRET", "auth-verify-secret")
+	t.Setenv("APP_BASE_URL", "https://soc.example.com")
+	t.Setenv("REQUIRE_EMAIL_VERIFICATION", "true")
+
+	store := newFakeAuthStore()
+	mailer := newFakeMailSender()
+	ac := NewAuthControllerWithDeps(store, mailer)
+	r := makeAuthRouter(ac)
+
+	// 1. Register creates unverified account (normalized lowercase) and dispatches dual-language verification email async
+	wReg := doJSONReq(t, r, http.MethodPost, "/api/register", map[string]any{
+		"email":    "NewLearner@SOC.Local",
+		"password": "Password123!",
+		"nickname": "new_learner",
+	}, nil)
+	if wReg.Code != http.StatusCreated {
+		t.Fatalf("expected 201 register, got %d: %s", wReg.Code, wReg.Body.String())
+	}
+	var regBody map[string]any
+	_ = json.Unmarshal(wReg.Body.Bytes(), &regBody)
+	if regBody["requires_verification"] != true || regBody["email"] != "newlearner@soc.local" {
+		t.Fatalf("expected requires_verification=true and canonical lowercase email, got %+v", regBody)
+	}
+
+	firstMail := mailer.waitForMail(t)
+	firstToken := extractTokenFromVerifyURL(firstMail.URL)
+	if !strings.HasPrefix(firstMail.URL, "https://soc.example.com/verify-email?token=") || firstToken == "" {
+		t.Fatalf("unexpected verification link: %q", firstMail.URL)
+	}
+
+	// 2. Wrong password returns 401 AUTH_INVALID_CREDENTIALS even when unverified (no status leak)
+	wWrongPw := doJSONReq(t, r, http.MethodPost, "/api/login", map[string]any{
+		"email":    "NEWLEARNER@SOC.LOCAL",
+		"password": "WrongPassword!",
+	}, nil)
+	if wWrongPw.Code != http.StatusUnauthorized {
+		t.Fatalf("expected 401 on wrong password for unverified user, got %d: %s", wWrongPw.Code, wWrongPw.Body.String())
+	}
+
+	// 3. Valid password while unverified returns 403 AUTH_EMAIL_NOT_VERIFIED (case-insensitive)
+	wUnverifiedLogin := doJSONReq(t, r, http.MethodPost, "/api/login", map[string]any{
+		"email":    "NEWLEARNER@SOC.LOCAL",
+		"password": "Password123!",
+	}, nil)
+	var unverifiedBody map[string]any
+	_ = json.Unmarshal(wUnverifiedLogin.Body.Bytes(), &unverifiedBody)
+	if wUnverifiedLogin.Code != http.StatusForbidden || unverifiedBody["code"] != "AUTH_EMAIL_NOT_VERIFIED" {
+		t.Fatalf("expected 403 AUTH_EMAIL_NOT_VERIFIED, got %d %+v", wUnverifiedLogin.Code, unverifiedBody)
+	}
+
+	// 4. Resend within 60s returns 429 AUTH_VERIFICATION_COOLDOWN
+	wCooldown := doJSONReq(t, r, http.MethodPost, "/api/resend-verification", map[string]any{
+		"email": "NewLearner@soc.local",
+	}, nil)
+	var cooldownBody map[string]any
+	_ = json.Unmarshal(wCooldown.Body.Bytes(), &cooldownBody)
+	if wCooldown.Code != http.StatusTooManyRequests || cooldownBody["code"] != "AUTH_VERIFICATION_COOLDOWN" {
+		t.Fatalf("expected 429 AUTH_VERIFICATION_COOLDOWN, got %d %+v", wCooldown.Code, cooldownBody)
+	}
+
+	// 5. After 60s elapsed, resend rotates token hash and invalidates first token
+	savedUser, _ := store.FindUserByEmail("newlearner@soc.local")
+	pastSent := time.Now().UTC().Add(-65 * time.Second)
+	store.usersByID[savedUser.UserID].VerificationSentAt = &pastSent
+
+	wResend := doJSONReq(t, r, http.MethodPost, "/api/resend-verification", map[string]any{
+		"email": "newlearner@soc.local",
+	}, nil)
+	if wResend.Code != http.StatusOK {
+		t.Fatalf("expected 200 on resend after cooldown, got %d: %s", wResend.Code, wResend.Body.String())
+	}
+	secondMail := mailer.waitForMail(t)
+	secondToken := extractTokenFromVerifyURL(secondMail.URL)
+	if secondToken == "" || secondToken == firstToken {
+		t.Fatalf("expected fresh rotated verification token")
+	}
+
+	// Old token must fail
+	wOldTok := doJSONReq(t, r, http.MethodPost, "/api/verify-email", map[string]any{"token": firstToken}, nil)
+	if wOldTok.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400 for invalidated prior token, got %d", wOldTok.Code)
+	}
+
+	// 6. Unknown email on resend returns neutral 200 (no enumeration)
+	wUnknownResend := doJSONReq(t, r, http.MethodPost, "/api/resend-verification", map[string]any{
+		"email": "nobody@soc.local",
+	}, nil)
+	if wUnknownResend.Code != http.StatusOK {
+		t.Fatalf("expected neutral 200 on unknown resend email, got %d", wUnknownResend.Code)
+	}
+
+	// 7. Verify latest valid token -> 200, single-use replay -> 400, login -> 200 JWT
+	wVerify := doJSONReq(t, r, http.MethodPost, "/api/verify-email", map[string]any{"token": secondToken}, nil)
+	if wVerify.Code != http.StatusOK {
+		t.Fatalf("expected 200 verify-email, got %d: %s", wVerify.Code, wVerify.Body.String())
+	}
+	wReplay := doJSONReq(t, r, http.MethodPost, "/api/verify-email", map[string]any{"token": secondToken}, nil)
+	if wReplay.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400 on single-use replay, got %d", wReplay.Code)
+	}
+
+	wLoginOK := doJSONReq(t, r, http.MethodPost, "/api/login", map[string]any{
+		"email":    "newlearner@soc.local",
+		"password": "Password123!",
+	}, nil)
+	if wLoginOK.Code != http.StatusOK {
+		t.Fatalf("expected 200 login after verification, got %d: %s", wLoginOK.Code, wLoginOK.Body.String())
+	}
+}
+
+func TestAuthController_ExpiredTokenAndEnvBypass(t *testing.T) {
+	store := newFakeAuthStore()
+	mailer := newFakeMailSender()
+	ac := NewAuthControllerWithDeps(store, mailer)
+	r := makeAuthRouter(ac)
+
+	t.Run("expired_token_returns_400_expired", func(t *testing.T) {
+		t.Setenv("REQUIRE_EMAIL_VERIFICATION", "true")
+		_ = doJSONReq(t, r, http.MethodPost, "/api/register", map[string]any{
+			"email":    "expired@soc.local",
+			"password": "Password123!",
+			"nickname": "expired_user",
+		}, nil)
+		mail := mailer.waitForMail(t)
+		tok := extractTokenFromVerifyURL(mail.URL)
+		u, _ := store.FindUserByEmail("expired@soc.local")
+		expiredAt := time.Now().UTC().Add(-time.Minute)
+		store.usersByID[u.UserID].VerificationExpiresAt = &expiredAt
+
+		wExp := doJSONReq(t, r, http.MethodPost, "/api/verify-email", map[string]any{"token": tok}, nil)
+		var expBody map[string]any
+		_ = json.Unmarshal(wExp.Body.Bytes(), &expBody)
+		if wExp.Code != http.StatusBadRequest || expBody["code"] != "AUTH_VERIFICATION_TOKEN_EXPIRED" {
+			t.Fatalf("expected 400 AUTH_VERIFICATION_TOKEN_EXPIRED, got %d %+v", wExp.Code, expBody)
+		}
+	})
+
+	t.Run("bypass_flag_auto_verifies_on_register", func(t *testing.T) {
+		t.Setenv("REQUIRE_EMAIL_VERIFICATION", "false")
+		wReg := doJSONReq(t, r, http.MethodPost, "/api/register", map[string]any{
+			"email":    "bypass@soc.local",
+			"password": "Password123!",
+			"nickname": "bypass_user",
+		}, nil)
+		var body map[string]any
+		_ = json.Unmarshal(wReg.Body.Bytes(), &body)
+		if wReg.Code != http.StatusCreated || body["requires_verification"] != false {
+			t.Fatalf("expected 201 requires_verification=false, got %d %+v", wReg.Code, body)
+		}
+		wLogin := doJSONReq(t, r, http.MethodPost, "/api/login", map[string]any{
+			"email":    "bypass@soc.local",
+			"password": "Password123!",
+		}, nil)
+		if wLogin.Code != http.StatusOK {
+			t.Fatalf("expected immediate 200 login when REQUIRE_EMAIL_VERIFICATION=false, got %d", wLogin.Code)
+		}
+	})
+
+	t.Run("nil_auth_store_returns_500_cleanly", func(t *testing.T) {
+		acNil := &AuthController{}
+		rNil := makeAuthRouter(acNil)
+		w := doJSONReq(t, rNil, http.MethodPost, "/api/login", map[string]any{
+			"email":    "any@soc.local",
+			"password": "Password123!",
+		}, nil)
+		if w.Code != http.StatusInternalServerError {
+			t.Fatalf("expected 500 for nil auth store, got %d", w.Code)
+		}
+	})
 }

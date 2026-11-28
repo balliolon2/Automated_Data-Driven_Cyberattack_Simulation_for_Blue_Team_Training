@@ -24,6 +24,42 @@ type AuthResponse struct {
 	PreferredLanguage string `json:"preferred_language" example:"en"`
 }
 
+// RegisterResponse defines the response returned after learner/specialist registration
+type RegisterResponse struct {
+	Message              string `json:"message" example:"User registered successfully"`
+	Nickname             string `json:"nickname" example:"cyber_defender"`
+	Email                string `json:"email" example:"analyst@soc.local"`
+	PreferredLanguage    string `json:"preferred_language" example:"en"`
+	RequiresVerification bool   `json:"requires_verification" example:"true"`
+}
+
+// RegisterSpecialistResponse defines the response after atomic specialist registration and upload
+type RegisterSpecialistResponse struct {
+	Message              string `json:"message" example:"Account created and specialist application submitted."`
+	Nickname             string `json:"nickname" example:"cyber_defender"`
+	Email                string `json:"email" example:"analyst@soc.local"`
+	PreferredLanguage    string `json:"preferred_language" example:"en"`
+	RequiresVerification bool   `json:"requires_verification" example:"true"`
+	ApplicationID        string `json:"application_id" example:"a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11"`
+	Status               string `json:"status" example:"pending"`
+}
+
+// VerifyEmailRequest defines the payload to confirm an email verification token
+type VerifyEmailRequest struct {
+	Token string `json:"token" binding:"required" example:"AbCdEf123456"`
+}
+
+// VerifyEmailResponse defines the response returned after verifying email ownership
+type VerifyEmailResponse struct {
+	Message string `json:"message" example:"Email verified successfully"`
+	Email   string `json:"email" example:"analyst@soc.local"`
+}
+
+// ResendVerificationRequest defines the payload for requesting a fresh verification link
+type ResendVerificationRequest struct {
+	Email string `json:"email" binding:"required,email" example:"analyst@soc.local"`
+}
+
 // UserProfileResponse defines user profile details and application status
 type UserProfileResponse struct {
 	UserID            string                    `json:"user_id"`
@@ -32,6 +68,7 @@ type UserProfileResponse struct {
 	Role              string                    `json:"role"`
 	CurrentTier       int                       `json:"current_tier"`
 	PreferredLanguage string                    `json:"preferred_language" example:"en"`
+	EmailVerified     bool                      `json:"email_verified" example:"true"`
 	LatestApplication *SpecialistApplicationDTO `json:"latest_application,omitempty"`
 }
 

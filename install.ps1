@@ -865,6 +865,8 @@ function Initialize-EnvConfig {
         ENABLE_SWAGGER             = (Resolve-ExistingOrDefault "ENABLE_SWAGGER" $existing "false")
         BYPASS_POST_TEST_THRESHOLD = (Resolve-ExistingOrDefault "BYPASS_POST_TEST_THRESHOLD" $existing "false")
         BYPASS_THEORY_GATE         = (Resolve-ExistingOrDefault "BYPASS_THEORY_GATE" $existing "false")
+        REQUIRE_EMAIL_VERIFICATION = (Resolve-ExistingOrDefault "REQUIRE_EMAIL_VERIFICATION" $existing "true")
+        APP_BASE_URL               = $frontendUrl
         FRONTEND_URL               = $frontendUrl
         DOMAIN                     = $domainVal
         ACME_EMAIL                 = $acmeEmailVal

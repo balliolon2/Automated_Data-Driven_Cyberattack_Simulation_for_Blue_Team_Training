@@ -518,3 +518,17 @@
     - Configures Go `sql.DB` pooling in `main.go` (`DB_MAX_OPEN_CONNS=50`, `DB_MAX_IDLE_CONNS=20`), adds non-blocking LLM concurrency shedding (`SIMULATION_LLM_MAX_CONCURRENCY=8` → `fallback_reason = "llm_concurrency_shed"` into static pool), and wires overridable Compose resource limits (`BACKEND_CPU_LIMIT=2.0`, `BACKEND_MEM_LIMIT=1g`, `DB_CPU_LIMIT=2.0`, `DB_MEM_LIMIT=2g`).
     - Verified via 60-user burst smoke check, full CI/integration test harness, and timed ≤ 120-min novice dry-run before Tuesday Dec 1 afternoon.
     - See `workflows/azure_two_hour_live_run_readiness.md`.
+
+## Canonical Terms (Issue #69: Registration Email Verification Loop)
+
+- **Registration Verification Link (`<APP_BASE_URL>/verify-email?token=...`)**: A single-use `24h` cryptographic verification token issued at `/register` or `/register-specialist`, stored in `users.verification_token_hash` as SHA-256 hex, and confirmed by the Frontend via `POST /api/verify-email` (preventing email link scanners from pre-consuming `GET` links).
+- **Pending Email Verification Gate (`403 AUTH_EMAIL_NOT_VERIFIED`)**: Login restriction enforced after valid `bcrypt` password check when `REQUIRE_EMAIL_VERIFICATION=true` and `email_verified = false`.
+- **Atomic Specialist Registration (`POST /api/register-specialist`)**: Multipart endpoint saving `users` (`email_verified = false`), application files, and `specialist_applications` (`status = 'pending'`) in one transaction with file cleanup on failure, hiding the application from `/admin/specialists` until email verification succeeds.
+
+## Settled Decisions (Issue #69: Registration Email Verification — `/loop-me` Q1–Q12)
+
+71. **Registration Email Verification, Dual-Language Async SMTP & Specialist Coexistence (`Q1=A`, `Q2–Q12`)**:
+    - Requires new registrants (`POST /api/register` and atomic `POST /api/register-specialist`) to verify email ownership before login when `REQUIRE_EMAIL_VERIFICATION=true` (default), rejecting unverified logins with `403 AUTH_EMAIL_NOT_VERIFIED` after validating credentials; pre-existing users and seeded Admin default to `email_verified = true`.
+    - Dispatches a **single dual-language (TH + EN) email** asynchronously via standard SMTP (`SMTP_HOST/PORT/USER/PASSWORD/FROM/TLS_MODE`, `APP_BASE_URL`), safely skipping without logging raw tokens when `SMTP_HOST` is unconfigured, with opt-in Docker Compose `mailpit` (`profiles: ["dev-email"]`, `127.0.0.1:8025`) for local visual testing.
+    - Supports `POST /api/verify-email` (`24h` single-use SHA-256 token), `POST /api/resend-verification` (`60s` cooldown + neutral enumeration-safe responses), Frontend `/verify-email` + inline resend UI on `/register` and `/login`, Admin queue filtering (`users.email_verified = true`), and CI overrides via `REQUIRE_EMAIL_VERIFICATION=false`. Admin Approve/Reject outbound emails remain out of scope for `#69`.
+    - See `workflows/registration_email_verification.md`.

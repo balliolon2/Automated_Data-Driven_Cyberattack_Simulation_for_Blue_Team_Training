@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Shield, ArrowRight, Loader2 } from "lucide-react";
+import { Shield, ArrowRight, Loader2, MailWarning } from "lucide-react";
 import axios from "axios";
 import { useI18n } from "../i18n/index.tsx";
 import { resolveApiError } from "../i18n/format.ts";
+import ResendVerificationPanel from "../components/ResendVerificationPanel.tsx";
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -11,11 +12,13 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [errorObj, setErrorObj] = useState<unknown>(null);
+  const [pendingVerifyEmail, setPendingVerifyEmail] = useState("");
   const [loading, setLoading] = useState(false);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorObj(null);
+    setPendingVerifyEmail("");
     setLoading(true);
 
     try {
@@ -40,6 +43,9 @@ export default function LoginPage() {
       }
     } catch (err: unknown) {
       setErrorObj(err);
+      if (axios.isAxiosError(err) && err.response?.data?.code === "AUTH_EMAIL_NOT_VERIFIED") {
+        setPendingVerifyEmail((err.response.data?.email as string | undefined) || email.trim());
+      }
     } finally {
       setLoading(false);
     }
@@ -60,11 +66,22 @@ export default function LoginPage() {
           </p>
         </div>
 
-        {errorMessage && (
+        {pendingVerifyEmail ? (
+          <div className="mb-5 p-4 rounded-lg bg-amber-500/10 border border-amber-500/30 space-y-3">
+            <div className="flex items-start gap-2.5 text-amber-300">
+              <MailWarning size={18} className="shrink-0 mt-0.5" />
+              <div className="space-y-1">
+                <p className="text-sm font-semibold">{t("auth.verification.pendingTitle")}</p>
+                <p className="text-xs sm:text-sm text-amber-200/90 leading-relaxed">{errorMessage}</p>
+              </div>
+            </div>
+            <ResendVerificationPanel key={pendingVerifyEmail} initialEmail={pendingVerifyEmail} />
+          </div>
+        ) : errorMessage ? (
           <div className="mb-4 p-3 rounded bg-red-500/10 border border-red-500/20 text-red-400 text-sm font-mono">
             {errorMessage}
           </div>
-        )}
+        ) : null}
 
         <form onSubmit={handleLogin} className="space-y-4">
           <div>

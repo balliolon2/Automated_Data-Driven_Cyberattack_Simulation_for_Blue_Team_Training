@@ -18,7 +18,7 @@ Establish an end-to-end verified onboarding pathway for subject-matter experts (
 ## 2. Trigger
 
 - **Event**: 
-  - *Case A (New User)*: User navigates to `/register`, selects the "Apply as Specialist" tab, fills in required registration credentials plus qualification documents, and submits.
+  - *Case A (New User)*: User navigates to `/register`, selects the "Apply as Specialist" tab, fills in required registration credentials plus qualification documents, and submits atomically via `POST /api/register-specialist`. Per `workflows/registration_email_verification.md`, the account and application are persisted together while `email_verified = false` (login and Admin queue visibility remain gated until the applicant verifies their email address).
   - *Case B (Existing Learner)*: Authenticated Learner navigates to `/profile`, clicks "Apply for Specialist", and submits qualification documents.
 
 ---
@@ -70,6 +70,7 @@ Before requesting Admin intervention, the system performs all automated verifica
 
 - **Actor**: Platform Admin (`role = 'admin'`).
 - **Location**: Admin Portal at `/admin/specialists`.
+- **Visibility Guard**: Applications tied to accounts with `email_verified = false` remain hidden from the pending queue (`GET /api/admin/applications`) and blocked from approval until the applicant verifies email ownership (`workflows/registration_email_verification.md`).
 - **The Brief**:
   - **Candidate Header**: Nickname, Email, Submission Date.
   - **Experience Overview**: Bio text, clickable LinkedIn / Portfolio external links.

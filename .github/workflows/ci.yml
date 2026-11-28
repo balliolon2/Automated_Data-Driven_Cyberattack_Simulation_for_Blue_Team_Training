@@ -108,6 +108,11 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
+      mailpit:
+        image: axllent/mailpit
+        ports:
+          - 1025:1025
+          - 8025:8025
 
     steps:
       - name: Checkout Source Code
@@ -155,11 +160,13 @@ jobs:
           ADMIN_EMAIL: "admin@soc.local"
           ADMIN_PASSWORD: "password"
           BYPASS_POST_TEST_THRESHOLD: "true"
+          REQUIRE_EMAIL_VERIFICATION: "false"
           PORT: "8080"
           ENABLE_SWAGGER: "false"
         run: |
           go run main.go > backend.log 2>&1 &
-          
+          BACKEND_PID=$!
+
           # Poll health check until backend responds healthy
           for i in {1..30}; do
             if curl -s http://localhost:8080/api/health | grep -q "healthy"; then
@@ -177,6 +184,35 @@ jobs:
           fi
 
           python scripts/test_integration.py
+          kill $BACKEND_PID || true
+          wait $BACKEND_PID 2>/dev/null || true
+
+      - name: Verify Email Verification + Mailpit Integration (REQUIRE_EMAIL_VERIFICATION=true)
+        env:
+          DATABASE_URL: "postgres://postgres:password123@localhost:5432/cyber_sim?sslmode=disable"
+          JWT_SECRET: "ci-test-jwt-secret-key-12345"
+          ADMIN_EMAIL: "admin@soc.local"
+          ADMIN_PASSWORD: "password"
+          REQUIRE_EMAIL_VERIFICATION: "true"
+          APP_BASE_URL: "http://localhost"
+          SMTP_HOST: "localhost"
+          SMTP_PORT: "1025"
+          SMTP_TLS_MODE: "none"
+          PORT: "8080"
+          ENABLE_SWAGGER: "false"
+        run: |
+          go run main.go > backend_verify.log 2>&1 &
+          BACKEND_PID=$!
+          trap "kill $BACKEND_PID 2>/dev/null || true" EXIT
+
+          for i in {1..30}; do
+            if curl -s http://localhost:8080/api/health | grep -q "healthy"; then
+              break
+            fi
+            sleep 1
+          done
+
+          python scripts/test_email_verification_integration.py
 
   build-validation:
     name: Production Build Verification
