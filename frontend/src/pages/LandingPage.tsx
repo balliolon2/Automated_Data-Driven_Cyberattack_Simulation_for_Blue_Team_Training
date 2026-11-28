@@ -469,7 +469,7 @@ export default function LandingPage() {
               </p>
             </div>
             
-            {/* 4-Stage 2-Hour Mission Roadmap */}
+            {/* 4-Stage Mission Roadmap */}
             <div className="mt-6 pt-4 border-t border-graphite-800 flex flex-col gap-2.5 font-mono text-xs text-graphite-300 select-none">
               <div className="flex items-center gap-2.5">
                 <span className="w-6 h-6 rounded border border-graphite-800 bg-graphite-950 flex items-center justify-center text-white font-medium shrink-0">01</span>

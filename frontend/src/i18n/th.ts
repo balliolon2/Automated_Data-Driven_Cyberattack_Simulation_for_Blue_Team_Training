@@ -79,12 +79,12 @@ export const th = {
   },
   landing: {
     hero: {
-      badge: "ภารกิจนักสืบไซเบอร์ 2 ชั่วโมง (Junior Cyber Detective)",
+      badge: "ภารกิจนักสืบไซเบอร์ (Junior Cyber Detective)",
       titleLine1: "สวมบทนักสืบไซเบอร์",
       titleLine2: "จับผิดแฮกเกอร์จาก Log จริง",
-      subtitle: "ไม่ต้องมีพื้นฐานมาก่อนก็เล่นได้! สืบสวน SIEM Logs แบบโต้ตอบ ป้องกันภัยคุกคามทั้ง 5 โดเมนของ CompTIA Security+ และวัดพลังการพัฒนาใน 2 ชั่วโมง",
+      subtitle: "ไม่ต้องมีพื้นฐานมาก่อนก็เล่นได้! สืบสวน SIEM Logs แบบโต้ตอบ ป้องกันภัยคุกคามทั้ง 5 โดเมนของ CompTIA Security+ และเห็นพัฒนาการของตัวเองทันที",
       evaluating: "กำลังเตรียมภารกิจ...",
-      startAssessment: "เริ่มภารกิจ 2 ชั่วโมง",
+      startAssessment: "เริ่มภารกิจนักสืบ",
       tryDetectiveCase: "ลองจับแฮกเกอร์ 30 วิ",
     },
     workbench: {
@@ -110,10 +110,10 @@ export const th = {
       submitted: "ส่งคำตอบแล้ว",
     },
     bento: {
-      heading: "แผนที่ภารกิจ 4 ด่านตลอด 2 ชั่วโมง",
+      heading: "แผนที่ภารกิจ 4 ด่าน",
       subheading: "เริ่มต้นจากศูนย์ได้สบายๆ — เรียนรู้ทีละขั้นพร้อมฝึกสืบสวนจริง",
       cell1: {
-        eyebrow: "แผนที่ 2 ชั่วโมง",
+        eyebrow: "เส้นทางภารกิจ",
         title: "4 ด่านจากมือใหม่สู่นักปกป้องระบบ",
         description: "เริ่มสแกนระดับพื้นฐาน (ไม่เก็บคะแนนสอบ!) แล้วฝึกอัปเลเวลผ่าน Scenario ที่ปรับตาม Domain Breakdown ของคุณ",
         step1: "Pre-Test สแกนพื้นฐาน (~20 นาที)",

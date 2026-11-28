@@ -77,12 +77,12 @@ export const en = {
   },
   landing: {
     hero: {
-      badge: "2-Hour Junior Cyber Detective Mission",
+      badge: "Junior Cyber Detective Mission",
       titleLine1: "Spot Hackers Like a",
       titleLine2: "Real SOC Analyst",
-      subtitle: "Zero prior security background needed. Play interactive SIEM cases, defend systems across 5 CompTIA Security+ domains, and measure your skill gain in 2 hours.",
+      subtitle: "Zero prior security background needed. Play interactive SIEM cases, defend systems across 5 CompTIA Security+ domains, and track your skill gain.",
       evaluating: "Preparing your mission...",
-      startAssessment: "Start Your 2h Mission",
+      startAssessment: "Start Mission",
       tryDetectiveCase: "Try 30s Cyber Case",
     },
     workbench: {
@@ -108,10 +108,10 @@ export const en = {
       submitted: "Answers submitted",
     },
     bento: {
-      heading: "Your 4-Stage 2-Hour Mission Roadmap",
+      heading: "Your 4-Stage Mission Roadmap",
       subheading: "Zero prior knowledge required — step-by-step Cyber Detective training",
       cell1: {
-        eyebrow: "2-Hour Journey",
+        eyebrow: "Mission Path",
         title: "4 Stages from Rookie to Defender",
         description: "Start with a quick skill scan (no grades!) and level up through hands-on Scenarios tailored to your Domain Breakdown.",
         step1: "Pre-Test Skill Scan (~20m)",
